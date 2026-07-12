@@ -3,88 +3,94 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    /**
+     * ثبت نام کاربر جدید
+     */
+    public function register(RegisterRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'nullable|string|max:20',
-        ]);
+        try {
+            $validated = $request->validated();
 
-        if ($validator->fails()) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'role' => 'customer',
+            ]);
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => new UserResource($user),
+                    'token' => $token,
+                ],
+                'message' => 'Registration successful',
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('AuthController@register: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors(),
-            ], 422);
+                'message' => 'خطا در ثبت نام',
+            ], 500);
         }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'role' => 'customer',
-        ]);
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => new UserResource($user),
-                'token' => $token,
-            ],
-            'message' => 'Registration successful',
-        ], 201);
     }
 
-    public function login(Request $request)
+    /**
+     * ورود کاربر
+     */
+    public function login(LoginRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        try {
+            $validated = $request->validated();
 
-        if ($validator->fails()) {
+            $user = User::where('email', $validated['email'])->first();
+
+            if (!$user || !Hash::check($validated['password'], $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ایمیل یا رمز عبور اشتباه است',
+                ], 401);
+            }
+
+            $token = $user->createToken('auth-token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => new UserResource($user),
+                    'token' => $token,
+                ],
+                'message' => 'Login successful',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('AuthController@login: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors(),
-            ], 422);
+                'message' => 'خطا در ورود',
+            ], 500);
         }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid credentials',
-            ], 401);
-        }
-
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => new UserResource($user),
-                'token' => $token,
-            ],
-            'message' => 'Login successful',
-        ]);
     }
 
+    /**
+     * خروج کاربر
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -95,6 +101,9 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * دریافت اطلاعات کاربر فعلی
+     */
     public function user(Request $request)
     {
         return response()->json([
@@ -104,47 +113,24 @@ class AuthController extends Controller
     }
 
     /**
-     * به‌روزرسانی اطلاعات کاربر
+     * به‌روزرسانی پروفایل کاربر
      */
-    public function update(Request $request)
+    public function update(UpdateProfileRequest $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $request->user()->id,
-                'phone' => 'nullable|string|max:20',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'خطای اعتبارسنجی',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
+            $validated = $request->validated();
             $user = $request->user();
 
-            // به‌روزرسانی فیلدهای موجود
-            if ($request->has('name')) {
-                $user->name = $request->name;
-            }
-            if ($request->has('email')) {
-                $user->email = $request->email;
-            }
-            if ($request->has('phone')) {
-                $user->phone = $request->phone;
-            }
-
-            $user->save();
+            $user->update($validated);
 
             return response()->json([
                 'success' => true,
                 'message' => 'اطلاعات با موفقیت به‌روزرسانی شد',
                 'data' => [
-                    'user' => new UserResource($user),
+                    'user' => new UserResource($user->fresh()),
                 ],
             ]);
+
         } catch (\Exception $e) {
             Log::error('AuthController@update: ' . $e->getMessage());
             return response()->json([
@@ -157,26 +143,14 @@ class AuthController extends Controller
     /**
      * تغییر رمز عبور
      */
-    public function changePassword(Request $request)
+    public function changePassword(ChangePasswordRequest $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'current_password' => 'required|string',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'خطای اعتبارسنجی',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
+            $validated = $request->validated();
             $user = $request->user();
 
             // بررسی رمز فعلی
-            if (!Hash::check($request->current_password, $user->password)) {
+            if (!Hash::check($validated['current_password'], $user->password)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'رمز عبور فعلی اشتباه است',
@@ -184,13 +158,15 @@ class AuthController extends Controller
             }
 
             // به‌روزرسانی رمز
-            $user->password = Hash::make($request->password);
-            $user->save();
+            $user->update([
+                'password' => Hash::make($validated['password']),
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'رمز عبور با موفقیت تغییر کرد',
             ]);
+
         } catch (\Exception $e) {
             Log::error('AuthController@changePassword: ' . $e->getMessage());
             return response()->json([

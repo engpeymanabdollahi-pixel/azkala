@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\DTOs\Order\CreateOrderDTO;
 use App\Models\Cart;
@@ -74,10 +75,11 @@ class OrderController extends Controller
     /**
      * ایجاد سفارش جدید از سبد خرید
      */
-    public function store(Request $request)
+    public function store(StoreOrderRequest $request)
     {
         try {
             $userId = $request->user()->id;
+            $validated = $request->validated();
 
             // Get cart items
             $cart = Cart::with('items.product')->where('user_id', $userId)->first();
@@ -98,7 +100,7 @@ class OrderController extends Controller
             })->toArray();
 
             // Create DTO
-            $dto = CreateOrderDTO::fromRequest($request, $userId, $cartItems);
+            $dto = CreateOrderDTO::fromRequest($request, $userId, $cartItems, $validated);
 
             // Create order
             $order = $this->orderService->createOrder($dto);
