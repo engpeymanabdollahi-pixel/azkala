@@ -1,0 +1,3 @@
+﻿User-agent: *
+Allow: /
+Sitemap: https://azkala.com/sitemap.xml

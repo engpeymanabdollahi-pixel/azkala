@@ -1,0 +1,47 @@
+import React from 'react';
+import { cn } from '@/utils/cn';
+
+interface BadgeProps {
+  variant?: 'primary' | 'accent' | 'success' | 'warning' | 'error' | 'gray';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  className?: string;
+  icon?: React.ReactNode;
+}
+
+export function Badge({ 
+  variant = 'primary', 
+  size = 'md', 
+  children, 
+  className,
+  icon 
+}: BadgeProps) {
+  const variants = {
+    primary: 'bg-primary-100 text-primary-700 border-primary-200',
+    accent: 'bg-accent-100 text-accent-700 border-accent-200',
+    success: 'bg-success-50 text-success-700 border-success-200',
+    warning: 'bg-warning-50 text-warning-600 border-warning-200',
+    error: 'bg-error-50 text-error-700 border-error-200',
+    gray: 'bg-gray-100 text-gray-700 border-gray-200',
+  };
+
+  const sizes = {
+    sm: 'px-2 py-0.5 text-xs gap-1',
+    md: 'px-2.5 py-1 text-xs gap-1.5',
+    lg: 'px-3 py-1.5 text-sm gap-2',
+  };
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center font-semibold rounded-full border transition-all',
+        variants[variant],
+        sizes[size],
+        className
+      )}
+    >
+      {icon && <span className="flex-shrink-0">{icon}</span>}
+      {children}
+    </span>
+  );
+}

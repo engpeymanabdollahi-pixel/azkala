@@ -1,0 +1,204 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Services\Admin\AdminCategoryService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
+class AdminCategoryController extends Controller
+{
+    protected AdminCategoryService $categoryService;
+
+    public function __construct(AdminCategoryService $categoryService)
+    {
+        $this->categoryService = $categoryService;
+    }
+
+    /**
+     * لیست دسته‌بندی‌ها
+     */
+    public function index(Request $request)
+    {
+        try {
+            $filters = [
+                'search' => $request->get('search'),
+                'type' => $request->get('type'),
+                'is_active' => $request->get('is_active'),
+                'parent_id' => $request->get('parent_id'),
+                'sort_by' => $request->get('sort_by', 'sort_order'),
+                'sort_order' => $request->get('sort_order', 'asc'),
+            ];
+
+            $data = $this->categoryService->getCategories($filters, (int) $request->get('per_page', 50));
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AdminCategoryController@index: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * درخت دسته‌بندی‌ها
+     */
+    public function tree()
+    {
+        try {
+            $data = $this->categoryService->getCategoryTree();
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AdminCategoryController@tree: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * ایجاد دسته‌بندی جدید
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:categories,slug',
+            'parent_id' => 'nullable|integer|exists:categories,id',
+            'icon' => 'nullable|string|max:100',
+            'image' => 'nullable|string',
+            'description' => 'nullable|string',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'boolean',
+            'meta_title' => 'nullable|string|max:200',
+            'meta_description' => 'nullable|string',
+            'meta_keywords' => 'nullable|string|max:255',
+            'tags' => 'nullable|array',
+            'tags.*' => 'string|max:100',
+            'is_temporary' => 'boolean',
+            'campaign_name' => 'nullable|string|max:100',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'bg_color' => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
+        ]);
+
+        try {
+            $category = $this->categoryService->createCategory($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'دسته‌بندی ایجاد شد',
+                'data' => $category,
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('AdminCategoryController@store: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * نمایش یک دسته‌بندی
+     */
+    public function show($id)
+    {
+        try {
+            $data = $this->categoryService->getCategoryDetails((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        } catch (\Exception $e) {
+            $statusCode = $e->getCode() ?: 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * به‌روزرسانی دسته‌بندی
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $id,
+            'parent_id' => 'nullable',
+            'icon' => 'nullable|string|max:100',
+            'image' => 'nullable|string',
+            'description' => 'nullable|string',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'sometimes|boolean',
+            'meta_title' => 'nullable|string|max:200',
+            'meta_description' => 'nullable|string',
+            'meta_keywords' => 'nullable|string|max:255',
+            'tags' => 'nullable',
+            'is_temporary' => 'sometimes|boolean',
+            'campaign_name' => 'nullable|string|max:100',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'bg_color' => 'nullable|string|max:20',
+            'text_color' => 'nullable|string|max:20',
+        ]);
+
+        try {
+            $category = $this->categoryService->updateCategory((int) $id, $validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'دسته‌بندی به‌روزرسانی شد',
+                'data' => $category,
+            ]);
+        } catch (\Exception $e) {
+            $statusCode = $e->getCode() ?: 500;
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $statusCode);
+        }
+    }
+
+    /**
+     * عملیات گروهی
+     */
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer|exists:categories,id',
+            'action' => 'required|in:activate,deactivate,delete',
+        ]);
+
+        try {
+            $result = $this->categoryService->bulkAction($validated['ids'], $validated['action']);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AdminCategoryController@bulkAction: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+}

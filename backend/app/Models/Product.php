@@ -1,0 +1,134 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Product extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'category_id',
+        'brand_id',
+        'seller_id',
+        'name',
+        'slug',
+        'short_description',
+        'description',
+        'price',
+        'discount_price',
+        'stock',
+        'sku',
+        'main_image',
+        'gallery',
+        'rating',
+        'reviews_count',
+        'views_count',
+        'sales_count',
+        'is_active',
+        'is_featured',
+        'is_special_offer',
+        'special_offer_ends_at',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'discount_price' => 'decimal:2',
+        'gallery' => 'array',
+        'rating' => 'decimal:2',
+        'is_active' => 'boolean',
+        'is_featured' => 'boolean',
+        'is_special_offer' => 'boolean',
+        'special_offer_ends_at' => 'datetime',
+    ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function seller()
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
+    public function phoneModels()
+    {
+        return $this->belongsToMany(PhoneModel::class, 'product_phone_models');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    public function scopeSpecialOffers($query)
+    {
+        return $query->where('is_special_offer', true)
+                     ->where('special_offer_ends_at', '>', now());
+    }
+
+    public function scopeInCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeInBrand($query, $brandId)
+    {
+        return $query->where('brand_id', $brandId);
+    }
+
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('short_description', 'like', "%{$search}%")
+              ->orWhere('sku', 'like', "%{$search}%");
+        });
+    }
+
+    public function getFinalPriceAttribute()
+    {
+        return $this->discount_price ?? $this->price;
+    }
+
+    public function getDiscountPercentageAttribute()
+    {
+        if ($this->discount_price && $this->price > 0) {
+            return round((($this->price - $this->discount_price) / $this->price) * 100);
+        }
+        return 0;
+    }
+
+    public function getIsInStockAttribute()
+    {
+        return $this->stock > 0;
+    }
+public function wishlists()
+{
+    return $this->hasMany(Wishlist::class);
+}
+
+public function isWishlistedBy($userId)
+{
+    return $this->wishlists()->where('user_id', $userId)->exists();
+}
+}
