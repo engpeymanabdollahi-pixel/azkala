@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use App\DTOs\Product\ProductFilterDTO;
 use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $products,
+                'data' => ProductResource::collection($products),
             ]);
         } catch (\Exception $e) {
             Log::error('ProductController@index: ' . $e->getMessage());
@@ -54,10 +55,13 @@ class ProductController extends Controller
                 ], 404);
             }
 
+            // Load relations for ProductResource
+            $product->load(['brand', 'category', 'images', 'phoneModels']);
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'product' => $product,
+                    'product' => new ProductResource($product),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -77,13 +81,18 @@ class ProductController extends Controller
         try {
             $data = $this->productService->getProductBySlug($slug);
 
+            // If data contains a product, wrap it with ProductResource
+            if (isset($data['product'])) {
+                $data['product'] = new ProductResource($data['product']);
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -101,7 +110,7 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $products,
+                'data' => ProductResource::collection($products),
             ]);
         } catch (\Exception $e) {
             Log::error('ProductController@featured: ' . $e->getMessage());
@@ -122,7 +131,7 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $products,
+                'data' => ProductResource::collection($products),
             ]);
         } catch (\Exception $e) {
             Log::error('ProductController@specialOffers: ' . $e->getMessage());
@@ -147,7 +156,7 @@ class ProductController extends Controller
             ]);
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -174,29 +183,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => $products->map(function ($product) {
-                        return [
-                            'id' => $product->id,
-                            'name' => $product->name,
-                            'slug' => $product->slug,
-                            'main_image' => $product->main_image,
-                            'price' => (float) $product->price,
-                            'discount_price' => $product->discount_price ? (float) $product->discount_price : null,
-                            'stock' => $product->stock,
-                            'rating' => (float) $product->rating,
-                            'reviews_count' => $product->reviews_count,
-                            'sales_count' => $product->sales_count,
-                            'category_id' => $product->category_id,
-                            'category' => $product->category ? [
-                                'id' => $product->category->id,
-                                'name' => $product->category->name,
-                            ] : null,
-                            'brand' => $product->brand ? [
-                                'id' => $product->brand->id,
-                                'name' => $product->brand->name,
-                            ] : null,
-                        ];
-                    }),
+                    'data' => ProductResource::collection($products),
                     'total' => $products->total(),
                 ],
             ]);
@@ -221,27 +208,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => $products->map(function ($product) {
-                        return [
-                            'id' => $product->id,
-                            'name' => $product->name,
-                            'slug' => $product->slug,
-                            'main_image' => $product->main_image,
-                            'price' => (float) $product->price,
-                            'discount_price' => $product->discount_price ? (float) $product->discount_price : null,
-                            'stock' => $product->stock,
-                            'rating' => (float) $product->rating,
-                            'category_id' => $product->category_id,
-                            'category' => $product->category ? [
-                                'id' => $product->category->id,
-                                'name' => $product->category->name,
-                            ] : null,
-                            'brand' => $product->brand ? [
-                                'id' => $product->brand->id,
-                                'name' => $product->brand->name,
-                            ] : null,
-                        ];
-                    }),
+                    'data' => ProductResource::collection($products),
                     'total' => $products->total(),
                 ],
             ]);

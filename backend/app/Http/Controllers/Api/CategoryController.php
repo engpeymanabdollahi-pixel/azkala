@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -25,7 +26,7 @@ class CategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $categories,
+                'data' => CategoryResource::collection($categories),
             ]);
         } catch (\Exception $e) {
             Log::error('CategoryController@index: ' . $e->getMessage());
@@ -48,7 +49,7 @@ class CategoryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $category,
+                'data' => new CategoryResource($category),
             ]);
         } catch (\Exception $e) {
             Log::error('CategoryController@show: ' . $e->getMessage());

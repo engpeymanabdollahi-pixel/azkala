@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BrandResource;
 use App\Models\Brand;
 
 class BrandController extends Controller
@@ -16,7 +17,7 @@ class BrandController extends Controller
 
         return response()->json([
             "success" => true,
-            "data" => $brands,
+            "data" => BrandResource::collection($brands),
         ]);
     }
 
@@ -28,7 +29,7 @@ class BrandController extends Controller
 
         return response()->json([
             "success" => true,
-            "data" => $brand,
+            "data" => new BrandResource($brand),
         ]);
     }
 }
