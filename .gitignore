@@ -1,43 +1,50 @@
 # Dependencies
-/node_modules
-/vendor
+node_modules/
+vendor/
 
 # Build outputs
-/frontend/dist
-/frontend/build
+frontend/dist/
+frontend/build/
 
 # Environment files
 .env
 .env.local
 .env.*.local
+backend/.env
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
 npm-debug.log*
-storage/logs/*.log
+backend/storage/logs/*.log
 
 # Cache
 .phpunit.result.cache
 .phpunit.cache
-bootstrap/cache/*
-storage/framework/cache/*
-storage/framework/sessions/*
-storage/framework/views/*
+backend/bootstrap/cache/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
 
 # Testing
 coverage/
 .nyc_output/
+backend/coverage/
 
 # Temporary files
 *.tmp
 *.temp
+
+# Laragon specific
+laragon/
