@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\OrderResource;
 use App\DTOs\Order\CreateOrderDTO;
 use App\Models\Cart;
 use App\Services\Order\OrderService;
@@ -26,12 +27,12 @@ class OrderController extends Controller
         try {
             $userId = $request->user()->id;
             $perPage = (int) $request->get('per_page', 20);
-            
+
             $orders = $this->orderService->getUserOrders($userId, $perPage);
 
             return response()->json([
                 'success' => true,
-                'data' => $orders,
+                'data' => OrderResource::collection($orders),
             ]);
         } catch (\Exception $e) {
             Log::error('OrderController@index: ' . $e->getMessage());
@@ -51,13 +52,18 @@ class OrderController extends Controller
             $userId = $request->user()->id;
             $data = $this->orderService->getOrderDetails((int) $orderId, $userId);
 
+            // If data contains an order, wrap it with OrderResource
+            if (isset($data['order'])) {
+                $data['order'] = new OrderResource($data['order']);
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $data,
             ]);
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -97,21 +103,22 @@ class OrderController extends Controller
             // Create order
             $order = $this->orderService->createOrder($dto);
 
+            // Load relations for OrderResource
+            $order->load(['items.product', 'address', 'user', 'coupon']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'سفارش با موفقیت ثبت شد',
                 'data' => [
-                    'order_id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'total' => (float) $order->total,
+                    'order' => new OrderResource($order),
                 ],
             ], 201);
 
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
-            
+
             Log::error('OrderController@store: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -126,7 +133,7 @@ class OrderController extends Controller
     {
         try {
             $userId = $request->user()->id;
-            
+
             $result = $this->orderService->cancelOrder((int) $orderId, $userId);
 
             return response()->json([
@@ -136,7 +143,7 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
-            
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

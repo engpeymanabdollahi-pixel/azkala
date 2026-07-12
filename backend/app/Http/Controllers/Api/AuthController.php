@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -41,13 +42,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $user->role,
-                ],
+                'user' => new UserResource($user),
                 'token' => $token,
             ],
             'message' => 'Registration successful',
@@ -83,13 +78,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $user->role,
-                ],
+                'user' => new UserResource($user),
                 'token' => $token,
             ],
             'message' => 'Login successful',
@@ -110,114 +99,104 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'phone' => $request->user()->phone,
-                'role' => $request->user()->role,
-            ],
+            'data' => new UserResource($request->user()),
         ]);
     }
+
     /**
- * به‌روزرسانی اطلاعات کاربر
- */
-public function update(Request $request)
-{
-    try {
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $request->user()->id,
-            'phone' => 'nullable|string|max:20',
-        ]);
+     * به‌روزرسانی اطلاعات کاربر
+     */
+    public function update(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'name' => 'sometimes|string|max:255',
+                'email' => 'sometimes|string|email|max:255|unique:users,email,' . $request->user()->id,
+                'phone' => 'nullable|string|max:20',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'خطای اعتبارسنجی',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $user = $request->user();
+
+            // به‌روزرسانی فیلدهای موجود
+            if ($request->has('name')) {
+                $user->name = $request->name;
+            }
+            if ($request->has('email')) {
+                $user->email = $request->email;
+            }
+            if ($request->has('phone')) {
+                $user->phone = $request->phone;
+            }
+
+            $user->save();
+
             return response()->json([
-                'success' => false,
-                'message' => 'خطای اعتبارسنجی',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $user = $request->user();
-        
-        // به‌روزرسانی فیلدهای موجود
-        if ($request->has('name')) {
-            $user->name = $request->name;
-        }
-        if ($request->has('email')) {
-            $user->email = $request->email;
-        }
-        if ($request->has('phone')) {
-            $user->phone = $request->phone;
-        }
-        
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'اطلاعات با موفقیت به‌روزرسانی شد',
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $user->role,
+                'success' => true,
+                'message' => 'اطلاعات با موفقیت به‌روزرسانی شد',
+                'data' => [
+                    'user' => new UserResource($user),
                 ],
-            ],
-        ]);
-    } catch (\Exception $e) {
-        Log::error('AuthController@update: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'خطا در به‌روزرسانی اطلاعات',
-        ], 500);
-    }
-}
-/**
- * تغییر رمز عبور
- */
-public function changePassword(Request $request)
-{
-    try {
-        $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AuthController@update: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطای اعتبارسنجی',
-                'errors' => $validator->errors(),
-            ], 422);
+                'message' => 'خطا در به‌روزرسانی اطلاعات',
+            ], 500);
         }
+    }
 
-        $user = $request->user();
+    /**
+     * تغییر رمز عبور
+     */
+    public function changePassword(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'current_password' => 'required|string',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        // بررسی رمز فعلی
-        if (!Hash::check($request->current_password, $user->password)) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'خطای اعتبارسنجی',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $user = $request->user();
+
+            // بررسی رمز فعلی
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'رمز عبور فعلی اشتباه است',
+                ], 400);
+            }
+
+            // به‌روزرسانی رمز
+            $user->password = Hash::make($request->password);
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'رمز عبور با موفقیت تغییر کرد',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AuthController@changePassword: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'رمز عبور فعلی اشتباه است',
-            ], 400);
+                'message' => 'خطا در تغییر رمز عبور',
+            ], 500);
         }
-
-        // به‌روزرسانی رمز
-        $user->password = Hash::make($request->password);
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'رمز عبور با موفقیت تغییر کرد',
-        ]);
-    } catch (\Exception $e) {
-        Log::error('AuthController@changePassword: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'خطا در تغییر رمز عبور',
-        ], 500);
     }
-}
 }
