@@ -1,47 +1,43 @@
 # Dependencies
 /node_modules
 /vendor
-/.pnp
-.pnp.js
 
-# Testing
-/coverage
-.phpunit.result.cache
+# Build outputs
+/frontend/dist
+/frontend/build
 
-# Production
-/build
-/dist
-
-# Misc
-.DS_Store
+# Environment files
+.env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Logs
+*.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
-.pnpm-debug.log*
+storage/logs/*.log
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Laravel
-/storage/*.key
-/storage/framework/cache/*
-/storage/framework/sessions/*
-/storage/framework/views/*
-/storage/logs/*
-/bootstrap/cache/*
-.env
+# Cache
+.phpunit.result.cache
 .phpunit.cache
+bootstrap/cache/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
