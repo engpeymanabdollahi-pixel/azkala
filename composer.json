@@ -1,0 +1,9 @@
+{
+    "require": {
+        "livewire/livewire": "*",
+        "kavenegar/laravel": "*",
+        "shetabit/payment": "*",
+        "spatie/laravel-permission": "*",
+        "spatie/laravel-medialibrary": "^11.0.0"
+    }
+}
