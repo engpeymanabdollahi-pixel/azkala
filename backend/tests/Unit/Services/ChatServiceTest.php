@@ -38,7 +38,7 @@ class ChatServiceTest extends TestCase
     {
         $userId = 1;
         
-        // ط§ط³طھظپط§ط¯ظ‡ ط§ط² Eloquent Collection
+        // ط·آ§ط·آ³ط·ع¾ط¸ظ¾ط·آ§ط·آ¯ط¸â€، ط·آ§ط·آ² Eloquent Collection
         $conversations = new Collection([]);
 
         $this->mockRepository
