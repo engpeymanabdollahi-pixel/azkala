@@ -3,32 +3,22 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
-    //
+    use CreatesApplication;
 
-    
-    protected function tearDown(): void
+    protected function setUp(): void
     {
-        parent::tearDown();
-        
-        // Force rollback any active transactions to prevent "already an active transaction" errors
-        try {
-            $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
-            if ($pdo && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-        } catch (\Exception $e) {
-            // Ignore cleanup errors
-        }
+        parent::setUp();
     }
 
     protected function tearDown(): void
     {
         // Force rollback any active transactions to prevent "already an active transaction" errors
         try {
-            $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+            $pdo = DB::connection()->getPdo();
             if ($pdo && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
