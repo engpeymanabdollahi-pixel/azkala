@@ -102,7 +102,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   // Load Quick Replies برای فروشنده
   useEffect(() => {
     if (isSeller && isOpen) {
-      quickReplyService.getQuickReplies()
+      quickReplyService.getQuickReplies(activeConversation?.seller_id)
         .then(res => {
           if (res.success) setQuickReplies(res.data);
         })

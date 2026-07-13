@@ -98,39 +98,88 @@ export function ProductDetailPage() {
   const [reviewsPage, setReviewsPage] = useState(1);
   const [reviewFilter, setReviewFilter] = useState<number | 'all'>('all');
 
-  // ==================== Data Fetching ====================
+   // ==================== Data Fetching ====================
   useEffect(() => {
+    let isMounted = true; // 🛡️ جلوگیری از آپدیت state در صورت آن‌مونت شدن کامپوننت
+
     const loadProduct = async () => {
       if (!slug) {
-        setError('شناسه محصول نامعتبر است');
-        setIsLoading(false);
+        if (isMounted) {
+          setError('شناسه محصول نامعتبر است');
+          setIsLoading(false);
+        }
         return;
       }
 
-      setIsLoading(true);
-      setError(null);
+      if (isMounted) {
+        setIsLoading(true);
+        setError(null);
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       try {
         const response = await productService.getProductBySlug(slug);
-        if (response.success && response.data.product) {
-          setProduct(response.data.product as Product);
-          setRelatedProducts((response.data.related_products || []) as Product[]);
-          setSelectedImage(0);
-          setQuantity(1);
-        } else {
-          throw new Error('محصول یافت نشد');
+        
+        if (!isMounted) return; // 🛡️ اگر کامپوننت حین درخواست بسته شد، ادامه نده
+
+        // ساختار جدید API: داده‌ها در response.data قرار دارند و product یکی از کلیدهای آن است
+        const rawData = response.data;
+        const productData = rawData?.product || rawData; // پشتیبانی از هر دو ساختار قدیم و جدید
+
+        if (!productData || !productData.id) {
+          throw new Error('داده‌های محصول یافت نشد');
         }
+
+        // 🛡️ نرمال‌سازی داده‌ها برای جلوگیری از خطاهای undefined در UI
+        const safeProduct = {
+          ...productData,
+          // اطمینان از وجود آبجکت brand و category (ساختار جدید Resource)
+          brand: productData.brand || { id: 0, name: 'نامشخص', slug: '' },
+          category: productData.category || { id: 0, name: 'نامشخص', slug: '' },
+          // اطمینان از آرایه بودن images
+          images: Array.isArray(productData.images) ? productData.images : (productData.main_image ? [productData.main_image] : []),
+          // تبدیل قیمت به عدد
+          price: Number(productData.price) || 0,
+          compare_price: Number(productData.compare_price) || 0,
+        };
+
+        if (isMounted) {
+          setProduct(safeProduct as any);
+
+          // لود محصولات مرتبط (اگر در پاسخ API وجود داشته باشد)
+          if (rawData.related_products && Array.isArray(rawData.related_products)) {
+            setRelatedProducts(rawData.related_products);
+          }
+        }
+
       } catch (err: any) {
-        if (err.response?.status === 404) setError('محصول مورد نظر یافت نشد');
-        else if (err.response?.status === 401) setError('برای مشاهده این محصول باید وارد شوید');
-        else setError('خطا در دریافت اطلاعات محصول');
+        if (!isMounted) return;
+
+        // 🛡️ نادیده گرفتن خطای CanceledError ناشی از React 18 Strict Mode
+        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED' || err.message === 'canceled') {
+          console.log('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
+          return; // خارج شدن از تابع بدون تنظیم state خطا
+        }
+
+        console.error('❌ خطا واقعی در دریافت محصول:', err);
+        if (isMounted) {
+          setError(err.response?.data?.message || err.message || 'خطا در بارگذاری محصول');
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
+
     loadProduct();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
+  
   // بعد از useEffect loadProduct (حدود خط ۱۲۰)
 useEffect(() => {
   if (product) {
