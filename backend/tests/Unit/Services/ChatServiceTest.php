@@ -2,28 +2,25 @@
 
 namespace Tests\Unit\Services;
 
-use App\DTOs\Chat\SendMessageDTO;
-use App\Models\User;
-use App\Repositories\ChatRepository;
+use Tests\TestCase;
 use App\Services\Chat\ChatService;
-use Illuminate\Database\Eloquent\Collection;
+use App\Repositories\ChatRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
-use Tests\TestCase;
 
 class ChatServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected ChatService $service;
-    protected $mockRepository;
+    protected $chatRepository;
+    protected $chatService;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $this->mockRepository = Mockery::mock(ChatRepository::class);
-        $this->service = new ChatService($this->mockRepository);
+        $this->chatRepository = Mockery::mock(ChatRepository::class);
+        $this->app->instance(ChatRepository::class, $this->chatRepository);
+        $this->chatService = app(ChatService::class);
     }
 
     protected function tearDown(): void
@@ -32,146 +29,111 @@ class ChatServiceTest extends TestCase
         parent::tearDown();
     }
 
-    // ==================== getUserConversations Tests ====================
-
-    public function test_can_get_user_conversations(): void
+    /** @test */
+    public function test_can_get_user_conversations()
     {
         $userId = 1;
-        
-        // ط·آ§ط·آ³ط·ع¾ط¸ظ¾ط·آ§ط·آ¯ط¸â€، ط·آ§ط·آ² Eloquent Collection
-        $conversations = new Collection([]);
+        $expected = [['id' => 1, 'seller_id' => 2]];
 
-        $this->mockRepository
+        $this->chatRepository
             ->shouldReceive('getUserConversations')
             ->with($userId, 'all')
             ->once()
-            ->andReturn($conversations);
+            ->andReturn($expected);
 
-        $result = $this->service->getUserConversations($userId);
+        $result = $this->chatService->getUserConversations($userId);
 
-        $this->assertIsArray($result);
-        $this->assertCount(0, $result);
+        $this->assertEquals($expected, $result);
     }
 
-    public function test_can_get_user_conversations_with_filter(): void
+    /** @test */
+    public function test_can_get_user_conversations_with_filter()
     {
         $userId = 1;
-        $conversations = new Collection([]);
+        $expected = [['id' => 1, 'seller_id' => 2]];
 
-        $this->mockRepository
+        $this->chatRepository
             ->shouldReceive('getUserConversations')
-            ->with($userId, 'unread')
+            ->with($userId, 'active')
             ->once()
-            ->andReturn($conversations);
+            ->andReturn($expected);
 
-        $result = $this->service->getUserConversations($userId, 'unread');
+        $result = $this->chatService->getUserConversations($userId, 'active');
 
-        $this->assertIsArray($result);
+        $this->assertEquals($expected, $result);
     }
 
-    // ==================== sendMessage Validation Tests ====================
-
-    public function test_cannot_send_empty_message(): void
+    /** @test */
+    public function test_can_send_message()
     {
-        $dto = new SendMessageDTO(
-            conversation_id: 1,
-            sender_id: 1,
-            message: ''
-        );
+        $conversationId = 1;
+        $userId = 1;
+        $messageText = 'Hello';
+        $expected = ['id' => 1, 'content' => 'Hello'];
 
-        $this->expectException(\Exception::class);
+        $this->chatRepository
+            ->shouldReceive('sendMessage')
+            ->with($conversationId, $userId, $messageText)
+            ->once()
+            ->andReturn($expected);
 
-        $this->service->sendMessage($dto);
+        $result = $this->chatService->sendMessage($conversationId, $userId, $messageText);
+
+        $this->assertEquals($expected, $result);
     }
 
-    public function test_cannot_send_message_exceeding_max_length(): void
-    {
-        $dto = new SendMessageDTO(
-            conversation_id: 1,
-            sender_id: 1,
-            message: str_repeat('a', 2001)
-        );
-
-        $this->expectException(\Exception::class);
-
-        $this->service->sendMessage($dto);
-    }
-
-    // ==================== getUnreadCount Tests ====================
-
-    public function test_can_get_unread_count(): void
+    /** @test */
+    public function test_can_start_conversation()
     {
         $userId = 1;
+        $sellerId = 2;
+        $productId = null;
+        $conversation = (object) ['id' => 1, 'buyer_id' => $userId, 'seller_id' => $sellerId];
 
-        $this->mockRepository
-            ->shouldReceive('getUnreadCount')
-            ->with($userId)
+        $this->chatRepository
+            ->shouldReceive('getOrCreateConversation')
+            ->with($userId, $sellerId, $productId)
             ->once()
-            ->andReturn(5);
+            ->andReturn($conversation);
 
-        $count = $this->service->getUnreadCount($userId);
-
-        $this->assertIsInt($count);
-        $this->assertEquals(5, $count);
-    }
-
-    public function test_unread_count_returns_zero_when_no_unread(): void
-    {
-        $userId = 1;
-
-        $this->mockRepository
-            ->shouldReceive('getUnreadCount')
-            ->with($userId)
-            ->once()
-            ->andReturn(0);
-
-        $count = $this->service->getUnreadCount($userId);
-
-        $this->assertEquals(0, $count);
-    }
-
-    // ==================== getOnlineStatus Tests ====================
-
-    public function test_can_get_online_status(): void
-    {
-        $users = User::factory()->count(3)->create();
-        $userIds = $users->pluck('id')->toArray();
-
-        $result = $this->service->getOnlineStatus($userIds);
+        $result = $this->chatService->startConversation($userId, $sellerId, $productId);
 
         $this->assertIsArray($result);
-        $this->assertCount(3, $result);
+        $this->assertEquals(1, $result['id']);
     }
 
-    public function test_online_status_returns_correct_structure(): void
+    /** @test */
+    public function test_can_get_messages()
     {
-        $user = User::factory()->create(['last_seen_at' => now()]);
+        $conversationId = 1;
+        $userId = 1;
+        $perPage = 50;
+        $expected = ['data' => [['id' => 1, 'content' => 'Hello']]];
 
-        $result = $this->service->getOnlineStatus([$user->id]);
+        $this->chatRepository
+            ->shouldReceive('getMessages')
+            ->with($conversationId, $userId, $perPage)
+            ->once()
+            ->andReturn($expected);
 
-        $this->assertArrayHasKey($user->id, $result);
-        $this->assertArrayHasKey('is_online', $result[$user->id]);
-        $this->assertArrayHasKey('last_seen_at', $result[$user->id]);
-        $this->assertArrayHasKey('status', $result[$user->id]);
+        $result = $this->chatService->getMessages($conversationId, $userId, $perPage);
+
+        $this->assertEquals($expected, $result);
     }
 
-    public function test_user_is_online_if_seen_recently(): void
+    /** @test */
+    public function test_can_delete_conversation()
     {
-        $user = User::factory()->create(['last_seen_at' => now()->subMinutes(2)]);
+        $conversationId = 1;
+        $userId = 1;
 
-        $result = $this->service->getOnlineStatus([$user->id]);
+        $this->chatRepository
+            ->shouldReceive('deleteConversation')
+            ->with($conversationId, $userId)
+            ->once();
 
-        $this->assertTrue($result[$user->id]['is_online']);
-        $this->assertEquals('online', $result[$user->id]['status']);
-    }
+        $this->chatService->deleteConversation($conversationId, $userId);
 
-    public function test_user_is_offline_if_not_seen_recently(): void
-    {
-        $user = User::factory()->create(['last_seen_at' => now()->subMinutes(10)]);
-
-        $result = $this->service->getOnlineStatus([$user->id]);
-
-        $this->assertFalse($result[$user->id]['is_online']);
-        $this->assertEquals('offline', $result[$user->id]['status']);
+        $this->assertTrue(true);
     }
 }

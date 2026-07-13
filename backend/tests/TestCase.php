@@ -23,4 +23,19 @@ abstract class TestCase extends BaseTestCase
             // Ignore cleanup errors
         }
     }
+
+    protected function tearDown(): void
+    {
+        // Force rollback any active transactions to prevent "already an active transaction" errors
+        try {
+            $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+            if ($pdo && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        } catch (\Exception $e) {
+            // Ignore cleanup errors
+        }
+
+        parent::tearDown();
+    }
 }
