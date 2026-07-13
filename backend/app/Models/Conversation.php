@@ -77,4 +77,9 @@ class Conversation extends Model
             ->where('is_read', false)
             ->count();
     }
-}
+
+    // Alias for backward compatibility (جلوگیری از خطای undefined relationship)
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'buyer_id');
+    }}

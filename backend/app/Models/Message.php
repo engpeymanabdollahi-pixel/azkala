@@ -57,4 +57,10 @@ class Message extends Model
             'read_at' => now(),
         ]);
     }
-}
+
+    // Alias for backward compatibility (جلوگیری از خطای undefined relationship)
+    public function user()
+    {
+        // نکته: اگر نام ستون شما در دیتابیس sender_id است، 'user_id' را به 'sender_id' تغییر دهید
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
+    }}

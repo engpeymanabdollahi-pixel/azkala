@@ -69,7 +69,7 @@ class SellerService
     public function getSellerRatings(int $sellerId): array
     {
         $ratings = SellerRating::where('seller_id', $sellerId)
-            ->with('user')
+            ->with('buyer')
             ->orderByDesc('created_at')
             ->get();
 

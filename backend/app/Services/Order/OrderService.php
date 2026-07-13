@@ -37,7 +37,7 @@ class OrderService
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
         if (!$order) {
-            throw new \Exception('سفارش یافت نشد', 404);
+            throw new \Exception('ط³ظپط§ط±ط´ غŒط§ظپطھ ظ†ط´ط¯', 404);
         }
 
         return $this->formatOrderData($order);
@@ -106,12 +106,12 @@ class OrderService
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
         if (!$order) {
-            throw new \Exception('سفارش یافت نشد', 404);
+            throw new \Exception('ط³ظپط§ط±ط´ غŒط§ظپطھ ظ†ط´ط¯', 404);
         }
 
         // Check if order can be cancelled
         if (!in_array($order->status, ['pending', 'processing'])) {
-            throw new \Exception('این سفارش قابل لغو نیست', 400);
+            throw new \Exception('ط§غŒظ† ط³ظپط§ط±ط´ ظ‚ط§ط¨ظ„ ظ„ط؛ظˆ ظ†غŒط³طھ', 400);
         }
 
         return DB::transaction(function () use ($order) {
@@ -150,16 +150,16 @@ class OrderService
             $product = Product::find($item['product_id']);
 
             if (!$product) {
-                throw new \Exception("محصول با شناسه {$item['product_id']} یافت نشد", 404);
+                throw new \Exception("ظ…ط­طµظˆظ„ ط¨ط§ ط´ظ†ط§ط³ظ‡ {$item['product_id']} غŒط§ظپطھ ظ†ط´ط¯", 404);
             }
 
             if (!$product->is_active) {
-                throw new \Exception("محصول {$product->name} دیگر فعال نیست", 400);
+                throw new \Exception("ظ…ط­طµظˆظ„ {$product->name} ط¯غŒع¯ط± ظپط¹ط§ظ„ ظ†غŒط³طھ", 400);
             }
 
             if ($product->stock < $item['quantity']) {
                 throw new \Exception(
-                    "موجودی {$product->name} کافی نیست. موجودی: {$product->stock}",
+                    "ظ…ظˆط¬ظˆط¯غŒ {$product->name} ع©ط§ظپغŒ ظ†غŒط³طھ. ظ…ظˆط¬ظˆط¯غŒ: {$product->stock}",
                     400
                 );
             }
@@ -285,5 +285,57 @@ class OrderService
             }),
             'address' => $order->address,
         ];
+    }
+
+
+    /**
+     * محاسبه و ثبت کمیسیون پلتفرم و واریز به کیف پول فروشنده
+     */
+    public function processCommission(Order $order): void
+    {
+        // فرض: تمام آیتم‌های این سفارش متعلق به یک فروشنده است (یا فروشنده اصلی سفارش)
+        // اگر چند فروشنده دارید، این حلقه باید روی $order->items بچرخد
+        $firstItem = $order->items->first();
+        if (!$firstItem || !$firstItem->product) {
+            return;
+        }
+
+        // پیدا کردن فروشنده (فرض بر این است که product متعلق به user با نقش seller است)
+        $seller = $firstItem->product->user; // یا $firstItem->product->seller بسته به مدل شما
+        
+        if (!$seller || $seller->role !== 'seller') {
+            return; // اگر فروشنده مشخص نبود، کمیسیونی کسر نمی‌شود
+        }
+
+        // ۱. محاسبه مبالغ
+        $orderTotal = (float) $order->total;
+        $commissionRate = (float) ($seller->seller_commission_rate ?? 5.00); // پیش‌فرض ۵ درصد
+        $commissionAmount = $orderTotal * ($commissionRate / 100);
+        $sellerPayout = $orderTotal - $commissionAmount;
+
+        // ۲. ثبت تراکنش کمیسیون (کسر از سهم فروشنده)
+        \App\Models\SellerTransaction::create([
+            'seller_id' => $seller->id,
+            'order_id' => $order->id,
+            'type' => 'commission_deduction',
+            'amount' => $commissionAmount,
+            'description' => "کسر کمیسیون {}% از سفارش {->order_number}",
+            'status' => 'completed',
+        ]);
+
+        // ۳. ثبت تراکنش واریز به کیف پول
+        \App\Models\SellerTransaction::create([
+            'seller_id' => $seller->id,
+            'order_id' => $order->id,
+            'type' => 'payout',
+            'amount' => $sellerPayout,
+            'description' => "واریز سهم فروشنده از سفارش {->order_number}",
+            'status' => 'completed',
+        ]);
+
+        // ۴. افزایش موجودی کیف پول فروشنده
+        $seller->increment('wallet_balance', $sellerPayout);
+
+        \Illuminate\Support\Facades\Log::info("Commission processed for order {->order_number}. Total: {}, Commission: {}, Payout: {}");
     }
 }

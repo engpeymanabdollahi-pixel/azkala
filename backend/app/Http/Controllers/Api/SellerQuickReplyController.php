@@ -22,7 +22,7 @@ class SellerQuickReplyController extends Controller
     public function index(Request $request)
     {
         try {
-            $sellerId = $request->user()->id;
+            $sellerId = $request->query('seller_id') ?: $request->user()->id;
             $replies = $this->sellerService->getQuickReplies($sellerId);
 
             return response()->json([
@@ -49,7 +49,7 @@ class SellerQuickReplyController extends Controller
         ]);
 
         try {
-            $sellerId = $request->user()->id;
+            $sellerId = $request->query('seller_id') ?: $request->user()->id;
             $reply = $this->sellerService->createQuickReply(
                 $sellerId,
                 $validated['title'],
@@ -75,7 +75,7 @@ class SellerQuickReplyController extends Controller
     public function destroy(Request $request, $id)
     {
         try {
-            $sellerId = $request->user()->id;
+            $sellerId = $request->query('seller_id') ?: $request->user()->id;
             $this->sellerService->deleteQuickReply((int) $id, $sellerId);
 
             return response()->json([
