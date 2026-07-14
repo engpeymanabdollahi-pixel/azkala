@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use Tests\TestCase;
 use App\Services\Chat\ChatService;
 use App\Repositories\ChatRepository;
+use App\Models\Conversation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 
@@ -88,7 +89,14 @@ class ChatServiceTest extends TestCase
         $userId = 1;
         $sellerId = 2;
         $productId = null;
-        $conversation = (object) ['id' => 1, 'buyer_id' => $userId, 'seller_id' => $sellerId];
+        
+        // ایجاد Mock از Model به جای stdClass
+        $conversation = Mockery::mock(Conversation::class);
+        $conversation->shouldReceive('getAttribute')->with('id')->andReturn(1);
+        $conversation->shouldReceive('getAttribute')->with('buyer_id')->andReturn($userId);
+        $conversation->shouldReceive('getAttribute')->with('seller_id')->andReturn($sellerId);
+        $conversation->shouldReceive('getAttribute')->with('product_id')->andReturn($productId);
+        $conversation->shouldReceive('getAttribute')->with('status')->andReturn('active');
 
         $this->chatRepository
             ->shouldReceive('getOrCreateConversation')
