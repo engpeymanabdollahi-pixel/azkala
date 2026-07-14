@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { cancelAllRequests } from './client';
 
 export interface AdminTicket {
   id: number;
@@ -29,22 +29,22 @@ export interface TicketMessage {
 export const adminTicketService = {
   getTickets: async (status?: string) => {
     const params = status ? { status } : {};
-    const response = await apiClient.get('/admin/tickets', { params });
+    const response = await cancelAllRequests.get('/admin/tickets', { params });
     return response.data;
   },
 
   getTicketDetails: async (id: number) => {
-    const response = await apiClient.get(`/admin/tickets/${id}`);
+    const response = await cancelAllRequests.get(`/admin/tickets/${id}`);
     return response.data;
   },
 
   sendMessage: async (id: number, message: string) => {
-    const response = await apiClient.post(`/admin/tickets/${id}/message`, { message });
+    const response = await cancelAllRequests.post(`/admin/tickets/${id}/message`, { message });
     return response.data;
   },
 
   updateStatus: async (id: number, status: 'open' | 'pending' | 'closed') => {
-    const response = await apiClient.put(`/admin/tickets/${id}`, { status });
+    const response = await cancelAllRequests.put(`/admin/tickets/${id}`, { status });
     return response.data;
   },
 };
