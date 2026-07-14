@@ -97,9 +97,11 @@ class ChatServiceTest extends TestCase
         
         $buyer = Mockery::mock(User::class);
         $buyer->shouldReceive('getAttribute')->with('id')->andReturn($userId);
+        $buyer->shouldReceive('getAttribute')->with('name')->andReturn('Buyer Name'); // ✅ خط اضافه شده
         
         $seller = Mockery::mock(User::class);
         $seller->shouldReceive('getAttribute')->with('id')->andReturn($sellerId);
+        $seller->shouldReceive('getAttribute')->with('name')->andReturn('Seller Name'); // ✅ خط اضافه شده
         
         $conversation->shouldReceive('getAttribute')->with('buyer')->andReturn($buyer);
         $conversation->shouldReceive('getAttribute')->with('seller')->andReturn($seller);
