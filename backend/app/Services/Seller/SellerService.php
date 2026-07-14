@@ -115,4 +115,77 @@ class SellerService
             'content' => $content,
         ]);
     }
-}
+
+    /**
+     * ط·آ¯ط·آ±ط؛إ’ط·آ§ط¸ظ¾ط·ع¾ ط¸â€‍ط؛إ’ط·آ³ط·ع¾ ط·آ³ط¸ظ¾ط·آ§ط·آ±ط·آ´ط·آ§ط·ع¾ ط¸â€¦ط·آ±ط·آ¨ط¸ث†ط·آ· ط·آ¨ط¸â€، ط¸ظ¾ط·آ±ط¸ث†ط·آ´ط¸â€ ط·آ¯ط¸â€،
+     */
+    public function getSellerOrdersList(int $sellerId, int $page = 1, int $perPage = 5): array
+    {
+        $orders = \App\Models\Order::whereHas('items', function ($query) use ($sellerId) {
+                $query->where('seller_id', $sellerId);
+            })
+            ->with('items.product')
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return $orders->toArray();
+    }
+    /**
+     * ط¯ط±غŒط§ظپطھ ظ„غŒط³طھ ظ…ط­طµظˆظ„ط§طھ ظ…ط±ط¨ظˆط· ط¨ظ‡ ظپط±ظˆط´ظ†ط¯ظ‡
+     */
+    public function getSellerProductsList(int $sellerId, int $page = 1, int $perPage = 100): array
+    {
+        $products = \App\Models\Product::where('seller_id', $sellerId)
+            ->with('category', 'brand')
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return $products->toArray();
+    }
+    /**
+     * دریافت آمار سفارشات مربوط به فروشنده
+     */
+    public function getSellerOrdersStats(int $sellerId): array
+    {
+        // پیدا کردن تمام order_idهایی که شامل آیتم‌های این فروشنده هستند
+        $orderIds = \App\Models\OrderItem::where('seller_id', $sellerId)->pluck('order_id')->unique();
+
+        if ($orderIds->isEmpty()) {
+            return [
+                'total_orders' => 0,
+                'pending' => 0,
+                'processing' => 0,
+                'completed' => 0,
+                'cancelled' => 0,
+                'total_revenue' => 0,
+            ];
+        }
+
+        $orders = \App\Models\Order::whereIn('id', $orderIds)->get();
+
+        return [
+            'total_orders' => $orders->count(),
+            'pending' => $orders->where('status', 'pending')->count(),
+            'processing' => $orders->where('status', 'processing')->count(),
+            'completed' => $orders->where('status', 'completed')->count(),
+            'cancelled' => $orders->where('status', 'cancelled')->count(),
+            'total_revenue' => $orders->sum('total'), // یا می‌تواند مجموع قیمت آیتم‌های فروشنده باشد
+        ];
+    }
+        /**
+     * دریافت جزئیات یک محصول متعلق به فروشنده (برای ویرایش)
+     */
+    public function getSellerProductDetail(int $productId, int $sellerId)
+    {
+        $product = \App\Models\Product::where('id', $productId)
+            ->where('seller_id', $sellerId)
+            ->with(['category', 'brand'])
+            ->first();
+
+        if (!$product) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('محصول یافت نشد یا متعلق به شما نیست.');
+        }
+
+        return $product;
+    }
+    }

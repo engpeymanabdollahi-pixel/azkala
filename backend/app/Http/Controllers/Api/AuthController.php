@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 class AuthController extends Controller
 {
     /**
-     * ثبت نام کاربر جدید
+     * ط«ط¨طھ ظ†ط§ظ… ع©ط§ط±ط¨ط± ط¬ط¯غŒط¯
      */
     public function register(RegisterRequest $request)
     {
@@ -46,13 +46,13 @@ class AuthController extends Controller
             Log::error('AuthController@register: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ثبت نام',
+                'message' => 'ط®ط·ط§ ط¯ط± ط«ط¨طھ ظ†ط§ظ…',
             ], 500);
         }
     }
 
     /**
-     * ورود کاربر
+     * ظˆط±ظˆط¯ ع©ط§ط±ط¨ط±
      */
     public function login(LoginRequest $request)
     {
@@ -64,7 +64,7 @@ class AuthController extends Controller
             if (!$user || !Hash::check($validated['password'], $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ایمیل یا رمز عبور اشتباه است',
+                    'message' => 'ط§غŒظ…غŒظ„ غŒط§ ط±ظ…ط² ط¹ط¨ظˆط± ط§ط´طھط¨ط§ظ‡ ط§ط³طھ',
                 ], 401);
             }
 
@@ -83,13 +83,13 @@ class AuthController extends Controller
             Log::error('AuthController@login: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ورود',
+                'message' => 'ط®ط·ط§ ط¯ط± ظˆط±ظˆط¯',
             ], 500);
         }
     }
 
     /**
-     * خروج کاربر
+     * ط®ط±ظˆط¬ ع©ط§ط±ط¨ط±
      */
     public function logout(Request $request)
     {
@@ -102,7 +102,7 @@ class AuthController extends Controller
     }
 
     /**
-     * دریافت اطلاعات کاربر فعلی
+     * ط¯ط±غŒط§ظپطھ ط§ط·ظ„ط§ط¹ط§طھ ع©ط§ط±ط¨ط± ظپط¹ظ„غŒ
      */
     public function user(Request $request)
     {
@@ -113,7 +113,7 @@ class AuthController extends Controller
     }
 
     /**
-     * به‌روزرسانی پروفایل کاربر
+     * ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ظ¾ط±ظˆظپط§غŒظ„ ع©ط§ط±ط¨ط±
      */
     public function update(UpdateProfileRequest $request)
     {
@@ -125,7 +125,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'اطلاعات با موفقیت به‌روزرسانی شد',
+                'message' => 'ط§ط·ظ„ط§ط¹ط§طھ ط¨ط§ ظ…ظˆظپظ‚غŒطھ ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ط´ط¯',
                 'data' => [
                     'user' => new UserResource($user->fresh()),
                 ],
@@ -135,13 +135,13 @@ class AuthController extends Controller
             Log::error('AuthController@update: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در به‌روزرسانی اطلاعات',
+                'message' => 'ط®ط·ط§ ط¯ط± ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ط§ط·ظ„ط§ط¹ط§طھ',
             ], 500);
         }
     }
 
     /**
-     * تغییر رمز عبور
+     * طھط؛غŒغŒط± ط±ظ…ط² ط¹ط¨ظˆط±
      */
     public function changePassword(ChangePasswordRequest $request)
     {
@@ -149,30 +149,83 @@ class AuthController extends Controller
             $validated = $request->validated();
             $user = $request->user();
 
-            // بررسی رمز فعلی
+            // ط¨ط±ط±ط³غŒ ط±ظ…ط² ظپط¹ظ„غŒ
             if (!Hash::check($validated['current_password'], $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'رمز عبور فعلی اشتباه است',
+                    'message' => 'ط±ظ…ط² ط¹ط¨ظˆط± ظپط¹ظ„غŒ ط§ط´طھط¨ط§ظ‡ ط§ط³طھ',
                 ], 400);
             }
 
-            // به‌روزرسانی رمز
+            // ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ط±ظ…ط²
             $user->update([
                 'password' => Hash::make($validated['password']),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'رمز عبور با موفقیت تغییر کرد',
+                'message' => 'ط±ظ…ط² ط¹ط¨ظˆط± ط¨ط§ ظ…ظˆظپظ‚غŒطھ طھط؛غŒغŒط± ع©ط±ط¯',
             ]);
 
         } catch (\Exception $e) {
             Log::error('AuthController@changePassword: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در تغییر رمز عبور',
+                'message' => 'ط®ط·ط§ ط¯ط± طھط؛غŒغŒط± ط±ظ…ط² ط¹ط¨ظˆط±',
             ], 500);
         }
     }
-}
+
+    public function sendOtp(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|regex:/^09[0-9]{9}$/|unique:users,phone' // در ثبت نام اولیه یونیک است
+        ]);
+
+        $otp = rand(10000, 99999);
+        // ذخیره در کش به مدت ۵ دقیقه
+        Cache::put('otp_' . $request->phone, $otp, now()->addMinutes(5));
+
+        // TODO: اینجا باید API ارسال پیامک (مثل کاوه‌نگار) فراخوانی شود
+        // برای تست، کد را در پاسخ برمی‌گردانیم
+        return response()->json([
+            'success' => true,
+            'message' => 'کد تایید ارسال شد.',
+            'debug_otp' => $otp // فقط برای محیط توسعه
+        ]);
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|regex:/^09[0-9]{9}$/',
+            'otp' => 'required|string|size:5'
+        ]);
+
+        $cachedOtp = Cache::get('otp_' . $request->phone);
+
+        if (!$cachedOtp || $cachedOtp !== $request->otp) {
+            return response()->json(['success' => false, 'message' => 'کد تایید نامعتبر یا منقضی است.'], 422);
+        }
+
+        Cache::forget('otp_' . $request->phone);
+
+        // پیدا کردن یا ساخت کاربر جدید
+        $user = User::firstOrCreate(
+            ['phone' => $request->phone],
+            [
+                'name' => 'کاربر ' . substr($request->phone, -4),
+                'role' => 'customer',
+                'password' => bcrypt(Str::random(16)) // رمز عبور تصادفی برای سازگاری با Sanctum
+            ]
+        );
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ورود موفقیت‌آمیز بود.',
+            'token' => $token,
+            'user' => $user
+        ]);
+    }}

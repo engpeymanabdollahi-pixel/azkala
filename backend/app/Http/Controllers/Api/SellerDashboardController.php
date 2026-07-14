@@ -38,4 +38,25 @@ class SellerDashboardController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
-}
+
+    public function wallet(Request $request)
+    {
+        $sellerId = $request->user()->id;
+        $user = \App\Models\User::find($sellerId);
+        
+        $transactions = \App\Models\SellerTransaction::where('seller_id', $sellerId)
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'wallet' => [
+                    'balance' => $user->wallet_balance ?? 0,
+                    'last_updated' => $user->updated_at,
+                ],
+                'transactions' => $transactions
+            ]
+        ]);
+    }}

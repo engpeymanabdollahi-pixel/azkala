@@ -97,11 +97,9 @@ class ChatServiceTest extends TestCase
         
         $buyer = Mockery::mock(User::class);
         $buyer->shouldReceive('getAttribute')->with('id')->andReturn($userId);
-        $buyer->shouldReceive('getAttribute')->with('name')->andReturn('Buyer Name');
         
         $seller = Mockery::mock(User::class);
         $seller->shouldReceive('getAttribute')->with('id')->andReturn($sellerId);
-        $seller->shouldReceive('getAttribute')->with('name')->andReturn('Seller Name');
         
         $conversation->shouldReceive('getAttribute')->with('buyer')->andReturn($buyer);
         $conversation->shouldReceive('getAttribute')->with('seller')->andReturn($seller);
@@ -113,7 +111,6 @@ class ChatServiceTest extends TestCase
             ->andReturn($conversation);
 
         $result = $this->chatService->startConversation($userId, $sellerId, $productId);
-
         $this->assertIsArray($result);
         $this->assertEquals(1, $result['id']);
     }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Seller\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SellerProductController extends Controller
 {
@@ -23,9 +24,10 @@ class SellerProductController extends Controller
     {
         try {
             $sellerId = $request->user()->id;
-            $perPage = (int) $request->get('per_page', 10);
+            $page = (int) $request->get('page', 1);
+            $perPage = (int) $request->get('per_page', 20);
 
-            $products = $this->sellerService->getSellerProductsList($sellerId, $perPage);
+            $products = $this->sellerService->getSellerProductsList($sellerId, $page, $perPage);
 
             return response()->json([
                 'success' => true,
@@ -33,10 +35,9 @@ class SellerProductController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('SellerProductController@index: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            $statusCode = (int) $e->getCode();
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 
@@ -62,6 +63,16 @@ class SellerProductController extends Controller
             'gallery.*' => 'string',
         ]);
 
+        // ✅ تولید خودکار slug یکتا
+        $baseSlug = Str::slug($validated['name']);
+        $slug = $baseSlug;
+        $count = 1;
+        while (\App\Models\Product::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+        $validated['slug'] = $slug;
+
         try {
             $sellerId = $request->user()->id;
             $product = $this->sellerService->createProduct($sellerId, $validated);
@@ -74,10 +85,9 @@ class SellerProductController extends Controller
 
         } catch (\Exception $e) {
             Log::error('SellerProductController@store: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            $statusCode = (int) $e->getCode();
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 
@@ -95,11 +105,9 @@ class SellerProductController extends Controller
                 'data' => $product,
             ]);
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            $statusCode = (int) $e->getCode();
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 
@@ -125,6 +133,18 @@ class SellerProductController extends Controller
             'gallery.*' => 'string',
         ]);
 
+        // ✅ بروزرسانی slug در صورت تغییر نام
+        if (isset($validated['name'])) {
+            $baseSlug = Str::slug($validated['name']);
+            $slug = $baseSlug;
+            $count = 1;
+            while (\App\Models\Product::where('slug', $slug)->where('id', '!=', $id)->exists()) {
+                $slug = $baseSlug . '-' . $count;
+                $count++;
+            }
+            $validated['slug'] = $slug;
+        }
+
         try {
             $sellerId = $request->user()->id;
             $product = $this->sellerService->updateProduct((int) $id, $sellerId, $validated);
@@ -135,11 +155,9 @@ class SellerProductController extends Controller
                 'data' => $product,
             ]);
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            $statusCode = (int) $e->getCode();
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 
@@ -157,11 +175,9 @@ class SellerProductController extends Controller
                 'message' => 'محصول حذف شد',
             ]);
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            $statusCode = (int) $e->getCode();
+            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 }
