@@ -338,4 +338,60 @@ class OrderService
 
         \Illuminate\Support\Facades\Log::info("Commission processed for order {->order_number}. Total: {}, Commission: {}, Payout: {}");
     }
+        /**
+     * پردازش تسویه حساب فروشندگان پس از تکمیل سفارش
+     * این متد باید زمانی فراخوانی شود که وضعیت سفارش به 'completed' یا 'delivered' تغییر می‌کند.
+     */
+    public function processSellerPayouts(Order $order): void
+    {
+        // دریافت نرخ کمیسیون از تنظیمات (اگر تنظیمات ندارید، عدد 5 را به عنوان پیش‌فرض 5 درصد در نظر بگیرید)
+        $commissionRate = \App\Models\Setting::get('platform_commission_rate', 5); 
+
+        // گروه‌بندی آیتم‌های سفارش بر اساس فروشنده
+        $sellerItems = $order->items->groupBy('seller_id');
+
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            foreach ($sellerItems as $sellerId => $items) {
+                // اگر آیتم متعلق به خود پلتفرم است (seller_id ندارد)، از محاسبات رد می‌شود
+                if (!$sellerId) continue;
+
+                // ۱. محاسبه مبلغ کل این فروشنده در این سفارش
+                $sellerOrderTotal = $items->sum('total'); // یا $items->sum(fn($i) => $i->price * $i->quantity)
+
+                // ۲. محاسبه کمیسیون و مبلغ خالص
+                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100);
+                $netAmount = $sellerOrderTotal - $commissionAmount;
+
+                // ۳. افزایش موجودی کیف پول فروشنده
+                \App\Models\User::where('id', $sellerId)->increment('wallet_balance', $netAmount);
+
+                // ۴. ثبت تراکنش شفاف برای فروشنده
+                \App\Models\SellerTransaction::create([
+                    'seller_id' => $sellerId,
+                    'order_id' => $order->id,
+                    'type' => 'order_payout',
+                    'amount' => $netAmount,
+                    'commission_deducted' => $commissionAmount, // این فیلد برای شفافیت عالی است
+                    'status' => 'completed',
+                    'description' => "واریز سهم فروش سفارش شماره {$order->id} (کسر کمیسیون {$commissionRate}%)"
+                ]);
+
+                // ۵. (اختیاری اما توصیه‌شده) ثبت درآمد پلتفرم در جدول جداگانه
+                // اگر مدل PlatformRevenue یا Commission دارید، این خط را فعال کنید:
+                // \App\Models\PlatformRevenue::create([
+                //     'order_id' => $order->id,
+                //     'seller_id' => $sellerId,
+                //     'amount' => $commissionAmount,
+                //     'description' => "کمیسیون {$commissionRate}% از سفارش {$order->id}"
+                // ]);
+            }
+
+            \Illuminate\Support\Facades\DB::commit();
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('خطا در پردازش تسویه حساب فروشندگان: ' . $e->getMessage());
+            throw $e;
+        }
+    }
 }

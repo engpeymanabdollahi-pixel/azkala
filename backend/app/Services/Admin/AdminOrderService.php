@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Models\Order;
 use App\Repositories\AdminOrderRepository;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class AdminOrderService
 {
@@ -88,6 +89,7 @@ class AdminOrderService
     {
         try {
             $order = Order::findOrFail($id);
+            $oldStatus = $order->status;
 
             $updateData = ['status' => $data['status']];
 
@@ -98,12 +100,19 @@ class AdminOrderService
                 $updateData['notes'] = $data['notes'];
             }
 
-            // اگر لغو شد، موجودی را برگردان
+            // اگر لغو شد، موجودی انبار را برگردان
             if ($data['status'] === 'cancelled' && $order->status !== 'cancelled') {
                 $this->repository->restoreStock($order);
             }
 
-            return $this->repository->updateStatus($order, $updateData);
+            $updatedOrder = $this->repository->updateStatus($order, $updateData);
+
+            // ✨ منطق جدید: پردازش تسویه حساب و کسر کمیسیون هنگام تکمیل یا تحویل سفارش
+            if (in_array($data['status'], ['completed', 'delivered']) && !in_array($oldStatus, ['completed', 'delivered'])) {
+                $this->processSellerPayouts($updatedOrder);
+            }
+
+            return $updatedOrder;
         } catch (\Exception $e) {
             Log::error('AdminOrderService@updateStatus: ' . $e->getMessage());
             throw new \Exception('خطا در بروزرسانی وضعیت: ' . $e->getMessage(), 500);
@@ -148,16 +157,12 @@ class AdminOrderService
      */
     protected function formatOrder(Order $order): array
     {
-        // Decode shipping address
         $shippingAddress = $order->shipping_address;
         if (is_string($shippingAddress)) {
             $shippingAddress = json_decode($shippingAddress, true);
         }
 
-        // Get sellers for this order
         $sellers = $this->repository->getOrderSellers($order->id);
-
-        // Get items count
         $itemsCount = $this->repository->getOrderItemsCount($order->id);
 
         return [
@@ -193,7 +198,6 @@ class AdminOrderService
      */
     protected function formatOrderDetail(Order $order): array
     {
-        // Decode shipping address
         $shippingAddress = $order->shipping_address;
         if (is_string($shippingAddress)) {
             $decoded = json_decode($shippingAddress, true);
@@ -218,5 +222,53 @@ class AdminOrderService
             'created_at' => $order->created_at ? $order->created_at->format('Y-m-d H:i') : null,
             'updated_at' => $order->updated_at ? $order->updated_at->format('Y-m-d H:i') : null,
         ];
+    }
+
+    // ==========================================================
+    // ✨ متد جدید: پردازش تسویه حساب و کسر کمیسیون پلتفرم
+    // ==========================================================
+    protected function processSellerPayouts(Order $order): void
+    {
+        // نرخ کمیسیون پلتفرم (پیش‌فرض ۵ درصد). می‌توانید این عدد را از تنظیمات بخوانید.
+        $commissionRate = 5; 
+
+        // گروه‌بندی آیتم‌های سفارش بر اساس فروشنده
+        $sellerItems = $order->items->groupBy('seller_id');
+
+        DB::beginTransaction();
+        try {
+            foreach ($sellerItems as $sellerId => $items) {
+                // اگر آیتم متعلق به خود پلتفرم است (seller_id ندارد)، از محاسبات رد می‌شود
+                if (!$sellerId) continue;
+
+                // ۱. محاسبه مبلغ کل این فروشنده در این سفارش
+                $sellerOrderTotal = $items->sum('total');
+
+                // ۲. محاسبه کمیسیون و مبلغ خالص
+                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100);
+                $netAmount = $sellerOrderTotal - $commissionAmount;
+
+                // ۳. افزایش موجودی کیف پول فروشنده
+                \App\Models\User::where('id', $sellerId)->increment('wallet_balance', $netAmount);
+
+                // ۴. ثبت تراکنش شفاف برای فروشنده در جدول seller_transactions
+                \App\Models\SellerTransaction::create([
+                    'seller_id' => $sellerId,
+                    'order_id' => $order->id,
+                    'type' => 'order_payout',
+                    'amount' => $netAmount,
+                    'commission_deducted' => $commissionAmount, // مبلغ کسر شده بابت کمیسیون
+                    'status' => 'completed',
+                    'description' => "واریز سهم فروش سفارش شماره {$order->order_number} (کسر کمیسیون {$commissionRate}%)"
+                ]);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('خطا در پردازش تسویه حساب فروشندگان: ' . $e->getMessage());
+            // توجه: اینجا Exception را پرتاب نمی‌کنیم تا فرآیند تغییر وضعیت سفارش مختل نشود، 
+            // اما در لاگ ثبت می‌شود تا ادمین بتواند آن را بررسی کند.
+        }
     }
 }
