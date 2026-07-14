@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ShoppingCart, Package, Truck, CheckCircle, Clock, XCircle,
-  Search, Eye, DollarSign, Calendar, ArrowUpRight, ArrowDownRight,
-  Sparkles, Copy, RefreshCw, Download, X, Loader2,
+  Search, Eye, DollarSign, Calendar, RefreshCw, X, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import { sellerOrderService, type SellerOrder } from '@/services/api/sellerOrder.service';
+import { sellerOrderService } from '@/services/api/sellerOrder.service';
 import toast from 'react-hot-toast';
 import { SellerOrderDetailModal } from './SellerOrderDetailModal';
 
@@ -48,19 +47,19 @@ export function SellerOrders() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
-  // ✅ Fetch سفارشات از API
+  // Fetch سفارشات از API
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['seller-orders'],
     queryFn: () => sellerOrderService.getOrders(1, 50),
   });
 
-  // ✅ Fetch آمار
+  // Fetch آمار
   const { data: statsData } = useQuery({
     queryKey: ['seller-orders-stats'],
     queryFn: () => sellerOrderService.getStats(),
   });
 
-  // ✅ Mutation برای بروزرسانی وضعیت
+  // Mutation برای تغییر وضعیت و ثبت کد رهگیری
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status, trackingNumber, courierName }: any) =>
       sellerOrderService.updateStatus(orderId, status, trackingNumber, courierName),
@@ -70,11 +69,16 @@ export function SellerOrders() {
     },
   });
 
-  const orders = useMemo(() => data?.data || [], [data]);
+  // ✅ اصلاح حیاتی: اطمینان از اینکه orders همیشه یک آرایه است
+  const orders = useMemo(() => {
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data)) return data;
+    return [];
+  }, [data]);
 
-  // فیلتر بر اساس وضعیت
+  // فیلتر کردن سفارشات (ایمن‌سازی شده در برابر خطای iterable)
   const filteredOrders = useMemo(() => {
-    let filtered = [...orders];
+    let filtered = [...orders]; // حالا orders قطعاً آرایه است و خطا نمی‌دهد
 
     if (orderStatusFilter !== 'all') {
       filtered = filtered.filter((order) => order.status === orderStatusFilter);
@@ -90,34 +94,36 @@ export function SellerOrders() {
     return filtered;
   }, [orders, orderStatusFilter, searchQuery]);
 
-  // آمار
+  // محاسبه آمار به صورت ایمن
   const stats = useMemo(() => {
-    const apiStats = statsData?.data;
+    const apiStats = statsData?.data || {};
+    const safeOrders = Array.isArray(orders) ? orders : [];
+    
     return {
-      total: apiStats?.total || orders.length,
-      pending: apiStats?.pending || orders.filter((o) => o.status === 'pending').length,
-      processing: apiStats?.processing || orders.filter((o) => o.status === 'processing').length,
-      shipped: apiStats?.shipped || orders.filter((o) => o.status === 'shipped').length,
-      delivered: apiStats?.delivered || orders.filter((o) => o.status === 'delivered').length,
-      cancelled: orders.filter((o) => o.status === 'cancelled').length,
-      totalRevenue: apiStats?.revenue || 0,
+      total: apiStats.total ?? safeOrders.length,
+      pending: apiStats.pending ?? safeOrders.filter((o: any) => o.status === 'pending').length,
+      processing: apiStats.processing ?? safeOrders.filter((o: any) => o.status === 'processing').length,
+      shipped: apiStats.shipped ?? safeOrders.filter((o: any) => o.status === 'shipped').length,
+      delivered: apiStats.delivered ?? safeOrders.filter((o: any) => o.status === 'delivered').length,
+      cancelled: safeOrders.filter((o: any) => o.status === 'cancelled').length,
+      totalRevenue: apiStats.revenue ?? 0,
     };
   }, [statsData, orders]);
 
   const getStatusConfig = useCallback((status: string) => {
-    const config = {
-      pending: { label: 'در انتظار', variant: 'warning' as const, icon: Clock, color: 'from-warning-500 to-warning-600' },
-      processing: { label: 'در حال پردازش', variant: 'primary' as const, icon: Package, color: 'from-primary-500 to-primary-600' },
-      shipped: { label: 'ارسال شده', variant: 'success' as const, icon: Truck, color: 'from-success-500 to-success-600' },
-      delivered: { label: 'تحویل شده', variant: 'success' as const, icon: CheckCircle, color: 'from-success-500 to-success-600' },
-      cancelled: { label: 'لغو شده', variant: 'error' as const, icon: XCircle, color: 'from-error-500 to-error-600' },
+    const config: any = {
+      pending: { label: 'در انتظار تأیید', variant: 'warning', icon: Clock, color: 'from-warning-500 to-warning-600' },
+      processing: { label: 'در حال پردازش', variant: 'primary', icon: Package, color: 'from-primary-500 to-primary-600' },
+      shipped: { label: 'ارسال شده', variant: 'success', icon: Truck, color: 'from-success-500 to-success-600' },
+      delivered: { label: 'تحویل داده شده', variant: 'success', icon: CheckCircle, color: 'from-success-500 to-success-600' },
+      cancelled: { label: 'لغو شده', variant: 'error', icon: XCircle, color: 'from-error-500 to-error-600' },
     };
-    return config[status as keyof typeof config] || config.pending;
+    return config[status] || config.pending;
   }, []);
 
   const handleSubmitTracking = useCallback(async (orderId: number) => {
     if (!trackingNumber || !courierName) {
-      toast.error('لطفاً تمام فیلدها را پر کنید');
+      toast.error('لطفاً نام شرکت پستی و کد رهگیری را وارد کنید');
       return;
     }
     setIsSubmitting(true);
@@ -131,7 +137,7 @@ export function SellerOrders() {
       setShowTrackingModal(null);
       setTrackingNumber('');
       setCourierName('');
-      toast.success('اطلاعات ارسال ثبت شد', { icon: '✅' });
+      toast.success('اطلاعات ارسال با موفقیت ثبت شد', { icon: '🚚' });
     } catch (error) {
       toast.error('خطا در ثبت اطلاعات ارسال');
     } finally {
@@ -139,16 +145,11 @@ export function SellerOrders() {
     }
   }, [trackingNumber, courierName, updateStatusMutation]);
 
-  const handleCopyTracking = useCallback((trackingNumber: string) => {
-    navigator.clipboard.writeText(trackingNumber);
-    toast.success('کد رهگیری کپی شد', { icon: '📋' });
-  }, []);
-
   const statCards = useMemo(() => [
     { title: 'کل سفارشات', value: stats.total, icon: ShoppingCart, gradient: 'from-primary-500 to-primary-600' },
-    { title: 'در انتظار', value: stats.pending, icon: Clock, gradient: 'from-warning-500 to-warning-600' },
+    { title: 'در انتظار تأیید', value: stats.pending, icon: Clock, gradient: 'from-warning-500 to-warning-600' },
     { title: 'ارسال شده', value: stats.shipped, icon: Truck, gradient: 'from-accent-500 to-accent-600' },
-    { title: 'درآمد ماه', value: formatPrice(stats.totalRevenue), icon: DollarSign, gradient: 'from-success-500 to-success-600' },
+    { title: 'مجموع درآمد', value: formatPrice(stats.totalRevenue), icon: DollarSign, gradient: 'from-success-500 to-success-600' },
   ], [stats]);
 
   const statusFilters = useMemo(() => [
@@ -175,9 +176,9 @@ export function SellerOrders() {
           </div>
         </div>
         <div className="flex gap-1.5">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="gap-1"
             onClick={() => refetch()}
             disabled={isLoading}
@@ -202,7 +203,7 @@ export function SellerOrders() {
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="جستجو با شماره سفارش..."
+              placeholder="جستجو بر اساس شماره سفارش..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pr-9 pl-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500 text-sm"
@@ -249,14 +250,14 @@ export function SellerOrders() {
       {isLoading ? (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-3" />
-          <p className="text-sm text-gray-600">در حال بارگذاری سفارشات...</p>
+          <p className="text-sm text-gray-600">در حال دریافت اطلاعات سفارشات...</p>
         </div>
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
           <EmptyState
             icon={<ShoppingCart className="w-10 h-10" />}
             title={searchQuery ? 'سفارشی یافت نشد' : 'هنوز سفارشی ثبت نشده'}
-            description={searchQuery ? 'شماره سفارش دیگری را امتحان کنید' : 'به محض ثبت سفارش، اینجا نمایش داده می‌شود'}
+            description={searchQuery ? 'لطفاً شماره سفارش دیگری را جستجو کنید' : 'به محض ثبت اولین سفارش، اینجا نمایش داده می‌شود'}
             action={searchQuery && (
               <Button onClick={() => setSearchQuery('')} variant="outline" size="sm">پاک کردن جستجو</Button>
             )}
@@ -278,7 +279,7 @@ export function SellerOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredOrders.map((order) => {
+                {filteredOrders.map((order: any) => {
                   const statusConfig = getStatusConfig(order.status);
                   const StatusIcon = statusConfig.icon;
                   return (
@@ -329,15 +330,15 @@ export function SellerOrders() {
                             <span className="hidden lg:inline">مشاهده</span>
                           </Button>
                           {order.status === 'pending' && (
-                            <Button 
-                              size="xs" 
+                            <Button
+                              size="xs"
                               onClick={() => {
                                 updateStatusMutation.mutate({ orderId: order.id, status: 'processing' });
                               }}
                               className="gap-0.5"
                             >
                               <Package className="w-3 h-3" />
-                              <span className="hidden lg:inline">پردازش</span>
+                              <span className="hidden lg:inline">تأیید</span>
                             </Button>
                           )}
                           {order.status === 'processing' && (
@@ -357,7 +358,7 @@ export function SellerOrders() {
 
           {/* Mobile Cards */}
           <div className="md:hidden divide-y divide-gray-100">
-            {filteredOrders.map((order) => {
+            {filteredOrders.map((order: any) => {
               const statusConfig = getStatusConfig(order.status);
               const StatusIcon = statusConfig.icon;
               return (
@@ -395,12 +396,12 @@ export function SellerOrders() {
                       <Eye className="w-3 h-3" />مشاهده
                     </Button>
                     {order.status === 'pending' && (
-                      <Button 
-                        size="xs" 
+                      <Button
+                        size="xs"
                         className="flex-1 gap-0.5"
                         onClick={() => updateStatusMutation.mutate({ orderId: order.id, status: 'processing' })}
                       >
-                        <Package className="w-3 h-3" />پردازش
+                        <Package className="w-3 h-3" />تأیید
                       </Button>
                     )}
                     {order.status === 'processing' && (
@@ -421,7 +422,7 @@ export function SellerOrders() {
         isOpen={showTrackingModal !== null}
         onClose={() => { setShowTrackingModal(null); setTrackingNumber(''); setCourierName(''); }}
         size="md"
-        title="ثبت اطلاعات ارسال"
+        title="ثبت اطلاعات ارسال سفارش"
       >
         <div className="text-center mb-4">
           <div className="relative inline-block">
@@ -430,11 +431,11 @@ export function SellerOrders() {
               <Truck className="w-8 h-8 text-white" />
             </div>
           </div>
-          <p className="text-gray-600 mt-3 text-sm">کد رهگیری و شرکت پستی را وارد کنید</p>
+          <p className="text-gray-600 mt-3 text-sm">کد رهگیری و نام شرکت پستی را وارد کنید</p>
         </div>
         <div className="space-y-3 mb-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5">شرکت پستی <span className="text-error-500">*</span></label>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">نام شرکت پستی <span className="text-error-500">*</span></label>
             <select
               value={courierName}
               onChange={(e) => setCourierName(e.target.value)}
@@ -443,9 +444,9 @@ export function SellerOrders() {
               <option value="">انتخاب کنید</option>
               <option value="پست پیشتاز">پست پیشتاز</option>
               <option value="تیپاکس">تیپاکس</option>
-              <option value="چاپار">چاپار</option>
+              <option value="الوپیک">الوپیک</option>
               <option value="اسنپ‌باکس">اسنپ‌باکس</option>
-              <option value="مکسی‌پست">مکسی‌پست</option>
+              <option value="چاپار">چاپار</option>
             </select>
           </div>
           <div>
@@ -464,11 +465,11 @@ export function SellerOrders() {
           <Button variant="outline" className="flex-1" size="md" onClick={() => { setShowTrackingModal(null); setTrackingNumber(''); setCourierName(''); }}>
             انصراف
           </Button>
-          <Button 
-            className="flex-1" 
-            size="md" 
-            onClick={() => handleSubmitTracking(showTrackingModal!)} 
-            disabled={!trackingNumber || !courierName || isSubmitting} 
+          <Button
+            className="flex-1"
+            size="md"
+            onClick={() => handleSubmitTracking(showTrackingModal!)}
+            disabled={!trackingNumber || !courierName || isSubmitting}
             isLoading={isSubmitting}
           >
             <Truck className="w-4 h-4 ml-1.5" />ثبت و ارسال

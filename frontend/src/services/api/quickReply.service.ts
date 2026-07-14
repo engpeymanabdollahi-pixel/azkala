@@ -1,4 +1,4 @@
-import apiClient from './client';
+import { cancelAllRequests } from './client';
 
 export interface QuickReply {
   id: number;
@@ -9,18 +9,19 @@ export interface QuickReply {
 }
 
 export const quickReplyService = {
-  async getQuickReplies() {
-    const response = await apiClient.get('/seller/quick-replies');
+  async getQuickReplies(sellerId?: number) {
+    const url = sellerId ? `/seller/quick-replies?seller_id=${sellerId}` : '/seller/quick-replies';
+    const response = await cancelAllRequests.get(url);
     return response.data;
   },
 
   async createQuickReply(title: string, content: string) {
-    const response = await apiClient.post('/seller/quick-replies', { title, content });
+    const response = await cancelAllRequests.post('/seller/quick-replies', { title, content });
     return response.data;
   },
 
   async deleteQuickReply(id: number) {
-    const response = await apiClient.delete(`/seller/quick-replies/${id}`);
+    const response = await cancelAllRequests.delete(`/seller/quick-replies/${id}`);
     return response.data;
   },
 };

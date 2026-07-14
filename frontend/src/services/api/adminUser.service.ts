@@ -154,7 +154,7 @@ export const adminUserService = {
    * دریافت درخواست‌های فروشندگی
    */
   async getSellerRequests(): Promise<SellerRequestsResponse> {
-    const response = await apiClient.get<SellerRequestsResponse>('/admin/seller-requests');
+    const response = await apiClient.get<SellerRequestsResponse>('/admin/users/seller-requests');
     return response.data;
   },
 

@@ -39,6 +39,9 @@ const ProductSkeleton = () => (
 export function SellerProducts() {
   const navigate = useNavigate();
   const { data: productsData, isLoading, error, refetch, isRefetching } = useSellerProducts(1, 100);
+   console.log("🔍 DEBUG productsData:", productsData);
+
+     const products = useMemo(() => productsData?.data || [], [productsData]);
   const deleteProductMutation = useDeleteProduct();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,8 +58,7 @@ export function SellerProducts() {
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const products = useMemo(() => productsData?.data || [], [productsData]);
-
+    
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
     if (statusFilter !== 'all') {
