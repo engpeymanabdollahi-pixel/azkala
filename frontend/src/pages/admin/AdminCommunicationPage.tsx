@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { MessageCircle, Ticket, Smile, HelpCircle, FileText, Lightbulb } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { AdminChatMonitorPage } from './AdminChatMonitorPage';
-import { AdminSupportTicketsPage } from './AdminSupportTicketsPage';
+import AdminSupportTicketsPage from './AdminSupportTicketsPage';
 import { AdminSentimentDashboard } from './AdminSentimentDashboard';
 import { AdminFaqManagementPage } from './AdminFaqManagementPage';
 import { AdminMessageTemplatesPage } from './AdminMessageTemplatesPage';
@@ -16,45 +16,45 @@ export function AdminCommunicationPage() {
   const tabs = [
     {
       id: 'chat' as TabType,
-      label: 'چت زنده',
+      label: 'ع†طھ ط²ظ†ط¯ظ‡',
       icon: MessageCircle,
       color: 'primary',
-      description: 'مانیتورینگ و مدیریت چت‌ها',
+      description: 'ظ…ط§ظ†غŒطھظˆط±غŒظ†ع¯ ظˆ ظ…ط¯غŒط±غŒطھ ع†طھâ€Œظ‡ط§',
     },
     {
       id: 'tickets' as TabType,
-      label: 'تیکت‌ها',
+      label: 'طھغŒع©طھâ€Œظ‡ط§',
       icon: Ticket,
       color: 'warning',
-      description: 'مدیریت تیکت‌های پشتیبانی',
+      description: 'ظ…ط¯غŒط±غŒطھ طھغŒع©طھâ€Œظ‡ط§غŒ ظ¾ط´طھغŒط¨ط§ظ†غŒ',
     },
     {
       id: 'sentiment' as TabType,
-      label: 'تحلیل احساسات',
+      label: 'طھط­ظ„غŒظ„ ط§ط­ط³ط§ط³ط§طھ',
       icon: Smile,
       color: 'accent',
-      description: 'داشبورد احساسات کاربران',
+      description: 'ط¯ط§ط´ط¨ظˆط±ط¯ ط§ط­ط³ط§ط³ط§طھ ع©ط§ط±ط¨ط±ط§ظ†',
     },
     {
       id: 'faq' as TabType,
       label: 'FAQ',
       icon: HelpCircle,
       color: 'success',
-      description: 'مدیریت سوالات متداول',
+      description: 'ظ…ط¯غŒط±غŒطھ ط³ظˆط§ظ„ط§طھ ظ…طھط¯ط§ظˆظ„',
     },
     {
       id: 'templates' as TabType,
-      label: 'قالب‌های پیام',
+      label: 'ظ‚ط§ظ„ط¨â€Œظ‡ط§غŒ ظ¾غŒط§ظ…',
       icon: FileText,
       color: 'gray',
-      description: 'مدیریت قالب‌های پاسخ سریع',
+      description: 'ظ…ط¯غŒط±غŒطھ ظ‚ط§ظ„ط¨â€Œظ‡ط§غŒ ظ¾ط§ط³ط® ط³ط±غŒط¹',
     },
     {
       id: 'suggestions' as TabType,
-      label: 'پیشنهادات',
+      label: 'ظ¾غŒط´ظ†ظ‡ط§ط¯ط§طھ',
       icon: Lightbulb,
       color: 'warning',
-      description: 'مدیریت پیشنهادات هوشمند',
+      description: 'ظ…ط¯غŒط±غŒطھ ظ¾غŒط´ظ†ظ‡ط§ط¯ط§طھ ظ‡ظˆط´ظ…ظ†ط¯',
     },
   ];
 
@@ -69,10 +69,10 @@ export function AdminCommunicationPage() {
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            مدیریت ارتباطات
+            ظ…ط¯غŒط±غŒطھ ط§ط±طھط¨ط§ط·ط§طھ
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            مدیریت چت، تیکت‌ها و ابزارهای ارتباطی
+            ظ…ط¯غŒط±غŒطھ ع†طھطŒ طھغŒع©طھâ€Œظ‡ط§ ظˆ ط§ط¨ط²ط§ط±ظ‡ط§غŒ ط§ط±طھط¨ط§ط·غŒ
           </p>
         </div>
       </div>
