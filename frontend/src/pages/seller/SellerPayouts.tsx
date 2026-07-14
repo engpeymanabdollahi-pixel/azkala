@@ -6,6 +6,8 @@ import {
   ArrowDownRight, Banknote, Receipt, PiggyBank, Info, Shield,
   Plus, Eye, FileDown, Search, X, Wallet,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { cancelAllRequests } from './client';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
@@ -91,54 +93,42 @@ const ChartBar = memo(({ data, maxAmount }: { data: any; maxAmount: number }) =>
 // ==================== Main Component ====================
 export function SellerPayouts() {
   const { seller } = useAuthStore();
-  const [payouts, setPayouts] = useState<SellerPayout[]>([]);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [showBankInfoModal, setShowBankInfoModal] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [selectedPayout, setSelectedPayout] = useState<SellerPayout | null>(null);
-  const [requestAmount, setRequestAmount] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  // ✅ این کد را جایگزین کنید:
+const [showRequestModal, setShowRequestModal] = useState(false);
+const [showBankInfoModal, setShowBankInfoModal] = useState(false);
+const [showConfirmModal, setShowConfirmModal] = useState(false);
+const [selectedPayout, setSelectedPayout] = useState<SellerPayout | null>(null);
+const [requestAmount, setRequestAmount] = useState('');
+const [statusFilter, setStatusFilter] = useState<string>('all');
+const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const mockPayouts: SellerPayout[] = [
-        {
-          id: 1, seller_id: 1, amount: 12500000, status: 'paid',
-          period_start: '2024-01-01T00:00:00Z', period_end: '2024-01-15T23:59:59Z',
-          reference: 'PAY-20240116-001', paid_at: '2024-01-16T10:00:00Z',
-          created_at: '2024-01-16T09:00:00Z', updated_at: '2024-01-16T10:00:00Z',
-        },
-        {
-          id: 2, seller_id: 1, amount: 8750000, status: 'processing',
-          period_start: '2024-01-16T00:00:00Z', period_end: '2024-01-31T23:59:59Z',
-          created_at: '2024-02-01T09:00:00Z', updated_at: '2024-02-01T09:00:00Z',
-        },
-        {
-          id: 3, seller_id: 1, amount: 15200000, status: 'pending',
-          period_start: '2024-02-01T00:00:00Z', period_end: '2024-02-15T23:59:59Z',
-          created_at: '2024-02-15T09:00:00Z', updated_at: '2024-02-15T09:00:00Z',
-        },
-        {
-          id: 4, seller_id: 1, amount: 9800000, status: 'paid',
-          period_start: '2023-12-16T00:00:00Z', period_end: '2023-12-31T23:59:59Z',
-          reference: 'PAY-20240102-002', paid_at: '2024-01-02T14:30:00Z',
-          created_at: '2024-01-01T09:00:00Z', updated_at: '2024-01-02T14:30:00Z',
-        },
-        {
-          id: 5, seller_id: 1, amount: 6500000, status: 'failed',
-          period_start: '2023-12-01T00:00:00Z', period_end: '2023-12-15T23:59:59Z',
-          reference: 'PAY-20231216-003',
-          created_at: '2023-12-16T09:00:00Z', updated_at: '2023-12-17T10:00:00Z',
-        },
-      ];
-      setPayouts(mockPayouts);
-      setIsLoading(false);
-    }, 500);
+// دریافت موجودی واقعی کیف پول از بک‌اند
+const { data: walletData, isLoading: isWalletLoading } = useQuery({
+  queryKey: ['seller-wallet'],
+  queryFn: async () => {
+    const response = await apiClient.get('/seller/wallet');
+    return response.data;
+  },
+});
 
-    return () => clearTimeout(timer);
-  }, []);
+// دریافت لیست واقعی درخواست‌های تسویه (اگر اندپوینت آن را در بک‌اند ساخته‌اید)
+// اگر هنوز اندپوینت payouts را نساخته‌اید، این بخش را می‌توانید فعلاً با داده‌های ساختگی نگه دارید
+const { data: payoutsData, isLoading: isPayoutsLoading } = useQuery({
+  queryKey: ['seller-payouts'],
+  queryFn: async () => {
+    // فعلاً برای جلوگیری از خطا، اگر اندپوینت آماده نیست، آرایه خالی برمی‌گردانیم
+    // وقتی اندپوینت /seller/payouts را ساختید، خط زیر را فعال کنید:
+    // const response = await apiClient.get('/seller/payouts');
+    // return response.data.data || [];
+    return []; 
+  },
+});
+
+const isLoading = isWalletLoading || isPayoutsLoading;
+
+// استخراج موجودی واقعی از پاسخ بک‌اند
+const walletBalance = walletData?.data?.wallet?.balance || 0;
+const payouts = payoutsData || [];
 
   const getStatusConfig = useCallback((status: string) => {
     const config = {
@@ -165,7 +155,7 @@ export function SellerPayouts() {
       processingCount: processing.length,
       pendingCount: pending.length,
       failedCount: failed.length,
-      availableBalance: pending.reduce((sum, p) => sum + p.amount, 0) + 5200000,
+      //availableBalance: pending.reduce((sum, p) => sum + p.amount, 0) + 5200000,
       totalRevenue: payouts.reduce((sum, p) => sum + p.amount, 0),
     };
   }, [payouts]);
