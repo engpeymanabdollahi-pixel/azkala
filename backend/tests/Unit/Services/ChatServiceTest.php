@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Services\Chat\ChatService;
 use App\Repositories\ChatRepository;
 use App\Models\Conversation;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 
@@ -90,14 +91,28 @@ class ChatServiceTest extends TestCase
         $sellerId = 2;
         $productId = null;
         
-        // ایجاد Mock از Model به جای stdClass
+        // ایجاد Mock از Conversation
         $conversation = Mockery::mock(Conversation::class);
         $conversation->shouldReceive('getAttribute')->with('id')->andReturn(1);
         $conversation->shouldReceive('getAttribute')->with('buyer_id')->andReturn($userId);
         $conversation->shouldReceive('getAttribute')->with('seller_id')->andReturn($sellerId);
         $conversation->shouldReceive('getAttribute')->with('product_id')->andReturn($productId);
         $conversation->shouldReceive('getAttribute')->with('status')->andReturn('active');
-
+        
+        // ایجاد Mock برای buyer
+        $buyer = Mockery::mock(User::class);
+        $buyer->shouldReceive('getAttribute')->with('id')->andReturn($userId);
+        $buyer->shouldReceive('getAttribute')->with('name')->andReturn('Buyer Name');
+        
+        // ایجاد Mock برای seller
+        $seller = Mockery::mock(User::class);
+        $seller->shouldReceive('getAttribute')->with('id')->andReturn($sellerId);
+        $seller->shouldReceive('getAttribute')->with('name')->andReturn('Seller Name');
+        
+        // تنظیم Conversation برای برگرداندن buyer و seller
+        $conversation->shouldReceive('getAttribute')->with('buyer')->andReturn($buyer);
+        $conversation->shouldReceive('getAttribute')->with('seller')->andReturn($seller);
+        
         $this->chatRepository
             ->shouldReceive('getOrCreateConversation')
             ->with($userId, $sellerId, $productId)
@@ -108,6 +123,8 @@ class ChatServiceTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertEquals(1, $result['id']);
+        $this->assertEquals($userId, $result['buyer']['id']);
+        $this->assertEquals($sellerId, $result['seller']['id']);
     }
 
     /** @test */
