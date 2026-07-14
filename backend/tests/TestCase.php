@@ -7,22 +7,18 @@ use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
-    
-    protected function setUp(): void
-    {
-        parent::setUp();
-    }
+    use CreatesApplication;
 
     protected function tearDown(): void
     {
-        // Force rollback any active transactions to prevent "already an active transaction" errors
+        // پاکسازی اجباری تراکنش‌های باز برای جلوگیری از اثر دومینویی در SQLite
         try {
             $pdo = DB::connection()->getPdo();
             if ($pdo && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
         } catch (\Exception $e) {
-            // Ignore cleanup errors
+            // نادیده گرفتن خطاهای پاکسازی
         }
 
         parent::tearDown();
