@@ -1,4 +1,4 @@
-import apiClient from './client';
+import client from './client'; // ✅ اصلاح شد: ایمپورت پیش‌فرض client
 
 // ==================== Types ====================
 
@@ -104,7 +104,7 @@ export const adminUserService = {
    * دریافت لیست کاربران
    */
   async getUsers(filters: UserFilters = {}): Promise<AdminUsersResponse> {
-    const response = await apiClient.get<AdminUsersResponse>('/admin/users', { 
+    const response = await client.get<AdminUsersResponse>('/admin/users', { 
       params: filters 
     });
     return response.data;
@@ -114,7 +114,7 @@ export const adminUserService = {
    * دریافت جزئیات کاربر
    */
   async getUser(id: number) {
-    const response = await apiClient.get(`/admin/users/${id}`);
+    const response = await client.get(`/admin/users/${id}`);
     return response.data;
   },
 
@@ -122,7 +122,7 @@ export const adminUserService = {
    * تغییر نقش کاربر
    */
   async updateRole(id: number, role: string) {
-    const response = await apiClient.put(`/admin/users/${id}/role`, { role });
+    const response = await client.put(`/admin/users/${id}/role`, { role });
     return response.data;
   },
 
@@ -130,7 +130,7 @@ export const adminUserService = {
    * تغییر وضعیت کاربر (فعال/غیرفعال)
    */
   async updateStatus(id: number, is_active: boolean) {
-    const response = await apiClient.put(`/admin/users/${id}/status`, { is_active });
+    const response = await client.put(`/admin/users/${id}/status`, { is_active });
     return response.data;
   },
 
@@ -138,7 +138,7 @@ export const adminUserService = {
    * تایید فروشنده
    */
   async approveSeller(id: number) {
-    const response = await apiClient.post(`/admin/users/${id}/approve-seller`);
+    const response = await client.post(`/admin/users/${id}/approve-seller`);
     return response.data;
   },
 
@@ -146,7 +146,7 @@ export const adminUserService = {
    * رد فروشنده
    */
   async rejectSeller(id: number, reason: string) {
-    const response = await apiClient.post(`/admin/users/${id}/reject-seller`, { reason });
+    const response = await client.post(`/admin/users/${id}/reject-seller`, { reason });
     return response.data;
   },
 
@@ -154,7 +154,7 @@ export const adminUserService = {
    * دریافت درخواست‌های فروشندگی
    */
   async getSellerRequests(): Promise<SellerRequestsResponse> {
-    const response = await apiClient.get<SellerRequestsResponse>('/admin/users/seller-requests');
+    const response = await client.get<SellerRequestsResponse>('/admin/users/seller-requests');
     return response.data;
   },
 
@@ -162,7 +162,7 @@ export const adminUserService = {
    * تایید درخواست فروشندگی
    */
   async approveSellerRequest(id: number) {
-    const response = await apiClient.post(`/admin/seller-requests/${id}/approve`);
+    const response = await client.post(`/admin/seller-requests/${id}/approve`);
     return response.data;
   },
 
@@ -170,7 +170,7 @@ export const adminUserService = {
    * رد درخواست فروشندگی
    */
   async rejectSellerRequest(id: number, reason: string) {
-    const response = await apiClient.post(`/admin/seller-requests/${id}/reject`, { reason });
+    const response = await client.post(`/admin/seller-requests/${id}/reject`, { reason });
     return response.data;
   },
 };

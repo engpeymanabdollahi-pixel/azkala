@@ -94,8 +94,7 @@ const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage').then(m =>
 const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage').then(m => ({ default: m.UserTicketsPage })));
 
 // ✅ ایمپورت جدید: صفحه درخواست فروشندگی
-const SellerRequestPage = lazy(() => import('@/pages/user/SellerRequestPage').then(m => ({ default: m.SellerRequestPage })));
-
+   const SellerRequestPage = lazy(() => import('@/pages/user/SellerRequestPage'));
 // ==========================================
 // کامپوننت محافظت از روت‌ها (Protected Route)
 // ==========================================

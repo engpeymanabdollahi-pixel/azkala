@@ -369,6 +369,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [BlockManagementController::class, 'unblock']);
             Route::delete('/user/{userId}/all', [BlockManagementController::class, 'unblockAll']);
         });
+        // دریافت لیست درخواست‌های فروشندگی برای پنل ادمین
+Route::get('/admin/seller-requests', function () {
+    $requests = \App\Models\SellerRequest::with('user:id,name,email')->latest()->get();
+    
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'requests' => $requests
+        ]
+    ]);
+});
 
         // 🤖 مدیریت FAQ سراسری
         Route::prefix('faq-management')->group(function () {
