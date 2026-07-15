@@ -65,6 +65,9 @@ use App\Http\Controllers\Admin\MessageTemplateController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\ReportExportController;
 
+// کنترلر درخواست فروشنده
+use App\Http\Controllers\Api\SellerRequestController;
+
 // ============================================================
 // 🌐 مسیرهای عمومی (بدون نیاز به احراز هویت)
 // ============================================================
