@@ -74,7 +74,7 @@ const EditProduct = lazy(() => import('@/pages/seller/EditProduct').then(m => ({
 const SellerOrders = lazy(() => import('@/pages/seller/SellerOrders').then(m => ({ default: m.SellerOrders })));
 const SellerOrderDetail = lazy(() => import('@/pages/seller/SellerOrderDetail').then(m => ({ default: m.SellerOrderDetail })));
 const SellerPayouts = lazy(() => import('@/pages/seller/SellerPayouts').then(m => ({ default: m.SellerPayouts })));
-const SellerLoginPage = lazy(() => import('@/pages/seller/SellerLoginPage').then(m => ({ default: m.SellerLoginPage })));
+const SellerLoginPage = lazy(() => import('@/pages/seller/sellerLogin').then(m => ({ default: m.sellerLogin })));
 const SellerChatPage = lazy(() => import('@/pages/seller/SellerChatPage').then(m => ({ default: m.SellerChatPage })));
 
 // ==========================================
