@@ -124,7 +124,22 @@ Route::prefix('products')->group(function () {
 // 🔐 مسیرهای محافظت‌شده (نیاز به احراز هویت با Sanctum)
 // ============================================================
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/seller-requests', [SellerRequestController::class, 'store']);
+// ✅ خط اصلاح شده:
+Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store']);
+    // روت‌های سبد خرید و سفارش (نیاز به احراز هویت)
+Route::middleware('auth:sanctum')->group(function () {
+    // Cart Routes
+    Route::get('/cart', [App\Http\Controllers\Api\CartController::class, 'index']);
+    Route::post('/cart', [App\Http\Controllers\Api\CartController::class, 'store']);
+    Route::put('/cart/{cartItemId}', [App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::delete('/cart/{cartItemId}', [App\Http\Controllers\Api\CartController::class, 'destroy']);
+
+    // Order Routes
+    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'store']);
+    Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::get('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'show']);
+    Route::post('/orders/{order}/cancel', [App\Http\Controllers\Api\OrderController::class, 'cancel']);
+});
 
 
     // ============================================================
