@@ -2,8 +2,13 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\DeviceBrand;
+use App\Models\DeviceSeries;
+use App\Models\DeviceModel;
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\ProductDeviceCompatibility;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class DeviceBasedProductFilterTest extends TestCase
@@ -12,64 +17,48 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_only_compatible_items(): void
     {
-        // مرحله ۱: ساخت مستقیم برند با insert مستقیم
-        $brandId = DB::table('device_brands')->insertGetId([
+        // مرحله ۱: ساخت سلسله مراتب دستگاه با Factory
+        $brand = DeviceBrand::factory()->create([
             'name' => 'Samsung',
-            'slug' => 'samsung',
-            'created_at' => now(),
-            'updated_at' => now()
+            'slug' => 'samsung'
         ]);
 
-        // مرحله ۲: ساخت سری با brand_id واقعی
-        $seriesId = DB::table('device_series')->insertGetId([
-            'brand_id' => $brandId,
+        $series = DeviceSeries::factory()->create([
+            'brand_id' => $brand->id,
             'name' => 'Galaxy S',
-            'slug' => 'galaxy-s',
-            'created_at' => now(),
-            'updated_at' => now()
+            'slug' => 'galaxy-s'
         ]);
 
-        // مرحله ۳: ساخت مدل با series_id واقعی
-        $modelId = DB::table('device_models')->insertGetId([
-            'series_id' => $seriesId,
+        $model = DeviceModel::factory()->create([
+            'series_id' => $series->id,
             'name' => 'S24 Ultra',
-            'slug' => 's24-ultra',
-            'release_year' => 2024,
-            'created_at' => now(),
-            'updated_at' => now()
+            'slug' => 's24-ultra'
         ]);
 
-        // مرحله ۴: ساخت محصولات
-        $compatibleProduct = DB::table('products')->insertGetId([
+        // مرحله ۲: ساخت دسته‌بندی (اجباری)
+        $category = Category::factory()->create();
+
+        // مرحله ۳: ساخت محصولات با category_id
+        $compatibleProduct = Product::factory()->create([
             'name' => 'Case S24 Ultra',
-            'slug' => 'case-s24-ultra',
-            'price' => 100000,
-            'stock' => 10,
-            'created_at' => now(),
-            'updated_at' => now()
+            'category_id' => $category->id
         ]);
 
-        $incompatibleProduct = DB::table('products')->insertGetId([
+        $incompatibleProduct = Product::factory()->create([
             'name' => 'Case S23 Ultra',
-            'slug' => 'case-s23-ultra',
-            'price' => 90000,
-            'stock' => 5,
-            'created_at' => now(),
-            'updated_at' => now()
+            'category_id' => $category->id
         ]);
 
-        // مرحله ۵: ایجاد رابطه سازگاری
-        DB::table('product_device_compatibility')->insert([
-            'product_id' => $compatibleProduct,
-            'device_model_id' => $modelId,
-            'created_at' => now(),
-            'updated_at' => now()
+        // مرحله ۴: ایجاد رابطه سازگاری
+        ProductDeviceCompatibility::create([
+            'product_id' => $compatibleProduct->id,
+            'device_model_id' => $model->id
         ]);
 
-        // مرحله ۶: درخواست API
-        $response = $this->getJson('/api/products?device_model_id=' . $modelId);
+        // مرحله ۵: درخواست API
+        $response = $this->getJson('/api/products?device_model_id=' . $model->id);
 
-        // مرحله ۷: بررسی پاسخ
+        // مرحله ۶: بررسی پاسخ
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['name' => 'Case S24 Ultra']);
@@ -77,10 +66,12 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_all_if_no_device_selected(): void
     {
-        DB::table('products')->insert([
-            ['name' => 'Product 1', 'slug' => 'product-1', 'price' => 100, 'stock' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Product 2', 'slug' => 'product-2', 'price' => 200, 'stock' => 2, 'created_at' => now(), 'updated_at' => now()],
-            ['name' => 'Product 3', 'slug' => 'product-3', 'price' => 300, 'stock' => 3, 'created_at' => now(), 'updated_at' => now()],
+        // ساخت دسته‌بندی
+        $category = Category::factory()->create();
+
+        // ساخت محصولات با category_id
+        Product::factory()->count(3)->create([
+            'category_id' => $category->id
         ]);
 
         $response = $this->getJson('/api/products');
