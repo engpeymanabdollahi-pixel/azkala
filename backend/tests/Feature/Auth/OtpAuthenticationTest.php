@@ -37,21 +37,23 @@ class OtpAuthenticationTest extends TestCase
         ]);
     }
 
-    public function test_user_cannot_request_otp_too_frequently(): void
-    {
-        // شبیه‌سازی پر شدن ظرفیت Rate Limiter
-        $key = 'otp_request:09123456789';
-        for ($i = 0; $i < 3; $i++) {
-            RateLimiter::hit($key, 60);
-        }
-
-        $response = $this->postJson('/api/v1/auth/otp/request', [
-            'phone' => '09123456789'
-        ]);
-
-        $response->assertStatus(429)
-                 ->assertJson(['message' => 'Too many attempts. Please try again later.']);
+   public function test_user_cannot_request_otp_too_frequently(): void
+{
+    $phone = '09123456789';
+    
+    // ۳ درخواست موفق ارسال می‌کنیم تا سقف پر شود
+    for ($i = 0; $i < 3; $i++) {
+        $this->postJson('/api/v1/auth/otp/request', ['phone' => $phone])
+             ->assertStatus(200);
     }
+
+    // درخواست چهارم باید رد شود (429)
+    $response = $this->postJson('/api/v1/auth/otp/request', ['phone' => $phone]);
+
+    $response->assertStatus(429)
+             ->assertJsonPath('success', false)
+             ->assertJsonFragment(['message' => 'تعداد تلاش‌ها بیش از حد مجاز است']);
+}
 
     public function test_user_can_login_with_valid_otp(): void
     {
