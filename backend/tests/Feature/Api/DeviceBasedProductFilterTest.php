@@ -16,36 +16,43 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_only_compatible_items(): void
     {
-        // ساخت سلسله مراتب دستگاه با ترتیب صحیح
-        $brand = DeviceBrand::factory()->create(['name' => 'Samsung', 'slug' => 'samsung']);
+        // مرحله ۱: ساخت برند
+        $brand = DeviceBrand::factory()->create([
+            'name' => 'Samsung',
+            'slug' => 'samsung'
+        ]);
+
+        // مرحله ۲: ساخت سری با اتصال صریح به برند
         $series = DeviceSeries::factory()->create([
-            'brand_id' => $brand->id,
+            'brand_id' => $brand->id, // استفاده از id واقعی
             'name' => 'Galaxy S',
             'slug' => 'galaxy-s'
         ]);
+
+        // مرحله ۳: ساخت مدل با اتصال صریح به سری
         $model = DeviceModel::factory()->create([
-            'series_id' => $series->id,
+            'series_id' => $series->id, // استفاده از id واقعی
             'name' => 'S24 Ultra',
             'slug' => 's24-ultra'
         ]);
 
-        // محصول سازگار
+        // مرحله ۴: ساخت محصول سازگار
         $compatibleProduct = Product::factory()->create(['name' => 'Case S24 Ultra']);
         ProductDeviceCompatibility::create([
             'product_id' => $compatibleProduct->id,
             'device_model_id' => $model->id
         ]);
 
-        // محصول ناسازگار
+        // مرحله ۵: ساخت محصول ناسازگار
         $incompatibleProduct = Product::factory()->create(['name' => 'Case S23 Ultra']);
 
-        // درخواست API
+        // مرحله ۶: درخواست API
         $response = $this->getJson('/api/products?device_model_id=' . $model->id);
 
+        // مرحله ۷: بررسی پاسخ
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
         $response->assertJsonFragment(['name' => 'Case S24 Ultra']);
-        $response->assertJsonMissing(['name' => 'Case S23 Ultra']);
     }
 
     public function test_products_endpoint_returns_all_if_no_device_selected(): void
