@@ -1,10 +1,18 @@
 <?php
-namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class DeviceBrand extends Model {
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class DeviceBrand extends Model
+{
+    use HasFactory; // ✅ این خط جادویی مشکل را حل می‌کند
+
     protected $fillable = ['name', 'slug'];
-    public function series(): HasMany { return $this->hasMany(DeviceSeries::class); }
-    public function models(): HasMany { return $this->hasManyThrough(DeviceModel::class, DeviceSeries::class); }
+
+    public function series()
+    {
+        return $this->hasMany(DeviceSeries::class);
+    }
 }
