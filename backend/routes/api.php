@@ -334,6 +334,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/predictions', [AdminAdvancedReportController::class, 'predictions']);
             Route::get('/anomalies', [AdminAdvancedReportController::class, 'anomalies']);
         });
+        // این خط را در گروه روت‌های ادمین قرار دهید
+Route::get('/admin/dashboard', function () {
+    return response()->json(['success' => true, 'message' => 'Admin Dashboard']);
+});
 
         // 🚨 گزارشات چت
         Route::prefix('chat-reports')->group(function () {
