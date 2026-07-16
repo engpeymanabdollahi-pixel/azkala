@@ -82,8 +82,30 @@ class AuthController extends Controller
             ], 500);
         }
     }
+<?php
 
-          public function handleOtp(Request $request)
+namespace App\Http\Controllers\Api; // یا App\Http\Controllers بسته به ساختار شما
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Requests\ChangePasswordRequest;
+use App\Http\Resources\UserResource;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter; // <--- ایمپورت جدید
+use Illuminate\Support\Str;
+use Illuminate\Cache\RateLimiting\Limit; // <--- ایمپورت جدید (اختیاری)
+
+class AuthController extends Controller
+{
+    // ... سایر متدها (register, login, ...) ...
+
+    public function handleOtp(Request $request)
     {
         $request->validate([
             'phone' => 'required|regex:/^09[0-9]{9}$/',
@@ -91,12 +113,32 @@ class AuthController extends Controller
         ]);
 
         $phone = trim($request->phone);
-        $otp = (string) $request->otp; // ✅ تضمین رشته‌ای بودن ورودی
+        $otp = (string) $request->otp;
+        
+        // --- شروع بخش Rate Limiting ---
+        // کلید منحصر به فرد برای هر شماره تلفن
+        $throttleKey = 'otp_request:' . $phone;
+        $maxAttempts = 3;      // حداکثر 3 تلاش
+        $decaySeconds = 60;    // در بازه 60 ثانیه
+
+        if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً ' . $seconds . ' ثانیه دیگر تلاش کنید.',
+            ], 429); // کد وضعیت 429 برای Too Many Requests
+        }
+
+        // ثبت یک تلاش جدید
+        RateLimiter::hit($throttleKey, $decaySeconds);
+        // --- پایان بخش Rate Limiting ---
+
         $cacheDriver = config('cache.default');
 
         // حالت اول: درخواست ارسال کد
         if (!$otp) {
-            $newOtp = (string) rand(10000, 99999); // ✅ تبدیل عدد تصادفی به رشته
+            $newOtp = (string) rand(10000, 99999);
             Cache::put('otp_' . $phone, $newOtp, now()->addMinutes(5));
             
             Log::info('✅ OTP Generated', [
@@ -122,8 +164,8 @@ class AuthController extends Controller
             'cache_driver' => $cacheDriver
         ]);
 
-        // ✅ مقایسه‌ی ایمن با تبدیل هر دو به رشته
         if (!$cachedOtp || (string) $cachedOtp !== $otp) {
+            // اختیاری: می‌توانید برای کد اشتباه هم Rate Limit بگذارید یا جداگانه هندل کنید
             return response()->json([
                 'success' => false, 
                 'message' => 'کد تایید نامعتبر یا منقضی است.'
@@ -153,6 +195,9 @@ class AuthController extends Controller
             ]
         ]);
     }
+
+    // ... سایر متدها (logout, user, update, changePassword) ...
+}
     
     public function logout(Request $request)
     {
