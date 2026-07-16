@@ -5,12 +5,10 @@ import { useOrder } from '@/hooks/useOrder';
 import { toast } from 'react-hot-toast';
 
 interface CheckoutFormProps {
-  onSuccess?: (orderNumber: string) => void;
+  onSuccess?: (orderData: any) => void;
 }
 
-interface CheckoutFormProps {
-  onSuccess?: (orderData: any) => void; // ✅ تغییر نوع داده
-}
+export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
   const { createOrder, isLoading } = useOrder();
 
   const {
@@ -24,12 +22,11 @@ interface CheckoutFormProps {
     },
   });
 
-   const onSubmit = async (data: CheckoutFormData) => {
+  const onSubmit = async (data: CheckoutFormData) => {
     try {
       const result = await createOrder(data);
       toast.success('سفارش شما با موفقیت ثبت شد!');
-
-      // ✅ تغییر: ارسال کل آبجکت result به جای فقط order_number
+      
       if (onSuccess && result) {
         onSuccess(result);
       }
@@ -44,26 +41,20 @@ interface CheckoutFormProps {
 
       {/* نام گیرنده */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          نام گیرنده
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">نام گیرنده</label>
         <input
           {...register('shipping_address.receiver_name')}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="مثال: علی محمدی"
         />
         {errors.shipping_address?.receiver_name && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.shipping_address.receiver_name.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.receiver_name.message}</p>
         )}
       </div>
 
       {/* شماره موبایل */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          شماره موبایل
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">شماره موبایل</label>
         <input
           {...register('shipping_address.phone')}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -71,52 +62,39 @@ interface CheckoutFormProps {
           dir="ltr"
         />
         {errors.shipping_address?.phone && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.shipping_address.phone.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.phone.message}</p>
         )}
       </div>
 
       {/* استان و شهر */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            استان
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">استان</label>
           <input
             {...register('shipping_address.province')}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="مثال: تهران"
           />
           {errors.shipping_address?.province && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.shipping_address.province.message}
-            </p>
+            <p className="mt-1 text-sm text-red-600">{errors.shipping_address.province.message}</p>
           )}
         </div>
-
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            شهر
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">شهر</label>
           <input
             {...register('shipping_address.city')}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="مثال: تهران"
           />
           {errors.shipping_address?.city && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.shipping_address.city.message}
-            </p>
+            <p className="mt-1 text-sm text-red-600">{errors.shipping_address.city.message}</p>
           )}
         </div>
       </div>
 
       {/* آدرس دقیق */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          آدرس دقیق
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">آدرس دقیق</label>
         <textarea
           {...register('shipping_address.address')}
           rows={3}
@@ -124,17 +102,13 @@ interface CheckoutFormProps {
           placeholder="آدرس کامل پستی خود را وارد کنید..."
         />
         {errors.shipping_address?.address && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.shipping_address.address.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.address.message}</p>
         )}
       </div>
 
       {/* کد پستی */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          کد پستی
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">کد پستی</label>
         <input
           {...register('shipping_address.postal_code')}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -143,17 +117,13 @@ interface CheckoutFormProps {
           maxLength={10}
         />
         {errors.shipping_address?.postal_code && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.shipping_address.postal_code.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.postal_code.message}</p>
         )}
       </div>
 
       {/* یادداشت */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          یادداشت (اختیاری)
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">یادداشت (اختیاری)</label>
         <textarea
           {...register('shipping_address.notes')}
           rows={2}
@@ -161,41 +131,25 @@ interface CheckoutFormProps {
           placeholder="اگر توضیح خاصی برای ارسال دارید..."
         />
         {errors.shipping_address?.notes && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.shipping_address.notes.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.notes.message}</p>
         )}
       </div>
 
       {/* روش پرداخت */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          روش پرداخت
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">روش پرداخت</label>
         <div className="space-y-2">
           <label className="flex items-center">
-            <input
-              type="radio"
-              value="online"
-              {...register('payment_method')}
-              className="w-4 h-4 text-blue-600"
-            />
+            <input type="radio" value="online" {...register('payment_method')} className="w-4 h-4 text-blue-600" />
             <span className="mr-2 text-gray-700">پرداخت آنلاین</span>
           </label>
           <label className="flex items-center">
-            <input
-              type="radio"
-              value="wallet"
-              {...register('payment_method')}
-              className="w-4 h-4 text-blue-600"
-            />
+            <input type="radio" value="wallet" {...register('payment_method')} className="w-4 h-4 text-blue-600" />
             <span className="mr-2 text-gray-700">پرداخت از کیف پول</span>
           </label>
         </div>
         {errors.payment_method && (
-          <p className="mt-1 text-sm text-red-600">
-            {errors.payment_method.message}
-          </p>
+          <p className="mt-1 text-sm text-red-600">{errors.payment_method.message}</p>
         )}
       </div>
 
