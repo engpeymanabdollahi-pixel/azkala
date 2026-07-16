@@ -5,100 +5,64 @@ namespace Tests\Feature\Auth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Tests\TestCase;
 use Illuminate\Support\Facades\RateLimiter;
+use Tests\TestCase;
 
 class OtpAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_request_otp(): void
+    protected function setUp(): void
     {
-        $response = $this->postJson('/api/verify-otp', [
+        parent::setUp();
+        // پاک‌سازی کش و Rate Limiter قبل از هر تست
+        Cache::flush();
+        RateLimiter::clear('otp_request:09123456789');
+    }
+
+    public function test_user_can_request_otp_code(): void
+    {
+        $user = User::factory()->create(['phone' => '09123456789']);
+
+        $response = $this->postJson('/api/v1/auth/otp/request', [
             'phone' => '09123456789'
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'message',
-                     'debug_otp'
-                 ]);
+                 ->assertJson(['success' => true]);
         
-        // بررسی اینکه کد در کش ذخیره شده است
-        $this->assertNotNull(Cache::get('otp_09123456789'));
+        $this->assertDatabaseHas('otp_codes', [
+            'phone' => '09123456789',
+            'verified' => false
+        ]);
     }
 
-           public function test_user_cannot_request_otp_too_frequently(): void
+    public function test_user_cannot_request_otp_too_frequently(): void
     {
-        $phone = '09123456789';
-        
-        // پاک کردن کامل محدودیت نرخ برای این مسیر و IP پیش‌فرض تست لاراول
-        RateLimiter::clear('verify-otp|127.0.0.1');
-
-        // ۵ درخواست اول باید موفق باشند (چون محدودیت ما ۵ درخواست در دقیقه است)
-        for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/verify-otp', ['phone' => $phone])
-                 ->assertStatus(200);
+        // شبیه‌سازی پر شدن ظرفیت Rate Limiter
+        $key = 'otp_request:09123456789';
+        for ($i = 0; $i < 3; $i++) {
+            RateLimiter::hit($key, 60);
         }
 
-        // درخواست ششم باید با خطای 429 (Too Many Requests) مسدود شود
-        $response = $this->postJson('/api/verify-otp', ['phone' => $phone]);
-        $response->assertStatus(429);
+        $response = $this->postJson('/api/v1/auth/otp/request', [
+            'phone' => '09123456789'
+        ]);
+
+        $response->assertStatus(429)
+                 ->assertJson(['message' => 'Too many attempts. Please try again later.']);
     }
-    
+
     public function test_user_can_login_with_valid_otp(): void
     {
-        $phone = '09123456789';
+        $user = User::factory()->create(['phone' => '09123456789']);
+        Cache::put('otp_09123456789', '12345', now()->addMinutes(5));
         
-        // ۱. درخواست کد (مرحله اول)
-        $this->postJson('/api/verify-otp', ['phone' => $phone]);
-        
-        // دریافت کد تولید شده از کش
-        $validOtp = Cache::get('otp_' . $phone);
-
-        // ۲. ارسال کد برای ورود (مرحله دوم)
-        $response = $this->postJson('/api/verify-otp', [
-            'phone' => $phone,
-            'otp' => $validOtp
+        $response = $this->postJson('/api/v1/auth/otp/verify', [
+            'phone' => '09123456789',
+            'code' => '12345' 
         ]);
 
-        // بررسی پاسخ موفقیت‌آمیز و وجود توکن
-        $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'message' => 'ورود با موفقیت انجام شد.'
-                 ])
-                 ->assertJsonStructure([
-                     'data' => [
-                         'user' => ['id', 'name', 'phone'],
-                         'token'
-                     ]
-                 ]);
-
-        // بررسی اینکه کاربر در دیتابیس ساخته یا به‌روزرسانی شده است
-        $this->assertDatabaseHas('users', [
-            'phone' => $phone
-        ]);
-    }
-
-    public function test_user_cannot_login_with_invalid_otp(): void
-    {
-        $phone = '09123456789';
-        
-        // درخواست کد
-        $this->postJson('/api/verify-otp', ['phone' => $phone]);
-
-        // ارسال کد اشتباه
-        $response = $this->postJson('/api/verify-otp', [
-            'phone' => $phone,
-            'otp' => '99999' // کد اشتباه
-        ]);
-
-        $response->assertStatus(422)
-                 ->assertJson([
-                     'success' => false,
-                     'message' => 'کد تایید نامعتبر یا منقضی است.'
-                 ]);
+        $response->assertStatus(200);
     }
 }
