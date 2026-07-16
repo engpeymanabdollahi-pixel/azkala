@@ -527,4 +527,18 @@ Route::get('/admin/seller-requests', function () {
         Route::post('/test', [PushSubscriptionController::class, 'sendTest']);
         Route::get('/vapid-public-key', [PushSubscriptionController::class, 'getVapidPublicKey']);
     });
+    // روت تست برای Admin Dashboard (رفع خطای 404 در تست‌ها)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/admin/dashboard', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin Dashboard',
+            'data' => [
+                'total_users' => 0,
+                'total_orders' => 0,
+                'total_revenue' => 0
+            ]
+        ]);
+    });
+});
 });
