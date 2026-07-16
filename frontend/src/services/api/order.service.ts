@@ -2,7 +2,7 @@ import apiClient from './client';
 import type { Product } from '@/types/models';
 
 export interface ShippingAddress {
-  full_name: string;
+  receiver_name: string; // ✅ تغییر یافته برای هماهنگی با بک‌اند
   phone: string;
   province: string;
   city: string;

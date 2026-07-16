@@ -46,15 +46,20 @@ class OrderController extends Controller
                 $request->payment_method
             );
 
-            return response()->json([
-                'success' => true,
-                'message' => 'سفارش شما با موفقیت ثبت شد.',
-                'data' => [
-                    'order_number' => $order->order_number,
-                    'total' => $order->total,
-                    'payment_url' => '/api/payment/initiate/' . $order->id // لینک فرضی برای درگاه پرداخت
-                ]
-            ], 201);
+           // در متد store، بعد از ساخت سفارش:
+return response()->json([
+    'success' => true,
+    'message' => 'سفارش شما با موفقیت ثبت شد.',
+    'data' => [
+        'order_number' => $order->order_number,
+        'total' => (float) $order->total,
+        'items_count' => $order->items->sum('quantity'), // ✅ اضافه شد
+        'payment_method' => $order->payment_method,     // ✅ اضافه شد
+        'shipping_address' => $order->shipping_address, // ✅ اضافه شد
+        'created_at' => $order->created_at,             // ✅ اضافه شد
+        'payment_url' => '/api/payment/initiate/' . $order->id
+    ]
+], 201);
 
         } catch (\App\Exceptions\OutOfStockException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);

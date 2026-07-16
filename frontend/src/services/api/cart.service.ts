@@ -24,10 +24,7 @@ export interface CartResponse {
 export interface CartActionResponse {
   success: boolean;
   message: string;
-  data: {
-    items_count: number;
-    total: number;
-  };
+  data: any; // می‌تواند CartItem یا اطلاعات به‌روزرسانی شده سبد باشد
 }
 
 export const cartService = {
@@ -40,39 +37,41 @@ export const cartService = {
   },
 
   /**
-   * افزودن محصول به سبد
+   * افزودن محصول به سبد (با پشتیبانی از device_model_id)
    */
-  async addToCart(productId: number, quantity: number = 1): Promise<CartActionResponse> {
-    const response = await apiClient.post<CartActionResponse>('/cart', {
-      product_id: productId,
+  async addToCart(productId: number, quantity: number = 1, deviceModelId?: number): Promise<CartActionResponse> {
+    const payload: any = { product_id: productId, quantity };
+    if (deviceModelId) {
+      payload.device_model_id = deviceModelId;
+    }
+    
+    const response = await apiClient.post<CartActionResponse>('/cart', payload);
+    return response.data;
+  },
+
+  /**
+   * به‌روزرسانی تعداد (هماهنگ با روت جدید بک‌اند: PUT /cart/{cartItemId})
+   */
+  async updateQuantity(cartItemId: number, quantity: number): Promise<CartActionResponse> {
+    const response = await apiClient.put<CartActionResponse>(`/cart/${cartItemId}`, {
       quantity,
     });
     return response.data;
   },
 
   /**
-   * به‌روزرسانی تعداد
+   * حذف آیتم (هماهنگ با روت جدید بک‌اند: DELETE /cart/{cartItemId})
    */
-  async updateQuantity(itemId: number, quantity: number): Promise<CartActionResponse> {
-    const response = await apiClient.put<CartActionResponse>(`/cart/items/${itemId}`, {
-      quantity,
-    });
+  async removeItem(cartItemId: number): Promise<CartActionResponse> {
+    const response = await apiClient.delete<CartActionResponse>(`/cart/${cartItemId}`);
     return response.data;
   },
 
   /**
-   * حذف آیتم
-   */
-  async removeItem(itemId: number): Promise<CartActionResponse> {
-    const response = await apiClient.delete<CartActionResponse>(`/cart/items/${itemId}`);
-    return response.data;
-  },
-
-  /**
-   * خالی کردن سبد
+   * خالی کردن کامل سبد
    */
   async clearCart(): Promise<{ success: boolean; message: string }> {
-    const response = await apiClient.delete('/cart');
+    const response = await apiClient.delete('/cart/clear'); // یا هر روتی که در بک‌اند برای clear تعریف کرده‌اید
     return response.data;
   },
 };

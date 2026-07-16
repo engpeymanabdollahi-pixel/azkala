@@ -9,7 +9,22 @@ import { CartDrawer } from '@/components/features/CartDrawer';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { useAuthStore } from '@/store/authStore';
 import type { ReactNode } from 'react';
+import { AppErrorBoundary } from './components/ErrorBoundary';
+import { Toaster } from 'react-hot-toast';
 
+function App() {
+  return (
+    <AppErrorBoundary>
+      <Toaster position="top-left" reverseOrder={false} />
+      {/* بقیه کامپوننت‌های شما */}
+      <Router>
+        {/* روت‌های شما */}
+      </Router>
+    </AppErrorBoundary>
+  );
+}
+
+export default App;
 // ==========================================
 // کامپوننت لودینگ صفحه (Spinner)
 // ==========================================

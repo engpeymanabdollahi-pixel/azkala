@@ -11,18 +11,19 @@ import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 
+// ✅ تغییر: full_name به receiver_name برای هماهنگی با بک‌اند
 interface OrderSuccessData {
   order_number: string;
   total: number;
-  items_count: number;
-  payment_method: string;
-  shipping_address: {
-    full_name: string;
+  items_count?: number; // اختیاری کردیم تا اگر بک‌اند نفرستاد، خطا ندهد
+  payment_method?: string;
+  shipping_address?: {
+    receiver_name: string;
     phone: string;
     city: string;
     address: string;
   };
-  created_at: string;
+  created_at?: string;
 }
 
 export function OrderSuccessPage() {
@@ -32,7 +33,6 @@ export function OrderSuccessPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // دریافت اطلاعات از state یا localStorage
     const stateData = location.state as OrderSuccessData | undefined;
     const storedData = localStorage.getItem('last_order_success');
 
@@ -148,15 +148,17 @@ export function OrderSuccessPage() {
           </h3>
 
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-              <span className="flex items-center gap-2 text-sm text-gray-600">
-                <Package className="w-4 h-4 text-gray-400" />
-                تعداد کالاها
-              </span>
-              <span className="font-bold text-gray-900 text-sm">
-                {orderData.items_count} عدد
-              </span>
-            </div>
+            {orderData.items_count && (
+              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                <span className="flex items-center gap-2 text-sm text-gray-600">
+                  <Package className="w-4 h-4 text-gray-400" />
+                  تعداد کالاها
+                </span>
+                <span className="font-bold text-gray-900 text-sm">
+                  {orderData.items_count} عدد
+                </span>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
               <span className="flex items-center gap-2 text-sm text-gray-600">
@@ -168,84 +170,90 @@ export function OrderSuccessPage() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
-              <span className="flex items-center gap-2 text-sm text-gray-600">
-                <Clock className="w-4 h-4 text-gray-400" />
-                تاریخ ثبت
-              </span>
-              <span className="font-semibold text-gray-900 text-sm">
-                {new Date(orderData.created_at).toLocaleDateString('fa-IR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
+            {orderData.created_at && (
+              <div className="flex items-center justify-between pb-2.5 border-b border-gray-100">
+                <span className="flex items-center gap-2 text-sm text-gray-600">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  تاریخ ثبت
+                </span>
+                <span className="font-semibold text-gray-900 text-sm">
+                  {new Date(orderData.created_at).toLocaleDateString('fa-IR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            )}
 
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="w-4 h-4 text-gray-400" />
-                روش پرداخت
-              </span>
-              <Badge variant="primary" size="sm">
-                {orderData.payment_method === 'online' ? 'آنلاین' :
-                 orderData.payment_method === 'card_to_card' ? 'کارت به کارت' : 'کیف پول'}
-              </Badge>
-            </div>
+            {orderData.payment_method && (
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm text-gray-600">
+                  <FileText className="w-4 h-4 text-gray-400" />
+                  روش پرداخت
+                </span>
+                <Badge variant="primary" size="sm">
+                  {orderData.payment_method === 'online' ? 'آنلاین' :
+                   orderData.payment_method === 'card_to_card' ? 'کارت به کارت' : 'کیف پول'}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Shipping Address */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
-          <h3 className="font-black text-gray-900 text-base mb-3 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-accent-600" />
-            آدرس تحویل
-          </h3>
+        {orderData.shipping_address && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
+            <h3 className="font-black text-gray-900 text-base mb-3 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-accent-600" />
+              آدرس تحویل
+            </h3>
 
-          <div className="bg-gradient-to-l from-accent-50 to-white border border-accent-200 rounded-xl p-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-accent-700 font-black text-sm">
-                    {orderData.shipping_address.full_name.charAt(0)}
-                  </span>
+            <div className="bg-gradient-to-l from-accent-50 to-white border border-accent-200 rounded-xl p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-accent-700 font-black text-sm">
+                      {orderData.shipping_address.receiver_name.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500">گیرنده</p>
+                    <p className="font-bold text-gray-900 text-xs truncate">
+                      {orderData.shipping_address.receiver_name}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500">گیرنده</p>
-                  <p className="font-bold text-gray-900 text-xs truncate">
-                    {orderData.shipping_address.full_name}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-success-700 text-xs">📞</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-success-700 text-xs">📞</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500">تماس</p>
+                    <p className="font-bold text-gray-900 text-xs" dir="ltr">
+                      {orderData.shipping_address.phone}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-gray-500">تماس</p>
-                  <p className="font-bold text-gray-900 text-xs" dir="ltr">
-                    {orderData.shipping_address.phone}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-start gap-2 md:col-span-2">
-                <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-3.5 h-3.5 text-primary-700" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] text-gray-500">آدرس</p>
-                  <p className="font-semibold text-gray-900 text-xs leading-relaxed">
-                    {orderData.shipping_address.address}، {orderData.shipping_address.city}
-                  </p>
+                <div className="flex items-start gap-2 md:col-span-2">
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-3.5 h-3.5 text-primary-700" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] text-gray-500">آدرس</p>
+                    <p className="font-semibold text-gray-900 text-xs leading-relaxed">
+                      {orderData.shipping_address.address}، {orderData.shipping_address.city}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Timeline */}
         <div className="bg-gradient-to-l from-primary-50 to-white border border-primary-100 rounded-2xl p-5 mb-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
@@ -334,7 +342,7 @@ export function OrderSuccessPage() {
             <div className="flex-1">
               <h4 className="font-black text-warning-900 text-sm mb-1">اطلاعیه مهم</h4>
               <p className="text-xs text-warning-800 leading-relaxed">
-                ایمیل تایید سفارش به آدرس ایمیل شما ارسال خواهد شد. در صورت عدم دریافت، پوشه Spam را بررسی کنید.
+                پیامک تایید سفارش به شماره شما ارسال خواهد شد. 
                 برای پیگیری سفارش می‌توانید از بخش "سفارشات من" استفاده کنید.
               </p>
             </div>
