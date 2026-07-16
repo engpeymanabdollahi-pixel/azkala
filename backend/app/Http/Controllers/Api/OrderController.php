@@ -75,12 +75,10 @@ class OrderController extends Controller
         ]);
     }
 
-    public function show(Order $order)
+        public function show(Order $order)
     {
-        // بررسی امنیت: کاربر فقط باید سفارش‌های خودش را ببیند
-        if ($order->user_id !== Auth::id()) {
-            return response()->json(['success' => false, 'message' => 'دسترسی غیرمجاز.'], 403);
-        }
+        // ✅ استفاده از Policy به جای چک دستی
+        $this->authorize('view', $order);
 
         return response()->json([
             'success' => true,
@@ -90,16 +88,15 @@ class OrderController extends Controller
 
     public function cancel(Order $order)
     {
-        if ($order->user_id !== Auth::id()) {
-            return response()->json(['success' => false, 'message' => 'دسترسی غیرمجاز.'], 403);
-        }
+        // ✅ استفاده از Policy به جای چک دستی
+        $this->authorize('cancel', $order);
 
         try {
-            $cancelledOrder = $this->orderService->cancelOrder($order);
+            $cancelledOrder = app(\App\Services\OrderService::class)->cancelOrder($order);
             
             return response()->json([
                 'success' => true,
-                'message' => 'سفارش با موفقیت لغو و مبلغ (در صورت پرداخت) به کیف پول بازگردانده شد.',
+                'message' => 'سفارش با موفقیت لغو شد.',
                 'data' => $cancelledOrder
             ]);
         } catch (\InvalidArgumentException $e) {
