@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
+use Illuminate\Support\Facades\RateLimiter;
 
 class OtpAuthenticationTest extends TestCase
 {
@@ -28,22 +29,21 @@ class OtpAuthenticationTest extends TestCase
         $this->assertNotNull(Cache::get('otp_09123456789'));
     }
 
-        public function test_user_cannot_request_otp_too_frequently(): void
+           public function test_user_cannot_request_otp_too_frequently(): void
     {
-        // پاک کردن کش قبل از تست برای اطمینان از شروع شمارنده از صفر
-        \Illuminate\Support\Facades\Cache::flush();
+        $phone = '09123456789';
+        
+        // پاک کردن کامل محدودیت نرخ برای این مسیر و IP پیش‌فرض تست لاراول
+        RateLimiter::clear('verify-otp|127.0.0.1');
 
-        // ۵ درخواست اول باید موفق باشند (محدوده throttle ما ۵ درخواست در دقیقه است)
+        // ۵ درخواست اول باید موفق باشند (چون محدودیت ما ۵ درخواست در دقیقه است)
         for ($i = 0; $i < 5; $i++) {
-            $this->postJson('/api/verify-otp', ['phone' => '09123456789'])
+            $this->postJson('/api/verify-otp', ['phone' => $phone])
                  ->assertStatus(200);
         }
 
-        // درخواست ششم باید با خطای 429 (Too Many Requests) مواجه شود
-        $response = $this->postJson('/api/verify-otp', [
-            'phone' => '09123456789'
-        ]);
-
+        // درخواست ششم باید با خطای 429 (Too Many Requests) مسدود شود
+        $response = $this->postJson('/api/verify-otp', ['phone' => $phone]);
         $response->assertStatus(429);
     }
     
