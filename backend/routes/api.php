@@ -1,559 +1,516 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ============================================================
-// 📦 وارد کردن کنترلرها
+// 📦 وارد کردن کنترلرها (همه در یکجا برای خوانایی)
 // ============================================================
 
-// کنترلرهای عمومی
+// عمومی
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SellerRequestController;
 
-// کنترلرهای محافظت‌شده (کاربر)
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\CouponController;
+// کاربر (احراز هویت شده)
 use App\Http\Controllers\Api\AddressController;
-use App\Http\Controllers\Api\UserDeviceController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\ImageUploadController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\UserDeviceController;
+use App\Http\Controllers\Api\UserTicketController;
 use App\Http\Controllers\Api\WishlistController;
 
-// کنترلرهای فروشنده
-use App\Http\Controllers\Api\SellerProductController;
+// چت و ارتباطات
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ChatFaqController;
+use App\Http\Controllers\Api\ChatModerationController;
+
+// فروشنده
 use App\Http\Controllers\Api\SellerDashboardController;
 use App\Http\Controllers\Api\SellerOrderController;
+use App\Http\Controllers\Api\SellerProductController;
 use App\Http\Controllers\Api\SellerQuickReplyController;
 use App\Http\Controllers\Api\SellerRatingController;
 
-// کنترلرهای چت
-use App\Http\Controllers\Api\ChatController;
-use App\Http\Controllers\Api\ChatModerationController;
-use App\Http\Controllers\Api\ChatFaqController;
-
-// کنترلر تیکت کاربر
-use App\Http\Controllers\Api\UserTicketController;
-
-// کنترلر اعلان‌های فشاری
-use App\Http\Controllers\Api\PushSubscriptionController;
-
-// کنترلرهای ادمین
-use App\Http\Controllers\Api\AdminDashboardController;
-use App\Http\Controllers\Api\AdminProductController;
-use App\Http\Controllers\Api\AdminOrderController;
-use App\Http\Controllers\Api\AdminUserController;
-use App\Http\Controllers\Api\AdminReviewController;
-use App\Http\Controllers\Api\AdminCategoryController;
+// ادمین (API)
 use App\Http\Controllers\Api\AdminBrandController;
+use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminOrderController;
+use App\Http\Controllers\Api\AdminProductController;
 use App\Http\Controllers\Api\AdminReportController;
 use App\Http\Controllers\Api\AdminAdvancedReportController;
+use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AdminSettingController;
+use App\Http\Controllers\Api\AdminUserController;
 
-// کنترلرهای ویژه ادمین
-use App\Http\Controllers\Admin\ReportController as AdminChatReportController;
-use App\Http\Controllers\Admin\ChatMonitorController;
-use App\Http\Controllers\Admin\SentimentDashboardController;
+// ادمین (ویژه / وب)
 use App\Http\Controllers\Admin\BlockManagementController;
+use App\Http\Controllers\Admin\ChatMonitorController;
 use App\Http\Controllers\Admin\FaqManagementController;
-use App\Http\Controllers\Admin\SuggestionManagementController;
 use App\Http\Controllers\Admin\MessageTemplateController;
-use App\Http\Controllers\Admin\SupportTicketController;
+use App\Http\Controllers\Admin\ReportController as AdminChatReportController;
 use App\Http\Controllers\Admin\ReportExportController;
+use App\Http\Controllers\Admin\SentimentDashboardController;
+use App\Http\Controllers\Admin\SupportTicketController;
+use App\Http\Controllers\Admin\SuggestionManagementController;
 
 // ============================================================
-// 🌐 مسیرهای عمومی (بدون نیاز به احراز هویت)
+// 🌐 ۱. مسیرهای عمومی (Public Routes)
 // ============================================================
 
-// 🔍 بررسی سلامت (بدون محدودیت نرخ)
+// 🔍 سلامت سیستم
 Route::get('/test', function () {
     return response()->json([
-        'success'   => true,
-        'message'   => 'Azkala API is working!',
-        'timestamp' => now()->toDateTimeString(),
-    ]);
-});
-
-// 🔐 احراز هویت (عمومی) - با محدودیت نرخ سخت‌گیرانه برای جلوگیری از brute force
-Route::middleware('throttle:auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'sendOtp']);
-      Route::post('/verify-otp', [AuthController::class, 'handleOtp']);
-          Route::post('/login', [AuthController::class, 'login']);
-});
-
-// 📂 دسته‌بندی‌ها (عمومی)
-Route::get('/categories', [CategoryController::class, 'index']);
-Route::get('/categories/{category}', [CategoryController::class, 'show']);
-
-// 🏷️ برندها (عمومی)
-Route::get('/brands', [BrandController::class, 'index']);
-Route::get('/brands/{brand}', [BrandController::class, 'show']);
-
-// 📱 دستگاه‌ها (عمومی - معماری Device-First)
-Route::prefix('devices')->group(function () {
-    Route::get('/brands', [DeviceController::class, 'brands']);
-    Route::get('/brands/{brandId}/series', [DeviceController::class, 'series']);
-    Route::get('/series/{seriesId}/models', [DeviceController::class, 'models']);
-    Route::get('/models/{modelId}', [DeviceController::class, 'model']);
-});
-
-// 🛍️ محصولات (عمومی - ترتیب مهم: خاص به عام)
-Route::prefix('products')->group(function () {
-    Route::get('/featured', [ProductController::class, 'featured']);
-    Route::get('/special-offers', [ProductController::class, 'specialOffers']);
-    Route::get('/compatible/{modelId}', [ProductController::class, 'compatible']);
-    Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti']);
-    Route::get('/slug/{slug}', [ProductController::class, 'bySlug']);
-
-    // 🔍 جستجو با محدودیت نرخ (جلوگیری از scraping)
-    Route::middleware('throttle:search')->group(function () {
-        Route::get('/', [ProductController::class, 'index']);
-    });
-
-    Route::get('/{product}', [ProductController::class, 'show']);
-
-    // ⭐ نظرات (عمومی - فقط دریافت)
-    Route::get('/{productId}/reviews', [ReviewController::class, 'index']);
-});
-
-// ============================================================
-// 🔐 مسیرهای محافظت‌شده (نیاز به احراز هویت با Sanctum)
-// ============================================================
-Route::middleware('auth:sanctum')->group(function () {
-// ✅ خط اصلاح شده:
-Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store']);
-    // روت‌های سبد خرید و سفارش (نیاز به احراز هویت)
-Route::middleware('auth:sanctum')->group(function () {
-    // Cart Routes
-    Route::get('/cart', [App\Http\Controllers\Api\CartController::class, 'index']);
-    Route::post('/cart', [App\Http\Controllers\Api\CartController::class, 'store']);
-    Route::put('/cart/{cartItemId}', [App\Http\Controllers\Api\CartController::class, 'update']);
-    Route::delete('/cart/{cartItemId}', [App\Http\Controllers\Api\CartController::class, 'destroy']);
-
-    // Order Routes
-    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'store']);
-    Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
-    Route::get('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'show']);
-    Route::post('/orders/{order}/cancel', [App\Http\Controllers\Api\OrderController::class, 'cancel']);
-});
-
-
-    // ============================================================
-    // 👤 مسیرهای کاربر
-    // ============================================================
-
-    // پروفایل
-    Route::get('/user', [AuthController::class, 'user']);
-    Route::put('/user', [AuthController::class, 'update']);
-    Route::post('/user/change-password', [AuthController::class, 'changePassword']);
-    Route::post('/logout', [AuthController::class, 'logout']);
-
-    // 📱 دستگاه‌های کاربر
-    Route::prefix('user')->group(function () {
-        Route::get('/devices', [UserDeviceController::class, 'index']);
-        Route::post('/devices', [UserDeviceController::class, 'store']);
-        Route::delete('/devices/{deviceId}', [UserDeviceController::class, 'destroy']);
-    });
-
-    // ❤️ علاقه‌مندی‌ها
-    Route::prefix('wishlist')->group(function () {
-        Route::get('/', [WishlistController::class, 'index']);
-        Route::post('/', [WishlistController::class, 'store']);
-        Route::delete('/{productId}', [WishlistController::class, 'destroy']);
-        Route::get('/check/{productId}', [WishlistController::class, 'check']);
-    });
-
-    // 💬 چت - با محدودیت نرخ برای جلوگیری از spam
-    Route::prefix('chat')->middleware('throttle:chat')->group(function () {
-        Route::get('/conversations', [ChatController::class, 'index']);
-        Route::post('/conversations/start', [ChatController::class, 'startConversation']);
-        Route::get('/conversations/{conversationId}', [ChatController::class, 'show']);
-        Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
-        Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage']);
-        Route::delete('/conversations/{conversationId}', [ChatController::class, 'deleteConversation']);
-        Route::get('/conversations/{conversationId}/suggestions', [ChatController::class, 'getProductSuggestions']);
-        Route::post('/conversations/{conversationId}/suggest', [ChatController::class, 'suggestProduct']);
-        Route::get('/conversations/{conversationId}/sentiment', [ChatController::class, 'getSentimentStats']);
-        Route::post('/online-status', [ChatController::class, 'getOnlineStatus']);
-
-        // 🚫 مدیریت مسدودسازی
-        Route::get('/blocked-users', [ChatModerationController::class, 'getBlockedUsers']);
-        Route::post('/block', [ChatModerationController::class, 'blockUser']);
-        Route::delete('/unblock/{blockedUserId}', [ChatModerationController::class, 'unblockUser']);
-        Route::get('/check-block/{userId}', [ChatModerationController::class, 'checkBlockStatus']);
-        Route::post('/report', [ChatModerationController::class, 'reportUser']);
-
-        // 🤖 سوالات متداول چت
-        Route::prefix('faq')->group(function () {
-            Route::get('/', [ChatFaqController::class, 'index']);
-            Route::post('/', [ChatFaqController::class, 'store']);
-            Route::put('/{id}', [ChatFaqController::class, 'update']);
-            Route::delete('/{id}', [ChatFaqController::class, 'destroy']);
-            Route::post('/seed-defaults', [ChatFaqController::class, 'seedDefaults']);
-        });
-    });
-
-    // 🎫 تیکت‌های کاربر - با محدودیت نرخ
-    Route::prefix('tickets')->middleware('throttle:tickets')->group(function () {
-        Route::get('/', [UserTicketController::class, 'index']);
-        Route::post('/', [UserTicketController::class, 'store']);
-        Route::post('/convert/{conversationId}', [UserTicketController::class, 'convertFromConversation']);
-        Route::get('/{id}', [UserTicketController::class, 'show']);
-        Route::post('/{id}/message', [UserTicketController::class, 'sendMessage']);
-    });
-
-    // ⚡ پاسخ‌های سریع (فروشنده)
-    Route::prefix('seller')->group(function () {
-        Route::get('/quick-replies', [SellerQuickReplyController::class, 'index']);
-        Route::post('/quick-replies', [SellerQuickReplyController::class, 'store']);
-        Route::delete('/quick-replies/{id}', [SellerQuickReplyController::class, 'destroy']);
-    });
-
-    // 📍 آدرس‌ها
-    Route::prefix('addresses')->group(function () {
-        Route::get('/', [AddressController::class, 'index']);
-        Route::post('/', [AddressController::class, 'store']);
-        Route::put('/{addressId}', [AddressController::class, 'update']);
-        Route::delete('/{addressId}', [AddressController::class, 'destroy']);
-        Route::put('/{addressId}/default', [AddressController::class, 'setDefault']);
-    });
-
-    // 📤 آپلود تصاویر - با محدودیت نرخ
-    Route::post('/upload/images', [ImageUploadController::class, 'upload'])->middleware('throttle:upload');
-
-    // ⭐ امتیازات فروشنده
-    Route::prefix('seller-ratings')->group(function () {
-        Route::post('/', [SellerRatingController::class, 'store']);
-        Route::get('/seller/{sellerId}', [SellerRatingController::class, 'getSellerRatings']);
-        Route::get('/can-rate/{orderId}', [SellerRatingController::class, 'canRate']);
-    });
-
-    // ============================================================
-    // 🛒 مسیرهای خرید
-    // ============================================================
-
-    // سبد خرید
-    Route::prefix('cart')->group(function () {
-        Route::get('/', [CartController::class, 'index']);
-        Route::post('/', [CartController::class, 'store']);
-        Route::put('/items/{itemId}', [CartController::class, 'update']);
-        Route::delete('/items/{itemId}', [CartController::class, 'destroy']);
-        Route::delete('/', [CartController::class, 'clear']);
-    });
-
-    // 📦 سفارشات کاربر
-    Route::prefix('orders')->group(function () {
-        Route::get('/', [OrderController::class, 'index']);
-        Route::get('/{orderId}', [OrderController::class, 'show']);
-        Route::post('/', [OrderController::class, 'store']);
-        Route::post('/{orderId}/cancel', [OrderController::class, 'cancel']);
-    });
-
-    // 🛍️ محصولات من
-    Route::get('/products/my-products', [ProductController::class, 'myProducts']);
-
-    // 🎟️ کدهای تخفیف (کاربر)
-    Route::prefix('coupons')->group(function () {
-        Route::post('/validate', [CouponController::class, 'validateCoupon']);
-        Route::get('/my', [CouponController::class, 'myCoupons']);
-    });
-
-    // ⭐ نظرات (محافظت‌شده)
-    Route::prefix('reviews')->group(function () {
-        Route::post('/', [ReviewController::class, 'store']);
-        Route::put('/{reviewId}', [ReviewController::class, 'update']);
-        Route::delete('/{reviewId}', [ReviewController::class, 'destroy']);
-        Route::post('/{reviewId}/helpful', [ReviewController::class, 'helpful']);
-    });
-
-    Route::get('/products/{productId}/can-review', [ReviewController::class, 'canReview']);
-
-    // ============================================================
-    // 🏪 مسیرهای فروشنده
-    // ============================================================
-    Route::prefix('seller')->middleware('throttle:seller')->group(function () {
-        // داشبورد
-        Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats']);
-        Route::get('/wallet', [SellerDashboardController::class, 'wallet']); // کیف پول فروشنده
-
-        // محصولات
-        Route::get('/products', [SellerProductController::class, 'index']);
-        Route::post('/products', [SellerProductController::class, 'store']);
-        Route::get('/products/{id}', [SellerProductController::class, 'show']);
-        Route::put('/products/{id}', [SellerProductController::class, 'update']);
-        Route::delete('/products/{id}', [SellerProductController::class, 'destroy']);
-
-        // سفارشات
-        Route::get('/orders', [SellerOrderController::class, 'index']);
-        Route::get('/orders/stats', [SellerOrderController::class, 'stats']);
-        Route::get('/orders/{orderId}', [SellerOrderController::class, 'show']);
-        Route::put('/orders/{orderId}/status', [SellerOrderController::class, 'updateStatus']);
-    });
-
-    // ============================================================
-    // 👨‍💼 مسیرهای ادمین
-    // ============================================================
-    Route::prefix('admin')->middleware('admin')->group(function () {
-
-        // 📊 داشبورد
-        Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats']);
-        Route::get('/dashboard/chat-stats', [AdminDashboardController::class, 'chatStats']);
-        Route::get('/dashboard/sentiment-stats', [AdminDashboardController::class, 'sentimentStats']);
-        Route::get('/dashboard/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity']);
-
-        // ⚙️ مدیریت تنظیمات
-        Route::prefix('settings')->group(function () {
-            Route::get('/', [AdminSettingController::class, 'index']);
-            Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults']);
-            Route::post('/update-group/{group}', [AdminSettingController::class, 'updateGroup']);
-            Route::put('/{key}', [AdminSettingController::class, 'update']);
-            Route::post('/{key}/toggle-lock', [AdminSettingController::class, 'toggleLock']);
-            Route::get('/history', [AdminSettingController::class, 'history']);
-            Route::post('/rollback/{historyId}', [AdminSettingController::class, 'rollback']);
-            Route::get('/export', [AdminSettingController::class, 'export']);
-            Route::post('/import', [AdminSettingController::class, 'import']);
-            Route::post('/test-smtp', [AdminSettingController::class, 'testSmtp']);
-            Route::post('/test-sms', [AdminSettingController::class, 'testSms']);
-        });
-
-        // 📊 گزارشات (پیشرفته - قدیمی)
-        Route::prefix('reports')->group(function () {
-            Route::get('/overview', [AdminReportController::class, 'overview']);
-            Route::get('/dashboard', [AdminReportController::class, 'dashboard']);
-            Route::get('/sales-chart', [AdminReportController::class, 'salesChart']);
-            Route::get('/top-products', [AdminReportController::class, 'topProducts']);
-            Route::get('/top-categories', [AdminReportController::class, 'topCategories']);
-            Route::get('/order-status', [AdminReportController::class, 'orderStatus']);
-            Route::get('/top-sellers', [AdminReportController::class, 'topSellers']);
-        });
-
-        // 📊 گزارشات پیشرفته (فاز ۲، ۳، ۴) - با محدودیت نرخ سخت‌گیرانه
-        Route::prefix('advanced-reports')->middleware('throttle:admin-reports')->group(function () {
-            // فاز ۲
-            Route::get('/users-analysis', [AdminAdvancedReportController::class, 'usersAnalysis']);
-            Route::get('/seller-performance', [AdminAdvancedReportController::class, 'sellerPerformance']);
-            Route::get('/period-comparison', [AdminAdvancedReportController::class, 'periodComparison']);
-
-            // فاز ۳
-            Route::get('/device-analytics', [AdminAdvancedReportController::class, 'deviceAnalytics']);
-            Route::get('/basket-analysis', [AdminAdvancedReportController::class, 'basketAnalysis']);
-            Route::get('/search-analytics', [AdminAdvancedReportController::class, 'searchAnalytics']);
-            Route::get('/product-analytics', [AdminAdvancedReportController::class, 'productAnalytics']);
-            Route::get('/chat-analytics', [AdminAdvancedReportController::class, 'chatAnalytics']);
-
-            // فاز ۴
-            Route::get('/predictions', [AdminAdvancedReportController::class, 'predictions']);
-            Route::get('/anomalies', [AdminAdvancedReportController::class, 'anomalies']);
-        });
-        // این خط را در گروه روت‌های ادمین قرار دهید
-Route::get('/admin/dashboard', function () {
-    return response()->json(['success' => true, 'message' => 'Admin Dashboard']);
-});
-
-        // 🚨 گزارشات چت
-        Route::prefix('chat-reports')->group(function () {
-            Route::get('/', [AdminChatReportController::class, 'index']);
-            Route::get('/stats', [AdminChatReportController::class, 'stats']);
-            Route::get('/{id}', [AdminChatReportController::class, 'show']);
-            Route::put('/{id}', [AdminChatReportController::class, 'update']);
-            Route::post('/{id}/action', [AdminChatReportController::class, 'action']);
-        });
-
-        // 💬 پایش چت‌ها
-        Route::prefix('chat-monitor')->group(function () {
-            Route::get('/', [ChatMonitorController::class, 'index']);
-            Route::get('/stats', [ChatMonitorController::class, 'stats']);
-            Route::get('/critical', [ChatMonitorController::class, 'critical']);
-            Route::get('/{id}', [ChatMonitorController::class, 'show']);
-            Route::post('/{id}/intervene', [ChatMonitorController::class, 'intervene']);
-            Route::post('/{id}/close', [ChatMonitorController::class, 'close']);
-        });
-
-        // 🧠 داشبورد احساسات
-        Route::prefix('sentiment')->group(function () {
-            Route::get('/dashboard', [SentimentDashboardController::class, 'dashboard']);
-            Route::get('/top-sellers', [SentimentDashboardController::class, 'topSellers']);
-            Route::get('/alerts', [SentimentDashboardController::class, 'alerts']);
-        });
-
-        // 🚫 مدیریت مسدودسازی کاربران
-        Route::prefix('blocks')->group(function () {
-            Route::get('/', [BlockManagementController::class, 'index']);
-            Route::get('/stats', [BlockManagementController::class, 'stats']);
-            Route::post('/block', [BlockManagementController::class, 'blockByAdmin']);
-            Route::delete('/{id}', [BlockManagementController::class, 'unblock']);
-            Route::delete('/user/{userId}/all', [BlockManagementController::class, 'unblockAll']);
-        });
-        // دریافت لیست درخواست‌های فروشندگی برای پنل ادمین
-Route::get('/admin/seller-requests', function () {
-    $requests = \App\Models\SellerRequest::with('user:id,name,email')->latest()->get();
-    
-    return response()->json([
         'success' => true,
-        'data' => [
-            'requests' => $requests
-        ]
-    ]);
+        'message' => 'Azkala API is working!',
+        'timestamp' => now()->toDateTimeString(),
+    ])->name('test');
 });
 
-        // 🤖 مدیریت FAQ سراسری
-        Route::prefix('faq-management')->group(function () {
-            Route::get('/', [FaqManagementController::class, 'index']);
-            Route::get('/stats', [FaqManagementController::class, 'stats']);
-            Route::post('/system', [FaqManagementController::class, 'storeSystem']);
-            Route::put('/{id}', [FaqManagementController::class, 'update']);
-            Route::delete('/{id}', [FaqManagementController::class, 'destroy']);
-            Route::post('/{id}/toggle', [FaqManagementController::class, 'toggle']);
+// 🔐 احراز هویت (محدودیت نرخ سخت‌گیرانه)
+Route::middleware('throttle:auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'sendOtp'])->name('register');
+    Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+});
+
+// 📂 کاتالوگ عمومی
+Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+
+Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+Route::get('/brands/{brand}', [BrandController::class, 'show'])->name('brands.show');
+
+// 📱 معماری Device-First
+Route::prefix('devices')->name('devices.')->group(function () {
+    Route::get('/brands', [DeviceController::class, 'brands'])->name('brands');
+    Route::get('/brands/{brandId}/series', [DeviceController::class, 'series'])->name('series');
+    Route::get('/series/{seriesId}/models', [DeviceController::class, 'models'])->name('models');
+    Route::get('/models/{modelId}', [DeviceController::class, 'model'])->name('model');
+});
+
+// 🛍️ محصولات (ترتیب تعریف روت‌ها مهم است: خاص به عام)
+Route::prefix('products')->name('products.')->group(function () {
+    Route::get('/featured', [ProductController::class, 'featured'])->name('featured');
+    Route::get('/special-offers', [ProductController::class, 'specialOffers'])->name('special-offers');
+    Route::get('/compatible/{modelId}', [ProductController::class, 'compatible'])->name('compatible');
+    Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti'])->name('compatible-multi');
+    Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
+    Route::get('/{product}', [ProductController::class, 'show'])->name('show');
+    Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+
+    // 🔍 جستجو (محدودیت نرخ برای جلوگیری از Scraping)
+    Route::middleware('throttle:search')->group(function () {
+        Route::get('/', [ProductController::class, 'index'])->name('index');
+    });
+});
+
+// ============================================================
+// 🔐 ۲. مسیرهای محافظت‌شده (Authenticated Routes)
+// ============================================================
+Route::middleware('auth:sanctum')->group(function () {
+
+    // --------------------------------------------------------
+    // 👤 الف) پروفایل و تنظیمات کاربر
+    // --------------------------------------------------------
+    Route::prefix('user')->name('user.')->group(function () {
+        Route::get('/', [AuthController::class, 'user'])->name('profile');
+        Route::put('/', [AuthController::class, 'update'])->name('update');
+        Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        
+        // دستگاه‌های کاربر
+        Route::prefix('devices')->name('devices.')->group(function () {
+            Route::get('/', [UserDeviceController::class, 'index'])->name('index');
+            Route::post('/', [UserDeviceController::class, 'store'])->name('store');
+            Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+    Route::post('/seller-requests', [SellerRequestController::class, 'store'])->name('seller-requests.store');
+
+    // --------------------------------------------------------
+    // 🛒 ب) تجارت الکترونیک (سبد خرید و سفارشات)
+    // --------------------------------------------------------
+    Route::prefix('cart')->name('cart.')->group(function () {
+        Route::get('/', [CartController::class, 'index'])->name('index');
+        Route::post('/', [CartController::class, 'store'])->name('store');
+        Route::put('/items/{cartItemId}', [CartController::class, 'update'])->name('update');
+        Route::delete('/items/{cartItemId}', [CartController::class, 'destroy'])->name('destroy');
+        Route::delete('/', [CartController::class, 'clear'])->name('clear');
+    });
+
+    Route::prefix('orders')->name('orders.')->group(function () {
+        Route::get('/', [OrderController::class, 'index'])->name('index');
+        Route::get('/{order}', [OrderController::class, 'show'])->name('show');
+        Route::post('/', [OrderController::class, 'store'])->name('store');
+        Route::post('/{order}/cancel', [OrderController::class, 'cancel'])->name('cancel');
+    });
+
+    Route::prefix('coupons')->name('coupons.')->group(function () {
+        Route::post('/validate', [CouponController::class, 'validateCoupon'])->name('validate');
+        Route::get('/my', [CouponController::class, 'myCoupons'])->name('my');
+    });
+
+    // --------------------------------------------------------
+    // ❤️ ج) تعاملات کاربر (علاقه‌مندی، آدرس، نظرات)
+    // --------------------------------------------------------
+    Route::prefix('wishlist')->name('wishlist.')->group(function () {
+        Route::get('/', [WishlistController::class, 'index'])->name('index');
+        Route::post('/', [WishlistController::class, 'store'])->name('store');
+        Route::delete('/{productId}', [WishlistController::class, 'destroy'])->name('destroy');
+        Route::get('/check/{productId}', [WishlistController::class, 'check'])->name('check');
+    });
+
+    Route::prefix('addresses')->name('addresses.')->group(function () {
+        Route::get('/', [AddressController::class, 'index'])->name('index');
+        Route::post('/', [AddressController::class, 'store'])->name('store');
+        Route::put('/{address}', [AddressController::class, 'update'])->name('update');
+        Route::delete('/{address}', [AddressController::class, 'destroy'])->name('destroy');
+        Route::put('/{address}/default', [AddressController::class, 'setDefault'])->name('set-default');
+    });
+
+    Route::prefix('reviews')->name('reviews.')->group(function () {
+        Route::post('/', [ReviewController::class, 'store'])->name('store');
+        Route::put('/{review}', [ReviewController::class, 'update'])->name('update');
+        Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('destroy');
+        Route::post('/{review}/helpful', [ReviewController::class, 'helpful'])->name('helpful');
+    });
+    Route::get('/products/{productId}/can-review', [ReviewController::class, 'canReview'])->name('products.can-review');
+    Route::get('/products/my-products', [ProductController::class, 'myProducts'])->name('products.my-products');
+
+    // --------------------------------------------------------
+    // 💬 د) ارتباطات (چت و تیکت) - با Rate Limiting
+    // --------------------------------------------------------
+    Route::prefix('chat')->middleware('throttle:chat')->name('chat.')->group(function () {
+        Route::get('/conversations', [ChatController::class, 'index'])->name('conversations.index');
+        Route::post('/conversations/start', [ChatController::class, 'startConversation'])->name('conversations.start');
+        Route::get('/conversations/{conversation}', [ChatController::class, 'show'])->name('conversations.show');
+        Route::get('/conversations/{conversation}/messages', [ChatController::class, 'getMessages'])->name('conversations.messages');
+        Route::post('/conversations/{conversation}/messages', [ChatController::class, 'sendMessage'])->name('conversations.send-message');
+        Route::delete('/conversations/{conversation}', [ChatController::class, 'deleteConversation'])->name('conversations.destroy');
+        Route::get('/conversations/{conversation}/suggestions', [ChatController::class, 'getProductSuggestions'])->name('conversations.suggestions');
+        Route::post('/conversations/{conversation}/suggest', [ChatController::class, 'suggestProduct'])->name('conversations.suggest');
+        Route::get('/conversations/{conversation}/sentiment', [ChatController::class, 'getSentimentStats'])->name('conversations.sentiment');
+        Route::post('/online-status', [ChatController::class, 'getOnlineStatus'])->name('online-status');
+
+        // مدیریت مسدودسازی
+        Route::prefix('moderation')->name('moderation.')->group(function () {
+            Route::get('/blocked-users', [ChatModerationController::class, 'getBlockedUsers'])->name('blocked-users');
+            Route::post('/block', [ChatModerationController::class, 'blockUser'])->name('block');
+            Route::delete('/unblock/{blockedUser}', [ChatModerationController::class, 'unblockUser'])->name('unblock');
+            Route::get('/check-block/{user}', [ChatModerationController::class, 'checkBlockStatus'])->name('check-block');
+            Route::post('/report', [ChatModerationController::class, 'reportUser'])->name('report');
         });
 
-        // 💡 مدیریت پیشنهادات محصول
-        Route::prefix('suggestions')->group(function () {
-            Route::get('/stats', [SuggestionManagementController::class, 'stats']);
-            Route::get('/top-performers', [SuggestionManagementController::class, 'topPerformers']);
-            Route::get('/top-sellers', [SuggestionManagementController::class, 'topSellers']);
-            Route::get('/settings', [SuggestionManagementController::class, 'getSettings']);
-            Route::put('/settings', [SuggestionManagementController::class, 'updateSettings']);
-            Route::get('/', [SuggestionManagementController::class, 'index']);
+        // سوالات متداول چت
+        Route::prefix('faq')->name('faq.')->group(function () {
+            Route::get('/', [ChatFaqController::class, 'index'])->name('index');
+            Route::post('/', [ChatFaqController::class, 'store'])->name('store');
+            Route::put('/{id}', [ChatFaqController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ChatFaqController::class, 'destroy'])->name('destroy');
+            Route::post('/seed-defaults', [ChatFaqController::class, 'seedDefaults'])->name('seed-defaults');
+        });
+    });
+
+    Route::prefix('tickets')->middleware('throttle:tickets')->name('tickets.')->group(function () {
+        Route::get('/', [UserTicketController::class, 'index'])->name('index');
+        Route::post('/', [UserTicketController::class, 'store'])->name('store');
+        Route::post('/convert/{conversation}', [UserTicketController::class, 'convertFromConversation'])->name('convert');
+        Route::get('/{ticket}', [UserTicketController::class, 'show'])->name('show');
+        Route::post('/{ticket}/message', [UserTicketController::class, 'sendMessage'])->name('send-message');
+    });
+
+    // --------------------------------------------------------
+    // 🏪 ه) پنل فروشنده - با Rate Limiting
+    // --------------------------------------------------------
+    Route::prefix('seller')->middleware('throttle:seller')->name('seller.')->group(function () {
+        Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
+        Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
+        
+        Route::prefix('products')->name('products.')->group(function () {
+            Route::get('/', [SellerProductController::class, 'index'])->name('index');
+            Route::post('/', [SellerProductController::class, 'store'])->name('store');
+            Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
+            Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');
+            Route::delete('/{product}', [SellerProductController::class, 'destroy'])->name('destroy');
         });
 
-        // 📌 قالب‌های پیام حرفه‌ای
-        Route::prefix('message-templates')->group(function () {
-            Route::get('/', [MessageTemplateController::class, 'index']);
-            Route::post('/', [MessageTemplateController::class, 'store']);
-            Route::post('/seed-defaults', [MessageTemplateController::class, 'seedDefaults']);
-            Route::put('/{id}', [MessageTemplateController::class, 'update']);
-            Route::delete('/{id}', [MessageTemplateController::class, 'destroy']);
-            Route::post('/{id}/toggle', [MessageTemplateController::class, 'toggle']);
-            Route::post('/{id}/track', [MessageTemplateController::class, 'trackUsage']);
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [SellerOrderController::class, 'index'])->name('index');
+            Route::get('/stats', [SellerOrderController::class, 'stats'])->name('stats');
+            Route::get('/{order}', [SellerOrderController::class, 'show'])->name('show');
+            Route::put('/{order}/status', [SellerOrderController::class, 'updateStatus'])->name('update-status');
         });
 
-        // 🎫 تیکت‌های پشتیبانی
-        Route::prefix('tickets')->group(function () {
-            Route::get('/', [SupportTicketController::class, 'index']);
-            Route::get('/stats', [SupportTicketController::class, 'stats']);
-            Route::get('/support-staff', [SupportTicketController::class, 'getSupportStaff']);
-            Route::post('/', [SupportTicketController::class, 'store']);
-            Route::post('/convert/{conversationId}', [SupportTicketController::class, 'convertFromConversation']);
-            Route::get('/{id}', [SupportTicketController::class, 'show']);
-            Route::put('/{id}', [SupportTicketController::class, 'update']);
-            Route::post('/{id}/assign', [SupportTicketController::class, 'assign']);
-            Route::post('/{id}/escalate', [SupportTicketController::class, 'escalate']);
-            Route::post('/{id}/message', [SupportTicketController::class, 'sendMessage']);
+        Route::prefix('quick-replies')->name('quick-replies.')->group(function () {
+            Route::get('/', [SellerQuickReplyController::class, 'index'])->name('index');
+            Route::post('/', [SellerQuickReplyController::class, 'store'])->name('store');
+            Route::delete('/{reply}', [SellerQuickReplyController::class, 'destroy'])->name('destroy');
         });
 
-        // 💬 مدیریت نظرات
-        Route::prefix('reviews')->group(function () {
-            Route::get('/', [AdminReviewController::class, 'index']);
-            Route::put('/{id}/status', [AdminReviewController::class, 'updateStatus']);
-            Route::post('/{id}/reply', [AdminReviewController::class, 'reply']);
-            Route::delete('/{id}', [AdminReviewController::class, 'destroy']);
-            Route::post('/bulk-action', [AdminReviewController::class, 'bulkAction']);
+        Route::prefix('ratings')->name('ratings.')->group(function () {
+            Route::post('/', [SellerRatingController::class, 'store'])->name('store');
+            Route::get('/seller/{seller}', [SellerRatingController::class, 'getSellerRatings'])->name('seller-ratings');
+            Route::get('/can-rate/{order}', [SellerRatingController::class, 'canRate'])->name('can-rate');
+        });
+    });
+
+    // --------------------------------------------------------
+    // 👨‍💼 و) پنل ادمین (فقط با Middleware 'admin')
+    // --------------------------------------------------------
+    Route::prefix('admin')->middleware('admin')->name('admin.')->group(function () {
+        
+        // 📊 داشبورد
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('/stats', [AdminDashboardController::class, 'stats'])->name('stats');
+            Route::get('/chat-stats', [AdminDashboardController::class, 'chatStats'])->name('chat-stats');
+            Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');
+            Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
         });
 
-        // 👥 مدیریت کاربران
-        Route::prefix('users')->group(function () {
-            Route::get('/', [AdminUserController::class, 'index']);
-            Route::get('/{id}', [AdminUserController::class, 'show']);
-            Route::put('/{id}/role', [AdminUserController::class, 'updateRole']);
-            Route::put('/{id}/status', [AdminUserController::class, 'updateStatus']);
-            Route::post('/{id}/approve-seller', [AdminUserController::class, 'approveSeller']);
-            Route::post('/{id}/reject-seller', [AdminUserController::class, 'rejectSeller']);
+        // ⚙️ تنظیمات
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [AdminSettingController::class, 'index'])->name('index');
+            Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults'])->name('seed-defaults');
+            Route::post('/update-group/{group}', [AdminSettingController::class, 'updateGroup'])->name('update-group');
+            Route::put('/{key}', [AdminSettingController::class, 'update'])->name('update');
+            Route::post('/{key}/toggle-lock', [AdminSettingController::class, 'toggleLock'])->name('toggle-lock');
+            Route::get('/history', [AdminSettingController::class, 'history'])->name('history');
+            Route::post('/rollback/{history}', [AdminSettingController::class, 'rollback'])->name('rollback');
+            Route::get('/export', [AdminSettingController::class, 'export'])->name('export');
+            Route::post('/import', [AdminSettingController::class, 'import'])->name('import');
+            Route::post('/test-smtp', [AdminSettingController::class, 'testSmtp'])->name('test-smtp');
+            Route::post('/test-sms', [AdminSettingController::class, 'testSms'])->name('test-sms');
+        });
 
-            // 📨 درخواست‌های فروشندگی
-            Route::get('/seller-requests', [AdminUserController::class, 'sellerRequests']);
-            Route::post('/{id}/approve-seller-request', [AdminUserController::class, 'approveSellerRequest']);
-            Route::post('/{id}/reject-seller-request', [AdminUserController::class, 'rejectSellerRequest']);
+        // 📊 گزارشات (سبک)
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/overview', [AdminReportController::class, 'overview'])->name('overview');
+            Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
+            Route::get('/sales-chart', [AdminReportController::class, 'salesChart'])->name('sales-chart');
+            Route::get('/top-products', [AdminReportController::class, 'topProducts'])->name('top-products');
+            Route::get('/top-categories', [AdminReportController::class, 'topCategories'])->name('top-categories');
+            Route::get('/order-status', [AdminReportController::class, 'orderStatus'])->name('order-status');
+            Route::get('/top-sellers', [AdminReportController::class, 'topSellers'])->name('top-sellers');
+        });
+
+        // 📊 گزارشات پیشرفته (سنگین - با Rate Limiting سخت‌گیرانه)
+        Route::prefix('advanced-reports')->middleware('throttle:admin-reports')->name('advanced-reports.')->group(function () {
+            Route::get('/users-analysis', [AdminAdvancedReportController::class, 'usersAnalysis'])->name('users-analysis');
+            Route::get('/seller-performance', [AdminAdvancedReportController::class, 'sellerPerformance'])->name('seller-performance');
+            Route::get('/period-comparison', [AdminAdvancedReportController::class, 'periodComparison'])->name('period-comparison');
+            Route::get('/device-analytics', [AdminAdvancedReportController::class, 'deviceAnalytics'])->name('device-analytics');
+            Route::get('/basket-analysis', [AdminAdvancedReportController::class, 'basketAnalysis'])->name('basket-analysis');
+            Route::get('/search-analytics', [AdminAdvancedReportController::class, 'searchAnalytics'])->name('search-analytics');
+            Route::get('/product-analytics', [AdminAdvancedReportController::class, 'productAnalytics'])->name('product-analytics');
+            Route::get('/chat-analytics', [AdminAdvancedReportController::class, 'chatAnalytics'])->name('chat-analytics');
+            Route::get('/predictions', [AdminAdvancedReportController::class, 'predictions'])->name('predictions');
+            Route::get('/anomalies', [AdminAdvancedReportController::class, 'anomalies'])->name('anomalies');
+        });
+
+        // 📤 خروجی گزارشات (با Rate Limiting)
+        Route::prefix('export')->middleware('throttle:admin-reports')->name('export.')->group(function () {
+            Route::get('/orders/excel', [ReportExportController::class, 'exportOrdersExcel'])->name('orders.excel');
+            Route::get('/orders/pdf', [ReportExportController::class, 'exportOrdersPdf'])->name('orders.pdf');
+            Route::get('/users/excel', [ReportExportController::class, 'exportUsersExcel'])->name('users.excel');
+            Route::get('/products/excel', [ReportExportController::class, 'exportProductsExcel'])->name('products.excel');
+            Route::get('/chat/excel', [ReportExportController::class, 'exportChatExcel'])->name('chat.excel');
+            Route::get('/reports/excel', [ReportExportController::class, 'exportReportsExcel'])->name('reports.excel');
+            Route::get('/summary/pdf', [ReportExportController::class, 'exportSummaryPdf'])->name('summary.pdf');
+        });
+
+        // 👥 مدیریت کاربران و درخواست‌ها
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/', [AdminUserController::class, 'index'])->name('index');
+            Route::get('/{user}', [AdminUserController::class, 'show'])->name('show');
+            Route::put('/{user}/role', [AdminUserController::class, 'updateRole'])->name('update-role');
+            Route::put('/{user}/status', [AdminUserController::class, 'updateStatus'])->name('update-status');
+            Route::post('/{user}/approve-seller', [AdminUserController::class, 'approveSeller'])->name('approve-seller');
+            Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->name('reject-seller');
+            Route::get('/seller-requests', [AdminUserController::class, 'sellerRequests'])->name('seller-requests');
+            Route::post('/{user}/approve-seller-request', [AdminUserController::class, 'approveSellerRequest'])->name('approve-seller-request');
+            Route::post('/{user}/reject-seller-request', [AdminUserController::class, 'rejectSellerRequest'])->name('reject-seller-request');
         });
 
         // 📂 مدیریت دسته‌بندی‌ها
-        Route::prefix('categories')->group(function () {
-            Route::get('/', [AdminCategoryController::class, 'index']);
-            Route::get('/tree', [AdminCategoryController::class, 'tree']);
-            Route::post('/', [AdminCategoryController::class, 'store']);
-            Route::get('/{id}', [AdminCategoryController::class, 'show']);
-            Route::put('/{id}', [AdminCategoryController::class, 'update']);
-            Route::delete('/{id}', [AdminCategoryController::class, 'destroy']);
-            Route::put('/reorder', [AdminCategoryController::class, 'reorder']);
-            Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction']);
+        Route::prefix('categories')->name('categories.')->group(function () {
+            Route::get('/', [AdminCategoryController::class, 'index'])->name('index');
+            Route::get('/tree', [AdminCategoryController::class, 'tree'])->name('tree');
+            Route::post('/', [AdminCategoryController::class, 'store'])->name('store');
+            Route::get('/{category}', [AdminCategoryController::class, 'show'])->name('show');
+            Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('destroy');
+            Route::put('/reorder', [AdminCategoryController::class, 'reorder'])->name('reorder');
+            Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->name('bulk-action');
         });
 
         // 🏷️ مدیریت برندها
-        Route::prefix('brands')->group(function () {
-            Route::get('/', [AdminBrandController::class, 'index']);
-            Route::post('/', [AdminBrandController::class, 'store']);
-            Route::get('/{id}', [AdminBrandController::class, 'show']);
-            Route::put('/{id}', [AdminBrandController::class, 'update']);
-            Route::delete('/{id}', [AdminBrandController::class, 'destroy']);
-            Route::post('/{id}/verify', [AdminBrandController::class, 'verify']);
-            Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify']);
-            Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction']);
+        Route::prefix('brands')->name('brands.')->group(function () {
+            Route::get('/', [AdminBrandController::class, 'index'])->name('index');
+            Route::post('/', [AdminBrandController::class, 'store'])->name('store');
+            Route::get('/{brand}', [AdminBrandController::class, 'show'])->name('show');
+            Route::put('/{brand}', [AdminBrandController::class, 'update'])->name('update');
+            Route::delete('/{brand}', [AdminBrandController::class, 'destroy'])->name('destroy');
+            Route::post('/{brand}/verify', [AdminBrandController::class, 'verify'])->name('verify');
+            Route::post('/{brand}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify');
+            Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
         });
 
         // 📦 مدیریت محصولات
-        Route::prefix('products')->group(function () {
-            Route::get('/', [AdminProductController::class, 'index']);
-            Route::get('/stats', [AdminProductController::class, 'stats']);
-            Route::get('/{id}', [AdminProductController::class, 'show']);
-            Route::get('/{id}/stats', [AdminProductController::class, 'productStats']);
-            Route::put('/{id}/quick-update', [AdminProductController::class, 'quickUpdate']);
-            Route::delete('/{id}', [AdminProductController::class, 'destroy']);
-            Route::post('/bulk-action', [AdminProductController::class, 'bulkAction']);
+        Route::prefix('products')->name('products.')->group(function () {
+            Route::get('/', [AdminProductController::class, 'index'])->name('index');
+            Route::get('/stats', [AdminProductController::class, 'stats'])->name('stats');
+            Route::get('/{product}', [AdminProductController::class, 'show'])->name('show');
+            Route::get('/{product}/stats', [AdminProductController::class, 'productStats'])->name('product-stats');
+            Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->name('quick-update');
+            Route::delete('/{product}', [AdminProductController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->name('bulk-action');
         });
 
         // 📋 مدیریت سفارشات
-        Route::prefix('orders')->group(function () {
-            Route::get('/', [AdminOrderController::class, 'index']);
-            Route::get('/stats', [AdminOrderController::class, 'stats']);
-            Route::get('/{id}', [AdminOrderController::class, 'show']);
-            Route::put('/{id}/status', [AdminOrderController::class, 'updateStatus']);
-            Route::put('/{id}/payment-status', [AdminOrderController::class, 'updatePaymentStatus']);
-            Route::post('/{id}/refund', [AdminOrderController::class, 'refund']);
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [AdminOrderController::class, 'index'])->name('index');
+            Route::get('/stats', [AdminOrderController::class, 'stats'])->name('stats');
+            Route::get('/{order}', [AdminOrderController::class, 'show'])->name('show');
+            Route::put('/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('update-status');
+            Route::put('/{order}/payment-status', [AdminOrderController::class, 'updatePaymentStatus'])->name('update-payment-status');
+            Route::post('/{order}/refund', [AdminOrderController::class, 'refund'])->name('refund');
         });
 
-        // 📤 خروجی گزارشات - با محدودیت نرخ
-        Route::prefix('export')->middleware('throttle:admin-reports')->group(function () {
-            Route::get('/orders/excel', [ReportExportController::class, 'exportOrdersExcel']);
-            Route::get('/orders/pdf', [ReportExportController::class, 'exportOrdersPdf']);
-            Route::get('/users/excel', [ReportExportController::class, 'exportUsersExcel']);
-            Route::get('/products/excel', [ReportExportController::class, 'exportProductsExcel']);
-            Route::get('/chat/excel', [ReportExportController::class, 'exportChatExcel']);
-            Route::get('/reports/excel', [ReportExportController::class, 'exportReportsExcel']);
-            Route::get('/summary/pdf', [ReportExportController::class, 'exportSummaryPdf']);
+        // 💬 مدیریت نظرات
+        Route::prefix('reviews')->name('reviews.')->group(function () {
+            Route::get('/', [AdminReviewController::class, 'index'])->name('index');
+            Route::put('/{review}/status', [AdminReviewController::class, 'updateStatus'])->name('update-status');
+            Route::post('/{review}/reply', [AdminReviewController::class, 'reply'])->name('reply');
+            Route::delete('/{review}', [AdminReviewController::class, 'destroy'])->name('destroy');
+            Route::post('/bulk-action', [AdminReviewController::class, 'bulkAction'])->name('bulk-action');
         });
 
         // 🎟️ مدیریت کدهای تخفیف
-        Route::prefix('coupons')->group(function () {
-            Route::get('/', [CouponController::class, 'index']);
-            Route::post('/', [CouponController::class, 'store']);
-            Route::get('/{id}', [CouponController::class, 'show']);
-            Route::put('/{id}', [CouponController::class, 'update']);
-            Route::delete('/{id}', [CouponController::class, 'destroy']);
+        Route::prefix('coupons')->name('coupons.')->group(function () {
+            Route::get('/', [CouponController::class, 'index'])->name('index');
+            Route::post('/', [CouponController::class, 'store'])->name('store');
+            Route::get('/{coupon}', [CouponController::class, 'show'])->name('show');
+            Route::put('/{coupon}', [CouponController::class, 'update'])->name('update');
+            Route::delete('/{coupon}', [CouponController::class, 'destroy'])->name('destroy');
         });
+
+        // 🚨 مدیریت چت و ارتباطات (ادمین وب)
+        Route::prefix('chat-management')->name('chat-management.')->group(function () {
+            // گزارشات چت
+            Route::prefix('reports')->name('reports.')->group(function () {
+                Route::get('/', [AdminChatReportController::class, 'index'])->name('index');
+                Route::get('/stats', [AdminChatReportController::class, 'stats'])->name('stats');
+                Route::get('/{report}', [AdminChatReportController::class, 'show'])->name('show');
+                Route::put('/{report}', [AdminChatReportController::class, 'update'])->name('update');
+                Route::post('/{report}/action', [AdminChatReportController::class, 'action'])->name('action');
+            });
+
+            // پایش چت
+            Route::prefix('monitor')->name('monitor.')->group(function () {
+                Route::get('/', [ChatMonitorController::class, 'index'])->name('index');
+                Route::get('/stats', [ChatMonitorController::class, 'stats'])->name('stats');
+                Route::get('/critical', [ChatMonitorController::class, 'critical'])->name('critical');
+                Route::get('/{chat}', [ChatMonitorController::class, 'show'])->name('show');
+                Route::post('/{chat}/intervene', [ChatMonitorController::class, 'intervene'])->name('intervene');
+                Route::post('/{chat}/close', [ChatMonitorController::class, 'close'])->name('close');
+            });
+
+            // داشبورد احساسات
+            Route::prefix('sentiment')->name('sentiment.')->group(function () {
+                Route::get('/dashboard', [SentimentDashboardController::class, 'dashboard'])->name('dashboard');
+                Route::get('/top-sellers', [SentimentDashboardController::class, 'topSellers'])->name('top-sellers');
+                Route::get('/alerts', [SentimentDashboardController::class, 'alerts'])->name('alerts');
+            });
+
+            // مسدودسازی
+            Route::prefix('blocks')->name('blocks.')->group(function () {
+                Route::get('/', [BlockManagementController::class, 'index'])->name('index');
+                Route::get('/stats', [BlockManagementController::class, 'stats'])->name('stats');
+                Route::post('/block', [BlockManagementController::class, 'blockByAdmin'])->name('block');
+                Route::delete('/{block}', [BlockManagementController::class, 'unblock'])->name('unblock');
+                Route::delete('/user/{user}/all', [BlockManagementController::class, 'unblockAll'])->name('unblock-all');
+            });
+
+            // مدیریت FAQ
+            Route::prefix('faq')->name('faq.')->group(function () {
+                Route::get('/', [FaqManagementController::class, 'index'])->name('index');
+                Route::get('/stats', [FaqManagementController::class, 'stats'])->name('stats');
+                Route::post('/system', [FaqManagementController::class, 'storeSystem'])->name('store-system');
+                Route::put('/{faq}', [FaqManagementController::class, 'update'])->name('update');
+                Route::delete('/{faq}', [FaqManagementController::class, 'destroy'])->name('destroy');
+                Route::post('/{faq}/toggle', [FaqManagementController::class, 'toggle'])->name('toggle');
+            });
+
+            // پیشنهادات محصول
+            Route::prefix('suggestions')->name('suggestions.')->group(function () {
+                Route::get('/', [SuggestionManagementController::class, 'index'])->name('index');
+                Route::get('/stats', [SuggestionManagementController::class, 'stats'])->name('stats');
+                Route::get('/top-performers', [SuggestionManagementController::class, 'topPerformers'])->name('top-performers');
+                Route::get('/top-sellers', [SuggestionManagementController::class, 'topSellers'])->name('top-sellers');
+                Route::get('/settings', [SuggestionManagementController::class, 'getSettings'])->name('settings');
+                Route::put('/settings', [SuggestionManagementController::class, 'updateSettings'])->name('update-settings');
+            });
+
+            // قالب‌های پیام
+            Route::prefix('message-templates')->name('message-templates.')->group(function () {
+                Route::get('/', [MessageTemplateController::class, 'index'])->name('index');
+                Route::post('/', [MessageTemplateController::class, 'store'])->name('store');
+                Route::post('/seed-defaults', [MessageTemplateController::class, 'seedDefaults'])->name('seed-defaults');
+                Route::put('/{template}', [MessageTemplateController::class, 'update'])->name('update');
+                Route::delete('/{template}', [MessageTemplateController::class, 'destroy'])->name('destroy');
+                Route::post('/{template}/toggle', [MessageTemplateController::class, 'toggle'])->name('toggle');
+                Route::post('/{template}/track', [MessageTemplateController::class, 'trackUsage'])->name('track');
+            });
+
+            // تیکت‌های پشتیبانی
+            Route::prefix('tickets')->name('tickets.')->group(function () {
+                Route::get('/', [SupportTicketController::class, 'index'])->name('index');
+                Route::get('/stats', [SupportTicketController::class, 'stats'])->name('stats');
+                Route::get('/support-staff', [SupportTicketController::class, 'getSupportStaff'])->name('support-staff');
+                Route::post('/', [SupportTicketController::class, 'store'])->name('store');
+                Route::post('/convert/{conversation}', [SupportTicketController::class, 'convertFromConversation'])->name('convert');
+                Route::get('/{ticket}', [SupportTicketController::class, 'show'])->name('show');
+                Route::put('/{ticket}', [SupportTicketController::class, 'update'])->name('update');
+                Route::post('/{ticket}/assign', [SupportTicketController::class, 'assign'])->name('assign');
+                Route::post('/{ticket}/escalate', [SupportTicketController::class, 'escalate'])->name('escalate');
+                Route::post('/{ticket}/message', [SupportTicketController::class, 'sendMessage'])->name('send-message');
+            });
+        });
+
+        // 🛠️ روت‌های موقت برای رفع خطای تست‌ها (بهتر است در آینده به Controller منتقل شوند)
+        Route::get('/dashboard', function () {
+            return response()->json([
+                'success' => true,
+                'message' => 'Admin Dashboard',
+                'data' => ['total_users' => 0, 'total_orders' => 0, 'total_revenue' => 0]
+            ]);
+        })->name('dashboard.temp');
+
+        Route::get('/seller-requests', function () {
+            $requests = \App\Models\SellerRequest::with('user:id,name,email')->latest()->get();
+            return response()->json(['success' => true, 'data' => ['requests' => $requests]]);
+        })->name('seller-requests.temp');
     });
 
-    // 🔔 اعلان‌های فشاری
-    Route::prefix('push')->group(function () {
-        Route::post('/subscribe', [PushSubscriptionController::class, 'store']);
-        Route::delete('/unsubscribe/{id}', [PushSubscriptionController::class, 'destroy']);
-        Route::post('/test', [PushSubscriptionController::class, 'sendTest']);
-        Route::get('/vapid-public-key', [PushSubscriptionController::class, 'getVapidPublicKey']);
+    // --------------------------------------------------------
+    // ز) سایر سرویس‌های عمومی کاربر
+    // --------------------------------------------------------
+    Route::post('/upload/images', [ImageUploadController::class, 'upload'])->middleware('throttle:upload')->name('upload.images');
+
+    Route::prefix('push')->name('push.')->group(function () {
+        Route::post('/subscribe', [PushSubscriptionController::class, 'store'])->name('subscribe');
+        Route::delete('/unsubscribe/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('unsubscribe');
+        Route::post('/test', [PushSubscriptionController::class, 'sendTest'])->name('test');
+        Route::get('/vapid-public-key', [PushSubscriptionController::class, 'getVapidPublicKey'])->name('vapid-public-key');
     });
-    // روت تست برای Admin Dashboard (رفع خطای 404 در تست‌ها)
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/admin/dashboard', function () {
-        return response()->json([
-            'success' => true,
-            'message' => 'Admin Dashboard',
-            'data' => [
-                'total_users' => 0,
-                'total_orders' => 0,
-                'total_revenue' => 0
-            ]
-        ]);
-    });
-});
-});
+
+}); // <--- پایان گروه auth:sanctum
