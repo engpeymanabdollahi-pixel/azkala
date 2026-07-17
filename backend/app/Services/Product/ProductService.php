@@ -122,10 +122,18 @@ class ProductService
     /**
      * Get featured products
      */
-    public function getFeaturedProducts(int $limit = 10): Collection
-    {
-        return $this->productRepository->getFeatured($limit);
-    }
+  public function getFeaturedProducts(int $limit = 10)
+{
+    // ✅ کش کردن نتیجه به مدت ۱ ساعت (3600 ثانیه)
+    return Cache::remember('featured_products_' . $limit, 3600, function () use ($limit) {
+        return Product::where('is_featured', true)
+            ->where('is_active', true)
+            ->with(['brand', 'category']) // Eager Loading
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get();
+    });
+}
 
     /**
      * Get special offers

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\OutOfStockException;
+use App\Jobs\ProcessOrderConfirmation;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -15,14 +16,6 @@ class OrderService
 {
     /**
      * ایجاد سفارش جدید از روی سبد خرید کاربر
-     *
-     * @param User $user
-     * @param Cart $cart
-     * @param array $shippingAddress آدرس به صورت آرایه (توسط مدل به JSON تبدیل می‌شود)
-     * @param string $paymentMethod
-     * @return Order
-     * @throws OutOfStockException
-     * @throws InvalidArgumentException
      */
     public function createOrderFromCart(User $user, Cart $cart, array $shippingAddress, string $paymentMethod = 'online'): Order
     {
@@ -42,8 +35,8 @@ class OrderService
 
             // ۳. محاسبات مالی
             $subtotal = (float) $cart->subtotal;
-            $tax = $subtotal * 0.09; // ۹٪ مالیات بر ارزش افزوده (قابل تنظیم)
-            $shipping = 35000; // هزینه ارسال ثابت (می‌تواند بر اساس آدرس محاسبه شود)
+            $tax = $subtotal * 0.09; // ۹٪ مالیات بر ارزش افزوده
+            $shipping = 35000; // هزینه ارسال ثابت
             $discount = (float) $cart->discount;
             $total = $subtotal + $tax + $shipping - $discount;
 
@@ -62,7 +55,7 @@ class OrderService
                 'shipping' => $shipping,
                 'discount' => $discount,
                 'total' => $total,
-                'shipping_address' => $shippingAddress, // مدل به طور خودکار این را به JSON تبدیل می‌کند
+                'shipping_address' => $shippingAddress,
             ]);
 
             // ۶. ایجاد آیتم‌های سفارش و کسر موجودی انبار
@@ -70,9 +63,9 @@ class OrderService
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item->product_id,
-                    'seller_id' => $item->product->seller_id ?? null, // اگر محصول seller_id داشته باشد
+                    'seller_id' => $item->product->seller_id ?? null,
                     'quantity' => $item->quantity,
-                    'price' => $item->price, // قیمت در لحظه خرید فریز می‌شود
+                    'price' => $item->price,
                     'total' => $item->price * $item->quantity,
                 ]);
 
@@ -88,6 +81,9 @@ class OrderService
                 'discount' => 0,
                 'total' => 0,
             ]);
+
+            // ✅ ارسال Job به صف برای پردازش پس‌زمینه (فقط بعد از Commit موفق تراکنش)
+            ProcessOrderConfirmation::dispatch($order)->afterCommit();
 
             // بازگرداندن سفارش همراه با جزئیات
             return $order->load('items.product.seller');
