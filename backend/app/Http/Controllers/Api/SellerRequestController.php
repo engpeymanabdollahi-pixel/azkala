@@ -9,18 +9,21 @@ use Illuminate\Support\Facades\Log;
 
 class SellerRequestController extends Controller
 {
-        public function store(Request $request)
+       public function store(Request $request)
     {
+        // ✅ اعتبارسنجی دقیقاً مطابق با فرم عالی شما
         $validated = $request->validate([
-            'store_name' => 'required|string|max:255',
-            'phone' => 'required|string',
-            'email' => 'required|email',
-            'description' => 'required|string',
+            'shop_name' => 'required|string|max:255',
+            'national_code' => 'required|string|max:11',
+            'phone' => 'required|string|max:11',
+            'description' => 'nullable|string',
         ]);
 
         try {
-            // بررسی اینکه آیا کاربر قبلاً درخواست داده است یا خیر
-            $existingRequest = \App\Models\SellerRequest::where('user_id', auth()->id())
+            $userId = auth()->id();
+
+            // بررسی درخواست تکراری
+            $existingRequest = \App\Models\SellerRequest::where('user_id', $userId)
                 ->whereIn('status', ['pending', 'approved'])
                 ->first();
 
@@ -31,27 +34,33 @@ class SellerRequestController extends Controller
                 ], 400);
             }
 
-            // ایجاد درخواست جدید
+            // ✅ ایجاد رکورد با نام فیلدهای صحیح
             $sellerRequest = \App\Models\SellerRequest::create([
-                'user_id' => auth()->id(),
-                'store_name' => $validated['store_name'],
+                'user_id' => $userId,
+                'shop_name' => $validated['shop_name'],
+                'national_code' => $validated['national_code'],
                 'phone' => $validated['phone'],
-                'email' => $validated['email'],
-                'description' => $validated['description'],
-                'status' => 'pending', // وضعیت پیش‌فرض
+                'description' => $validated['description'] ?? null,
+                'status' => 'pending',
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'درخواست شما با موفقیت ثبت شد و پس از بررسی نتیجه اعلام می‌گردد.',
+                'message' => 'درخواست شما با موفقیت ثبت شد.',
                 'data' => $sellerRequest
             ], 201);
 
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('SellerRequestController@store: ' . $e->getMessage());
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ثبت درخواست. لطفاً دوباره تلاش کنید.'
+                'message' => 'خطای اعتبارسنجی',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('SellerRequest Store Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطای سرور در ثبت درخواست.'
             ], 500);
         }
     }

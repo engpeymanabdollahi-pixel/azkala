@@ -62,7 +62,7 @@ export function ProfileSection() {
         // اگر بک‌اند 404 داد (یعنی درخواستی وجود ندارد)، به جای خطا، null برگردان
         if (error.response?.status === 404 || error.response?.status === 403) {
           return null;
-        }
+        }a
         throw error; // سایر خطاها را پرتاب کن
       }
     },

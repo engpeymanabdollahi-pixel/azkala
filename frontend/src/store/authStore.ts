@@ -12,7 +12,7 @@ interface AuthState {
   
   // Actions
   login: (response: AuthResponse) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setSeller: (seller: Seller | null) => void;
   
@@ -39,19 +39,18 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         });
         
+        // ✅ اصلاح حیاتی: استفاده از 'token' به جای 'auth_token' برای هماهنگی کامل با apiClient
         if (response.token) {
-          localStorage.setItem('auth_token', response.token);
+          localStorage.setItem('token', response.token);
         }
         
         if (response.user?.role === 'seller' && (response as any).seller) {
           set({ seller: (response as any).seller });
         }
 
-        // 🆕 Sync Wishlist از API بعد از لاگین
         try {
           await useWishlistStore.getState().syncFromApi();
-// 🔔 درخواست اجازه نوتیفیکیشن
-requestNotificationPermission();
+          requestNotificationPermission();
         } catch (error) {
           console.error('Failed to sync wishlist after login:', error);
         }
@@ -61,17 +60,22 @@ requestNotificationPermission();
         try {
           const { authService } = await import('@/services/api/auth.service');
           await authService.logout();
-        } catch (error) {
-          console.error('Logout error:', error);
+        } catch (error: any) {
+          // ✅ اگر خطای 401 بود (یعنی توکن از قبل منقضی یا حذف شده)، نادیده بگیر و ادامه بده
+          if (error.response?.status !== 401) {
+            console.error('Logout error:', error);
+          }
         } finally {
+          // ✅ در هر صورت (موفق یا خطا)، حالت محلی را پاک کن تا کاربر واقعاً خارج شود
           set({
             user: null,
             token: null,
             isAuthenticated: false,
             seller: null,
           });
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          
+          // ✅ اصلاح حیاتی: حذف 'token' به جای 'auth_token'
+          localStorage.removeItem('token');
         }
       },
 

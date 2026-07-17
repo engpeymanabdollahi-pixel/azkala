@@ -8,12 +8,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class SellerRequest extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'user_id',
-        'shop_name',
-        'national_code',
+        'shop_name',      // نام صحیح در دیتابیس
+        'email',          // ✅ اضافه شد (چون در کنترلر استفاده می‌شود)
         'phone',
         'description',
+        'national_code',
         'id_card_image',
         'business_license',
         'status',
