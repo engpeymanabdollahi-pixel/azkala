@@ -3,9 +3,12 @@
 namespace App\Services\Admin;
 
 use App\Models\User;
+use App\Models\SellerRequest; // ✅ اضافه شد
 use App\Repositories\AdminUserRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB; // ✅ اضافه شد
+use Exception; // ✅ اضافه ش
 
 class AdminUserService
 {
@@ -183,31 +186,51 @@ class AdminUserService
         }
     }
 
-    /**
-     * Approve seller request
+         /**
+     * تأیید درخواست فروشندگی و تغییر نقش کاربر
      */
-    public function approveSellerRequest(int $requestId, int $adminId): bool
+    public function approveSellerRequest(int $requestId, int $adminId): void
     {
-        try {
-            $this->repository->approveSellerRequest($requestId, $adminId);
-            return true;
-        } catch (\Exception $e) {
-            Log::error('AdminUserService@approveSellerRequest: ' . $e->getMessage());
-            throw new \Exception('خطا در تأیید درخواست', 500);
+        $sellerRequest = SellerRequest::findOrFail($requestId);
+
+        if ($sellerRequest->status !== 'pending') {
+            throw new Exception('این درخواست قبلاً بررسی شده است.');
         }
+
+        // استفاده از تراکنش برای اطمینان از انجام همزمان هر دو عملیات
+        DB::transaction(function () use ($sellerRequest, $adminId) {
+            // ۱. به‌روزرسانی وضعیت درخواست
+            $sellerRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+
+            // ۲. ✅ تغییر نقش کاربر به فروشنده (حلقه گمشده!)
+            $sellerRequest->user()->update([
+                'role' => 'seller'
+            ]);
+        });
     }
 
     /**
-     * Reject seller request
+     * رد درخواست فروشندگی
      */
-    public function rejectSellerRequest(int $requestId, int $adminId, string $reason): bool
+    public function rejectSellerRequest(int $requestId, int $adminId, string $reason): void
     {
-        try {
-            $this->repository->rejectSellerRequest($requestId, $adminId, $reason);
-            return true;
-        } catch (\Exception $e) {
-            Log::error('AdminUserService@rejectSellerRequest: ' . $e->getMessage());
-            throw new \Exception('خطا در رد درخواست', 500);
+        $sellerRequest = SellerRequest::findOrFail($requestId);
+
+        if ($sellerRequest->status !== 'pending') {
+            throw new Exception('این درخواست قبلاً بررسی شده است.');
         }
+
+        DB::transaction(function () use ($sellerRequest, $adminId, $reason) {
+            $sellerRequest->update([
+                'status' => 'rejected',
+                'rejection_reason' => $reason,
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+        });
     }
 }

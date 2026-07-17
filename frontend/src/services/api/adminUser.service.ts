@@ -1,4 +1,4 @@
-import client from './client'; // ✅ اصلاح شد: ایمپورت پیش‌فرض client
+import client from './client';
 
 // ==================== Types ====================
 
@@ -21,7 +21,6 @@ export interface AdminUser {
   national_code?: string;
   created_at: string;
   email_verified_at?: string;
-  // 🆕 فیلدهای جدید
   is_online?: boolean;
   last_seen_at?: string | null;
   total_conversations?: number;
@@ -70,16 +69,11 @@ export interface AdminUsersResponse {
   };
 }
 
+// ✅ اصلاح شده: data مستقیماً آرایه است، نه یک آبجکت با پراپرتی requests
 export interface SellerRequestsResponse {
   success: boolean;
-  data: {
-    requests: SellerRequest[];
-    pagination: {
-      current_page: number;
-      last_page: number;
-      total: number;
-    };
-  };
+  data: SellerRequest[]; 
+  message?: string;
 }
 
 export interface UserFilters {
@@ -90,7 +84,6 @@ export interface UserFilters {
   sort_order?: 'asc' | 'desc';
   page?: number;
   per_page?: number;
-  // 🆕 فیلترهای جدید
   online?: 'online' | 'offline';
   conversations?: 'none' | 'few' | 'medium' | 'many';
   sentiment?: 'positive' | 'neutral' | 'negative';
@@ -100,51 +93,31 @@ export interface UserFilters {
 // ==================== Service ====================
 
 export const adminUserService = {
-  /**
-   * دریافت لیست کاربران
-   */
   async getUsers(filters: UserFilters = {}): Promise<AdminUsersResponse> {
-    const response = await client.get<AdminUsersResponse>('/admin/users', { 
-      params: filters 
-    });
+    const response = await client.get<AdminUsersResponse>('/admin/users', { params: filters });
     return response.data;
   },
 
-  /**
-   * دریافت جزئیات کاربر
-   */
   async getUser(id: number) {
     const response = await client.get(`/admin/users/${id}`);
     return response.data;
   },
 
-  /**
-   * تغییر نقش کاربر
-   */
   async updateRole(id: number, role: string) {
     const response = await client.put(`/admin/users/${id}/role`, { role });
     return response.data;
   },
 
-  /**
-   * تغییر وضعیت کاربر (فعال/غیرفعال)
-   */
   async updateStatus(id: number, is_active: boolean) {
     const response = await client.put(`/admin/users/${id}/status`, { is_active });
     return response.data;
   },
 
-  /**
-   * تایید فروشنده
-   */
   async approveSeller(id: number) {
     const response = await client.post(`/admin/users/${id}/approve-seller`);
     return response.data;
   },
 
-  /**
-   * رد فروشنده
-   */
   async rejectSeller(id: number, reason: string) {
     const response = await client.post(`/admin/users/${id}/reject-seller`, { reason });
     return response.data;
@@ -159,18 +132,18 @@ export const adminUserService = {
   },
 
   /**
-   * تایید درخواست فروشندگی
+   * تأیید درخواست فروشندگی (هماهنگ با روت api.php)
    */
   async approveSellerRequest(id: number) {
-    const response = await client.post(`/admin/seller-requests/${id}/approve`);
+    const response = await client.post(`/admin/users/${id}/approve-seller-request`);
     return response.data;
   },
 
   /**
-   * رد درخواست فروشندگی
+   * رد درخواست فروشندگی (هماهنگ با روت api.php)
    */
   async rejectSellerRequest(id: number, reason: string) {
-    const response = await client.post(`/admin/seller-requests/${id}/reject`, { reason });
+    const response = await client.post(`/admin/users/${id}/reject-seller-request`, { reason });
     return response.data;
   },
 };

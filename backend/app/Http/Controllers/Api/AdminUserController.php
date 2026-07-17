@@ -188,4 +188,51 @@ class AdminUserController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+        /**
+     * تأیید درخواست فروشندگی
+     */
+    public function approveSellerRequest($id)
+    {
+        try {
+            $adminId = auth()->id();
+            $this->userService->approveSellerRequest((int) $id, $adminId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'درخواست فروشندگی تأیید شد و نقش کاربر به فروشنده تغییر کرد.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AdminUserController@approveSellerRequest: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], (int) $e->getCode() ?: 500); // ✅ تغییر حیاتی: اضافه کردن (int)
+        }
+    }
+
+    /**
+     * رد درخواست فروشندگی
+     */
+    public function rejectSellerRequest(\Illuminate\Http\Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            $adminId = auth()->id();
+            $this->userService->rejectSellerRequest((int) $id, $adminId, $validated['reason']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'درخواست فروشندگی رد شد.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('AdminUserController@rejectSellerRequest: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], (int) $e->getCode() ?: 500); // ✅ تغییر حیاتی: اضافه کردن (int)
+        }
+    }
 }

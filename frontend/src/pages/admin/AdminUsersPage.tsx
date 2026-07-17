@@ -129,7 +129,7 @@ export function AdminUsersPage() {
   const users = data?.data?.users || [];
   const pagination = data?.data?.pagination;
   const stats = data?.data?.stats;
-  const requests = requestsData?.data?.requests || [];
+  const requests = Array.isArray(requestsData?.data) ? requestsData.data : [];
 
   // ==================== Mutations ====================
 
