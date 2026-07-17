@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   User, Mail, Phone, Calendar, Edit2, Save, X, Lock,
-  Shield, Eye, Award, AlertCircle,
+  Shield, Eye, Award, AlertCircle, Store, ArrowLeft
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +14,8 @@ import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { orderService } from '@/services/api/order.service';
 import { profileService } from '@/services/api/profile.service';
+import apiClient from '@/services/api/client'; // فرض بر این است که apiClient default export است. اگر نیست، آکولاد بگذارید: { apiClient }
+import axios from 'axios';
 
 export function ProfileSection() {
   const queryClient = useQueryClient();
@@ -41,9 +44,29 @@ export function ProfileSection() {
     }
   }, [user]);
 
+  // کوئری سفارشات
   const { data: ordersData } = useQuery({
     queryKey: ['my-orders-profile'],
     queryFn: () => orderService.getOrders(1),
+  });
+
+  // ✅ کوئری جدید برای دریافت وضعیت درخواست فروشندگی
+    // ✅ کوئری ضد گلوله برای دریافت وضعیت درخواست فروشندگی
+  const { data: sellerRequestData, isError } = useQuery({
+    queryKey: ['seller-request-status'],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get('/user/seller-request-status');
+        return response.data.data; // اگر درخواستی نباشد، بک‌اند باید null برگرداند
+      } catch (error: any) {
+        // اگر بک‌اند 404 داد (یعنی درخواستی وجود ندارد)، به جای خطا، null برگردان
+        if (error.response?.status === 404 || error.response?.status === 403) {
+          return null;
+        }
+        throw error; // سایر خطاها را پرتاب کن
+      }
+    },
+    retry: false, 
   });
 
   const ordersCount = ordersData?.data?.total ?? 0;
@@ -134,6 +157,73 @@ export function ProfileSection() {
           </div>
         ))}
       </div>
+
+      {/* کارت درخواست فروشندگی (همیشه نمایش داده می‌شود مگر اینکه کاربر قبلاً فروشنده شده باشد) */}
+      {user.role !== 'seller' && !sellerRequestData && (
+        <div className="bg-gradient-to-br from-primary-50 to-white border border-primary-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0">
+                <Store className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">فروشنده شوید!</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  محصولات خود را در ازکالا به هزاران مشتری بفروشید.
+                </p>
+              </div>
+            </div>
+            <Link 
+              to="/seller-request" 
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-xl hover:bg-primary-700 transition-colors w-full sm:w-auto justify-center"
+            >
+              ثبت درخواست
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ کارت پیگیری درخواست فروشندگی (فقط اگر درخواستی وجود داشته باشد نمایش داده می‌شود) */}
+      {sellerRequestData && user.role !== 'seller' && (
+        <div className={`rounded-2xl p-5 border shadow-sm ${
+          sellerRequestData.status === 'approved' ? 'bg-green-50 border-green-200' :
+          sellerRequestData.status === 'rejected' ? 'bg-red-50 border-red-200' :
+          'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                sellerRequestData.status === 'approved' ? 'bg-green-100 text-green-600' :
+                sellerRequestData.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                'bg-blue-100 text-blue-600'
+              }`}>
+                <Store className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">
+                  وضعیت درخواست فروشندگی
+                </h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  {sellerRequestData.status === 'pending' && 'درخواست شما در صف بررسی ادمین قرار دارد.'}
+                  {sellerRequestData.status === 'approved' && 'تبریک! درخواست شما تأیید شده است. اکنون می‌توانید محصولات خود را ثبت کنید.'}
+                  {sellerRequestData.status === 'rejected' && `درخواست شما رد شده است. دلیل: ${sellerRequestData.rejection_reason || 'عدم احراز شرایط'}`}
+                </p>
+              </div>
+            </div>
+            
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+              sellerRequestData.status === 'approved' ? 'bg-green-200 text-green-800' :
+              sellerRequestData.status === 'rejected' ? 'bg-red-200 text-red-800' :
+              'bg-blue-200 text-blue-800 animate-pulse'
+            }`}>
+              {sellerRequestData.status === 'pending' && 'در حال بررسی'}
+              {sellerRequestData.status === 'approved' && 'تأیید شده'}
+              {sellerRequestData.status === 'rejected' && 'رد شده'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

@@ -233,4 +233,18 @@ class AuthController extends Controller
             ], 500);
         }
     }
+        /**
+     * دریافت وضعیت درخواست فروشندگی کاربر فعلی
+     */
+    public function getSellerRequestStatus()
+    {
+        $request = \App\Models\SellerRequest::where('user_id', auth()->id())
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $request, // اگر null باشد یعنی درخواستی نداده است
+        ]);
+    }
 }

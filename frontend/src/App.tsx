@@ -93,7 +93,7 @@ const GuaranteePage = lazy(() => import('@/pages/GuaranteePage').then(m => ({ de
 const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m.TermsPage })));
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
 const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage').then(m => ({ default: m.UserTicketsPage })));
-const SellerRequestPage = lazy(() => import('@/pages/user/SellerRequestPage').then(m => ({ default: m.SellerRequestPage })));
+const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage').then(m => ({ default: m.default })));
 
 // ==========================================
 // کامپوننت محافظت از روت‌ها (Protected Route)

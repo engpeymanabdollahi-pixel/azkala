@@ -164,69 +164,24 @@ class AdminUserController extends Controller
         }
     }
 
-    /**
+       /**
      * لیست درخواست‌های فروشندگی
      */
     public function sellerRequests(Request $request)
     {
         try {
-            $perPage = (int) $request->get('per_page', 20);
-            $data = $this->userService->getSellerRequests($perPage);
+            // دریافت مستقیم از مدل برای اطمینان از صحت داده‌ها و دور زدن فیلترهای احتمالی سرویس
+            $requests = \App\Models\SellerRequest::with('user:id,name,email,phone')
+                ->latest()
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $data,
+                'data' => $requests, // بازگرداندن آرایه مستقیم که فرانت‌اند به راحتی آن را می‌خواند
+                'message' => 'درخواست‌ها با موفقیت دریافت شدند'
             ]);
         } catch (\Exception $e) {
             Log::error('AdminUserController@sellerRequests: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
-    }
-
-    /**
-     * تأیید درخواست فروشندگی
-     */
-    public function approveSellerRequest($id)
-    {
-        try {
-            $adminId = auth()->id();
-            $this->userService->approveSellerRequest((int) $id, $adminId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'درخواست فروشندگی تأیید شد',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminUserController@approveSellerRequest: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
-    }
-
-    /**
-     * رد درخواست فروشندگی
-     */
-    public function rejectSellerRequest(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
-
-        try {
-            $adminId = auth()->id();
-            $this->userService->rejectSellerRequest((int) $id, $adminId, $validated['reason']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'درخواست فروشندگی رد شد',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminUserController@rejectSellerRequest: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
