@@ -56,17 +56,24 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: async () => {
+            logout: async () => {
         try {
           const { authService } = await import('@/services/api/auth.service');
           await authService.logout();
         } catch (error: any) {
-          // ✅ اگر خطای 401 بود (یعنی توکن از قبل منقضی یا حذف شده)، نادیده بگیر و ادامه بده
-          if (error.response?.status !== 401) {
-            console.error('Logout error:', error);
+          // ✅ نادیده گرفتن خطاهای 401 یا خطای "No refresh token"
+          // چون هدف ما خروج است و اگر قبلاً خارج شده باشیم، همین کافی است
+          const isAuthError = 
+            error.response?.status === 401 || 
+            error.message?.includes('No refresh token') ||
+            error.message?.includes('Unauthenticated');
+
+          if (!isAuthError) {
+            console.error('Unexpected logout error:', error);
           }
         } finally {
-          // ✅ در هر صورت (موفق یا خطا)، حالت محلی را پاک کن تا کاربر واقعاً خارج شود
+          // ✅ این بخش "همیشه" اجرا می‌شود، چه درخواست موفق باشد چه خطا بدهد
+          // ۱. پاک کردن حالت Zustand
           set({
             user: null,
             token: null,
@@ -74,8 +81,12 @@ export const useAuthStore = create<AuthState>()(
             seller: null,
           });
           
-          // ✅ اصلاح حیاتی: حذف 'token' به جای 'auth_token'
+          // ۲. پاک کردن تمام داده‌های ذخیره‌شده در مرورگر
           localStorage.removeItem('token');
+          localStorage.removeItem('auth-storage'); // پاک کردن کل استیت persist شده
+          
+          // ۳. هدایت اجباری و سخت (Hard Redirect) برای جلوگیری از حلقه‌های رندر React
+          window.location.href = '/auth';
         }
       },
 
