@@ -39,4 +39,14 @@ export const deviceService = {
     const response = await apiClient.get(`/devices/series/${seriesId}/models`);
     return response.data.data || [];
   },
+    // ✅ دریافت سلسله‌مراتب به صورت یکجا (بسیار سریع‌تر و مطمئن‌تر)
+  getHierarchy: async (): Promise<DeviceModelWithBrand[]> => {
+    const response = await apiClient.get('/devices/hierarchy');
+    return response.data.data || [];
+  },
+    // ✅ دریافت ساختار درختی برای هدر سایت
+  getHeaderHierarchy: async () => {
+    const response = await apiClient.get('/devices/header-hierarchy');
+    return response.data.data || [];
+  },
 };

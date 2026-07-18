@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class DeviceBrand extends Model
 {
-    use HasFactory; // ✅ این خط جادویی مشکل را حل می‌کند
+    use HasFactory;
 
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'is_active'];
 
+    // ✅ اصلاح: مشخص کردن نام دقیق کلید خارجی
     public function series()
     {
-        return $this->hasMany(DeviceSeries::class);
+        return $this->hasMany(DeviceSeries::class, 'brand_id');
     }
 }

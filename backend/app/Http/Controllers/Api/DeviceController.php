@@ -175,4 +175,60 @@ class DeviceController extends Controller
             ], 500);
         }
     }
+        /**
+     * دریافت سلسله‌مراتب کامل دستگاه‌ها در یک درخواست (بهینه‌شده برای فرانت‌اند)
+     */
+    public function getHierarchy()
+    {
+        $models = \App\Models\DeviceModel::with('series.brand:id,name')
+            ->select('id', 'name', 'series_id')
+            ->get()
+            ->map(function ($model) {
+                return [
+                    'id' => $model->id,
+                    'name' => $model->name,
+                    'brand' => $model->series->brand ? [
+                        'name' => $model->series->brand->name
+                    ] : null,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $models
+        ]);
+    }
+        /**
+     * دریافت سلسله‌مراتب دستگاه‌ها به صورت درختی (مخصوص هدر سایت)
+     */
+    public function getHeaderHierarchy()
+    {
+        $brands = \App\Models\DeviceBrand::with('series.models:id,name,series_id')
+            ->select('id', 'name', 'slug')
+            ->where('is_active', true)
+            ->get()
+            ->map(function ($brand) {
+                return [
+                    'id' => $brand->id,
+                    'name' => $brand->name,
+                    'slug' => $brand->slug,
+                    'series' => $brand->series->map(function ($series) {
+                        return [
+                            'id' => $series->id,
+                            'name' => $series->name,
+                            'models' => $series->models->map(fn($m) => [
+                                'id' => $m->id,
+                                'name' => $m->name,
+                                'slug' => $m->slug
+                            ])
+                        ];
+                    })
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $brands
+        ]);
+    }
 }

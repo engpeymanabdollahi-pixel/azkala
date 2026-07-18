@@ -64,6 +64,9 @@ Route::get('/test', function () {
     return response()->json(['success' => true, 'message' => 'Azkala API is working!', 'timestamp' => now()->toDateTimeString()]);
 })->name('test');
 
+// در بخش مسیرهای عمومی، کنار سایر روت‌های devices
+Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
+
 Route::middleware('throttle:auth')->group(function () {
     Route::post('/register', [AuthController::class, 'sendOtp'])->name('register');
     Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
@@ -80,6 +83,8 @@ Route::prefix('devices')->name('devices.')->group(function () {
     Route::get('/brands/{brandId}/series', [DeviceController::class, 'series'])->name('series');
     Route::get('/series/{seriesId}/models', [DeviceController::class, 'models'])->name('models');
     Route::get('/models/{modelId}', [DeviceController::class, 'model'])->name('model');
+        Route::get('/header-hierarchy', [DeviceController::class, 'getHeaderHierarchy'])->name('header-hierarchy');
+
 });
 
 Route::prefix('products')->name('products.')->group(function () {
@@ -99,6 +104,9 @@ Route::prefix('products')->name('products.')->group(function () {
 // ۲. مسیرهای محافظت‌شده (Auth)
 // ============================================================
 Route::middleware('auth:sanctum')->group(function () {
+
+Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])
+        ->name('upload.images');
 
     // ✅ لاگ‌اوت (خارج از هر prefix دیگری)
     Route::post('/logout', function (\Illuminate\Http\Request $request) {
@@ -446,7 +454,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // سایر سرویس‌ها
-        Route::post('/upload/images', [ImageUploadController::class, 'upload'])->middleware('throttle:upload')->name('upload.images');
 
         Route::prefix('push')->name('push.')->group(function () {
             Route::post('/subscribe', [PushSubscriptionController::class, 'store'])->name('subscribe');

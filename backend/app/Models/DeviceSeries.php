@@ -7,17 +7,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class DeviceSeries extends Model
 {
-    use HasFactory; // ✅
+    use HasFactory;
 
-    protected $fillable = ['brand_id', 'name', 'slug'];
+    protected $fillable = ['brand_id', 'name', 'slug', 'is_active'];
 
+    // ✅ اصلاح: مشخص کردن نام دقیق کلید خارجی
     public function brand()
     {
-        return $this->belongsTo(DeviceBrand::class);
+        return $this->belongsTo(DeviceBrand::class, 'brand_id');
     }
 
+    // ✅ اصلاح: مشخص کردن نام دقیق کلید خارجی
     public function models()
     {
-        return $this->hasMany(DeviceModel::class);
+        return $this->hasMany(DeviceModel::class, 'series_id');
     }
 }

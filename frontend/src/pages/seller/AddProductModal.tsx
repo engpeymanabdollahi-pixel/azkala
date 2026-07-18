@@ -133,22 +133,14 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
     enabled: isOpen,
   });
 
-  // Fetch device models with brands
-  const { data: allDeviceModels = [], isLoading: isLoadingModels } = useQuery({
-    queryKey: ['device-models'],
+   // Fetch device models with brands (با مدیریت خطای بهتر)
+    // ✅ دریافت مدل‌ها با یک درخواست واحد (حل مشکل N+1)
+  const { data: allDeviceModels = [], isLoading: isLoadingModels, error: modelsError } = useQuery({
+    queryKey: ['device-hierarchy'],
     queryFn: async () => {
-      const brands = await deviceService.getBrands();
-      const allModels: DeviceModelWithBrand[] = [];
-      
-      for (const brand of brands) {
-        const series = await deviceService.getSeries(brand.id);
-        for (const s of series) {
-          const models = await deviceService.getModels(s.id);
-          allModels.push(...models.map((m) => ({ ...m, brand })));
-        }
-      }
-      
-      return allModels;
+      const models = await deviceService.getHierarchy();
+      console.log('✅ مدل‌های دریافت شده از سرور:', models); // برای دیباگ در کنسول
+      return models;
     },
     enabled: isOpen,
   });
@@ -247,7 +239,7 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
-  // Submit
+   // Submit
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
       toast.error('لطفاً خطاهای فرم را برطرف کنید');
@@ -275,16 +267,19 @@ export function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
         is_featured: formData.is_featured,
         main_image: images[0],
         gallery: images.length > 1 ? images.slice(1) : undefined,
+        // ✅ افزودن مدل‌های انتخاب‌شده به درخواست
+        device_model_ids: selectedModels.map(m => m.id), 
       });
 
       toast.success('محصول با موفقیت ثبت شد', { icon: '✅' });
       handleClose();
     } catch (error: any) {
+      console.error('خطای ثبت محصول:', error);
       toast.error(error.response?.data?.message || 'خطا در ثبت محصول', { duration: 5000 });
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, images, validateForm, createProductMutation]);
+  }, [formData, images, selectedModels, validateForm, createProductMutation]);
 
   // Reset form on close
   const handleClose = useCallback(() => {
