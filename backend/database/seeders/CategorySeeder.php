@@ -10,6 +10,8 @@ class CategorySeeder extends Seeder
 {
     public function run(): void
     {
+        $this->command->info('📂 در حال ساخت یا به‌روزرسانی دسته‌بندی‌ها...');
+
         $categories = [
             [
                 'name' => 'قاب و کاور',
@@ -62,22 +64,30 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $categoryData) {
-            $parent = Category::create([
-                'name' => $categoryData['name'],
-                'slug' => Str::slug($categoryData['name'], '-'),
-                'icon' => $categoryData['icon'],
-                'description' => $categoryData['description'],
-                'is_active' => true,
-            ]);
+            // ✅ استفاده از updateOrCreate برای جلوگیری از خطای تکراری بودن slug
+            $parent = Category::updateOrCreate(
+                ['slug' => Str::slug($categoryData['name'], '-')], // شرط جستجو
+                [
+                    'name' => $categoryData['name'],
+                    'icon' => $categoryData['icon'],
+                    'description' => $categoryData['description'],
+                    'is_active' => true,
+                    'parent_id' => null,
+                ]
+            );
 
             foreach ($categoryData['children'] as $childName) {
-                Category::create([
-                    'name' => $childName,
-                    'slug' => Str::slug($childName, '-'),
-                    'parent_id' => $parent->id,
-                    'is_active' => true,
-                ]);
+                Category::updateOrCreate(
+                    ['slug' => Str::slug($childName, '-')], // شرط جستجو
+                    [
+                        'name' => $childName,
+                        'parent_id' => $parent->id,
+                        'is_active' => true,
+                    ]
+                );
             }
         }
+
+        $this->command->info('✅ دسته‌بندی‌ها با موفقیت ساخته یا به‌روزرسانی شدند!');
     }
 }

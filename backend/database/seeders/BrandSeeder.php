@@ -10,6 +10,8 @@ class BrandSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->command->info('🏷️ در حال ساخت یا به‌روزرسانی برندها...');
+
         $brands = [
             ['name' => 'Samsung', 'description' => 'Samsung Electronics'],
             ['name' => 'Apple', 'description' => 'Apple Inc.'],
@@ -24,12 +26,17 @@ class BrandSeeder extends Seeder
         ];
 
         foreach ($brands as $brand) {
-            Brand::create([
-                'name' => $brand['name'],
-                'slug' => Str::slug($brand['name'], '-'),
-                'description' => $brand['description'],
-                'is_active' => true,
-            ]);
+            // ✅ استفاده از updateOrCreate برای جلوگیری از خطای تکراری بودن slug
+            Brand::updateOrCreate(
+                ['slug' => Str::slug($brand['name'], '-')], // شرط جستجو
+                [
+                    'name' => $brand['name'],
+                    'description' => $brand['description'],
+                    'is_active' => true,
+                ]
+            );
         }
+
+        $this->command->info('✅ برندها با موفقیت ساخته یا به‌روزرسانی شدند!');
     }
 }
