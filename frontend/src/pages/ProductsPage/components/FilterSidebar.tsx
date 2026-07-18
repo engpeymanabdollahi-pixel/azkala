@@ -3,7 +3,8 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { PRICE_RANGES, RATING_OPTIONS } from '../constants';
 import type { FilterState } from '../types';
-import { mockCategories } from '@/data/mockData';
+import { useQuery } from '@tanstack/react-query';
+import client from '@/services/api/client';
 import type { Product } from '@/types/models';
 
 interface FilterSidebarProps {
@@ -29,6 +30,14 @@ export function FilterSidebar({
   onInStockChange,
   onResetFilters,
 }: FilterSidebarProps) {
+    // دریافت دسته‌بندی‌های واقعی از دیتابیس
+    const { data: categories = [] } = useQuery({
+    queryKey: ['all-categories'],
+    queryFn: async () => {
+      const res = await client.get('/categories');
+      return res.data?.data || res.data || [];
+    },
+  });
   return (
     <aside className="hidden lg:block w-72 flex-shrink-0">
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sticky top-20 space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-thin">
@@ -75,9 +84,12 @@ export function FilterSidebar({
                 {products.length}
               </Badge>
             </button>
-            {mockCategories.map((cat) => {
+             {categories.map((cat: any) => {
               const count = products.filter((p) => p.category_id === cat.id).length;
-              if (count === 0) return null;
+              // اگر می‌خواهید فقط دسته‌بندی‌هایی که محصول دارند نمایش داده شوند، این خط را نگه دارید
+              // اگر می‌خواهید همه ۳۸ تا نمایش داده شوند، خط if (count === 0) return null; را حذف کنید
+             // if (count === 0) return null; 
+              
               return (
                 <button
                   key={cat.id}
@@ -90,7 +102,7 @@ export function FilterSidebar({
                   )}
                 >
                   <span className="flex items-center gap-1.5">
-                    <span>{cat.icon}</span>
+                    {/* اگر آیکون در دیتابیس دارید: <span>{cat.icon}</span> */}
                     {cat.name}
                   </span>
                   <Badge variant={filters.selectedCategory === cat.id ? 'primary' : 'gray'} className="text-[10px]">

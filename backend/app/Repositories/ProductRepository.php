@@ -96,41 +96,31 @@ class ProductRepository extends BaseRepository
             ->get();
     }
 
-    /**
-     * Get compatible products for a device model
+       /**
+     * دریافت محصولات سازگار با یک مدل دستگاه
      */
-    public function getCompatibleProducts(int $modelId, int $limit = 100): Collection
+    public function getCompatibleProducts(int $modelId)
     {
-        return $this->query()
-            ->with(['category', 'brand', 'images'])
-            ->where('is_active', true)
-            ->whereHas('phoneModels', function($query) use ($modelId) {
-                $query->where('phone_models.id', $modelId);
+        return \App\Models\Product::active()
+            ->whereHas('deviceModels', function ($query) use ($modelId) { // ✅ تغییر یافته
+                $query->where('device_model_id', $modelId); // ✅ تغییر یافته
             })
-            ->orderBy('sales_count', 'desc')
-            ->limit($limit)
+            ->with(['brand', 'category', 'deviceModels.series.brand']) // ✅ تغییر یافته
             ->get();
     }
 
     /**
-     * Get compatible products for multiple device models
+     * دریافت محصولات سازگار با چندین مدل دستگاه
      */
-    public function getCompatibleProductsMulti(array $modelIds, int $perPage = 50): LengthAwarePaginator
+    public function getCompatibleProductsMulti(array $modelIds, int $perPage = 50)
     {
-        return $this->query()
-            ->with(['category', 'brand', 'images'])
-            ->where('is_active', true)
-            ->where(function ($query) use ($modelIds) {
-                foreach ($modelIds as $modelId) {
-                    $query->orWhereHas('phoneModels', function ($q) use ($modelId) {
-                        $q->where('phone_models.id', $modelId);
-                    });
-                }
+        return \App\Models\Product::active()
+            ->whereHas('deviceModels', function ($query) use ($modelIds) { // ✅ تغییر یافته
+                $query->whereIn('device_model_id', $modelIds); // ✅ تغییر یافته
             })
-            ->orderByDesc('sales_count')
+            ->with(['brand', 'category'])
             ->paginate($perPage);
     }
-
     /**
      * Get related products
      */

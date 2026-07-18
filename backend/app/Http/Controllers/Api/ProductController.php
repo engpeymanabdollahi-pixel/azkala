@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\DTOs\Product\ProductFilterDTO;
+use App\Models\DeviceModel; // ✅ اضافه شده برای اعتبارسنجی دقیق
 use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,9 @@ class ProductController extends Controller
         $this->productService = $productService;
     }
 
+    /**
+     * لیست محصولات با فیلتر
+     */
     public function index(Request $request)
     {
         try {
@@ -34,15 +38,20 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * نمایش جزئیات یک محصول
+     */
     public function show($id)
     {
         try {
             $product = $this->productService->getProductById((int) $id);
+            
             if (!$product) {
                 return response()->json(['success' => false, 'message' => 'محصول یافت نشد'], 404);
             }
 
-            $product->load(['brand', 'category', 'images', 'phoneModels']);
+            // ✅ نکته مهم: نام رابطه (relationship) در مدل Product باید 'deviceModels' باشد نه 'phoneModels'
+            $product->load(['brand', 'category', 'images', 'deviceModels']);
 
             return response()->json([
                 'success' => true,
@@ -54,6 +63,9 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * نمایش محصول بر اساس اسلاگ
+     */
     public function bySlug(string $slug)
     {
         try {
@@ -63,17 +75,13 @@ class ProductController extends Controller
                 return response()->json(['success' => false, 'message' => 'محصول یافت نشد'], 404);
             }
 
-            // اگر سرویس آرایه برگرداند و کلید product داشته باشد
             if (is_array($result) && isset($result['product'])) {
                 $product = $result['product'];
                 
-                // اگر یک مدل واقعی باشد، آن را به Resource می‌دهیم
                 if ($product instanceof \App\Models\Product) {
-                    $product->loadMissing(['brand', 'category', 'images', 'phoneModels']);
+                    $product->loadMissing(['brand', 'category', 'images', 'deviceModels']);
                     $result['product'] = new ProductResource($product);
-                } 
-                // اگر آرایه باشد، به آبجکت تبدیل می‌کنیم تا Resource خطا ندهد
-                elseif (is_array($product)) {
+                } elseif (is_array($product)) {
                     $result['product'] = (object) $product;
                 }
             }
@@ -92,6 +100,9 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * محصولات ویژه
+     */
     public function featured()
     {
         try {
@@ -103,6 +114,9 @@ class ProductController extends Controller
         }
     }
 
+    /**
+     * پیشنهادات ویژه (تخفیف‌دار)
+     */
     public function specialOffers()
     {
         try {
@@ -114,44 +128,74 @@ class ProductController extends Controller
         }
     }
 
+       /**
+     * محصولات سازگار با یک مدل گوشی
+     */
     public function compatible($modelId)
     {
         try {
             $data = $this->productService->getCompatibleProducts((int) $modelId);
             return response()->json(['success' => true, 'data' => $data]);
         } catch (\Exception $e) {
-            $status = $e->getCode() ?: 500;
-            return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+            \Illuminate\Support\Facades\Log::error('ProductController@compatible: ' . $e->getMessage());
+            
+            // ✅ راه‌حل ریشه‌ای: اطمینان از اینکه کد وضعیت یک عدد صحیح معتبر است
+            $statusCode = $e->getCode();
+            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+                $statusCode = 500; // اگر رشته یا نامعتبر بود، پیش‌فرض ۵۰۰ در نظر بگیر
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'خطا در دریافت محصولات سازگار'
+            ], $statusCode);
         }
     }
 
-    public function compatibleMulti(Request $request)
+    /**
+     * محصولات سازگار با چندین مدل گوشی
+     */
+    public function compatibleMulti(\Illuminate\Http\Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'model_ids' => 'required|array|min:1',
-            'model_ids.*' => 'integer|exists:phone_models,id',
+            'model_ids.*' => 'integer|exists:device_models,id', // ✅ نام جدول جدید
         ]);
 
         try {
-            $products = $this->productService->getCompatibleProductsMulti($request->model_ids, 50);
+            $products = $this->productService->getCompatibleProductsMulti($validated['model_ids'], 50);
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'data' => ProductResource::collection($products),
+                    'data' => \App\Http\Resources\ProductResource::collection($products),
                     'total' => $products->total(),
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('ProductController@compatibleMulti: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'خطا در دریافت محصولات'], 500);
+            \Illuminate\Support\Facades\Log::error('ProductController@compatibleMulti: ' . $e->getMessage());
+            
+            // ✅ راه‌حل ریشه‌ای: اطمینان از اینکه کد وضعیت یک عدد صحیح معتبر است
+            $statusCode = $e->getCode();
+            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+                $statusCode = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در دریافت محصولات'
+            ], $statusCode);
         }
     }
 
+    /**
+     * محصولاتی که کاربر قبلاً خریداری کرده است
+     */
     public function myProducts(Request $request)
     {
         try {
             $userId = $request->user()->id;
             $products = $this->productService->getUserPurchasedProducts($userId, 20);
+            
             return response()->json([
                 'success' => true,
                 'data' => [

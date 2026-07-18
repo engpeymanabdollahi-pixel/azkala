@@ -12,6 +12,7 @@ interface ToolbarProps {
   layoutMode: LayoutMode;
   sortBy: SortOption;
   filters: FilterState;
+  categories: any[]; // ✅ اضافه شد: دریافت آرایه دسته‌بندی‌ها از والد
   activeFiltersCount: number;
   onSearchChange: (query: string) => void;
   onLayoutChange: (mode: LayoutMode) => void;
@@ -29,6 +30,7 @@ export function Toolbar({
   layoutMode,
   sortBy,
   filters,
+  categories, // ✅ اضافه شد به لیست آرگومان‌ها
   activeFiltersCount,
   onSearchChange,
   onLayoutChange,
@@ -109,6 +111,7 @@ export function Toolbar({
       {activeFiltersCount > 0 && (
         <FilterTags
           filters={filters}
+          categories={categories} // ✅ اضافه شد: پاس دادن به FilterTags
           onRemoveCategory={onRemoveCategory}
           onRemovePriceRange={onRemovePriceRange}
           onRemoveMinRating={onRemoveMinRating}

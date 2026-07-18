@@ -63,11 +63,11 @@ export function DeviceSelector({
       ) : (
         <div className="flex flex-wrap gap-2">
           {devices.map((device) => {
-            const isSelected = selectedDeviceIds.includes(device.phone_model_id);
+            const isSelected = selectedDeviceIds.includes(device.device_model_id);
             return (
               <button
                 key={device.id}
-                onClick={() => onToggleDevice(device.phone_model_id)}
+                onClick={() => onToggleDevice(device.device_model_id)}
                 className={cn(
                   'px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border-2',
                   isSelected
@@ -76,8 +76,8 @@ export function DeviceSelector({
                 )}
               >
                 {isSelected && <CheckCircle className="w-3 h-3 text-accent-600" />}
-                <span className="text-primary-600 font-bold">{device.phone_model?.brand?.name}</span>
-                <span>{device.phone_model?.name}</span>
+                <span className="text-primary-600 font-bold">{device.device_model?.brand?.name}</span>
+                <span>{device.device_model?.name}</span>
                 {device.nickname && (
                   <span className="text-[10px] text-gray-500">({device.nickname})</span>
                 )}

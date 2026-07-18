@@ -54,14 +54,23 @@ class ProductResource extends JsonResource
                 });
             }),
             
-            'phoneModels' => $this->whenLoaded('phoneModels', function () {
-                return $this->phoneModels->map(function ($model) {
-                    return [
-                        'id' => $model->id,
-                        'name' => $model->name,
-                    ];
-                });
-            }),
+            'deviceModels' => $this->whenLoaded('deviceModels', function () {
+        return $this->deviceModels->map(function ($model) {
+            return [
+                'id' => $model->id,
+                'name' => $model->name,
+                'slug' => $model->slug,
+                'series' => $model->series ? [
+                    'id' => $model->series->id,
+                    'name' => $model->series->name,
+                ] : null,
+                'brand' => $model->series && $model->series->brand ? [
+                    'id' => $model->series->brand->id,
+                    'name' => $model->series->brand->name,
+                ] : null,
+            ];
+        });
+    }),
             
             // Timestamps
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),

@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query'; // ✅ اضافه شد
 import { Smartphone, Package, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { useModelStore } from '@/store/modelStore';
-import { useAuthStore } from '@/store/authStore'; // ✅ اضافه شد
+import { useAuthStore } from '@/store/authStore';
+import { categoryService } from '@/services/api/category.service'; // ✅ اضافه شد
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
 import type { FilterMode, LayoutMode } from './types';
@@ -26,7 +28,22 @@ import { ProductGrid } from './components/ProductGrid';
 export function ProductsPage() {
   const navigate = useNavigate();
   const { selectedModel } = useModelStore();
-  const { isAuthenticated } = useAuthStore(); // ✅ اضافه شد
+  const { isAuthenticated } = useAuthStore();
+
+  // ✅ دریافت دسته‌بندی‌های واقعی از دیتابیس
+  const { data: categories = [] } = useQuery({
+    queryKey: ['all-categories'],
+    queryFn: async () => {
+      try {
+        // اگر نام متد در category.service.ts شما getCategories است، آن را تغییر دهید
+        const res = await categoryService.getAll(); 
+        return res.data?.data || res.data || [];
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+    },
+  });
 
   // State
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(DEFAULT_LAYOUT_MODE);
@@ -59,31 +76,12 @@ export function ProductsPage() {
     resetFilters,
   } = useProductFilters(products);
 
-  // ✅ Debug logs - برای تشخیص مشکل
-  useEffect(() => {
-    console.log('🔍 ProductsPage Debug:', {
-      isAuthenticated,
-      selectedModelName: selectedModel?.name,
-      selectedModelId: selectedModel?.id,
-      userDevicesCount: userDevices.length,
-      userDevices: userDevices.map(d => ({
-        id: d.id,
-        phone_model_id: d.phone_model_id,
-        name: d.phone_model?.name,
-      })),
-      filterMode,
-      selectedDeviceIds,
-    });
-  }, [isAuthenticated, selectedModel, userDevices, filterMode, selectedDeviceIds]);
-
-  // Sync با هدر
   useEffect(() => {
     if (selectedModel && !selectedDeviceIds.includes(selectedModel.id)) {
       setSelectedDeviceIds((prev) => [...prev, selectedModel.id]);
     }
   }, [selectedModel]);
 
-  // Handlers
   const handleViewProduct = useCallback(
     (product: Product) => navigate(`/products/${product.slug}`),
     [navigate]
@@ -109,7 +107,6 @@ export function ProductsPage() {
     setSelectedDeviceIds(userDevices.map((d) => d.phone_model_id));
   }, [userDevices]);
 
-  // Loading State
   if (isLoading) {
     return (
       <div className="bg-gray-50 min-h-screen">
@@ -130,11 +127,9 @@ export function ProductsPage() {
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
         
-        {/* 🔥 سه دکمه فیلتر اصلی - با شرط‌های اصلاح شده */}
+        {/* دکمه‌های فیلتر اصلی */}
         <div className="bg-white rounded-xl border border-gray-100 p-2 mb-3 shadow-sm sticky top-20 z-30">
           <div className="flex items-center gap-2 flex-wrap">
-            
-            {/* دکمه همه محصولات - همیشه نمایش داده می‌شود */}
             <button
               onClick={() => handleFilterModeChange('all')}
               className={cn(
@@ -148,7 +143,6 @@ export function ProductsPage() {
               همه محصولات
             </button>
 
-            {/* ✅ دکمه دستگاه‌های من - اگر کاربر لاگین است نمایش داده شود */}
             {isAuthenticated && (
               <button
                 onClick={() => handleFilterModeChange('my-devices')}
@@ -169,7 +163,6 @@ export function ProductsPage() {
               </button>
             )}
 
-            {/* ✅ دکمه دستگاه هدر - اگر selectedModel وجود دارد */}
             {selectedModel && (
               <button
                 onClick={() => handleFilterModeChange('header-device')}
@@ -187,7 +180,6 @@ export function ProductsPage() {
           </div>
         </div>
 
-        {/* انتخاب دستگاه‌ها */}
         {filterMode === 'my-devices' && (
           <DeviceSelector
             devices={userDevices}
@@ -198,12 +190,13 @@ export function ProductsPage() {
           />
         )}
 
-        {/* Toolbar */}
+        {/* ✅ ارسال categories به Toolbar */}
         <Toolbar
           searchQuery={filters.searchQuery}
           layoutMode={layoutMode}
           sortBy={filters.sortBy}
           filters={filters}
+          categories={categories} // ✅ این خط اضافه شد
           activeFiltersCount={activeFiltersCount}
           onSearchChange={setSearchQuery}
           onLayoutChange={setLayoutMode}
@@ -218,8 +211,10 @@ export function ProductsPage() {
 
         {/* Layout اصلی */}
         <div className="flex gap-4">
+          {/* ✅ ارسال categories به FilterSidebar */}
           <FilterSidebar
             filters={filters}
+            categories={categories} // ✅ این خط اضافه شد
             products={products}
             activeFiltersCount={activeFiltersCount}
             onCategoryChange={setSelectedCategory}
@@ -249,9 +244,11 @@ export function ProductsPage() {
         </div>
       </div>
 
+      {/* ✅ ارسال categories به MobileFilterDrawer */}
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         filters={filters}
+        categories={categories} // ✅ این خط اضافه شد
         activeFiltersCount={activeFiltersCount}
         filteredCount={filteredProducts.length}
         onClose={() => setShowMobileFilters(false)}

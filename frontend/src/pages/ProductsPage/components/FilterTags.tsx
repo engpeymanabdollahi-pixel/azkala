@@ -3,10 +3,10 @@ import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import type { FilterState } from '../types';
 import { DEFAULT_PRICE_RANGE, DEFAULT_MIN_RATING } from '../constants';
-import { mockCategories } from '@/data/mockData';
 
 interface FilterTagsProps {
   filters: FilterState;
+  categories: any[];
   onRemoveCategory: () => void;
   onRemovePriceRange: () => void;
   onRemoveMinRating: () => void;
@@ -14,11 +14,9 @@ interface FilterTagsProps {
   onRemoveInStock: () => void;
 }
 
-/**
- * نمایش تگ‌های فیلترهای فعال
- */
 export function FilterTags({
   filters,
+  categories,
   onRemoveCategory,
   onRemovePriceRange,
   onRemoveMinRating,
@@ -33,7 +31,7 @@ export function FilterTags({
     <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-gray-100">
       {filters.selectedCategory !== null && (
         <Badge variant="primary" className="gap-1 cursor-pointer text-[10px]" onClick={onRemoveCategory}>
-          {mockCategories.find((c) => c.id === filters.selectedCategory)?.name}
+          {categories.find((c: any) => c.id === filters.selectedCategory)?.name || 'دسته‌بندی'}
           <X className="w-2.5 h-2.5" />
         </Badge>
       )}

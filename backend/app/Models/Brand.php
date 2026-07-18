@@ -56,11 +56,11 @@ class Brand extends Model
         return $this->hasMany(Product::class);
     }
 
-    public function phoneModels()
+    public function deviceModels()
     {
-        return $this->hasMany(PhoneModel::class);
+        return $this->hasManyThrough(DeviceModel::class, DeviceSeries::class, 'brand_id', 'series_id');
     }
-
+    
     public function phoneSeries()
     {
         return $this->hasMany(PhoneSeries::class);

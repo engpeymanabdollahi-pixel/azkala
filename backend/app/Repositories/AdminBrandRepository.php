@@ -140,7 +140,7 @@ class AdminBrandRepository
             ->orderBy('name')
             ->get();
 
-        $models = $brand->phoneModels()
+        $models = $brand->deviceModels()
             ->select('id', 'name', 'slug', 'image', 'series_id', 'release_year')
             ->orderBy('name')
             ->take(50)

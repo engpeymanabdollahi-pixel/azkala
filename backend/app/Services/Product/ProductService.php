@@ -3,13 +3,14 @@
 namespace App\Services\Product;
 
 use App\DTOs\Product\ProductFilterDTO;
+use App\Models\DeviceModel;
+use App\Models\Product;
 use App\Repositories\ProductRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 
 class ProductService
@@ -21,9 +22,6 @@ class ProductService
         $this->productRepository = $productRepository;
     }
 
-    /**
-     * Get paginated products with filters
-     */
     public function getProducts(ProductFilterDTO $filters): LengthAwarePaginator
     {
         try {
@@ -37,17 +35,11 @@ class ProductService
         }
     }
 
-    /**
-     * Get product by ID
-     */
     public function getProductById(int $id): ?Model
     {
         return $this->productRepository->find($id);
     }
 
-    /**
-     * Get product by slug with all details
-     */
     public function getProductBySlug(string $slug): array
     {
         try {
@@ -57,20 +49,17 @@ class ProductService
                 throw new \Exception('محصول یافت نشد', 404);
             }
 
-            // Increment views
             $this->productRepository->incrementViews($product->id);
 
-            // Get compatible models
+            // ✅ اصلاح شده: استفاده از متد جدید getCompatibleModels
             $compatibleModels = $this->getCompatibleModels($product->id);
 
-            // Get related products
             $relatedProducts = $this->productRepository->getRelatedProducts(
                 $product->category_id,
                 $product->id,
                 8
             );
 
-            // Build seller data
             $sellerData = null;
             if ($product->seller) {
                 $sellerData = [
@@ -88,12 +77,10 @@ class ProductService
                 ];
             }
 
-            // Build product data
             $productData = $product->toArray();
-            $productData['images'] = $product->images->pluck('image_url')->toArray();
+            $productData['images'] = $product->images ? $product->images->pluck('image_url')->toArray() : [];
             $productData['seller'] = $sellerData;
 
-            // Build related products data
             $relatedProductsData = $relatedProducts->map(function ($p) {
                 return [
                     'id' => $p->id,
@@ -121,40 +108,33 @@ class ProductService
         }
     }
 
-    /**
-     * Get featured products
-     */
-  public function getFeaturedProducts(int $limit = 10)
-{
-    // ✅ کش کردن نتیجه به مدت ۱ ساعت (3600 ثانیه)
-    return Cache::remember('featured_products_' . $limit, 3600, function () use ($limit) {
-        return Product::where('is_featured', true)
-            ->where('is_active', true)
-            ->with(['brand', 'category']) // Eager Loading
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-    });
-}
+    public function getFeaturedProducts(int $limit = 10)
+    {
+        return Cache::remember('featured_products_' . $limit, 3600, function () use ($limit) {
+            return Product::where('is_featured', true)
+                ->where('is_active', true)
+                ->with(['brand', 'category'])
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get();
+        });
+    }
 
-    /**
-     * Get special offers
-     */
     public function getSpecialOffers(int $limit = 10): Collection
     {
         return $this->productRepository->getSpecialOffers($limit);
     }
 
     /**
-     * Get compatible products for a device model
+     * ✅ اصلاح شده: دریافت محصولات سازگار با مدل دستگاه جدید
      */
     public function getCompatibleProducts(int $modelId): array
     {
         try {
-            // Check if model exists
-            $modelExists = DB::table('phone_models')->where('id', $modelId)->exists();
+            // ✅ بررسی وجود مدل در جدول جدید device_models
+            $model = DeviceModel::with('series.brand')->find($modelId);
             
-            if (!$modelExists) {
+            if (!$model) {
                 throw new \Exception('مدل گوشی یافت نشد', 404);
             }
 
@@ -174,41 +154,42 @@ class ProductService
         }
     }
 
-    /**
-     * Get compatible products for multiple device models
-     */
     public function getCompatibleProductsMulti(array $modelIds, int $perPage = 50): LengthAwarePaginator
     {
         return $this->productRepository->getCompatibleProductsMulti($modelIds, $perPage);
     }
 
-    /**
-     * Get user's purchased products
-     */
     public function getUserPurchasedProducts(int $userId, int $perPage = 20): LengthAwarePaginator
     {
         return $this->productRepository->getUserPurchasedProducts($userId, $perPage);
     }
 
-   /**
- * Get compatible models for a product
- */
-protected function getCompatibleModels(int $productId): \Illuminate\Support\Collection
+    /**
+     * ✅ اصلاح شده: دریافت مدل‌های سازگار با محصول (با نام‌های جدید جداول)
+     */
+    protected function getCompatibleModels(int $productId): \Illuminate\Support\Collection
     {
-        return DB::table('phone_models')
-            ->join('product_phone_models', 'phone_models.id', '=', 'product_phone_models.phone_model_id')
-            ->leftJoin('brands', 'phone_models.brand_id', '=', 'brands.id')
-            ->leftJoin('phone_series', 'phone_models.series_id', '=', 'phone_series.id')
-            ->where('product_phone_models.product_id', $productId)
+        // ⚠️ نکته: اگر نام جدول واسط شما product_device_model است، آن را در خط زیر تغییر دهید
+        $pivotTable = 'device_model_product'; 
+
+        return DB::table('device_models')
+            ->join($pivotTable, 'device_models.id', '=', $pivotTable . '.device_model_id')
+            ->leftJoin('device_series', 'device_models.series_id', '=', 'device_series.id')
+            ->leftJoin('device_brands', 'device_series.brand_id', '=', 'device_brands.id')
+            ->where($pivotTable . '.product_id', $productId)
             ->select(
-                'phone_models.*',
-                'brands.id as brand_id',
-                'brands.name as brand_name',
-                'brands.slug as brand_slug',
-                'brands.logo as brand_logo',
-                'phone_series.id as series_id',
-                'phone_series.name as series_name',
-                'phone_series.slug as series_slug'
+                'device_models.id',
+                'device_models.name',
+                'device_models.slug',
+                'device_models.image',
+                'device_models.release_year',
+                'device_brands.id as brand_id',
+                'device_brands.name as brand_name',
+                'device_brands.slug as brand_slug',
+                'device_brands.logo as brand_logo',
+                'device_series.id as series_id',
+                'device_series.name as series_name',
+                'device_series.slug as series_slug'
             )
             ->get()
             ->map(function ($model) {

@@ -65,9 +65,17 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
-    public function phoneModels()
+    public function deviceModels()
     {
-        return $this->belongsToMany(PhoneModel::class, 'product_phone_models');
+        // ⚠️ نکته بسیار مهم: نام جدول واسط (دومین پارامتر) را باید دقیقاً مطابق با 
+        // نامی که در مایگریشن رابطه Many-to-Many ساخته‌اید، بنویسید.
+        // استاندارد لاراول device_model_product است، اما اگر شما product_device_model ساخته‌اید، آن را تغییر دهید.
+        return $this->belongsToMany(
+            DeviceModel::class, 
+            'device_model_product', // <-- نام جدول واسط را چک کنید
+            'product_id', 
+            'device_model_id'
+        );
     }
 
     public function scopeActive($query)
