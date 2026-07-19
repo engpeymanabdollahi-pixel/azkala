@@ -257,8 +257,10 @@ Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::c
             Route::get('/chat-stats', [AdminDashboardController::class, 'chatStats'])->name('chat-stats');
             Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');
             Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
-        });
-
+            Route::get('/brands/{id}', [\App\Http\Controllers\Api\AdminBrandController::class, 'show'])->name('brands.show'); // ✅ اضافه کنید
+           Route::apiResource('brands', \App\Http\Controllers\Api\AdminBrandController::class)->except(['show']);
+            });
+            
         Route::prefix('settings')->name('settings.')->group(function () {
             Route::get('/', [AdminSettingController::class, 'index'])->name('index');
             Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults'])->name('seed-defaults');

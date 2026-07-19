@@ -63,7 +63,7 @@ class ProductController extends Controller
         }
     }
 
-    /**
+       /**
      * نمایش محصول بر اساس اسلاگ
      */
     public function bySlug(string $slug)
@@ -91,12 +91,18 @@ class ProductController extends Controller
                 'data' => $result,
             ]);
         } catch (\Exception $e) {
-            Log::error('ProductController@bySlug: ' . $e->getMessage() . ' | Line: ' . $e->getLine());
-            $status = $e->getCode() ?: 500;
+            \Illuminate\Support\Facades\Log::error('ProductController@bySlug: ' . $e->getMessage() . ' | Line: ' . $e->getLine());
+            
+            // ✅ راه‌حل ریشه‌ای: اطمینان از اینکه کد وضعیت یک عدد صحیح معتبر است
+            $statusCode = $e->getCode();
+            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+                $statusCode = 500; // اگر رشته یا نامعتبر بود، پیش‌فرض ۵۰۰ در نظر بگیر
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت محصول: ' . $e->getMessage(),
-            ], $status);
+            ], $statusCode);
         }
     }
 

@@ -10,13 +10,13 @@ class DeviceModelFactory extends Factory
 {
     protected $model = DeviceModel::class;
 
-    public function definition()
+    public function definition(): array
     {
         return [
             'series_id' => DeviceSeries::factory(),
-            'name' => $this->faker->unique()->word,
-            'slug' => $this->faker->unique()->slug,
-            'release_year' => $this->faker->year
+            'name' => fake()->unique()->words(3, true),
+            'slug' => fake()->unique()->slug(),
+            'release_year' => fake()->year(),
         ];
     }
 }

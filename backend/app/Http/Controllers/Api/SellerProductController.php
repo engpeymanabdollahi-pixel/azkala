@@ -61,9 +61,13 @@ class SellerProductController extends Controller
             'main_image' => 'nullable|string',
             'gallery' => 'nullable|array',
             'gallery.*' => 'string',
+            
+            // ✅ اضافه کردن اعتبارسنجی دستگاه‌های سازگار
+            'device_model_ids' => 'nullable|array',
+            'device_model_ids.*' => 'exists:device_models,id',
         ]);
 
-        // ✅ تولید خودکار slug یکتا
+        // تولید خودکار slug یکتا
         $baseSlug = Str::slug($validated['name']);
         $slug = $baseSlug;
         $count = 1;
@@ -77,10 +81,15 @@ class SellerProductController extends Controller
             $sellerId = $request->user()->id;
             $product = $this->sellerService->createProduct($sellerId, $validated);
 
+            // ✅ ذخیره رابطه چند به چند در جدول واسط
+            if (isset($validated['device_model_ids'])) {
+                $product->deviceModels()->sync($validated['device_model_ids']);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'محصول با موفقیت ثبت شد',
-                'data' => $product->load(['category', 'brand']),
+                'data' => $product->load(['category', 'brand', 'deviceModels']),
             ], 201);
 
         } catch (\Exception $e) {
@@ -92,13 +101,16 @@ class SellerProductController extends Controller
     }
 
     /**
-     * نمایش یک محصول
+     * نمایش یک محصول (برای پر کردن فرم ویرایش)
      */
     public function show(Request $request, $id)
     {
         try {
             $sellerId = $request->user()->id;
             $product = $this->sellerService->getSellerProductDetail((int) $id, $sellerId);
+
+            // ✅ لود کردن دستگاه‌های سازگار برای نمایش در فرم ویرایش
+            $product->load(['category', 'brand', 'deviceModels']);
 
             return response()->json([
                 'success' => true,
@@ -111,11 +123,26 @@ class SellerProductController extends Controller
         }
     }
 
-    /**
+      /**
      * بروزرسانی محصول
      */
     public function update(Request $request, $id)
     {
+        $sellerId = $request->user()->id;
+
+        // ۱. بررسی مالکیت: محصول باید هم وجود داشته باشد و هم متعلق به همین فروشنده باشد
+        $product = \App\Models\Product::where('id', $id)
+                                      ->where('seller_id', $sellerId)
+                                      ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)'
+            ], 403); // 403 Forbidden به جای 500 Internal Error
+        }
+
+        // ۲. اعتبارسنجی داده‌ها
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
@@ -131,11 +158,15 @@ class SellerProductController extends Controller
             'main_image' => 'nullable|string',
             'gallery' => 'nullable|array',
             'gallery.*' => 'string',
+            
+            // ✅ اعتبارسنجی دستگاه‌های سازگار
+            'device_model_ids' => 'nullable|array',
+            'device_model_ids.*' => 'exists:device_models,id',
         ]);
 
-        // ✅ بروزرسانی slug در صورت تغییر نام
-        if (isset($validated['name'])) {
-            $baseSlug = Str::slug($validated['name']);
+        // ۳. بروزرسانی slug در صورت تغییر نام
+        if (isset($validated['name']) && $validated['name'] !== $product->name) {
+            $baseSlug = \Illuminate\Support\Str::slug($validated['name']);
             $slug = $baseSlug;
             $count = 1;
             while (\App\Models\Product::where('slug', $slug)->where('id', '!=', $id)->exists()) {
@@ -146,38 +177,75 @@ class SellerProductController extends Controller
         }
 
         try {
-            $sellerId = $request->user()->id;
-            $product = $this->sellerService->updateProduct((int) $id, $sellerId, $validated);
+            // ۴. به‌روزرسانی مستقیم و امن محصول (بدون تکیه به Service که ممکن است findOrFail داشته باشد)
+            $product->update($validated);
+
+            // ۵. ✅ به‌روزرسانی رابطه چند به چند در جدول واسط
+            if (isset($validated['device_model_ids'])) {
+                $product->deviceModels()->sync($validated['device_model_ids']);
+            } else {
+                $product->deviceModels()->sync([]);
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => 'محصول به‌روزرسانی شد',
-                'data' => $product,
+                'message' => 'محصول با موفقیت به‌روزرسانی شد',
+                'data' => $product->fresh()->load(['category', 'brand', 'deviceModels']),
             ]);
+
         } catch (\Exception $e) {
-            $statusCode = (int) $e->getCode();
-            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
-            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
+            \Illuminate\Support\Facades\Log::error('SellerProductController@update: ' . $e->getMessage());
+            
+            $statusCode = $e->getCode();
+            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+                $statusCode = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در به‌روزرسانی محصول: ' . $e->getMessage()
+            ], $statusCode);
         }
     }
 
     /**
      * حذف محصول
      */
-    public function destroy(Request $request, $id)
+    public function destroy($id)
     {
         try {
-            $sellerId = $request->user()->id;
-            $this->sellerService->deleteProduct((int) $id, $sellerId);
+            $sellerId = auth()->id();
+
+            $product = \App\Models\Product::where('id', $id)
+                                          ->where('seller_id', $sellerId)
+                                          ->first();
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
+                ], 404);
+            }
+
+            $product->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'محصول حذف شد',
+                'message' => 'محصول با موفقیت حذف شد.'
             ]);
+
         } catch (\Exception $e) {
-            $statusCode = (int) $e->getCode();
-            $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
-            return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
+            \Illuminate\Support\Facades\Log::error('SellerProductController@destroy: ' . $e->getMessage());
+            
+            $statusCode = $e->getCode();
+            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+                $statusCode = 500;
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در حذف محصول: ' . $e->getMessage()
+            ], $statusCode);
         }
     }
 }

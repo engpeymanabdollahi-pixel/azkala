@@ -65,16 +65,13 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
-    public function deviceModels()
+        public function deviceModels()
     {
-        // ⚠️ نکته بسیار مهم: نام جدول واسط (دومین پارامتر) را باید دقیقاً مطابق با 
-        // نامی که در مایگریشن رابطه Many-to-Many ساخته‌اید، بنویسید.
-        // استاندارد لاراول device_model_product است، اما اگر شما product_device_model ساخته‌اید، آن را تغییر دهید.
         return $this->belongsToMany(
-            DeviceModel::class, 
-            'device_model_product', // <-- نام جدول واسط را چک کنید
-            'product_id', 
-            'device_model_id'
+            \App\Models\DeviceModel::class,  // ۱. کلاس مدل مقصد
+            'device_model_product',          // ۲. نام دقیق جدول واسط (رشته متنی)
+            'product_id',                    // ۳. کلید خارجی این مدل در جدول واسط
+            'device_model_id'                // ۴. کلید خارجی مدل مقصد در جدول واسط
         );
     }
 

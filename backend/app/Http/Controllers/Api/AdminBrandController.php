@@ -241,4 +241,31 @@ class AdminBrandController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+    public function show(int $id)
+{
+    try {
+        $brand = \App\Models\Brand::findOrFail($id);
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'brand' => [
+                    'id' => $brand->id,
+                    'name' => $brand->name,
+                    'slug' => $brand->slug,
+                    'country' => $brand->country,
+                    'is_active' => $brand->is_active,
+                    'is_verified' => $brand->is_verified,
+                    'created_at' => $brand->created_at,
+                    'updated_at' => $brand->updated_at,
+                ]
+            ]
+        ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'برند یافت نشد'
+        ], 404);
+    }
+}
 }

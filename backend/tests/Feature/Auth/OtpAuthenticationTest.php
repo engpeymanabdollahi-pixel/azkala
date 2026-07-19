@@ -40,4 +40,12 @@ class OtpAuthenticationTest extends TestCase
         $response = $this->postJson('/api/verify-otp', ['phone' => $phone, 'otp' => '12345']);
         $response->assertStatus(200)->assertJson(['success' => true])->assertJsonStructure(['data' => ['user', 'token']]);
     }
+    protected function tearDown(): void
+{
+    // پاکسازی کامل کش برای جلوگیری از تداخل در تست‌های بعدی
+    \Illuminate\Support\Facades\Cache::flush();
+    
+    // فراخوانی tearDown پدر برای پاکسازی دیتابیس (RefreshDatabase)
+    parent::tearDown();
+}
 }

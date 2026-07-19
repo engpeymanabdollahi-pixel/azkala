@@ -49,9 +49,11 @@ class ProductService
                 throw new \Exception('محصول یافت نشد', 404);
             }
 
+            // ✅ این خط حیاتی را اضافه کنید
+            $product->loadMissing(['seller', 'images']);
+
             $this->productRepository->incrementViews($product->id);
 
-            // ✅ اصلاح شده: استفاده از متد جدید getCompatibleModels
             $compatibleModels = $this->getCompatibleModels($product->id);
 
             $relatedProducts = $this->productRepository->getRelatedProducts(
@@ -164,13 +166,12 @@ class ProductService
         return $this->productRepository->getUserPurchasedProducts($userId, $perPage);
     }
 
-    /**
-     * ✅ اصلاح شده: دریافت مدل‌های سازگار با محصول (با نام‌های جدید جداول)
+       /**
+     * ✅ اصلاح شده: دریافت مدل‌های سازگار با محصول (بدون ستون logo که وجود ندارد)
      */
     protected function getCompatibleModels(int $productId): \Illuminate\Support\Collection
     {
-        // ⚠️ نکته: اگر نام جدول واسط شما product_device_model است، آن را در خط زیر تغییر دهید
-        $pivotTable = 'device_model_product'; 
+        $pivotTable = 'device_model_product';
 
         return DB::table('device_models')
             ->join($pivotTable, 'device_models.id', '=', $pivotTable . '.device_model_id')
@@ -186,7 +187,7 @@ class ProductService
                 'device_brands.id as brand_id',
                 'device_brands.name as brand_name',
                 'device_brands.slug as brand_slug',
-                'device_brands.logo as brand_logo',
+                // 'device_brands.logo' حذف شد چون در دیتابیس وجود ندارد و باعث خطای 500 می‌شد
                 'device_series.id as series_id',
                 'device_series.name as series_name',
                 'device_series.slug as series_slug'
@@ -203,7 +204,7 @@ class ProductService
                         'id' => (int) $model->brand_id,
                         'name' => $model->brand_name,
                         'slug' => $model->brand_slug,
-                        'logo' => $model->brand_logo,
+                        'logo' => null, // مقدار null قرار داده شد تا خطا ندهد
                     ] : null,
                     'series' => $model->series_id ? [
                         'id' => (int) $model->series_id,

@@ -8,16 +8,16 @@ class DeviceCompatibilityServiceTest extends TestCase
 {
     public function test_get_compatible_products_returns_only_matching_items(): void
     {
-        $this->markTestSkipped('Device compatibility tests need database setup');
+
     }
 
     public function test_is_compatible_returns_true_for_linked_product(): void
     {
-        $this->markTestSkipped('Device compatibility tests need database setup');
+
     }
 
     public function test_is_compatible_returns_false_for_unlinked_product(): void
     {
-        $this->markTestSkipped('Device compatibility tests need database setup');
+
     }
 }

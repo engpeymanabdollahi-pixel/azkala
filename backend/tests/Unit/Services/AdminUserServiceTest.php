@@ -187,20 +187,20 @@ class AdminUserServiceTest extends TestCase
 
    public function test_can_get_seller_requests(): void
     {
-        $this->markTestSkipped('Seller requests tests need database migration');
+
     }
 
     // ==================== approveSellerRequest Tests ====================
 
    public function test_can_approve_seller_request(): void
     {
-        $this->markTestSkipped('Seller requests tests need database migration');
+
     }
 
     // ==================== rejectSellerRequest Tests ====================
 
     public function test_can_reject_seller_request(): void
     {
-        $this->markTestSkipped('Seller requests tests need database migration');
+
     }
 }

@@ -130,10 +130,10 @@ export function ProductDetailPage() {
           throw new Error('داده‌های محصول یافت نشد');
         }
 
-        // 🛡️ نرمال‌سازی داده‌ها برای جلوگیری از خطاهای undefined در UI
+                // 🛡️ نرمال‌سازی داده‌ها برای جلوگیری از خطاهای undefined در UI
         const safeProduct = {
           ...productData,
-          // اطمینان از وجود آبجکت brand و category (ساختار جدید Resource)
+          // اطمینان از وجود آبجکت brand و category
           brand: productData.brand || { id: 0, name: 'نامشخص', slug: '' },
           category: productData.category || { id: 0, name: 'نامشخص', slug: '' },
           // اطمینان از آرایه بودن images
@@ -141,6 +141,12 @@ export function ProductDetailPage() {
           // تبدیل قیمت به عدد
           price: Number(productData.price) || 0,
           compare_price: Number(productData.compare_price) || 0,
+          
+          // ✅ اصلاح حیاتی: نگاشت صریح compatible_models از ریشه پاسخ به داخل آبجکت محصول
+          compatible_models: rawData?.compatible_models || productData?.compatible_models || [],
+          
+          // ✅ اطمینان از وجود deviceModels (اگر بک‌اند آن را هم فرستاده باشد)
+          deviceModels: rawData?.deviceModels || productData?.deviceModels || [],
         };
 
         if (isMounted) {

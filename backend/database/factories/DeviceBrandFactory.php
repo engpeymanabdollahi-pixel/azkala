@@ -9,11 +9,12 @@ class DeviceBrandFactory extends Factory
 {
     protected $model = DeviceBrand::class;
 
-    public function definition()
+    public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->company,
-            'slug' => $this->faker->unique()->slug
+            'name' => fake()->unique()->company(),
+            'slug' => fake()->unique()->slug(),
+            'is_active' => true,
         ];
     }
 }

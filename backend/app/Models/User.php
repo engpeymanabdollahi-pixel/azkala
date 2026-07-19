@@ -255,4 +255,11 @@ public function createdTickets()
 {
     return $this->hasMany(SupportTicket::class, 'user_id');
 }
+/**
+ * رابطه یک‌به‌یک با سبد خرید
+ */
+public function cart()
+{
+    return $this->hasOne(\App\Models\Cart::class);
+}
 }

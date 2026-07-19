@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CartItem extends Model
 {
@@ -23,17 +22,26 @@ class CartItem extends Model
         'price' => 'decimal:2',
     ];
 
-    public function cart(): BelongsTo
+    /**
+     * رابطه با سبد خرید
+     */
+    public function cart()
     {
         return $this->belongsTo(Cart::class);
     }
 
-    public function product(): BelongsTo
+    /**
+     * رابطه با محصول
+     */
+    public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function deviceModel(): BelongsTo
+    /**
+     * رابطه با مدل دستگاه
+     */
+    public function deviceModel()
     {
         return $this->belongsTo(DeviceModel::class);
     }
