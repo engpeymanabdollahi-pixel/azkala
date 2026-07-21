@@ -47,26 +47,7 @@ class AdminBrandController extends Controller
         }
     }
 
-    /**
-     * ظ†ظ…ط§غŒط´ غŒع© ط¨ط±ظ†ط¯
-     */
-    public function show($id)
-    {
-        try {
-            $data = $this->brandService->getBrandDetails((int) $id);
-
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
-    }
+   
 
     /**
      * ط§غŒط¬ط§ط¯ ط¨ط±ظ†ط¯ ط¬ط¯غŒط¯
