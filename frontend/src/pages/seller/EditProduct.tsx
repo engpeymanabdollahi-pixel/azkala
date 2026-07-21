@@ -1,23 +1,17 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { EditProductModal } from './EditProductModal';
+import { ProductFormModal } from './ProductFormModal'; // ✅ ایمپورت صحیح
 
 export function EditProduct() {
   const navigate = useNavigate();
-  const { productId } = useParams<{ productId: string }>();
-
-  if (!productId) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-gray-600">شناسه محصول مشخص نشده است</p>
-      </div>
-    );
-  }
+  const { id } = useParams<{ id: string }>();
 
   return (
-    <EditProductModal
+    <ProductFormModal
       isOpen={true}
-      productId={parseInt(productId)}
+      mode="edit"
+      productId={id ? Number(id) : null}
       onClose={() => navigate('/seller/products')}
+      onSuccess={() => navigate('/seller/products')}
     />
   );
 }
