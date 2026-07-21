@@ -47,19 +47,23 @@ export function SellerOrders() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
-  // Fetch سفارشات از API
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['seller-orders'],
-    queryFn: () => sellerOrderService.getOrders(1, 50),
+  // ✅ 1. Fetch سفارشات (با نام متغیر یکتا)
+   // ✅ تغییر کلید کوئری برای دور زدن کش قدیمی و اجبار به صفحه ۱
+  const { data: ordersData, isLoading: isOrdersLoading, refetch } = useQuery({
+    queryKey: ['seller-orders-fresh', 1], // کلید جدید
+    queryFn: async () => {
+      console.log("🚀 درخواست به سرور با page=1 ارسال شد");
+      return sellerOrderService.getOrders(1, 20); // اجبار مطلق به صفحه ۱
+    },
   });
 
-  // Fetch آمار
+  // ✅ 2. Fetch آمار (با نام متغیر یکتا)
   const { data: statsData } = useQuery({
     queryKey: ['seller-orders-stats'],
     queryFn: () => sellerOrderService.getStats(),
   });
 
-  // Mutation برای تغییر وضعیت و ثبت کد رهگیری
+  // ✅ 3. Mutation برای تغییر وضعیت و ثبت کد رهگیری
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status, trackingNumber, courierName }: any) =>
       sellerOrderService.updateStatus(orderId, status, trackingNumber, courierName),
@@ -69,16 +73,20 @@ export function SellerOrders() {
     },
   });
 
-  // ✅ اصلاح حیاتی: اطمینان از اینکه orders همیشه یک آرایه است
+  // ✅ 4. استخراج ایمن و دقیق آرایه سفارشات از ساختار لاراول
   const orders = useMemo(() => {
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data)) return data;
+    // ساختار لاراول: response.data.data.data
+    if (ordersData?.success && ordersData?.data?.data && Array.isArray(ordersData.data.data)) {
+      return ordersData.data.data;
+    }
     return [];
-  }, [data]);
+  }, [ordersData]);
+   console.log("🔍 داده خام از سرور (ordersData):", ordersData);
+  console.log("🔍 آرایه استخراج شده (orders):", orders);
 
-  // فیلتر کردن سفارشات (ایمن‌سازی شده در برابر خطای iterable)
+  // 5. فیلتر کردن سفارشات
   const filteredOrders = useMemo(() => {
-    let filtered = [...orders]; // حالا orders قطعاً آرایه است و خطا نمی‌دهد
+    let filtered = [...orders];
 
     if (orderStatusFilter !== 'all') {
       filtered = filtered.filter((order) => order.status === orderStatusFilter);
@@ -94,7 +102,7 @@ export function SellerOrders() {
     return filtered;
   }, [orders, orderStatusFilter, searchQuery]);
 
-  // محاسبه آمار به صورت ایمن
+  // 6. محاسبه آمار به صورت ایمن
   const stats = useMemo(() => {
     const apiStats = statsData?.data || {};
     const safeOrders = Array.isArray(orders) ? orders : [];
@@ -181,9 +189,9 @@ export function SellerOrders() {
             size="sm"
             className="gap-1"
             onClick={() => refetch()}
-            disabled={isLoading}
+            disabled={isOrdersLoading}
           >
-            <RefreshCw className={cn("w-3.5 h-3.5", isLoading && "animate-spin")} />
+            <RefreshCw className={cn("w-3.5 h-3.5", isOrdersLoading && "animate-spin")} />
             <span className="hidden md:inline text-xs">بروزرسانی</span>
           </Button>
         </div>
@@ -247,7 +255,7 @@ export function SellerOrders() {
       </div>
 
       {/* Orders List */}
-      {isLoading ? (
+      {isOrdersLoading ? (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary-500 mx-auto mb-3" />
           <p className="text-sm text-gray-600">در حال دریافت اطلاعات سفارشات...</p>

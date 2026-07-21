@@ -107,6 +107,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])
         ->name('upload.images');
+        // ==================== روت‌های امتیاز و نظر به فروشنده ====================
+Route::post('/seller-ratings', [SellerRatingController::class, 'store']);
+Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'index']);
+Route::get('/seller-ratings/can-rate/{orderId}', [SellerRatingController::class, 'canRate']);
 
     // ✅ لاگ‌اوت (خارج از هر prefix دیگری)
     Route::post('/logout', function (\Illuminate\Http\Request $request) {

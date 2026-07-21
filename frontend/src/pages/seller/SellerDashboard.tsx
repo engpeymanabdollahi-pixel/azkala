@@ -66,13 +66,24 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
 
 const fetchRecentOrders = async (page: number = 1): Promise<{ data: Order[]; total: number }> => {
   const response = await apiClient.get(`/seller/orders?page=${page}&per_page=5`);
-  return response.data;
+  const res = response.data;
+
+  if (res?.data?.data && Array.isArray(res.data.data)) {
+    return { data: res.data.data, total: res.data.total ?? res.data.data.length };
+  }
+  if (res?.data && Array.isArray(res.data)) {
+    return { data: res.data, total: res.data.length };
+  }
+  if (Array.isArray(res)) {
+    return { data: res, total: res.length };
+  }
+  return { data: [], total: 0 };
 };
 
 const fetchUnreadMessages = async (): Promise<number> => {
   try {
     const response = await apiClient.get('/chat/conversations');
-    const conversations: Conversation[] = response.data.data.data || response.data.data;
+    const conversations: Conversation[] = response.data.data?.data || response.data.data || [];
     return conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   } catch (error) {
     return 0;
@@ -134,23 +145,24 @@ export function SellerDashboard() {
   } = useQuery({
     queryKey: ['seller-recent-orders', currentPage],
     queryFn: () => fetchRecentOrders(currentPage),
+    staleTime: 0,
   });
 
-  // Load unread messages count
   useEffect(() => {
     const loadUnread = async () => {
       const count = await fetchUnreadMessages();
       setUnreadCount(count);
     };
     loadUnread();
-    const interval = setInterval(loadUnread, 30000); // هر 30 ثانیه
+    const interval = setInterval(loadUnread, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const filteredOrders = useMemo(() => {
-    if (!ordersData?.data) return [];
-    if (orderFilter === 'all') return ordersData.data;
-    return ordersData.data.filter(order => order.status === orderFilter);
+    const orders = ordersData?.data;
+    if (!Array.isArray(orders)) return [];
+    if (orderFilter === 'all') return orders;
+    return orders.filter(order => order.status === orderFilter);
   }, [ordersData, orderFilter]);
 
   const chartData = useMemo(() => {
@@ -193,7 +205,6 @@ export function SellerDashboard() {
     { label: 'آمار', icon: TrendingUp, path: '/seller/products', color: 'from-primary-500 to-primary-600' },
   ];
 
-  // Loading state
   if (statsLoading && !stats) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-3 md:p-4">
@@ -215,7 +226,6 @@ export function SellerDashboard() {
     );
   }
 
-  // Error state
   if (statsError || ordersError) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4">
@@ -248,49 +258,29 @@ export function SellerDashboard() {
                 <LayoutDashboard className="w-4.5 h-4.5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg md:text-xl font-black text-gray-900">
-                  داشبورد فروشنده
-                </h1>
+                <h1 className="text-lg md:text-xl font-black text-gray-900">داشبورد فروشنده</h1>
                 <p className="text-[11px] text-gray-600">
                   خوش آمدید <span className="font-bold text-primary-600">{user?.name}</span> 👋
                 </p>
               </div>
             </div>
             <div className="flex gap-1.5">
-              {/* 🆕 دکمه پیام‌ها با Badge */}
               <Link to="/seller/chat">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 relative"
-                >
+                <Button variant="outline" size="sm" className="gap-1 relative">
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span className="hidden md:inline text-xs">پیام‌ها</span>
                   {unreadCount > 0 && (
-                    <Badge 
-                      variant="error" 
-                      size="sm" 
-                      className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] rounded-full p-0"
-                    >
+                    <Badge variant="error" size="sm" className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center text-[9px] rounded-full p-0">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </Badge>
                   )}
                 </Button>
               </Link>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                className="gap-1"
-              >
+              <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-1">
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span className="hidden md:inline text-xs">بروزرسانی</span>
               </Button>
-              <Button
-                onClick={() => navigate('/seller/products/new')}
-                size="sm"
-                className="gap-1"
-              >
+              <Button onClick={() => navigate('/seller/products/new')} size="sm" className="gap-1">
                 <Plus className="w-3.5 h-3.5" />
                 <span className="hidden md:inline text-xs">محصول جدید</span>
                 <span className="md:hidden text-xs">جدید</span>
@@ -302,64 +292,20 @@ export function SellerDashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
           {[
-            {
-              title: 'درآمد کل',
-              value: formatPrice(stats?.total_revenue || 0),
-              change: '+12.5%',
-              changeType: 'up' as const,
-              icon: DollarSign,
-              gradient: 'from-primary-500 to-primary-600',
-            },
-            {
-              title: 'سفارشات در انتظار',
-              value: stats?.pending_orders || 0,
-              change: '+8 امروز',
-              changeType: 'up' as const,
-              icon: ShoppingCart,
-              gradient: 'from-accent-500 to-accent-600',
-            },
-            {
-              title: 'محصولات فعال',
-              value: stats?.active_products || 0,
-              change: `از ${stats?.total_products || 0}`,
-              changeType: 'neutral' as const,
-              icon: Package,
-              gradient: 'from-success-500 to-success-600',
-            },
-            {
-              title: 'در انتظار تسویه',
-              value: formatPrice(stats?.pending_settlements || 0),
-              change: 'هفته آینده',
-              changeType: 'neutral' as const,
-              icon: Clock,
-              gradient: 'from-warning-500 to-warning-600',
-            },
+            { title: 'درآمد کل', value: formatPrice(stats?.total_revenue || 0), change: '+12.5%', changeType: 'up' as const, icon: DollarSign, gradient: 'from-primary-500 to-primary-600' },
+            { title: 'سفارشات در انتظار', value: stats?.pending_orders || 0, change: '+8 امروز', changeType: 'up' as const, icon: ShoppingCart, gradient: 'from-accent-500 to-accent-600' },
+            { title: 'محصولات فعال', value: stats?.active_products || 0, change: `از ${stats?.total_products || 0}`, changeType: 'neutral' as const, icon: Package, gradient: 'from-success-500 to-success-600' },
+            { title: 'در انتظار تسویه', value: formatPrice(stats?.pending_settlements || 0), change: 'هفته آینده', changeType: 'neutral' as const, icon: Clock, gradient: 'from-warning-500 to-warning-600' },
           ].map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div
-                key={index}
-                className="group bg-white rounded-xl p-3 border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all duration-300 animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
+              <div key={index} className="group bg-white rounded-xl p-3 border border-gray-100 hover:border-primary-200 hover:shadow-md transition-all duration-300 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
                 <div className="flex items-start justify-between mb-2">
-                  <div className={cn(
-                    'w-9 h-9 bg-gradient-to-br rounded-lg flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-all',
-                    stat.gradient
-                  )}>
+                  <div className={cn('w-9 h-9 bg-gradient-to-br rounded-lg flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-all', stat.gradient)}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className={cn(
-                    'flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded',
-                    stat.changeType === 'up' ? 'bg-success-50 text-success-600' :
-                    stat.changeType === 'down' ? 'bg-error-50 text-error-600' :
-                    'bg-gray-100 text-gray-600'
-                  )}>
-                    {stat.changeType === 'up' ? (
-                      <ArrowUpRight className="w-2.5 h-2.5" />
-                    ) : stat.changeType === 'down' ? (
-                      <ArrowDownRight className="w-2.5 h-2.5" />
-                    ) : null}
+                  <div className={cn('flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded', stat.changeType === 'up' ? 'bg-success-50 text-success-600' : stat.changeType === 'down' ? 'bg-error-50 text-error-600' : 'bg-gray-100 text-gray-600')}>
+                    {stat.changeType === 'up' ? <ArrowUpRight className="w-2.5 h-2.5" /> : stat.changeType === 'down' ? <ArrowDownRight className="w-2.5 h-2.5" /> : null}
                     {stat.change}
                   </div>
                 </div>
@@ -383,14 +329,8 @@ export function SellerDashboard() {
                   نمودار فروش ماهانه
                 </h2>
               </div>
-
               {chartData.length > 0 ? (
-                <SimpleChart
-                  data={chartData}
-                  height={200}
-                  type="bar"
-                  showValues={true}
-                />
+                <SimpleChart data={chartData} height={200} type="bar" showValues={true} />
               ) : (
                 <div className="h-48 flex items-center justify-center text-gray-400">
                   <div className="text-center">
@@ -411,22 +351,13 @@ export function SellerDashboard() {
                 </div>
                 محصولات پرفروش
               </h2>
-
               {stats?.top_products && stats.top_products.length > 0 ? (
                 <div className="space-y-1.5">
                   {stats.top_products.slice(0, 5).map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center gap-1.5 p-1.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                      onClick={() => navigate(`/seller/products/${product.id}/edit`)}
-                    >
+                    <div key={product.id} className="flex items-center gap-1.5 p-1.5 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer" onClick={() => navigate(`/seller/products/${product.id}/edit`)}>
                       <div className="relative">
                         <div className="w-8 h-8 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                          {product.image ? (
-                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <Package className="w-4 h-4 text-gray-400" />
-                          )}
+                          {product.image ? <img src={product.image} alt={product.name} className="w-full h-full object-cover" /> : <Package className="w-4 h-4 text-gray-400" />}
                         </div>
                         <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white text-[8px] font-bold">
                           {index + 1}
@@ -461,24 +392,14 @@ export function SellerDashboard() {
                 سفارشات اخیر
               </h2>
               <div className="flex gap-1.5">
-                <select
-                  value={orderFilter}
-                  onChange={(e) => setOrderFilter(e.target.value as any)}
-                  className="px-2 py-1 border border-gray-200 rounded text-[10px] focus:outline-none focus:border-primary-500"
-                >
+                <select value={orderFilter} onChange={(e) => setOrderFilter(e.target.value as any)} className="px-2 py-1 border border-gray-200 rounded text-[10px] focus:outline-none focus:border-primary-500">
                   <option value="all">همه</option>
                   <option value="pending">در انتظار</option>
                   <option value="processing">در حال پردازش</option>
                   <option value="shipped">ارسال شده</option>
                 </select>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => navigate('/seller/orders')}
-                  className="gap-0.5 text-[10px]"
-                >
-                  همه
-                  <ArrowUpRight className="w-2.5 h-2.5" />
+                <Button variant="outline" size="xs" onClick={() => navigate('/seller/orders')} className="gap-0.5 text-[10px]">
+                  همه <ArrowUpRight className="w-2.5 h-2.5" />
                 </Button>
               </div>
             </div>
@@ -488,10 +409,10 @@ export function SellerDashboard() {
                 Array.from({ length: 5 }).map((_, i) => <OrderSkeleton key={i} />)
               ) : filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="p-2.5 hover:bg-primary-50/30 transition-colors group cursor-pointer"
-                    onClick={() => navigate(`/seller/orders/${order.id}`)}
+                  <Link 
+                    key={order.id} 
+                    to={`/seller/orders/${order.id}`}
+                    className="block p-2.5 hover:bg-primary-50/30 transition-colors group cursor-pointer no-underline"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
@@ -508,7 +429,6 @@ export function SellerDashboard() {
                       </div>
                       {getStatusBadge(order.status)}
                     </div>
-
                     <div className="flex items-center justify-between pt-1.5 border-t border-gray-100">
                       <div className="flex items-center gap-2 text-[10px] text-gray-600">
                         <span className="flex items-center gap-0.5">
@@ -516,16 +436,12 @@ export function SellerDashboard() {
                           {order.items_count} محصول
                         </span>
                         {order.tracking_number && (
-                          <span className="text-[9px] bg-gray-100 px-1 py-0.5 rounded">
-                            کد: {order.tracking_number}
-                          </span>
+                          <span className="text-[9px] bg-gray-100 px-1 py-0.5 rounded">کد: {order.tracking_number}</span>
                         )}
                       </div>
-                      <p className="text-sm font-black text-primary-700">
-                        {formatPrice(order.total)}
-                      </p>
+                      <p className="text-sm font-black text-primary-700">{formatPrice(order.total)}</p>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="p-6 text-center">
@@ -538,31 +454,15 @@ export function SellerDashboard() {
               )}
             </div>
 
-            {/* Pagination */}
+            {/* Pagination (فقط یک بار و به درستی بسته شده) */}
             {ordersData && ordersData.total > 5 && (
               <div className="p-2 border-t border-gray-100 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="gap-0.5 text-[10px]"
-                >
-                  <ChevronRight className="w-2.5 h-2.5" />
-                  قبلی
+                <Button variant="outline" size="xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="gap-0.5 text-[10px]">
+                  <ChevronRight className="w-2.5 h-2.5" /> قبلی
                 </Button>
-                <span className="text-[10px] text-gray-600">
-                  صفحه {currentPage} از {Math.ceil(ordersData.total / 5)}
-                </span>
-                <Button
-                  variant="outline"
-                  size="xs"
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage >= Math.ceil(ordersData.total / 5)}
-                  className="gap-0.5 text-[10px]"
-                >
-                  بعدی
-                  <ChevronLeft className="w-2.5 h-2.5" />
+                <span className="text-[10px] text-gray-600">صفحه {currentPage} از {Math.ceil(ordersData.total / 5)}</span>
+                <Button variant="outline" size="xs" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= Math.ceil(ordersData.total / 5)} className="gap-0.5 text-[10px]">
+                  بعدی <ChevronLeft className="w-2.5 h-2.5" />
                 </Button>
               </div>
             )}
@@ -571,7 +471,6 @@ export function SellerDashboard() {
 
         {/* Quick Actions & Tips */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
-          {/* Quick Actions */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3">
               <h3 className="text-xs font-black text-gray-900 mb-2 flex items-center gap-1.5">
@@ -584,15 +483,8 @@ export function SellerDashboard() {
                 {quickActions.map((action, idx) => {
                   const Icon = action.icon;
                   return (
-                    <button
-                      key={idx}
-                      onClick={() => navigate(action.path)}
-                      className="group flex flex-col items-center gap-1 p-2 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all hover:-translate-y-0.5"
-                    >
-                      <div className={cn(
-                        'w-7 h-7 bg-gradient-to-br rounded-lg flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform',
-                        action.color
-                      )}>
+                    <button key={idx} onClick={() => navigate(action.path)} className="group flex flex-col items-center gap-1 p-2 bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-lg hover:border-primary-300 hover:shadow-sm transition-all hover:-translate-y-0.5">
+                      <div className={cn('w-7 h-7 bg-gradient-to-br rounded-lg flex items-center justify-center text-white shadow-sm group-hover:scale-110 transition-transform', action.color)}>
                         <Icon className="w-3.5 h-3.5" />
                       </div>
                       <span className="text-[10px] font-bold text-gray-700 text-center">{action.label}</span>
@@ -603,7 +495,6 @@ export function SellerDashboard() {
             </div>
           </div>
 
-          {/* Tips */}
           <div>
             <div className="bg-gradient-to-br from-warning-50 to-accent-50 border-2 border-warning-200 rounded-xl p-3">
               <div className="flex items-start gap-1.5 mb-1.5">
@@ -617,12 +508,7 @@ export function SellerDashboard() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="xs"
-                className="w-full text-[10px]"
-                onClick={() => navigate('/seller/products')}
-              >
+              <Button variant="outline" size="xs" className="w-full text-[10px]" onClick={() => navigate('/seller/products')}>
                 مشاهده محصولات
               </Button>
             </div>

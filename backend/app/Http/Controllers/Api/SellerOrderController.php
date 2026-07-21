@@ -16,16 +16,20 @@ class SellerOrderController extends Controller
         $this->sellerService = $sellerService;
     }
 
-    /**
+        /**
      * لیست سفارشات فروشنده
      */
     public function index(Request $request)
     {
         try {
             $sellerId = $request->user()->id;
-            $perPage = (int) $request->get('per_page', 10);
+            
+            // ✅ دریافت صحیح page و per_page از درخواست
+            $page = (int) $request->get('page', 1);
+            $perPage = (int) $request->get('per_page', 20);
 
-            $data = $this->sellerService->getSellerOrdersList($sellerId, $perPage);
+            // ✅ اصلاح حیاتی: ارسال آرگومان‌ها به ترتیب صحیح (sellerId, page, perPage)
+            $data = $this->sellerService->getSellerOrdersList($sellerId, $page, $perPage);
 
             return response()->json([
                 'success' => true,

@@ -32,37 +32,88 @@ class SellerService
         return $query->orderByDesc('created_at')->paginate($perPage);
     }
 
-    public function getSellerDashboardStats(int $sellerId): array
+           public function getSellerDashboardStats(int $sellerId): array
     {
-        $totalProducts = Product::where('seller_id', $sellerId)->count();
-        $activeProducts = Product::where('seller_id', $sellerId)->where('is_active', true)->count();
+        // ۱. آمار محصولات
+        $totalProducts = \App\Models\Product::where('seller_id', $sellerId)->count();
+        $activeProducts = \App\Models\Product::where('seller_id', $sellerId)->where('is_active', true)->count();
 
-        $totalOrders = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('products.seller_id', $sellerId)
-            ->where('orders.payment_status', 'paid')
+        // کوئری پایه: تمام سفارشاتی که حداقل یک آیتم متعلق به این فروشنده دارد و لغو نشده‌اند
+        $baseQuery = \App\Models\Order::whereHas('items', function ($q) use ($sellerId) {
+            $q->where('seller_id', $sellerId);
+        })->whereNotIn('status', ['cancelled']);
+
+        // ۲. آمار سفارشات
+        $totalSales = (clone $baseQuery)->count();
+        // سفارشات در انتظار: شامل pending و processing
+        $pendingOrders = (clone $baseQuery)->whereIn('status', ['pending', 'processing'])->count();
+
+        // ۳. آمار مالی (بدون محدودیت payment_status تا فروشنده درآمد در انتظار را هم ببیند)
+        $totalRevenue = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.seller_id', $sellerId)
             ->whereNotIn('orders.status', ['cancelled'])
-            ->count();
+            ->sum(\Illuminate\Support\Facades\DB::raw('order_items.quantity * order_items.price'));
 
-        $totalRevenue = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('products.seller_id', $sellerId)
-            ->where('orders.payment_status', 'paid')
+        // در انتظار تسویه (سفارشات پردازش شده، ارسال شده یا تحویل داده شده)
+        $pendingSettlements = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.seller_id', $sellerId)
+            ->whereIn('orders.status', ['processing', 'shipped', 'delivered'])
+            ->sum(\Illuminate\Support\Facades\DB::raw('order_items.quantity * order_items.price'));
+
+        // ۴. فروش ماهانه (۶ ماه اخیر)
+        $monthlySales = \App\Models\OrderItem::select(
+                \Illuminate\Support\Facades\DB::raw('DATE_FORMAT(orders.created_at, "%Y-%m") as month'),
+                \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity) as sales'),
+                \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity * order_items.price) as revenue')
+            )
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.seller_id', $sellerId)
             ->whereNotIn('orders.status', ['cancelled'])
-            ->sum(DB::raw('order_items.quantity * order_items.price'));
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
+            ->limit(6)
+            ->get()
+            ->reverse()
+            ->map(fn($item) => [
+                'month' => $item->month,
+                'sales' => (int) $item->sales,
+                'revenue' => (float) $item->revenue,
+            ]);
 
-        $pendingOrders = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+        // ۵. محصولات پرفروش
+        $topProducts = \App\Models\OrderItem::select(
+                'order_items.product_id',
+                'products.name',
+                'products.main_image as image',
+                \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity) as sales'),
+                \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity * order_items.price) as revenue')
+            )
             ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('products.seller_id', $sellerId)
-            ->where('orders.status', 'pending')
-            ->count();
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.seller_id', $sellerId)
+            ->whereNotIn('orders.status', ['cancelled'])
+            ->groupBy('order_items.product_id', 'products.name', 'products.main_image')
+            ->orderByDesc('sales')
+            ->limit(5)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->product_id,
+                'name' => $item->name,
+                'image' => $item->image,
+                'sales' => (int) $item->sales,
+                'revenue' => (float) $item->revenue,
+            ]);
 
         return [
             'total_products' => $totalProducts,
             'active_products' => $activeProducts,
-            'total_orders' => $totalOrders,
+            'total_orders' => $totalSales,
+            'total_sales' => $totalSales,
             'total_revenue' => (float) $totalRevenue,
             'pending_orders' => $pendingOrders,
+            'pending_settlements' => (float) $pendingSettlements,
+            'monthly_sales' => $monthlySales,
+            'top_products' => $topProducts,
         ];
     }
 
@@ -187,5 +238,85 @@ class SellerService
         }
 
         return $product;
+    }
+        /**
+     * دریافت جزئیات یک سفارش متعلق به فروشنده
+     */
+    public function getSellerOrderDetail(int $orderId, int $sellerId)
+    {
+        // پیدا کردن سفارشی که حداقل یکی از آیتم‌های آن متعلق به این فروشنده باشد
+        $order = \App\Models\Order::whereHas('items', function ($query) use ($sellerId) {
+                $query->where('seller_id', $sellerId);
+            })
+            ->where('id', $orderId)
+            ->with(['items.product', 'user']) // لود کردن محصولات و اطلاعات کاربر
+            ->first();
+
+        if (!$order) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('سفارش یافت نشد یا متعلق به شما نیست.');
+        }
+
+        return $order;
+    }
+        /**
+     * بروزرسانی وضعیت سفارش و ثبت اطلاعات ارسال (کد رهگیری و نام پست)
+     */
+    public function updateOrderStatusWithTracking(int $orderId, int $sellerId, array $data)
+    {
+        // ۱. اطمینان از اینکه سفارش وجود دارد و متعلق به همین فروشنده است
+        $order = \App\Models\Order::where('id', $orderId)
+            ->whereHas('items', function ($query) use ($sellerId) {
+                $query->where('seller_id', $sellerId);
+            })
+            ->first();
+
+        if (!$order) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('سفارش یافت نشد یا متعلق به شما نیست.');
+        }
+
+        // ۲. آماده‌سازی داده‌ها برای به‌روزرسانی
+        $updateData = [];
+        
+        if (isset($data['status'])) {
+            $updateData['status'] = $data['status'];
+            
+            // اگر وضعیت به "ارسال شده" تغییر کرد، تاریخ ارسال را هم ثبت کن
+            if ($data['status'] === 'shipped') {
+                $updateData['shipped_at'] = now();
+            }
+        }
+        
+        if (isset($data['tracking_number'])) {
+            $updateData['tracking_number'] = $data['tracking_number'];
+        }
+        
+        if (isset($data['courier_name'])) {
+            $updateData['courier_name'] = $data['courier_name'];
+        }
+
+        // ۳. به‌روزرسانی و بازگرداندن سفارش جدید
+        $order->update($updateData);
+        
+        return $order->fresh();
+    }
+        /**
+     * ثبت نظر و امتیاز جدید برای فروشنده
+     */
+    public function createRating(int $userId, array $data)
+    {
+        // بررسی اینکه آیا کاربر قبلاً به این سفارش نظر داده یا خیر
+        $existingRating = \App\Models\SellerRating::where('order_id', $data['order_id'])->first();
+        if ($existingRating) {
+            throw new \Exception('شما قبلاً برای این سفارش نظر ثبت کرده‌اید.', 400);
+        }
+
+        // محاسبه میانگین کلی
+        $data['overall_rating'] = round(
+            ($data['product_quality'] + $data['shipping_speed'] + $data['communication']) / 3, 
+            1
+        );
+        $data['user_id'] = $userId;
+
+        return \App\Models\SellerRating::create($data);
     }
     }

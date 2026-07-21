@@ -3,6 +3,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { checkoutFormSchema, CheckoutFormData } from '@/schemas/orderSchema';
 import { useOrder } from '@/hooks/useOrder';
 import { toast } from 'react-hot-toast';
+import { useEffect } from 'react';
+
+// داده‌های نمونه استان و شهر (می‌توانید این آرایه را کامل‌تر کنید یا از یک فایل JSON جداگانه ایمپورت کنید)
+const IRAN_LOCATIONS = [
+  { province: 'تهران', cities: ['تهران', 'شهریار', 'اسلامشهر', 'ری', 'پردیس'] },
+  { province: 'اصفهان', cities: ['اصفهان', 'کاشان', 'نجف‌آباد', 'شاهین‌شهر'] },
+  { province: 'فارس', cities: ['شیراز', 'مرودشت', 'جهرم', 'فسا'] },
+  { province: 'خراسان رضوی', cities: ['مشهد', 'نیشابور', 'سبزوار', 'تربت حیدریه'] },
+  { province: 'آذربایجان شرقی', cities: ['تبریز', 'مراغه', 'مرند', 'اهر'] },
+  { province: 'اردبیل', cities: ['اردبیل', 'گرمی', 'مشگین‌شهر', 'پارس‌آباد'] },
+  // ... سایر استان‌ها را اضافه کنید
+];
 
 interface CheckoutFormProps {
   onSuccess?: (orderData: any) => void;
@@ -14,6 +26,8 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutFormSchema),
@@ -22,11 +36,20 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
     },
   });
 
+  // نظارت بر تغییر استان
+  const selectedProvince = watch('shipping_address.province');
+
+  // وقتی استان تغییر کرد، مقدار شهر را خالی کن تا کاربر مجبور به انتخاب شهر جدید شود
+  useEffect(() => {
+    if (selectedProvince) {
+      setValue('shipping_address.city', '');
+    }
+  }, [selectedProvince, setValue]);
+
   const onSubmit = async (data: CheckoutFormData) => {
     try {
       const result = await createOrder(data);
       toast.success('سفارش شما با موفقیت ثبت شد!');
-      
       if (onSuccess && result) {
         onSuccess(result);
       }
@@ -34,6 +57,9 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
       // خطا در useOrder مدیریت شده است
     }
   };
+
+  // پیدا کردن شهرهای مرتبط با استان انتخاب‌شده
+  const availableCities = IRAN_LOCATIONS.find(p => p.province === selectedProvince)?.cities || [];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl mx-auto p-6" dir="rtl">
@@ -66,26 +92,42 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
         )}
       </div>
 
-      {/* استان و شهر */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ✅ استان و شهر (تغییر یافته به Dropdown) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">استان</label>
-          <input
+          <select
             {...register('shipping_address.province')}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="مثال: تهران"
-          />
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            <option value="">انتخاب استان...</option>
+            {IRAN_LOCATIONS.map((loc) => (
+              <option key={loc.province} value={loc.province}>
+                {loc.province}
+              </option>
+            ))}
+          </select>
           {errors.shipping_address?.province && (
             <p className="mt-1 text-sm text-red-600">{errors.shipping_address.province.message}</p>
           )}
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">شهر</label>
-          <input
+          <select
             {...register('shipping_address.city')}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="مثال: تهران"
-          />
+            disabled={!selectedProvince} // تا استان انتخاب نشود، غیرفعال است
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+          >
+            <option value="">
+              {selectedProvince ? 'انتخاب شهر...' : 'ابتدا استان را انتخاب کنید'}
+            </option>
+            {availableCities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
           {errors.shipping_address?.city && (
             <p className="mt-1 text-sm text-red-600">{errors.shipping_address.city.message}</p>
           )}
@@ -130,22 +172,19 @@ export function CheckoutForm({ onSuccess }: CheckoutFormProps) {
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="اگر توضیح خاصی برای ارسال دارید..."
         />
-        {errors.shipping_address?.notes && (
-          <p className="mt-1 text-sm text-red-600">{errors.shipping_address.notes.message}</p>
-        )}
       </div>
 
       {/* روش پرداخت */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">روش پرداخت</label>
         <div className="space-y-2">
-          <label className="flex items-center">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input type="radio" value="online" {...register('payment_method')} className="w-4 h-4 text-blue-600" />
-            <span className="mr-2 text-gray-700">پرداخت آنلاین</span>
+            <span className="text-gray-700">پرداخت آنلاین</span>
           </label>
-          <label className="flex items-center">
+          <label className="flex items-center gap-2 cursor-pointer">
             <input type="radio" value="wallet" {...register('payment_method')} className="w-4 h-4 text-blue-600" />
-            <span className="mr-2 text-gray-700">پرداخت از کیف پول</span>
+            <span className="text-gray-700">پرداخت از کیف پول</span>
           </label>
         </div>
         {errors.payment_method && (
