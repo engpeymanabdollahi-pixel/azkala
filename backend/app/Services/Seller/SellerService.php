@@ -60,9 +60,16 @@ class SellerService
             ->whereIn('orders.status', ['processing', 'shipped', 'delivered'])
             ->sum(\Illuminate\Support\Facades\DB::raw('order_items.quantity * order_items.price'));
 
-        // ۴. فروش ماهانه (۶ ماه اخیر)
+               // ۴. فروش ماهانه (۶ ماه اخیر) - سازگار با MySQL و SQLite
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        
+        // تشخیص دیتابیس و انتخاب تابع صحیح استخراج ماه
+        $monthFormat = $driver === 'sqlite' 
+            ? "strftime('%Y-%m', orders.created_at)" 
+            : "DATE_FORMAT(orders.created_at, '%Y-%m')";
+
         $monthlySales = \App\Models\OrderItem::select(
-                \Illuminate\Support\Facades\DB::raw('DATE_FORMAT(orders.created_at, "%Y-%m") as month'),
+                \Illuminate\Support\Facades\DB::raw("{$monthFormat} as month"),
                 \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity) as sales'),
                 \Illuminate\Support\Facades\DB::raw('SUM(order_items.quantity * order_items.price) as revenue')
             )
@@ -79,7 +86,7 @@ class SellerService
                 'sales' => (int) $item->sales,
                 'revenue' => (float) $item->revenue,
             ]);
-
+            
         // ۵. محصولات پرفروش
         $topProducts = \App\Models\OrderItem::select(
                 'order_items.product_id',

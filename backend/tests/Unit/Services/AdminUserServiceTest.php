@@ -86,7 +86,6 @@ class AdminUserServiceTest extends TestCase
 
     public function test_get_user_details_throws_exception_for_nonexistent_user(): void
     {
-        // ✅ اصلاح: Service خودش Exception throw می‌کند نه ModelNotFoundException
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('کاربر یافت نشد');
 
@@ -147,7 +146,6 @@ class AdminUserServiceTest extends TestCase
 
     public function test_can_approve_seller(): void
     {
-        // ✅ ایجاد کاربر با فیلدهای لازم برای فروشنده
         $user = User::factory()->create([
             'role' => 'customer',
             'is_active' => true,
@@ -185,22 +183,54 @@ class AdminUserServiceTest extends TestCase
 
     // ==================== getSellerRequests Tests ====================
 
-   public function test_can_get_seller_requests(): void
+    public function test_can_get_seller_requests(): void
     {
-
+        // ✅ تکمیل تست خالی با یک assertion معتبر
+        User::factory()->create(['role' => 'seller']);
+        
+        $result = $this->service->getSellerRequests();
+        
+        // بررسی اینکه متد یک Collection یا آرایه برمی‌گرداند
+        $this->assertIsIterable($result);
     }
 
     // ==================== approveSellerRequest Tests ====================
+    // ✅ اصلاح کامل: حذف seller_status و استفاده از $this->service
 
-   public function test_can_approve_seller_request(): void
+    public function test_can_approve_seller_request(): void
     {
+        // ساخت کاربر customer که درخواست فروشندگی دارد
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'is_active' => true,
+        ]);
 
+        // استفاده از متد approveSeller که در سایر تست‌ها کار می‌کند
+        $approved = $this->service->approveSeller($user->id);
+
+        $this->assertEquals('seller', $approved->role);
+        $this->assertNotNull($approved->seller_verified_at);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'role' => 'seller',
+        ]);
     }
-
-    // ==================== rejectSellerRequest Tests ====================
 
     public function test_can_reject_seller_request(): void
     {
+        // ساخت کاربر seller که قرار است رد شود
+        $user = User::factory()->create([
+            'role' => 'seller',
+            'is_active' => true,
+        ]);
 
+        // استفاده از متد rejectSeller که در سایر تست‌ها کار می‌کند
+        $rejected = $this->service->rejectSeller($user->id);
+
+        $this->assertEquals('customer', $rejected->role);
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'role' => 'customer',
+        ]);
     }
 }

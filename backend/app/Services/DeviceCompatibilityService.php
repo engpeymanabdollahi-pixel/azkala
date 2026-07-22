@@ -22,4 +22,18 @@ class DeviceCompatibilityService
                 $q->where('device_model_id', $deviceModelId);
             })->exists();
     }
+        /**
+     * بررسی سازگاری یک محصول با یک مدل دستگاه خاص
+     */
+    public function isCompatible(int $productId, int $modelId): bool
+    {
+        $product = \App\Models\Product::find($productId);
+        
+        if (!$product) {
+            return false;
+        }
+
+        // بررسی وجود رابطه در جدول واسط device_model_product
+        return $product->deviceModels()->where('device_model_id', $modelId)->exists();
+    }
 }
