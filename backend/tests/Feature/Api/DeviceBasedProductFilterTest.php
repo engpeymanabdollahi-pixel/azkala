@@ -54,7 +54,6 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_only_compatible_items(): void
     {
-        // ✅ استفاده از آدرس کامل با /api/v1/
         $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelId);
         
         $response->assertStatus(200);
@@ -63,7 +62,6 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_all_if_no_device_selected(): void
     {
-        // ✅ استفاده از آدرس کامل با /api/v1/
         $response = $this->getJson('/api/v1/products');
         
         $response->assertStatus(200);
