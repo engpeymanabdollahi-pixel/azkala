@@ -6,8 +6,6 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
-    use CreatesApplication;
-
     /**
      * ✅ ترفند معمارانه: افزودن خودکار پیشوند v1 به تمام درخواست‌های API در تست‌ها
      * این کار باعث می‌شود نیازی به ویرایش دستی ده‌ها فایل تست نباشد.
