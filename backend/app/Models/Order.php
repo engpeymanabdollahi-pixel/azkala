@@ -28,14 +28,13 @@ class Order extends Model
         'coupon_id',
     ];
 
-    protected $casts = [
-        'subtotal' => 'decimal:2',
-        'tax' => 'decimal:2',
-        'shipping' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'total' => 'decimal:2',
-        'shipping_address' => 'array',
-    ];
+   protected $casts = [
+    'subtotal' => 'decimal:4',
+    'tax' => 'decimal:4',
+    'shipping' => 'decimal:4',
+    'discount' => 'decimal:4',
+    'total' => 'decimal:4',
+];
 
     // ==================== Relationships ====================
 

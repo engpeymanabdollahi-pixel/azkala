@@ -18,11 +18,11 @@ class OrderItem extends Model
         'total',
     ];
 
-    protected $casts = [
-        'quantity' => 'integer',
-        'price' => 'decimal:2',
-        'total' => 'decimal:2',
-    ];
+   protected $casts = [
+    'price' => 'decimal:4',
+    'total' => 'decimal:4',
+    'quantity' => 'integer',
+];
 
     // ==================== Relationships ====================
 

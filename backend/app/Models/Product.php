@@ -35,15 +35,13 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
-        'discount_price' => 'decimal:2',
-        'gallery' => 'array',
-        'rating' => 'decimal:2',
-        'is_active' => 'boolean',
-        'is_featured' => 'boolean',
-        'is_special_offer' => 'boolean',
-        'special_offer_ends_at' => 'datetime',
-    ];
+    'price' => 'decimal:4',
+    'compare_price' => 'decimal:4',
+    'discount_price' => 'decimal:4',
+    'stock' => 'integer',
+    'is_active' => 'boolean',
+    'gallery' => 'array',
+];
 
     public function category()
     {
