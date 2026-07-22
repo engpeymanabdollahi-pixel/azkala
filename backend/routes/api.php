@@ -88,17 +88,22 @@ Route::prefix('v1')->group(function () {
         Route::get('/header-hierarchy', [DeviceController::class, 'getHeaderHierarchy'])->name('header-hierarchy');
     });
 
-    Route::prefix('products')->name('products.')->group(function () {
+       Route::prefix('products')->name('products.')->group(function () {
+        // ✅ ۱. روت اصلی (لیست محصولات) - باید اول باشد
+        Route::middleware('throttle:search')->group(function () {
+            Route::get('/', [ProductController::class, 'index'])->name('index');
+        });
+        
+        // ✅ ۲. روت‌های ثابت
         Route::get('/featured', [ProductController::class, 'featured'])->name('featured');
         Route::get('/special-offers', [ProductController::class, 'specialOffers'])->name('special-offers');
         Route::get('/compatible/{modelId}', [ProductController::class, 'compatible'])->name('compatible');
         Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti'])->name('compatible-multi');
         Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
-        Route::get('/{product}', [ProductController::class, 'show'])->name('show');
+        
+        // ✅ ۳. روت‌های پارامتری - باید آخر باشند
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
-        Route::middleware('throttle:search')->group(function () {
-            Route::get('/', [ProductController::class, 'index'])->name('index');
-        });
+        Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
 
     // ۲. مسیرهای محافظت‌شده (Auth)
