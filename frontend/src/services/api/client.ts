@@ -4,7 +4,8 @@ import { useAuthStore } from '@/store/authStore';
 
 // ==================== Axios Instance ====================
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
+  // ✅ اضافه کردن /v1 به انتهای آدرس پایه
+  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/v1` : 'http://127.0.0.1:8000/api/v1',
   timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
