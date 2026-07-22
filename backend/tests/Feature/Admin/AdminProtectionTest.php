@@ -11,7 +11,7 @@ class AdminProtectionTest extends TestCase
     use RefreshDatabase;
 
     // استفاده از روتی که از لاگ‌های قبلی می‌دانیم وجود دارد
-    private string $adminRoute = '/api/admin/brands'; 
+    private string $adminRoute = '/api/v1/admin/brands'; 
 
     public function test_unauthenticated_user_cannot_access_admin_dashboard(): void
     {

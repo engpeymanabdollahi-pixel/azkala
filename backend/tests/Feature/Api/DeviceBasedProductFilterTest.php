@@ -54,7 +54,7 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_only_compatible_items(): void
     {
-        $response = $this->getJson('/api/products?device_model_id=' . $this->modelId);
+        $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelId);
         
         $response->assertStatus(200);
         $response->assertJsonStructure(['success', 'data']);
@@ -62,7 +62,7 @@ class DeviceBasedProductFilterTest extends TestCase
 
     public function test_products_endpoint_returns_all_if_no_device_selected(): void
     {
-        $response = $this->getJson('/api/products');
+        $response = $this->getJson('/api/v1/products');
         
         $response->assertStatus(200);
         $response->assertJsonStructure(['success', 'data']);
