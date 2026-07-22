@@ -21,6 +21,7 @@ import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { ExportButton } from '@/components/admin/ExportButton';
+import { Virtuoso } from 'react-virtuoso';
 
 // ==================== Types ====================
 
@@ -304,183 +305,199 @@ export function AdminOrdersPage() {
         )}
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            {/* Orders List (Optimized with Virtuoso & CSS Grid) */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[600px]">
         {isLoading ? (
-          <div className="p-8 space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
+          <div className="p-8 space-y-3 flex-1">
+            {[1, 2, 3, 4, 5, 6].map(i => (
               <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <EmptyState
-            icon={<ShoppingCart className="w-12 h-12" />}
-            title="سفارشی یافت نشد"
-            description="با فیلترهای فعلی هیچ سفارشی وجود ندارد"
-            action={
-              <Button onClick={() => setFilters({ page: 1, per_page: 20 })} variant="outline">
-                پاک کردن فیلترها
-              </Button>
-            }
-          />
+          <div className="flex-1 flex items-center justify-center">
+            <EmptyState
+              icon={<ShoppingCart className="w-12 h-12" />}
+              title="سفارشی یافت نشد"
+              description="با فیلترهای فعلی هیچ سفارشی وجود ندارد"
+              action={
+                <Button onClick={() => setFilters({ page: 1, per_page: 20 })} variant="outline">
+                  پاک کردن فیلترها
+                </Button>
+              }
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">شماره سفارش</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">مشتری</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">تاریخ</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">مبلغ کل</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">وضعیت سفارش</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">وضعیت پرداخت</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">روش پرداخت</th>
-                  <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">فروشنده</th>
-                  <th className="px-3 py-3 text-center text-xs font-bold text-gray-600">عملیات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((order) => {
-                  const statusInfo = getStatusInfo(order.status);
-                  const StatusIcon = statusInfo.icon;
-                  const paymentInfo = getPaymentStatusInfo(order.payment_status);
+          <>
+            {/* Table Header (Sticky) */}
+            <div className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr_1fr_1.5fr_0.5fr] bg-gray-50 border-b border-gray-100 px-4 py-3 text-xs font-bold text-gray-600 sticky top-0 z-10 shadow-sm">
+              <div>شماره سفارش</div>
+              <div>مشتری</div>
+              <div>تاریخ</div>
+              <div>مبلغ کل</div>
+              <div>وضعیت سفارش</div>
+              <div>وضعیت پرداخت</div>
+              <div>روش پرداخت</div>
+              <div>فروشنده</div>
+              <div className="text-center">عملیات</div>
+            </div>
 
-                  return (
-                    <tr
-                      key={order.id}
-                      className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
-                    >
-                      {/* Order Number */}
-                      <td className="px-3 py-3">
-                        <div>
-                          <code className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-1 rounded">
-                            {order.order_number}
-                          </code>
-                          <p className="text-[10px] text-gray-500 mt-1">
-                            {order.items_count} کالا
-                          </p>
-                        </div>
-                      </td>
+            {/* Virtuoso Virtualized List */}
+            <Virtuoso
+              data={orders}
+              increaseViewportBy={200} // رندر کردن آیتم‌های بیشتر برای اسکرول نرم‌تر
+              itemContent={(index, order) => {
+                const statusInfo = getStatusInfo(order.status);
+                const StatusIcon = statusInfo.icon;
+                const paymentInfo = getPaymentStatusInfo(order.payment_status);
 
-                      {/* Customer */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                            {order.user?.name?.charAt(0) || '?'}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-gray-900 line-clamp-1">
-                              {order.user?.name || 'کاربر حذف شده'}
-                            </p>
-                            <p className="text-[10px] text-gray-500 line-clamp-1">
-                              {order.user?.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+                return (
+                  <div className="grid grid-cols-[1.5fr_2fr_1fr_1fr_1fr_1fr_1fr_1.5fr_0.5fr] border-b border-gray-50 hover:bg-gray-50/50 transition-colors items-center px-4 py-3 gap-2 group">
+                    
+                    {/* 1. Order Number */}
+                    <div>
+                      <code className="text-xs font-bold text-primary-700 bg-primary-50 px-2 py-1 rounded">
+                        {order.order_number}
+                      </code>
+                      <p className="text-[10px] text-gray-500 mt-1">{order.items_count} کالا</p>
+                    </div>
 
-                      {/* Date */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-700">{order.created_at_fa}</span>
-                        </div>
-                      </td>
+                    {/* 2. Customer */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                        {order.user?.name?.charAt(0) || '?'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">
+                          {order.user?.name || 'کاربر حذف شده'}
+                        </p>
+                        <p className="text-[10px] text-gray-500 truncate">
+                          {order.user?.email}
+                        </p>
+                      </div>
+                    </div>
 
-                      {/* Total */}
-                      <td className="px-3 py-3">
-                        <div>
-                          <p className="text-sm font-black text-gray-900">
-                            {formatPrice(order.total)}
-                          </p>
-                          {order.discount > 0 && (
-                            <p className="text-[10px] text-success-600">
-                              تخفیف: {formatPrice(order.discount)}
-                            </p>
-                          )}
-                        </div>
-                      </td>
+                    {/* 3. Date */}
+                    <div className="flex items-center gap-1 text-xs text-gray-700">
+                      <Calendar className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{order.created_at_fa}</span>
+                    </div>
 
-                      {/* Order Status */}
-                      <td className="px-3 py-3">
-                        <button
-                          onClick={() => handleOpenStatusModal(order)}
-                          className={cn(
-                            'inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-bold transition-all hover:scale-105',
-                            statusInfo.bg
-                          )}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {statusInfo.label}
-                        </button>
-                      </td>
+                    {/* 4. Total */}
+                    <div>
+                      <p className="text-sm font-black text-gray-900">{formatPrice(order.total)}</p>
+                      {order.discount > 0 && (
+                        <p className="text-[10px] text-success-600">تخفیف: {formatPrice(order.discount)}</p>
+                      )}
+                    </div>
 
-                      {/* Payment Status */}
-                      <td className="px-3 py-3">
-                        <Badge variant={paymentInfo.color as any} size="sm">
-                          <CreditCard className="w-3 h-3 ml-0.5" />
-                          {paymentInfo.label}
-                        </Badge>
-                      </td>
-
-                      {/* Payment Method */}
-                      <td className="px-3 py-3">
-                        <span className="text-xs text-gray-700">
-                          {getPaymentMethodLabel(order.payment_method)}
-                        </span>
-                      </td>
-
-                      {/* 🆕 Sellers */}
-                      <td className="px-3 py-3">
-                        {order.sellers && order.sellers.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {order.sellers.slice(0, 2).map((seller) => (
-                              <div
-                                key={seller.id}
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-accent-50 border border-accent-200 rounded text-[10px] font-bold text-accent-700"
-                                title={seller.shop_name}
-                              >
-                                <Store className="w-2.5 h-2.5" />
-                                <span className="line-clamp-1 max-w-[80px]">{seller.shop_name}</span>
-                              </div>
-                            ))}
-                            {order.sellers.length > 2 && (
-                              <span className="text-[10px] text-gray-500 px-1">
-                                +{order.sellers.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-gray-400">ازکالا</span>
+                    {/* 5. Order Status */}
+                    <div>
+                      <button
+                        onClick={() => handleOpenStatusModal(order)}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-bold transition-all hover:scale-105',
+                          statusInfo.bg
                         )}
-                      </td>
+                      >
+                        <StatusIcon className="w-3 h-3" />
+                        {statusInfo.label}
+                      </button>
+                    </div>
 
-                      {/* Actions */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => handleViewDetail(order)}
-                            className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
-                            title="مشاهده جزئیات"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenStatusModal(order)}
-                            className="p-1.5 hover:bg-accent-50 rounded-lg text-gray-500 hover:text-accent-600 transition-colors"
-                            title="تغییر وضعیت"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                    {/* 6. Payment Status */}
+                    <div>
+                      <Badge variant={paymentInfo.color as any} size="sm">
+                        <CreditCard className="w-3 h-3 ml-0.5" />
+                        {paymentInfo.label}
+                      </Badge>
+                    </div>
+
+                    {/* 7. Payment Method */}
+                    <div className="text-xs text-gray-700 truncate">
+                      {getPaymentMethodLabel(order.payment_method)}
+                    </div>
+
+                    {/* 8. Sellers */}
+                    <div>
+                      {order.sellers && order.sellers.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {order.sellers.slice(0, 2).map((seller) => (
+                            <div
+                              key={seller.id}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-accent-50 border border-accent-200 rounded text-[10px] font-bold text-accent-700"
+                              title={seller.shop_name}
+                            >
+                              <Store className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate max-w-[60px]">{seller.shop_name}</span>
+                            </div>
+                          ))}
+                          {order.sellers.length > 2 && (
+                            <span className="text-[10px] text-gray-500 flex-shrink-0">
+                              +{order.sellers.length - 2}
+                            </span>
+                          )}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      ) : (
+                        <span className="text-[10px] text-gray-400">ازکالا</span>
+                      )}
+                    </div>
+
+                    {/* 9. Actions */}
+                    <div className="flex items-center justify-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleViewDetail(order)}
+                        className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
+                        title="مشاهده جزئیات"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenStatusModal(order)}
+                        className="p-1.5 hover:bg-accent-50 rounded-lg text-gray-500 hover:text-accent-600 transition-colors"
+                        title="تغییر وضعیت"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }}
+            />
+          </>
+        )}
+
+        {/* Pagination (Outside Virtuoso) */}
+        {pagination && pagination.last_page > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
+            <p className="text-xs text-gray-500">
+              نمایش {(pagination.current_page - 1) * pagination.per_page + 1} تا{' '}
+              {Math.min(pagination.current_page * pagination.per_page, pagination.total)} از{' '}
+              <span className="font-bold text-gray-900">{pagination.total}</span> سفارش
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters(prev => ({ ...prev, page: Math.max(1, prev.page! - 1) }))}
+                disabled={pagination.current_page === 1}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <span className="px-3 text-xs font-bold text-gray-700">
+                {pagination.current_page} / {pagination.last_page}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters(prev => ({ ...prev, page: Math.min(pagination.last_page, prev.page! + 1) }))}
+                disabled={pagination.current_page === pagination.last_page}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
+      </div>
 
         {/* Pagination */}
         {pagination && pagination.last_page > 1 && (
