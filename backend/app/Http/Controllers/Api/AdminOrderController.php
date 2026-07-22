@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Services\Admin\AdminOrderService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // ✅ این خط حیاتی است
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class AdminOrderController extends Controller
 {
+    use AuthorizesRequests; // ✅ فعال‌سازی قابلیت‌های Policy در این کنترلر
+
     protected AdminOrderService $orderService;
 
     public function __construct(AdminOrderService $orderService)
@@ -16,9 +20,6 @@ class AdminOrderController extends Controller
         $this->orderService = $orderService;
     }
 
-    /**
-     * لیست سفارشات با فیلترهای پیشرفته
-     */
     public function index(Request $request)
     {
         try {
@@ -38,96 +39,65 @@ class AdminOrderController extends Controller
 
             $data = $this->orderService->getOrders($filters, (int) $request->get('per_page', 20));
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
+            return response()->json(['success' => true, 'data' => $data]);
         } catch (\Exception $e) {
             Log::error('AdminOrderController@index: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            return response()->json(['success' => false, 'message' => 'خطا در دریافت لیست سفارشات.'], 500);
         }
     }
 
-        /**
-     * نمایش جزئیات سفارش (ادمین)
-     */
     public function show(Order $order)
     {
         $this->authorize('view', $order);
 
         return response()->json([
             'success' => true,
-            'data' => $order->load('items.product', 'user'),
+            'data' => $order->load(['items.product:id,name,main_image,sku', 'user:id,name,phone']),
         ]);
     }
 
-    /**
-     * تغییر وضعیت سفارش (ادمین)
-     */
     public function updateStatus(Order $order, Request $request)
     {
         $this->authorize('updateStatus', $order);
 
-        $request->validate([
+        $validated = $request->validate([
             'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
         ]);
 
-        $order->update(['status' => $request->status]);
+        $order->update(['status' => $validated['status']]);
 
         return response()->json([
             'success' => true,
             'message' => 'وضعیت سفارش با موفقیت به‌روز شد.',
-            'data' => $order
+            'data' => $order->fresh(),
         ]);
     }
 
-    /**
-     * تغییر وضعیت پرداخت
-     */
-    public function updatePaymentStatus(Request $request, $id)
+    public function updatePaymentStatus(Order $order, Request $request)
     {
+        $this->authorize('updateStatus', $order);
+
         $validated = $request->validate([
             'payment_status' => 'required|in:pending,paid,failed,refunded',
         ]);
 
-        try {
-            $order = $this->orderService->updatePaymentStatus((int) $id, $validated['payment_status']);
+        $order->update(['payment_status' => $validated['payment_status']]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'وضعیت پرداخت به‌روزرسانی شد',
-                'data' => $order,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminOrderController@updatePaymentStatus: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'وضعیت پرداخت به‌روزرسانی شد',
+            'data' => $order->fresh(),
+        ]);
     }
 
-    /**
-     * آمار تفصیلی
-     */
     public function stats()
     {
         try {
             $data = $this->orderService->getStats();
-
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
+            return response()->json(['success' => true, 'data' => $data]);
         } catch (\Exception $e) {
             Log::error('AdminOrderController@stats: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            return response()->json(['success' => false, 'message' => 'خطا در دریافت آمار.'], 500);
         }
     }
 }
