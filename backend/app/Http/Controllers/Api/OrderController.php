@@ -80,9 +80,12 @@ return response()->json([
         ]);
     }
 
-        public function show(Order $order)
+           /**
+     * نمایش جزئیات یک سفارش خاص
+     */
+    public function show(Order $order)
     {
-        // ✅ استفاده از Policy به جای چک دستی
+        // ✅ خط جادویی: اگر کاربر ادمین نباشد و owner سفارش نباشد، ۴۰۳ Forbidden برمی‌گرداند
         $this->authorize('view', $order);
 
         return response()->json([
@@ -91,9 +94,12 @@ return response()->json([
         ]);
     }
 
+    /**
+     * لغو سفارش توسط کاربر
+     */
     public function cancel(Order $order)
     {
-        // ✅ استفاده از Policy به جای چک دستی
+        // ✅ بررسی Policy: آیا این کاربر مجاز به لغو این سفارش خاص است؟
         $this->authorize('cancel', $order);
 
         try {

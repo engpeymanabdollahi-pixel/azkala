@@ -66,39 +66,41 @@ class SellerOrderController extends Controller
         }
     }
 
-    /**
-     * بروزرسانی وضعیت سفارش
+      /**
+     * نمایش جزئیات یک سفارش (برای فروشنده)
      */
-    public function updateStatus(Request $request, $orderId)
+    public function show(Order $order)
     {
-        $request->validate([
-            'status' => 'required|in:processing,shipped,delivered,cancelled',
-            'tracking_number' => 'nullable|string|max:100',
-            'courier_name' => 'nullable|string|max:100',
+        // ✅ بررسی Policy: آیا این فروشنده اجازه دیدن این سفارش را دارد؟
+        $this->authorize('view', $order);
+
+        return response()->json([
+            'success' => true,
+            'data' => $order->load('items.product', 'user'),
         ]);
-
-        try {
-            $sellerId = $request->user()->id;
-
-            $result = $this->sellerService->updateOrderStatusWithTracking(
-                (int) $orderId,
-                $sellerId,
-                $request->only(['status', 'tracking_number', 'courier_name'])
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'وضعیت سفارش بروزرسانی شد',
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
     }
 
+    /**
+     * تغییر وضعیت سفارش (توسط فروشنده)
+     */
+    public function updateStatus(Order $order, Request $request)
+    {
+        // ✅ بررسی Policy: آیا این فروشنده اجازه تغییر وضعیت این سفارش را دارد؟
+        $this->authorize('updateStatus', $order);
+
+        $request->validate([
+            'status' => 'required|in:processing,shipped,delivered',
+        ]);
+
+        $order->update(['status' => $request->status]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'وضعیت سفارش با موفقیت به‌روز شد.',
+            'data' => $order
+        ]);
+    }
+    
     /**
      * آمار سفارشات فروشنده
      */

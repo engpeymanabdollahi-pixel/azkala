@@ -51,53 +51,37 @@ class AdminOrderController extends Controller
         }
     }
 
-    /**
-     * جزئیات کامل یک سفارش
+        /**
+     * نمایش جزئیات سفارش (ادمین)
      */
-    public function show($id)
+    public function show(Order $order)
     {
-        try {
-            $data = $this->orderService->getOrderDetails((int) $id);
+        $this->authorize('view', $order);
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $order->load('items.product', 'user'),
+        ]);
     }
 
     /**
-     * تغییر وضعیت سفارش
+     * تغییر وضعیت سفارش (ادمین)
      */
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Order $order, Request $request)
     {
-        $validated = $request->validate([
-            'status' => 'required|in:pending,processing,shipped,delivered,cancelled,returned',
-            'tracking_number' => 'nullable|string|max:100',
-            'notes' => 'nullable|string|max:500',
+        $this->authorize('updateStatus', $order);
+
+        $request->validate([
+            'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
         ]);
 
-        try {
-            $order = $this->orderService->updateStatus((int) $id, $validated);
+        $order->update(['status' => $request->status]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'وضعیت سفارش به‌روزرسانی شد',
-                'data' => $order,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminOrderController@updateStatus: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'وضعیت سفارش با موفقیت به‌روز شد.',
+            'data' => $order
+        ]);
     }
 
     /**

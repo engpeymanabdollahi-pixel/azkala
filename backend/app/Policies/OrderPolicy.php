@@ -12,8 +12,22 @@ class OrderPolicy
      */
     public function view(User $user, Order $order): bool
     {
-        // ادمین همه چیز را می‌بیند، کاربر عادی فقط سفارش‌های خودش را
-        return $user->role === 'admin' || $user->id === $order->user_id;
+        // ۱. ادمین همه چیز را می‌بیند
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // ۲. مشتری فقط سفارش‌های خودش را می‌بیند
+        if ($user->role === 'customer' && $user->id === $order->user_id) {
+            return true;
+        }
+
+        // ۳. فروشنده فقط سفارش‌هایی را می‌بیند که شامل محصولات او هستند
+        if ($user->role === 'seller') {
+            return $order->items()->where('seller_id', $user->id)->exists();
+        }
+
+        return false;
     }
 
     /**
@@ -21,13 +35,13 @@ class OrderPolicy
      */
     public function cancel(User $user, Order $order): bool
     {
-        // فقط صاحب سفارش می‌تواند آن را لغو کند
-        if ($user->id !== $order->user_id) {
+        // فقط مشتری صاحب سفارش می‌تواند آن را لغو کند
+        if ($user->role !== 'customer' || $user->id !== $order->user_id) {
             return false;
         }
 
         // سفارش‌های ارسال شده یا تحویل داده شده قابل لغو نیستند
-        if (in_array($order->status, ['shipped', 'delivered'])) {
+        if (in_array($order->status, ['shipped', 'delivered', 'cancelled'])) {
             return false;
         }
 
@@ -35,10 +49,32 @@ class OrderPolicy
     }
 
     /**
-     * تعیین اینکه آیا کاربر می‌تواند وضعیت سفارش را تغییر دهد (مخصوص ادمین)
+     * تعیین اینکه آیا کاربر می‌تواند وضعیت سفارش را تغییر دهد
+     * (ادمین و فروشنده‌ی مربوطه)
      */
     public function updateStatus(User $user, Order $order): bool
     {
-        return $user->role === 'admin';
+        // ۱. ادمین می‌تواند همه سفارش‌ها را تغییر دهد
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // ۲. فروشنده فقط می‌تواند سفارش‌هایی که شامل محصولات او هستند را تغییر دهد
+        if ($user->role === 'seller') {
+            return $order->items()->where('seller_id', $user->id)->exists();
+        }
+
+        // مشتری اجازه تغییر وضعیت ندارد
+        return false;
+    }
+
+    /**
+     * لیست کردن سفارش‌ها (برای SellerOrderController)
+     */
+    public function viewAny(User $user): bool
+    {
+        // همه نقش‌ها می‌توانند لیست سفارش‌های خودشان را ببینند
+        // (فیلتر کردن سفارش‌ها در کنترلر یا سرویس انجام می‌شود)
+        return in_array($user->role, ['admin', 'seller', 'customer']);
     }
 }
