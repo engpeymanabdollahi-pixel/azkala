@@ -57,6 +57,9 @@ use App\Http\Controllers\Admin\SentimentDashboardController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\SuggestionManagementController;
 
+// کنترلر درخواست فروشنده
+use App\Http\Controllers\Api\SellerRequestController;
+
 // ============================================================
 // ۱. مسیرهای عمومی
 // ============================================================
