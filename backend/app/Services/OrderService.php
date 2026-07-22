@@ -14,8 +14,9 @@ use InvalidArgumentException;
 
 class OrderService
 {
-    /**
+        /**
      * ایجاد سفارش جدید از روی سبد خرید کاربر
+     * ✅ نسخه ایمن‌شده با قفل‌گذاری برای جلوگیری از Race Condition
      */
     public function createOrderFromCart(User $user, Cart $cart, array $shippingAddress, string $paymentMethod = 'online'): Order
     {
@@ -27,9 +28,17 @@ class OrderService
             }
 
             // ۲. بررسی نهایی موجودی تمام محصولات قبل از ثبت سفارش
+            // 🔒 استفاده از lockForUpdate() برای قفل کردن ردیف‌های محصول
             foreach ($cart->items as $item) {
-                if ($item->product->stock < $item->quantity) {
-                    throw new OutOfStockException("موجودی محصول '{$item->product->name}' به اندازه کافی نیست. (موجودی: {$item->product->stock})");
+                // قفل کردن ردیف محصول تا پایان تراکنش
+                $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                
+                if (!$product) {
+                    throw new InvalidArgumentException("محصول مورد نظر یافت نشد.");
+                }
+                
+                if ($product->stock < $item->quantity) {
+                    throw new OutOfStockException("موجودی محصول '{$product->name}' به اندازه کافی نیست. (موجودی: {$product->stock})");
                 }
             }
 
@@ -60,17 +69,20 @@ class OrderService
 
             // ۶. ایجاد آیتم‌های سفارش و کسر موجودی انبار
             foreach ($cart->items as $item) {
+                // 🔒 قفل‌گذاری مجدد برای اطمینان از یکپارچگی داده
+                $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item->product_id,
-                    'seller_id' => $item->product->seller_id ?? null,
+                    'seller_id' => $product->seller_id ?? null,
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                     'total' => $item->price * $item->quantity,
                 ]);
 
-                // کسر موجودی از جدول محصولات
-                $item->product->decrement('stock', $item->quantity);
+                // کسر موجودی از جدول محصولات (با قفل‌گذاری)
+                $product->decrement('stock', $item->quantity);
             }
 
             // ۷. تخلیه کامل سبد خرید پس از ثبت موفق سفارش
@@ -82,7 +94,7 @@ class OrderService
                 'total' => 0,
             ]);
 
-            // ✅ ارسال Job به صف برای پردازش پس‌زمینه (فقط بعد از Commit موفق تراکنش)
+            // ✅ ارسال Job به صف برای پردازش پس‌زمینه
             ProcessOrderConfirmation::dispatch($order)->afterCommit();
 
             // بازگرداندن سفارش همراه با جزئیات

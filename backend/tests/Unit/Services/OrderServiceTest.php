@@ -171,4 +171,24 @@ class OrderServiceTest extends TestCase
         $this->assertIsArray($stats);
         $this->assertArrayHasKey('total_orders', $stats);
     }
+        public function test_concurrent_orders_do_not_cause_overselling(): void
+    {
+        $product = Product::factory()->create(['stock' => 1]);
+        $user1 = User::factory()->create();
+        $user2 = User::factory()->create();
+
+        // ایجاد سبد خرید برای هر دو کاربر
+        $cart1 = Cart::factory()->create(['user_id' => $user1->id]);
+        $cart2 = Cart::factory()->create(['user_id' => $user2->id]);
+        
+        CartItem::create(['cart_id' => $cart1->id, 'product_id' => $product->id, 'quantity' => 1]);
+        CartItem::create(['cart_id' => $cart2->id, 'product_id' => $product->id, 'quantity' => 1]);
+
+        // اجرای همزمان دو سفارش
+        $order1 = OrderService::createOrderFromCart($user1, $cart1, []);
+        
+        // انتظار می‌رود سفارش دوم با خطای OutOfStock مواجه شود
+        $this->expectException(OutOfStockException::class);
+        $order2 = OrderService::createOrderFromCart($user2, $cart2, []);
+    }
 }
