@@ -7,13 +7,12 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * ✅ ترفند معمارانه: افزودن خودکار پیشوند v1 به تمام درخواست‌های API در تست‌ها
-     * این کار باعث می‌شود نیازی به ویرایش دستی ده‌ها فایل تست نباشد.
+     * ✅ اصلاح شده: جلوگیری از افزودن تکراری /v1/
      */
     protected function prepareUrlForRequest($uri)
     {
-        // اگر آدرس با /api/ شروع می‌شد، آن را به /api/v1/ تبدیل کن
-        if (str_starts_with($uri, '/api/')) {
+        // فقط اگر /api/ بود و /api/v1/ نبود، تبدیل کن
+        if (str_starts_with($uri, '/api/') && !str_starts_with($uri, '/api/v1/')) {
             $uri = '/api/v1' . substr($uri, 4);
         }
         
