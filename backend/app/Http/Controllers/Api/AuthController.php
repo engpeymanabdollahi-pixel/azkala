@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    /**
+        /**
      * مرحله ۱: دریافت شماره موبایل و ارسال OTP
      */
     public function register(Request $request)
@@ -35,25 +35,28 @@ class AuthController extends Controller
             // ثبت کد در لاگ
             Log::info("🔑 کد تأیید (OTP) برای شماره {$phone} برابر است با: {$otp}");
 
-            // اگر کاربر وجود نداشت، یک کاربر موقت بساز
+            // ✅ ایجاد ایمن کاربر (با افزودن پسورد تصادفی برای جلوگیری از خطای NOT NULL دیتابیس)
             User::firstOrCreate(
                 ['phone' => $phone],
-                ['name' => 'کاربر جدید', 'role' => 'customer', 'email' => $phone . '@azkala.temp']
+                [
+                    'name' => 'کاربر جدید',
+                    'role' => 'customer',
+                    'email' => $phone . '@azkala.temp',
+                    'password' => Hash::make(Str::random(16)) // ✅ این خط حیاتی است
+                ]
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'کد تأیید با موفقیت ارسال شد. (فایل laravel.log را چک کنید)',
+                'message' => 'کد تأیید با موفقیت ارسال شد.',
                 'phone' => $phone
             ], 200);
 
-               } catch (\Exception $e) {
-            // 🔥 تغییر موقت: نمایش خطای واقعی به جای پیام کلی
+        } catch (\Exception $e) {
+            Log::error('AuthController@register: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطای واقعی: ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'message' => 'خطا در ارسال کد: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -66,7 +69,7 @@ class AuthController extends Controller
         try {
             $request->validate([
                 'phone' => 'required|regex:/^09[0-9]{9}$/',
-                'otp' => 'required|string|size:5' // OTP ما ۴ رقمی است
+                'otp' => 'required|string|size:5' // ✅ اعتبارسنجی ۵ رقمی
             ]);
 
             $phone = $request->phone;
@@ -83,8 +86,18 @@ class AuthController extends Controller
             // حذف کد از کش پس از استفاده موفق
             Cache::forget('otp_' . $phone);
 
-            $user = User::where('phone', $phone)->first();
+            // ✅ دریافت یا ایجاد ایمن کاربر (تضمین می‌کند $user هرگز null نیست)
+            $user = User::firstOrCreate(
+                ['phone' => $phone],
+                [
+                    'name' => 'کاربر ' . substr($phone, -4),
+                    'role' => 'customer',
+                    'email' => $phone . '@azkala.temp',
+                    'password' => Hash::make(Str::random(16)) // ✅ این خط حیاتی است
+                ]
+            );
 
+            // حالا $user قطعاً یک آبجکت معتبر است و این خط بدون خطا اجرا می‌شود
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -100,7 +113,7 @@ class AuthController extends Controller
             Log::error('AuthController@handleOtp: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در تأیید کد',
+                'message' => 'خطا در تأیید کد: ' . $e->getMessage(),
             ], 500);
         }
     }
