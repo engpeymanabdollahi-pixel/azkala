@@ -69,7 +69,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
 
-    Route::middleware('throttle:auth')->group(function () {
+    Route::middleware('throttle:10,1')->group(function () {
        Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
         Route::post('/login', [AuthController::class, 'login'])->name('login');

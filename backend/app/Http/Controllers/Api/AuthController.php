@@ -36,15 +36,15 @@ class AuthController extends Controller
             Log::info("🔑 کد تأیید (OTP) برای شماره {$phone} برابر است با: {$otp}");
 
             // ✅ ایجاد ایمن کاربر (با افزودن پسورد تصادفی برای جلوگیری از خطای NOT NULL دیتابیس)
-            User::firstOrCreate(
-                ['phone' => $phone],
-                [
-                    'name' => 'کاربر جدید',
-                    'role' => 'customer',
-                    'email' => $phone . '@azkala.temp',
-                    'password' => Hash::make(Str::random(16)) // ✅ این خط حیاتی است
-                ]
-            );
+           User::firstOrCreate(
+    ['phone' => $phone],
+    [
+        'name' => 'کاربر جدید',
+        'role' => 'customer',
+        'email' => $phone . time() . '@azkala.temp', // ✅ اضافه کردن time()
+        'password' => Hash::make(Str::random(16))
+    ]
+);
 
             return response()->json([
                 'success' => true,
@@ -87,15 +87,15 @@ class AuthController extends Controller
             Cache::forget('otp_' . $phone);
 
             // ✅ دریافت یا ایجاد ایمن کاربر (تضمین می‌کند $user هرگز null نیست)
-            $user = User::firstOrCreate(
-                ['phone' => $phone],
-                [
-                    'name' => 'کاربر ' . substr($phone, -4),
-                    'role' => 'customer',
-                    'email' => $phone . '@azkala.temp',
-                    'password' => Hash::make(Str::random(16)) // ✅ این خط حیاتی است
-                ]
-            );
+           $user = User::firstOrCreate(
+    ['phone' => $phone],
+    [
+        'name' => 'کاربر ' . substr($phone, -4),
+        'role' => 'customer',
+        'email' => $phone . time() . '@azkala.temp', // ✅ اضافه کردن time()
+        'password' => Hash::make(Str::random(16))
+    ]
+);
 
             // حالا $user قطعاً یک آبجکت معتبر است و این خط بدون خطا اجرا می‌شود
             $token = $user->createToken('auth_token')->plainTextToken;
