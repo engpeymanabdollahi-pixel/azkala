@@ -338,15 +338,14 @@ class OrderService
 
         \Illuminate\Support\Facades\Log::info("Commission processed for order {->order_number}. Total: {}, Commission: {}, Payout: {}");
     }
+     
         /**
-     * پردازش تسویه حساب فروشندگان پس از تکمیل سفارش
-     * این متد باید زمانی فراخوانی شود که وضعیت سفارش به 'completed' یا 'delivered' تغییر می‌کند.
+     * پردازش تسویه حساب فروشندگان پس از تکمیل/تحویل سفارش
+     * این متد باید زمانی فراخوانی شود که وضعیت سفارش به 'delivered' تغییر کند 
+     * یا توسط Cron Job پس از ۷ روز از 'shipped' شدن اجرا شود.
      */
-    public function processSellerPayouts(Order $order): void
+    public function processSellerPayouts(\App\Models\Order $order): void
     {
-        // دریافت نرخ کمیسیون از تنظیمات (اگر تنظیمات ندارید، عدد 5 را به عنوان پیش‌فرض 5 درصد در نظر بگیرید)
-        $commissionRate = \App\Models\Setting::get('platform_commission_rate', 5); 
-
         // گروه‌بندی آیتم‌های سفارش بر اساس فروشنده
         $sellerItems = $order->items->groupBy('seller_id');
 
@@ -356,41 +355,45 @@ class OrderService
                 // اگر آیتم متعلق به خود پلتفرم است (seller_id ندارد)، از محاسبات رد می‌شود
                 if (!$sellerId) continue;
 
-                // ۱. محاسبه مبلغ کل این فروشنده در این سفارش
-                $sellerOrderTotal = $items->sum('total'); // یا $items->sum(fn($i) => $i->price * $i->quantity)
+                // ۱. دریافت نرخ کمیسیون اختصاصی فروشنده (پیش‌فرض ۵٪)
+                $seller = \App\Models\User::find($sellerId);
+                $commissionRate = (float) ($seller->seller_commission_rate ?? 5.00);
 
-                // ۲. محاسبه کمیسیون و مبلغ خالص
-                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100);
+                // ۲. محاسبه مبلغ کل این فروشنده در این سفارش
+                $sellerOrderTotal = $items->sum(function($item) {
+                    return $item->price * $item->quantity;
+                });
+
+                // ۳. محاسبه کمیسیون و مبلغ خالص قابل پرداخت
+                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
                 $netAmount = $sellerOrderTotal - $commissionAmount;
 
-                // ۳. افزایش موجودی کیف پول فروشنده
-                \App\Models\User::where('id', $sellerId)->increment('wallet_balance', $netAmount);
+                // ۴. افزایش موجودی کیف پول فروشنده
+                $seller->increment('wallet_balance', $netAmount);
 
-                // ۴. ثبت تراکنش شفاف برای فروشنده
+                // ۵. ثبت تراکنش شفاف برای فروشنده (مطابق با مایگریشن شما)
                 \App\Models\SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
-                    'type' => 'order_payout',
+                    'type' => 'payout', // یا 'order_payout' اگر در enum دارید
                     'amount' => $netAmount,
-                    'commission_deducted' => $commissionAmount, // این فیلد برای شفافیت عالی است
+                    'description' => "واریز سهم فروش سفارش {$order->order_number} (مبلغ کل: {$sellerOrderTotal} | کسر کمیسیون {$commissionRate}%: {$commissionAmount})",
                     'status' => 'completed',
-                    'description' => "واریز سهم فروش سفارش شماره {$order->id} (کسر کمیسیون {$commissionRate}%)"
                 ]);
 
-                // ۵. (اختیاری اما توصیه‌شده) ثبت درآمد پلتفرم در جدول جداگانه
-                // اگر مدل PlatformRevenue یا Commission دارید، این خط را فعال کنید:
-                // \App\Models\PlatformRevenue::create([
-                //     'order_id' => $order->id,
-                //     'seller_id' => $sellerId,
-                //     'amount' => $commissionAmount,
-                //     'description' => "کمیسیون {$commissionRate}% از سفارش {$order->id}"
-                // ]);
+                // ۶. (اختیاری) ثبت درآمد پلتفرم
+                // اگر جدولی برای درآمد پلتفرم دارید، اینجا رکورد آن را بسازید.
             }
 
+            // به‌روزرسانی وضعیت نهایی سفارش
+            $order->update(['status' => 'settled']);
+
             \Illuminate\Support\Facades\DB::commit();
+            \Illuminate\Support\Facades\Log::info("تسویه حساب سفارش {$order->order_number} با موفقیت انجام شد.");
+            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\DB::rollBack();
-            \Illuminate\Support\Facades\Log::error('خطا در پردازش تسویه حساب فروشندگان: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('خطا در پردازش تسویه حساب: ' . $e->getMessage());
             throw $e;
         }
     }

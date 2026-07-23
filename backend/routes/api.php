@@ -70,7 +70,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
 
     Route::middleware('throttle:auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'sendOtp'])->name('register');
+       Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
         Route::post('/login', [AuthController::class, 'login'])->name('login');
     });
@@ -111,6 +111,18 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->name('upload.images');
         
+            // ============================================================
+    // درخواست‌های فروشندگی (Seller Requests)
+    // ============================================================
+    // ۱. دریافت وضعیت (برای تصمیم‌گیری فرانت‌اند)
+    Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
+    
+    // ۲. ثبت درخواست اولیه (همان روت قدیمی که حالا آپدیت شد)
+    Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
+    
+    // ۳. تکمیل اطلاعات پس از تأیید ادمین
+    Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
+    
         // روت‌های امتیاز و نظر به فروشنده
         Route::post('/seller-ratings', [SellerRatingController::class, 'store']);
         Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'index']);

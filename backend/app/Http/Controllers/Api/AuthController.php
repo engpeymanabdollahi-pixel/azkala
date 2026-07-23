@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
-use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Resources\UserResource;
@@ -13,40 +12,95 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function register(RegisterRequest $request)
+    /**
+     * مرحله ۱: دریافت شماره موبایل و ارسال OTP
+     */
+    public function register(Request $request)
     {
         try {
-            $validated = $request->validated();
-
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'phone' => $validated['phone'] ?? null,
-                'role' => 'customer',
+            $request->validate([
+                'phone' => 'required|regex:/^09[0-9]{9}$/',
             ]);
 
-            $token = $user->createToken('auth-token')->plainTextToken;
+            $phone = $request->phone;
+            $otp = (string) rand(10000, 99999);
+
+            // ذخیره کد در کش به مدت ۲ دقیقه
+            Cache::put('otp_' . $phone, $otp, now()->addMinutes(2));
+
+            // ثبت کد در لاگ
+            Log::info("🔑 کد تأیید (OTP) برای شماره {$phone} برابر است با: {$otp}");
+
+            // اگر کاربر وجود نداشت، یک کاربر موقت بساز
+            User::firstOrCreate(
+                ['phone' => $phone],
+                ['name' => 'کاربر جدید', 'role' => 'customer', 'email' => $phone . '@azkala.temp']
+            );
 
             return response()->json([
                 'success' => true,
+                'message' => 'کد تأیید با موفقیت ارسال شد. (فایل laravel.log را چک کنید)',
+                'phone' => $phone
+            ], 200);
+
+               } catch (\Exception $e) {
+            // 🔥 تغییر موقت: نمایش خطای واقعی به جای پیام کلی
+            return response()->json([
+                'success' => false,
+                'message' => 'خطای واقعی: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    }
+
+    /**
+     * مرحله ۲: تأیید کد OTP و ورود کاربر
+     */
+    public function handleOtp(Request $request)
+    {
+        try {
+            $request->validate([
+                'phone' => 'required|regex:/^09[0-9]{9}$/',
+                'otp' => 'required|string|size:5' // OTP ما ۴ رقمی است
+            ]);
+
+            $phone = $request->phone;
+            $otp = (string) $request->otp;
+            $cachedOtp = Cache::get('otp_' . $phone);
+
+            if (!$cachedOtp || (string) $cachedOtp !== $otp) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'کد تایید نامعتبر یا منقضی است.'
+                ], 422);
+            }
+
+            // حذف کد از کش پس از استفاده موفق
+            Cache::forget('otp_' . $phone);
+
+            $user = User::where('phone', $phone)->first();
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'ورود با موفقیت انجام شد.',
                 'data' => [
                     'user' => new UserResource($user),
                     'token' => $token,
-                ],
-                'message' => 'ثبت‌نام با موفقیت انجام شد',
-            ], 201);
+                ]
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('AuthController@register: ' . $e->getMessage());
+            Log::error('AuthController@handleOtp: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ثبت نام',
+                'message' => 'خطا در تأیید کد',
             ], 500);
         }
     }
@@ -84,75 +138,6 @@ class AuthController extends Controller
         }
     }
 
-    public function handleOtp(Request $request)
-    {
-        $request->validate([
-            'phone' => 'required|regex:/^09[0-9]{9}$/',
-            'otp' => 'nullable|string|size:5'
-        ]);
-
-        $phone = trim($request->phone);
-        $otp = (string) $request->otp;
-        $throttleKey = 'otp_request:' . $phone;
-
-        // حالت اول: درخواست ارسال کد (با بررسی Rate Limit)
-        if (!$otp) {
-            if (RateLimiter::tooManyAttempts($throttleKey, $maxAttempts = 3)) {
-                $seconds = RateLimiter::availableIn($throttleKey);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'تعداد تلاش‌ها بیش از حد مجاز است. لطفاً ' . $seconds . ' ثانیه دیگر تلاش کنید.',
-                ], 429);
-            }
-
-            RateLimiter::hit($throttleKey, $decaySeconds = 60);
-
-            $newOtp = (string) rand(10000, 99999);
-            Cache::put('otp_' . $phone, $newOtp, now()->addMinutes(5));
-            
-            Log::info('OTP Generated', ['phone' => $phone, 'otp' => $newOtp]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'کد تایید ارسال شد.',
-                'debug_otp' => $newOtp // فقط برای محیط تست
-            ]);
-        }
-
-        // حالت دوم: درخواست تایید کد
-        $cachedOtp = Cache::get('otp_' . $phone);
-
-        if (!$cachedOtp || (string) $cachedOtp !== $otp) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'کد تایید نامعتبر یا منقضی است.'
-            ], 422);
-        }
-
-        Cache::forget('otp_' . $phone);
-
-        $user = User::firstOrCreate(
-            ['phone' => $phone],
-            [
-                'name' => 'کاربر ' . substr($phone, -4),
-                'email' => $phone . '@azkala.temp',
-                'role' => 'customer',
-                'password' => Hash::make(Str::random(16))
-            ]
-        );
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'ورود با موفقیت انجام شد.',
-            'data' => [
-                'user' => new UserResource($user),
-                'token' => $token,
-            ]
-        ]);
-    }
-    
     public function logout(Request $request)
     {
         try {
@@ -233,18 +218,19 @@ class AuthController extends Controller
             ], 500);
         }
     }
-        /**
+
+    /**
      * دریافت وضعیت درخواست فروشندگی کاربر فعلی
      */
     public function getSellerRequestStatus()
     {
-        $request = \App\Models\SellerRequest::where('user_id', auth()->id())
+        $requestModel = \App\Models\SellerRequest::where('user_id', auth()->id())
             ->latest()
             ->first();
 
         return response()->json([
             'success' => true,
-            'data' => $request, // اگر null باشد یعنی درخواستی نداده است
+            'data' => $requestModel,
         ]);
     }
 }

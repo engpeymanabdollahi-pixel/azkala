@@ -86,7 +86,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem('auth-storage'); // پاک کردن کل استیت persist شده
           
           // ۳. هدایت اجباری و سخت (Hard Redirect) برای جلوگیری از حلقه‌های رندر React
-          window.location.href = '/auth';
+          window.location.href = '/';
         }
       },
 

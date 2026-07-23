@@ -15,6 +15,7 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { useChatStore } from '@/store/chatStore';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
+import { AuthModal } from '@/components/auth/AuthModal';
 
 // Sub-components
 import { SearchBar } from './SearchBar';
@@ -55,6 +56,7 @@ export function Header() {
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickAccess, setShowQuickAccess] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false); // ✅ این خط باید دقیقاً اینجا باشد
 
   // Refs
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -275,9 +277,9 @@ export function Header() {
                     onLogout={handleLogout}
                   />
                 </div>
-              ) : (
+                           ) : (
                 <button
-                  onClick={() => handleNavigate('/auth')}
+                  onClick={() => setIsAuthModalOpen(true)} // ✅ این خط را جایگزین handleNavigate('/auth') کنید
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl text-sm font-bold shadow-md shadow-primary-500/30 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 group focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                   aria-label="ورود یا ثبت‌نام"
                 >
@@ -332,47 +334,55 @@ export function Header() {
               {/* Spacer */}
               <div className="flex-1"></div>
 
+                           {/* Spacer */}
+              <div className="flex-1"></div>
+
               {/* Secondary Links */}
               <button
                 onClick={() => handleNavigate('/contact')}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500',
+                  'px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500',
                   isActive('/contact')
                     ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800'
                 )}
               >
                 <Phone className="w-4 h-4" />
-                تماس
-              </button>
-              <button
-                onClick={() => handleNavigate('/about')}
-                className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary-500',
-                  isActive('/about')
-                    ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800'
-                )}
-              >
-                <Info className="w-4 h-4" />
-                درباره ما
+                تماس با ما
               </button>
 
-              {/* Seller Panel Button */}
-              {isAuthenticated && user?.role === 'seller' && (
+              {/* ==================== دکمه اختصاصی جذب فروشنده ==================== */}
+              {!isAuthenticated || (isAuthenticated && user?.role !== 'seller') ? (
+                // حالت ۱: کاربر لاگین نکرده یا خریدار عادی است -> دعوت به افتتاح شعبه
+                <button
+                  onClick={() => handleNavigate('/seller-request')}
+                  className="group relative px-5 py-2.5 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl text-sm font-black shadow-lg shadow-accent-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-95 flex items-center gap-2 overflow-hidden"
+                  title="شعبه آنلاین کسب‌وکار خود را در ازکالا راه‌اندازی کنید"
+                >
+                  {/* افکت درخشش پس‌زمینه */}
+                  <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
+                  
+                  <Store className="w-4 h-4 relative z-10" />
+                  <span className="relative z-10 hidden sm:block">افتتاح شعبه آنلاین</span>
+                  <span className="relative z-10 sm:hidden">افتتاح شعبه</span>
+                </button>
+              ) : (
+                // حالت ۲: کاربر تأییدشده به عنوان فروشنده است -> ورود به پنل
                 <button
                   onClick={() => handleNavigate('/seller')}
                   className={cn(
-                    'px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-accent-500',
+                    'px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-accent-500',
                     isActive('/seller')
-                      ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-lg shadow-accent-500/30'
-                      : 'text-accent-700 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20 hover:bg-accent-100 dark:hover:bg-accent-900/30'
+                      ? 'bg-accent-600 text-white shadow-lg shadow-accent-500/30'
+                      : 'text-accent-700 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/20 hover:bg-accent-100 dark:hover:bg-accent-900/30 border border-accent-200 dark:border-accent-800'
                   )}
                 >
-                  <Store className="w-4 h-4" />
-                  پنل فروشنده
+                  <TrendingUp className="w-4 h-4" />
+                  <span>مدیریت فروشگاه</span>
                 </button>
               )}
+              {/* ===================================================================== */}
+
             </nav>
           )}
         </div>
@@ -408,6 +418,11 @@ export function Header() {
         isOpen={showQuickAccess}
         onToggle={() => setShowQuickAccess(!showQuickAccess)}
         onChatClick={handleQuickAccessChat}
+      />
+            {/* ============ Auth Modal ============ */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
       />
     </>
   );

@@ -223,7 +223,6 @@ export default function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
               <Route path="/brands" element={<BrandsPage />} />
-              <Route path="/auth" element={<AuthPage />} />
               <Route path="/seller-request" element={<SellerRequestPage />} />
               <Route path="/seller-login" element={<SellerLoginPage />} />
               <Route path="/contact" element={<ContactPage />} />
