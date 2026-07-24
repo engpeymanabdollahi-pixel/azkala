@@ -69,11 +69,16 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
 
-       // ✅ این بخش را پیدا کنید و کاملاً با این کد جایگزین کنید:
     Route::middleware('throttle:10,1')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
         Route::post('/login', [AuthController::class, 'login'])->name('login');
+    });
+
+    // 🏪 روت‌های عمومی شعبه آنلاین فروشندگان (خارج از auth)
+    Route::prefix('sellers')->name('sellers.')->group(function () {
+        Route::get('/{slug}', [\App\Http\Controllers\Api\PublicSellerController::class, 'show'])->name('show');
+        Route::get('/{slug}/products', [\App\Http\Controllers\Api\PublicSellerController::class, 'products'])->name('products');
     });
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -89,51 +94,43 @@ Route::prefix('v1')->group(function () {
         Route::get('/header-hierarchy', [DeviceController::class, 'getHeaderHierarchy'])->name('header-hierarchy');
     });
 
-       Route::prefix('products')->name('products.')->group(function () {
-        // ✅ ۱. روت اصلی (لیست محصولات) - باید اول باشد
+    Route::prefix('products')->name('products.')->group(function () {
         Route::middleware('throttle:search')->group(function () {
             Route::get('/', [ProductController::class, 'index'])->name('index');
         });
-        
-        // ✅ ۲. روت‌های ثابت
         Route::get('/featured', [ProductController::class, 'featured'])->name('featured');
         Route::get('/special-offers', [ProductController::class, 'specialOffers'])->name('special-offers');
         Route::get('/compatible/{modelId}', [ProductController::class, 'compatible'])->name('compatible');
         Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti'])->name('compatible-multi');
         Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
-        
-        // ✅ ۳. روت‌های پارامتری - باید آخر باشند
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
 
+    // ============================================================
     // ۲. مسیرهای محافظت‌شده (Auth)
+    // ============================================================
     Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->name('upload.images');
         
-            // ============================================================
-    // درخواست‌های فروشندگی (Seller Requests)
-    // ============================================================
-    // ۱. دریافت وضعیت (برای تصمیم‌گیری فرانت‌اند)
-    Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
-    
-    // ۲. ثبت درخواست اولیه (همان روت قدیمی که حالا آپدیت شد)
-    Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
-    
-    // ۳. تکمیل اطلاعات پس از تأیید ادمین
-    Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
-    
-        // روت‌های امتیاز و نظر به فروشنده
+        // درخواست‌های فروشندگی
+        Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
+        Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
+        Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
+        
+        // امتیاز و نظر به فروشنده
         Route::post('/seller-ratings', [SellerRatingController::class, 'store']);
         Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'index']);
         Route::get('/seller-ratings/can-rate/{orderId}', [SellerRatingController::class, 'canRate']);
 
+        // خروج از حساب
         Route::post('/logout', function (\Illuminate\Http\Request $request) {
             $request->user()->currentAccessToken()->delete();
             return response()->json(['success' => true, 'message' => 'با موفقیت خارج شدید']);
         })->name('logout');
 
+        // روت‌های مربوط به کاربر
         Route::prefix('user')->name('user.')->group(function () {
             Route::get('/', [AuthController::class, 'user'])->name('profile');
             Route::put('/', [AuthController::class, 'update'])->name('update');
@@ -145,15 +142,23 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [UserDeviceController::class, 'store'])->name('store');
                 Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('destroy');
             });
-             // 📬 نوتیفیکیشن‌ها
-    Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
-    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
-});
-       
 
-        Route::post('/seller-requests', [SellerRequestController::class, 'store'])->name('seller-requests.store');
+            // نوتیفیکیشن‌ها
+            Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
+            Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+            
+            // لیست فروشندگان دنبال‌شده
+            Route::get('/followed-sellers', [\App\Http\Controllers\Api\PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
+        });
 
+        // روت‌های RESTful دنبال کردن فروشندگان
+        Route::prefix('sellers')->group(function () {
+            Route::post('/{id}/follow', [\App\Http\Controllers\Api\PublicSellerController::class, 'follow'])->name('sellers.follow');
+            Route::delete('/{id}/follow', [\App\Http\Controllers\Api\PublicSellerController::class, 'unfollow'])->name('sellers.unfollow');
+        });
+
+        // سایر روت‌های کاربری
         Route::prefix('cart')->name('cart.')->group(function () {
             Route::get('/', [CartController::class, 'index'])->name('index');
             Route::post('/', [CartController::class, 'store'])->name('store');
@@ -236,7 +241,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{ticket}/message', [UserTicketController::class, 'sendMessage'])->name('send-message');
         });
 
-        // 🏪 فروشنده
+        // 🏪 فروشنده (داخل گروه auth)
         Route::prefix('seller')->middleware('throttle:seller')->name('seller.')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
@@ -269,7 +274,7 @@ Route::prefix('v1')->group(function () {
             });
         });
 
-        // 👨‍💼 ادمین
+        // 👨‍💼 ادمین (داخل گروه auth)
         Route::prefix('admin')->middleware('admin')->name('admin.')->group(function () {
             
             Route::prefix('dashboard')->name('dashboard.')->group(function () {
@@ -480,6 +485,6 @@ Route::prefix('v1')->group(function () {
 
         }); // پایان گروه admin
 
-    }); // پایان گروه auth:sanctum
+    }); // ✅ پایان گروه auth:sanctum (فقط یک بار و در جای درست بسته شده است)
 
 }); // ✅ پایان گروه نسخه‌بندی v1

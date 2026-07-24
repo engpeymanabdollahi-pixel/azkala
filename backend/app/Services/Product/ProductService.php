@@ -67,6 +67,8 @@ class ProductService
                 $sellerData = [
                     'id' => $product->seller->id,
                     'shop_name' => $product->seller->shop_name ?? $product->seller->name ?? 'فروشنده ازکالا',
+                                        'slug' => $product->seller->slug, // ✅ این خط حیاتی را اضافه کنید
+                    'slug' => $product->seller->slug, // ✅ این خط حیاتی را اضافه کنید
                     'user_id' => $product->seller->id,
                     'rating' => (float) ($product->seller->seller_rating ?? 0),
                     'badge' => $product->seller->seller_badge ?? null,

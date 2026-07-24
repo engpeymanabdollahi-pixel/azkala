@@ -11,6 +11,9 @@ import { useAuthStore } from '@/store/authStore';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import type { ReactNode } from 'react';
 
+// ✅ ایمپورت SellerPage (فقط یک بار)
+import SellerPage from '@/pages/SellerPage';
+
 // ==========================================
 // کامپوننت لودینگ صفحه (Spinner)
 // ==========================================
@@ -135,11 +138,20 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // تشخیص نوع صفحه برای مخفی کردن هدر و فوتر در صفحات خاص
-  const isSellerRoute = location.pathname.startsWith('/seller');
+  // ✅ اصلاح منطق مخفی کردن هدر/فوتر:
+  // فقط صفحات احراز هویت، ادمین و پنل خصوصی فروشنده هدر اصلی را مخفی می‌کنند.
+  // صفحه عمومی فروشگاه (/seller/:slug) هدر و فوتر اصلی سایت را خواهد داشت.
   const isAuthPage = location.pathname === '/auth' || location.pathname === '/seller-request' || location.pathname === '/seller-login';
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const hideLayout = isSellerRoute || isAuthPage || isAdminRoute;
+  
+  const isPrivateSellerRoute = 
+    location.pathname === '/seller' || 
+    location.pathname.startsWith('/seller/products') || 
+    location.pathname.startsWith('/seller/orders') || 
+    location.pathname.startsWith('/seller/payouts') || 
+    location.pathname.startsWith('/seller/chat');
+
+  const hideLayout = isPrivateSellerRoute || isAuthPage || isAdminRoute;
 
   // اسکرول به بالای صفحه هنگام تغییر مسیر
   useEffect(() => {
@@ -209,7 +221,7 @@ export default function App() {
           }}
         />
 
-        {/* هدر سایت (در صفحات خاص مخفی می‌شود) */}
+        {/* هدر سایت (فقط در صفحات خاص مخفی می‌شود) */}
         {!hideLayout && <Header />}
 
         {/* محتوای اصلی صفحات */}
@@ -230,6 +242,9 @@ export default function App() {
               <Route path="/help" element={<HelpPage />} />
               <Route path="/guarantee" element={<GuaranteePage />} />
               <Route path="/terms" element={<TermsPage />} />
+              
+              {/* ✅ روت صفحه عمومی فروشگاه (با هدر و فوتر اصلی سایت) */}
+              <Route path="/seller/:slug" element={<SellerPage />} />
 
               {/* ---------------------------------------------------- */}
               {/* روت‌های نیازمند احراز هویت کاربری */}
@@ -259,7 +274,7 @@ export default function App() {
               <Route path="/wishlist" element={<Navigate to="/dashboard/wishlist" replace />} />
 
               {/* ---------------------------------------------------- */}
-              {/* روت‌های پنل فروشندگان */}
+              {/* روت‌های پنل فروشندگان (خصوصی) */}
               {/* ---------------------------------------------------- */}
               <Route path="/seller" element={
                 <ProtectedRoute requireSeller redirectTo="/seller-login">
@@ -316,7 +331,7 @@ export default function App() {
           </Suspense>
         </main>
 
-        {/* فوتر سایت (در صفحات خاص مخفی می‌شود) */}
+        {/* فوتر سایت (فقط در صفحات خاص مخفی می‌شود) */}
         {!hideLayout && <Footer />}
 
         {/* کامپوننت‌های شناور و سراسری */}

@@ -262,4 +262,40 @@ public function cart()
 {
     return $this->hasOne(\App\Models\Cart::class);
 }
+    // ==================== Storefront Relationships ====================
+    
+    public function followers()
+    {
+        return $this->belongsToMany(User::class, 'seller_follows', 'seller_id', 'user_id')
+                    ->withTimestamps();
+    }
+
+    public function followingSellers()
+    {
+        return $this->belongsToMany(User::class, 'seller_follows', 'user_id', 'seller_id')
+                    ->where('role', 'seller')
+                    ->withTimestamps();
+    }
+
+    public function isFollowingSeller($sellerId)
+    {
+        return $this->followingSellers()->where('seller_id', $sellerId)->exists();
+    }
+
+    // ==================== Helper Methods ====================
+
+    public function getRouteKeyName()
+    {
+        return 'slug'; // اجازه می‌دهد روت‌ها با slug به جای ID کار کنند
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::saving(function ($user) {
+            if ($user->isDirty('shop_name') && !$user->slug) {
+                $user->slug = \Illuminate\Support\Str::slug($user->shop_name);
+            }
+        });
+    }
 }

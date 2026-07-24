@@ -614,111 +614,124 @@ useEffect(() => {
               )}
             </div>
 
-          {/* 🔧 Seller Info - Enhanced */}
-{product.seller && (
-  <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-primary-200 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
-    <div className="flex items-start gap-3 mb-3">
-      {/* آواتار فروشنده */}
-      <div className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden">
-        {product.seller.avatar ? (
-          <img 
-            src={product.seller.avatar} 
-            alt={product.seller.shop_name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <Store className="w-7 h-7 text-white" />
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <h3 className="font-black text-gray-900 text-base truncate">
-            {product.seller.shop_name}
-          </h3>
-          {product.seller.is_verified && (
-            <Badge variant="success" size="sm" className="text-[10px]">
-              <BadgeCheck className="w-3 h-3 ml-0.5" />
-              تأیید شده
-            </Badge>
+                  {/* 🔧 Seller Info - Enhanced */}
+          {product.seller && (
+            <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-primary-200 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
+              <div className="flex items-start gap-3 mb-3">
+                {/* آواتار فروشنده (قابل کلیک) */}
+                <button 
+                  onClick={() => navigate(`/seller/${product.seller.slug}`)}
+                  className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden hover:scale-105 transition-transform group"
+                >
+                  {product.seller.avatar ? (
+                    <img 
+                      src={product.seller.avatar} 
+                      alt={product.seller.shop_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Store className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+                  )}
+                </button>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {/* ✅ نام فروشنده حالا قابل کلیک است و به صفحه شعبه هدایت می‌شود */}
+                    <button
+                      onClick={() => navigate(`/seller/${product.seller.slug}`)}
+                      className="font-black text-gray-900 text-base truncate hover:text-primary-600 transition-colors flex items-center gap-1 group text-right"
+                    >
+                      {product.seller.shop_name}
+                      <ChevronLeft className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-600" />
+                    </button>
+                    
+                    {product.seller.is_verified && (
+                      <Badge variant="success" size="sm" className="text-[10px]">
+                        <BadgeCheck className="w-3 h-3 ml-0.5" />
+                        تأیید شده
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* آمار فروشنده */}
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <Star className="w-3.5 h-3.5 text-warning-400 fill-warning-400" />
+                        <span className="font-black text-gray-900 text-sm">
+                          {product.seller.rating.toFixed(1)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-500">امتیاز</p>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <Package className="w-3.5 h-3.5 text-primary-500" />
+                        <span className="font-black text-gray-900 text-sm">
+                          {product.seller.products_count}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-500">محصول</p>
+                    </div>
+                    
+                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                      <div className="flex items-center justify-center gap-1 mb-0.5">
+                        <ShoppingBag className="w-3.5 h-3.5 text-success-500" />
+                        <span className="font-black text-gray-900 text-sm">
+                          {product.seller.total_sales}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-500">فروش</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+             {/* دکمه‌های Action */}
+<div className="grid grid-cols-2 gap-2">
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={async () => {
+      if (!isAuthenticated) {
+        toast.error('برای چت با فروشنده ابتدا وارد شوید');
+        navigate('/auth');
+        return;
+      }
+      try {
+        await startConversation(product.seller.id, product.id);
+        openChat();
+        toast.success('چت با فروشنده باز شد', { icon: '💬' });
+      } catch (error) {
+        toast.error('خطا در شروع چت');
+      }
+    }}
+    className="font-bold gap-1.5"
+  >
+    <MessageCircle className="w-4 h-4" />
+    چت با فروشنده
+  </Button>
+
+  {/* ✅ دکمه مشاهده شعبه با بررسی امنیتی */}
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={() => {
+      if (product.seller?.slug) {
+        navigate(`/seller/${product.seller.slug}`);
+      } else {
+        toast.error('صفحه فروشگاه این فروشنده هنوز راه‌اندازی نشده است');
+      }
+    }}
+    className="font-bold gap-1.5 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 transition-all"
+  >
+    <Store className="w-4 h-4" />
+    مشاهده شعبه
+  </Button>
+</div>
+            </div>
           )}
-        </div>
-        
-        {/* آمار فروشنده */}
-        <div className="grid grid-cols-3 gap-2 mt-2">
-          <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Star className="w-3.5 h-3.5 text-warning-400 fill-warning-400" />
-              <span className="font-black text-gray-900 text-sm">
-                {product.seller.rating.toFixed(1)}
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-500">امتیاز</p>
-          </div>
-          
-          <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <Package className="w-3.5 h-3.5 text-primary-500" />
-              <span className="font-black text-gray-900 text-sm">
-                {product.seller.products_count}
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-500">محصول</p>
-          </div>
-          
-          <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
-            <div className="flex items-center justify-center gap-1 mb-0.5">
-              <ShoppingBag className="w-3.5 h-3.5 text-success-500" />
-              <span className="font-black text-gray-900 text-sm">
-                {product.seller.total_sales}
-              </span>
-            </div>
-            <p className="text-[10px] text-gray-500">فروش</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {/* دکمه‌های Action */}
-    <div className="grid grid-cols-2 gap-2">
-     <Button
-  size="sm"
-  variant="outline"
-  onClick={async () => {
-    if (!isAuthenticated) {
-      toast.error('برای چت با فروشنده ابتدا وارد شوید');
-      navigate('/auth');
-      return;
-    }
-    
-    try {
-      // شروع مکالمه با فروشنده
-      await startConversation(product.seller.id, product.id);
-      // باز کردن ChatWidget
-      openChat();
-      toast.success('چت با فروشنده باز شد', { icon: '💬' });
-    } catch (error) {
-      toast.error('خطا در شروع چت');
-    }
-  }}
-  className="font-bold gap-1.5"
->
-  <MessageCircle className="w-4 h-4" />
-  چت با فروشنده
-</Button>
-
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => navigate(`/products?seller=${product.seller.id}`)}
-        className="font-bold gap-1.5"
-      >
-        <Package className="w-4 h-4" />
-        محصولات فروشنده
-      </Button>
-    </div>
-  </div>
-)}
 
             {/* 🔧 Quantity & Actions - Compact */}
             <div className="bg-white border border-gray-100 rounded-xl p-3 space-y-2.5">
