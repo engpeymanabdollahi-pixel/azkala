@@ -1,61 +1,37 @@
-import { Bell, Package, Truck, Gift } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
+import { useNotifications } from '@/components/layout/Header/hooks/useNotifications'; // مسیر را در صورت نیاز اصلاح کنید
 
 export function NotificationsSection() {
-  const notifications = [
-    {
-      id: 1,
-      title: 'سفارش #AZK-12345 ثبت شد',
-      message: 'سفارش شما در حال پردازش است',
-      time: '۲ ساعت پیش',
-      icon: Package,
-      color: 'text-primary-600',
-      bgColor: 'bg-primary-100',
-      read: false,
-    },
-    {
-      id: 2,
-      title: 'سفارش #AZK-12340 تحویل داده شد',
-      message: 'امیدواریم از خرید خود راضی باشید',
-      time: '۱ روز پیش',
-      icon: Truck,
-      color: 'text-success-600',
-      bgColor: 'bg-success-100',
-      read: true,
-    },
-    {
-      id: 3,
-      title: 'تخفیف ویژه ۲۰٪',
-      message: 'به مناسبت عید، ۲۰٪ تخفیف روی همه محصولات',
-      time: '۳ روز پیش',
-      icon: Gift,
-      color: 'text-warning-600',
-      bgColor: 'bg-warning-100',
-      read: true,
-    },
-  ];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  // ✅ دریافت داده‌های واقعی از هوک
+  const { notifications, unreadCount, markAsRead } = useNotifications();
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-3">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-gray-100 p-4">
         <div>
-          <h3 className="font-black text-gray-900 text-sm flex items-center gap-1.5">
+          <h3 className="font-black text-gray-900 text-sm flex items-center gap-2">
             <Bell className="w-4 h-4 text-primary-600" />
             اعلان‌های من
           </h3>
-          <p className="text-[11px] text-gray-600">{unreadCount} اعلان خوانده نشده</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {unreadCount > 0 ? `${unreadCount} اعلان خوانده نشده` : 'اعلان جدیدی ندارید'}
+          </p>
         </div>
         {unreadCount > 0 && (
           <Badge variant="error" size="sm">{unreadCount} جدید</Badge>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 p-3">
-        <h4 className="font-bold text-gray-900 text-xs mb-2">تنظیمات اعلان‌ها</h4>
-        <div className="space-y-2">
+      {/* Settings (UI Only - آماده برای اتصال به بک‌اند در آینده) */}
+      <div className="bg-white rounded-xl border border-gray-100 p-4">
+        <h4 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
+          <Settings className="w-4 h-4 text-gray-500" />
+          تنظیمات دریافت اعلان
+        </h4>
+        <div className="space-y-3">
           {[
             { title: 'اعلان‌های سفارش', enabled: true },
             { title: 'تخفیف‌ها و پیشنهادات', enabled: true },
@@ -63,45 +39,62 @@ export function NotificationsSection() {
             { title: 'اعلان‌های پیامکی', enabled: true },
           ].map((item, idx) => (
             <div key={idx} className="flex items-center justify-between">
-              <span className="text-xs text-gray-700">{item.title}</span>
+              <span className="text-xs font-medium text-gray-700">{item.title}</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" defaultChecked={item.enabled} className="sr-only peer" />
-                <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-primary-500 peer-checked:to-primary-600"></div>
+                {/* ✅ اصلاح شده برای پشتیبانی صحیح از RTL */}
+                <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:after:-translate-x-full rtl:peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-primary-500 peer-checked:to-primary-600"></div>
               </label>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Notifications List */}
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-        <div className="divide-y divide-gray-100">
-          {notifications.map((notif) => {
-            const Icon = notif.icon;
-            return (
-              <div
+        {notifications.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
+            <Bell className="w-8 h-8 text-gray-300" />
+            <p>هیچ اعلانی وجود ندارد.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {notifications.map((notif) => (
+              <button
                 key={notif.id}
+                onClick={() => markAsRead(notif.id)}
                 className={cn(
-                  'p-3 hover:bg-gray-50 transition-colors flex items-start gap-2.5',
+                  'w-full p-4 hover:bg-gray-50 transition-colors flex items-start gap-3 text-right group focus:outline-none focus:bg-gray-50',
                   !notif.read && 'bg-primary-50/30'
                 )}
               >
-                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', notif.bgColor)}>
-                  <Icon className={cn('w-4 h-4', notif.color)} />
+                {/* ✅ استفاده از استایل گرادیانت آیکون که از هوک می‌آید */}
+                <div className={cn(
+                  'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0 shadow-sm',
+                  notif.iconColor
+                )}>
+                  {notif.icon}
                 </div>
+                
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <h4 className="font-bold text-gray-900 text-xs truncate">{notif.title}</h4>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h4 className={cn(
+                      'font-bold text-sm text-gray-900 truncate',
+                      !notif.read && 'text-primary-900'
+                    )}>
+                      {notif.title}
+                    </h4>
                     {!notif.read && (
-                      <span className="w-1.5 h-1.5 bg-primary-500 rounded-full flex-shrink-0" />
+                      <span className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1.5" />
                     )}
                   </div>
-                  <p className="text-[11px] text-gray-600 line-clamp-1">{notif.message}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{notif.time}</p>
+                  <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">{notif.message}</p>
+                  <p className="text-[10px] text-gray-400 mt-1.5">{notif.time}</p>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

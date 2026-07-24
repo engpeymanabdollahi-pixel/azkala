@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Users, Search, Eye, Edit2, Shield, ShieldCheck, ShieldAlert,
+  Users, User, Search, Eye, Edit2, Shield, ShieldCheck, ShieldAlert,
   X, ChevronLeft, ChevronRight, Package, DollarSign, Calendar,
   Mail, Phone, Star, Award, TrendingUp, RefreshCw, Store,
   CheckCircle, XCircle, Ban, UserCheck, UserX, Clock,
   MessageSquare, FileText, Filter, Download, MoreVertical,
   Crown, Medal, Gem, Smile, Meh, Frown, MessageCircle, Flag,
+  Hash, Building2, CreditCard, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -869,12 +870,13 @@ export function AdminUsersPage() {
       )}
 
       {/* ==================== Requests Tab ==================== */}
+            {/* ==================== Requests Tab ==================== */}
       {activeTab === 'requests' && (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           {requestsLoading ? (
             <div className="p-8 space-y-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse" />
+                <div key={i} className="h-24 bg-gray-100 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : requests.length === 0 ? (
@@ -884,82 +886,102 @@ export function AdminUsersPage() {
               description="هنوز هیچ درخواستی برای فروشندگی ثبت نشده است"
             />
           ) : (
-            <div className="divide-y divide-gray-100">
-              {requests.map((request) => (
-                <div key={request.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="w-12 h-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center text-white flex-shrink-0">
+            <div className="p-4 space-y-4">
+              {requests.map((request: any) => (
+                <div key={request.id} className="p-5 border border-gray-100 rounded-xl hover:border-primary-200 hover:bg-primary-50/30 transition-all">
+                  
+                  {/* Header: Shop Name & Status */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-warning-500/20">
                         <Store className="w-6 h-6" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-black text-gray-900">{request.shop_name}</h4>
-                          <Badge
-                            variant={
-                              request.status === 'pending' ? 'warning' :
-                              request.status === 'approved' ? 'success' : 'error'
-                            }
-                            size="sm"
-                          >
-                            {request.status === 'pending' ? 'در انتظار' :
-                             request.status === 'approved' ? 'تایید شده' : 'رد شده'}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-xs text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            <span>{request.user.name}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            <span>{request.user.email}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            <span>{request.phone}</span>
-                          </div>
-                        </div>
-                        {request.description && (
-                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
-                            {request.description}
-                          </p>
-                        )}
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {new Date(request.created_at).toLocaleDateString('fa-IR')}
+                      <div>
+                        <h4 className="text-base font-black text-gray-900">
+                          {request.shop_name || request.proposed_shop_name || 'نام فروشگاه ثبت نشده'}
+                        </h4>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                          <Calendar className="w-3 h-3" />
+                          ثبت شده در: {new Date(request.created_at).toLocaleDateString('fa-IR')}
                         </p>
                       </div>
                     </div>
-                    {request.status === 'pending' && (
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <Button
-                          size="sm"
-                          variant="success"
-                          onClick={() => approveRequestMutation.mutate(request.id)}
-                          disabled={approveRequestMutation.isPending}
-                          className="gap-1"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          تایید
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="error"
-                          onClick={() => {
-                            const reason = prompt('دلیل رد درخواست:');
-                            if (reason) {
-                              rejectRequestMutation.mutate({ id: request.id, reason });
-                            }
-                          }}
-                          disabled={rejectRequestMutation.isPending}
-                          className="gap-1"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          رد
-                        </Button>
-                      </div>
-                    )}
+                    <Badge
+                      variant={request.status === 'pending' ? 'warning' : request.status === 'approved' ? 'success' : 'error'}
+                      size="sm"
+                      className="px-3 py-1"
+                    >
+                      {request.status === 'pending' ? 'در انتظار بررسی' : request.status === 'approved' ? 'تایید شده' : 'رد شده'}
+                    </Badge>
                   </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+                    <DetailItem icon={User} label="نام متقاضی" value={request.user?.name || request.full_name || 'نامشخص'} />
+                    <DetailItem icon={Hash} label="کد ملی" value={request.national_code || 'ثبت نشده'} />
+                    <DetailItem icon={Phone} label="شماره تماس" value={request.phone || request.user?.phone || 'ثبت نشده'} />
+                    <DetailItem icon={Store} label="نام فروشگاه" value={request.shop_name || request.proposed_shop_name || 'ثبت نشده'} />
+                    <DetailItem icon={Globe} label="آدرس اینترنتی" value={request.shop_alias ? `azkala.ir/seller/${request.shop_alias}` : 'ثبت نشده'} />
+                    <DetailItem icon={Building2} label="نام بانک" value={request.bank_name || 'ثبت نشده'} />
+                    <DetailItem icon={CreditCard} label="شماره حساب / شبا" value={request.bank_account || 'ثبت نشده'} />
+                  </div>
+
+                  {/* Description */}
+                  {request.description && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <p className="text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5" /> توضیحات متقاضی:
+                      </p>
+                      <p className="text-sm text-gray-600 leading-relaxed">{request.description}</p>
+                    </div>
+                  )}
+
+                  {/* Rejection Reason (if rejected) */}
+                  {request.status === 'rejected' && request.rejection_reason && (
+                    <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-100">
+                      <p className="text-xs font-bold text-red-700 mb-1.5 flex items-center gap-1.5">
+                        <XCircle className="w-3.5 h-3.5" /> دلیل رد درخواست توسط ادمین:
+                      </p>
+                      <p className="text-sm text-red-600 leading-relaxed">{request.rejection_reason}</p>
+                    </div>
+                  )}
+
+                  {/* Actions (Only for pending) */}
+                  {request.status === 'pending' && (
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-error-600 border-error-200 hover:bg-error-50 hover:text-error-700 gap-1.5"
+                        onClick={() => {
+                          const reason = prompt('لطفاً دلیل رد درخواست را وارد کنید (این پیام برای کاربر نمایش داده می‌شود):');
+                          if (reason && reason.trim()) {
+                            rejectRequestMutation.mutate({ id: request.id, reason: reason.trim() });
+                          } else if (reason !== null) {
+                            toast.error('دلیل رد درخواست نمی‌تواند خالی باشد');
+                          }
+                        }}
+                        disabled={rejectRequestMutation.isPending}
+                      >
+                        <XCircle className="w-4 h-4" />
+                        رد درخواست
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="success"
+                        className="gap-1.5 shadow-lg shadow-success-500/20"
+                        onClick={() => {
+                          if (window.confirm(`آیا از تایید درخواست "${request.shop_name || request.proposed_shop_name}" مطمئن هستید؟`)) {
+                            approveRequestMutation.mutate(request.id);
+                          }
+                        }}
+                        disabled={approveRequestMutation.isPending}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        تایید و فعال‌سازی
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1058,6 +1080,22 @@ function StatCard({ label, value, icon: Icon, color }: {
       </div>
       <p className="text-xl font-black text-gray-900">{value.toLocaleString('fa-IR')}</p>
       <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+    </div>
+  );
+}
+// کامپوننت نمایش جزئیات در کارت درخواست
+function DetailItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-gray-500 font-medium mb-0.5">{label}</p>
+        <p className="text-sm font-bold text-gray-900 truncate dir-ltr text-left" title={value}>
+          {value}
+        </p>
+      </div>
     </div>
   );
 }

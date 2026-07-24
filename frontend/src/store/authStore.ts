@@ -4,6 +4,10 @@ import type { User, AuthResponse, Seller } from '@/types/models';
 import { useWishlistStore } from './wishlistStore';
 import { requestNotificationPermission } from '@/lib/notification';
 
+// ✅ ایمپورت استورهای سبد خرید و انتخاب مدل برای پاکسازی هنگام خروج
+import { useCartStore } from './cartStore';
+import { useModelStore } from './modelStore';
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -39,7 +43,7 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         });
         
-        // ✅ اصلاح حیاتی: استفاده از 'token' به جای 'auth_token' برای هماهنگی کامل با apiClient
+        // ✅ استفاده از 'token' برای هماهنگی کامل با apiClient
         if (response.token) {
           localStorage.setItem('token', response.token);
         }
@@ -56,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-            logout: async () => {
+      logout: async () => {
         try {
           const { authService } = await import('@/services/api/auth.service');
           await authService.logout();
@@ -73,7 +77,8 @@ export const useAuthStore = create<AuthState>()(
           }
         } finally {
           // ✅ این بخش "همیشه" اجرا می‌شود، چه درخواست موفق باشد چه خطا بدهد
-          // ۱. پاک کردن حالت Zustand
+          
+          // ۱. پاک کردن حالت Zustand (احراز هویت)
           set({
             user: null,
             token: null,
@@ -81,11 +86,31 @@ export const useAuthStore = create<AuthState>()(
             seller: null,
           });
           
-          // ۲. پاک کردن تمام داده‌های ذخیره‌شده در مرورگر
+          // ۲. پاک کردن تمام داده‌های ذخیره‌شده احراز هویت در مرورگر
           localStorage.removeItem('token');
-          localStorage.removeItem('auth-storage'); // پاک کردن کل استیت persist شده
+          localStorage.removeItem('auth-storage');
           
-          // ۳. هدایت اجباری و سخت (Hard Redirect) برای جلوگیری از حلقه‌های رندر React
+          // ✅ ۳. پاکسازی کامل سبد خرید (هم از State و هم از localStorage)
+          useCartStore.setState({
+            items: [],
+            appliedCoupon: null,
+            couponDiscount: 0,
+            isDrawerOpen: false,
+          });
+          localStorage.removeItem('cart-storage');
+          
+          // ✅ ۴. پاکسازی کامل انتخاب دستگاه/مدل (هم از State و هم از localStorage)
+          useModelStore.setState({
+            selectedBrand: null,
+            selectedSeries: null,
+            selectedModel: null,
+            selectedCategory: null,
+            isModalOpen: false,
+          });
+          localStorage.removeItem('azkala-model-storage');
+          
+          // ۵. هدایت اجباری و سخت (Hard Redirect) برای جلوگیری از حلقه‌های رندر React
+          // و اطمینان از رندر مجدد هدر با Stateهای خالی
           window.location.href = '/';
         }
       },

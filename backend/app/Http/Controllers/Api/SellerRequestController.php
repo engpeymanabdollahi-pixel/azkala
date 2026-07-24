@@ -141,4 +141,41 @@ class SellerRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'خطای سرور در تکمیل اطلاعات.'], 500);
         }
     }
+    public function uploadDocuments(Request $request, SellerRequest $sellerRequest)
+{
+    // اطمینان از اینکه درخواست متعلق به کاربر فعلی است
+    if ($sellerRequest->user_id !== auth()->id()) {
+        return response()->json(['message' => 'غیرمجاز'], 403);
+    }
+
+    // فقط اگر در مرحله pending_documents باشد اجازه آپلود دارد
+    if ($sellerRequest->status !== 'pending_documents') {
+        return response()->json(['message' => 'در حال حاضر در این مرحله نیستید'], 400);
+    }
+
+    $request->validate([
+        'id_card_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        'business_license_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        'bank_account' => 'required|string|min:10', // شماره شبا یا حساب
+    ]);
+
+    $data = ['bank_account' => $request->bank_account];
+
+    if ($request->hasFile('id_card_image')) {
+        $data['id_card_image'] = $request->file('id_card_image')->store('seller_docs/id_cards', 'public');
+    }
+    if ($request->hasFile('business_license_image')) {
+        $data['business_license_image'] = $request->file('business_license_image')->store('seller_docs/licenses', 'public');
+    }
+
+    $sellerRequest->update($data);
+    
+    // تغییر وضعیت به "در انتظار بررسی نهایی"
+    $sellerRequest->update(['status' => 'pending_final']);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'مدارک با موفقیت بارگذاری شد و در انتظار بررسی نهایی ادمین است.'
+    ]);
+}
 }

@@ -145,7 +145,12 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [UserDeviceController::class, 'store'])->name('store');
                 Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('destroy');
             });
-        });
+             // 📬 نوتیفیکیشن‌ها
+    Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+});
+       
 
         Route::post('/seller-requests', [SellerRequestController::class, 'store'])->name('seller-requests.store');
 
