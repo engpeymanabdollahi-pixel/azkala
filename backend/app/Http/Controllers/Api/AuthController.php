@@ -16,9 +16,6 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-        /**
-     * مرحله ۱: دریافت شماره موبایل و ارسال OTP
-     */
     public function register(Request $request)
     {
         try {
@@ -29,26 +26,24 @@ class AuthController extends Controller
             $phone = $request->phone;
             $otp = (string) rand(10000, 99999);
 
-            // ذخیره کد در کش به مدت ۲ دقیقه
             Cache::put('otp_' . $phone, $otp, now()->addMinutes(2));
+            
+            // Log without emoji to prevent any encoding issues in CI/CD
+            Log::info("OTP code for phone {$phone} is: {$otp}");
 
-            // ثبت کد در لاگ
-            Log::info("🔑 کد تأیید (OTP) برای شماره {$phone} برابر است با: {$otp}");
-
-            // ✅ ایجاد ایمن کاربر (با افزودن پسورد تصادفی برای جلوگیری از خطای NOT NULL دیتابیس)
-           User::firstOrCreate(
-    ['phone' => $phone],
-    [
-        'name' => 'کاربر جدید',
-        'role' => 'customer',
-        'email' => $phone . time() . '@azkala.temp', // ✅ اضافه کردن time()
-        'password' => Hash::make(Str::random(16))
-    ]
-);
+            User::firstOrCreate(
+                ['phone' => $phone],
+                [
+                    'name' => 'New User',
+                    'role' => 'customer',
+                    'email' => $phone . time() . '@azkala.temp',
+                    'password' => Hash::make(Str::random(16))
+                ]
+            );
 
             return response()->json([
                 'success' => true,
-                'message' => 'کد تأیید با موفقیت ارسال شد.',
+                'message' => 'Verification code sent successfully.',
                 'phone' => $phone
             ], 200);
 
@@ -56,20 +51,17 @@ class AuthController extends Controller
             Log::error('AuthController@register: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ارسال کد: ' . $e->getMessage(),
+                'message' => 'Error sending code: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * مرحله ۲: تأیید کد OTP و ورود کاربر
-     */
     public function handleOtp(Request $request)
     {
         try {
             $request->validate([
                 'phone' => 'required|regex:/^09[0-9]{9}$/',
-                'otp' => 'required|string|size:5' // ✅ اعتبارسنجی ۵ رقمی
+                'otp' => 'required|string|size:5'
             ]);
 
             $phone = $request->phone;
@@ -79,30 +71,27 @@ class AuthController extends Controller
             if (!$cachedOtp || (string) $cachedOtp !== $otp) {
                 return response()->json([
                     'success' => false, 
-                    'message' => 'کد تایید نامعتبر یا منقضی است.'
+                    'message' => 'Invalid or expired verification code.'
                 ], 422);
             }
 
-            // حذف کد از کش پس از استفاده موفق
             Cache::forget('otp_' . $phone);
 
-            // ✅ دریافت یا ایجاد ایمن کاربر (تضمین می‌کند $user هرگز null نیست)
-           $user = User::firstOrCreate(
-    ['phone' => $phone],
-    [
-        'name' => 'کاربر ' . substr($phone, -4),
-        'role' => 'customer',
-        'email' => $phone . time() . '@azkala.temp', // ✅ اضافه کردن time()
-        'password' => Hash::make(Str::random(16))
-    ]
-);
+            $user = User::firstOrCreate(
+                ['phone' => $phone],
+                [
+                    'name' => 'User ' . substr($phone, -4),
+                    'role' => 'customer',
+                    'email' => $phone . time() . '@azkala.temp',
+                    'password' => Hash::make(Str::random(16))
+                ]
+            );
 
-            // حالا $user قطعاً یک آبجکت معتبر است و این خط بدون خطا اجرا می‌شود
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'success' => true,
-                'message' => 'ورود با موفقیت انجام شد.',
+                'message' => 'Login successful.',
                 'data' => [
                     'user' => new UserResource($user),
                     'token' => $token,
@@ -113,7 +102,7 @@ class AuthController extends Controller
             Log::error('AuthController@handleOtp: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در تأیید کد: ' . $e->getMessage(),
+                'message' => 'Error verifying code: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -127,7 +116,7 @@ class AuthController extends Controller
             if (!$user || !Hash::check($validated['password'], $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'ایمیل یا رمز عبور اشتباه است',
+                    'message' => 'Invalid email or password',
                 ], 401);
             }
 
@@ -139,14 +128,14 @@ class AuthController extends Controller
                     'user' => new UserResource($user),
                     'token' => $token,
                 ],
-                'message' => 'ورود با موفقیت انجام شد',
+                'message' => 'Login successful',
             ]);
 
         } catch (\Exception $e) {
             Log::error('AuthController@login: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در ورود',
+                'message' => 'Login error',
             ], 500);
         }
     }
@@ -158,13 +147,13 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'خروج با موفقیت انجام شد',
+                'message' => 'Logged out successfully',
             ]);
         } catch (\Exception $e) {
             Log::error('AuthController@logout: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در خروج',
+                'message' => 'Logout error',
             ], 500);
         }
     }
@@ -186,7 +175,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'اطلاعات با موفقیت به‌روزرسانی شد',
+                'message' => 'Profile updated successfully',
                 'data' => [
                     'user' => new UserResource($user->fresh()),
                 ],
@@ -196,7 +185,7 @@ class AuthController extends Controller
             Log::error('AuthController@update: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در به‌روزرسانی اطلاعات',
+                'message' => 'Update error',
             ], 500);
         }
     }
@@ -210,7 +199,7 @@ class AuthController extends Controller
             if (!Hash::check($validated['current_password'], $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'رمز عبور فعلی اشتباه است',
+                    'message' => 'Current password is incorrect',
                 ], 400);
             }
 
@@ -220,21 +209,18 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'رمز عبور با موفقیت تغییر کرد',
+                'message' => 'Password changed successfully',
             ]);
 
         } catch (\Exception $e) {
             Log::error('AuthController@changePassword: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در تغییر رمز عبور',
+                'message' => 'Password change error',
             ], 500);
         }
     }
 
-    /**
-     * دریافت وضعیت درخواست فروشندگی کاربر فعلی
-     */
     public function getSellerRequestStatus()
     {
         $requestModel = \App\Models\SellerRequest::where('user_id', auth()->id())

@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Feature\Auth;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -10,42 +11,57 @@ class OtpAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        RateLimiter::clear('otp_request:09123456789');
-    }
-
     public function test_user_can_request_otp(): void
     {
-        $response = $this->postJson('/api/verify-otp', ['phone' => '09123456789']);
-        $response->assertStatus(200)->assertJson(['success' => true]);
+        $phone = '09123456789';
+
+        $response = $this->postJson('/api/v1/register', ['phone' => $phone]);
+
+        $response->assertStatus(200)
+                 ->assertJson(['success' => true])
+                 ->assertJsonStructure(['phone']);
+                 
+        $this->assertDatabaseHas('users', ['phone' => $phone]);
     }
 
-    public function test_user_cannot_request_otp_too_frequently(): void
+         public function test_user_cannot_request_otp_too_frequently(): void
     {
         $phone = '09123456789';
-        $key = 'otp_request:' . $phone;
-        for ($i = 0; $i < 3; $i++) { RateLimiter::hit($key, 60); }
+        
+        // ✅ روش قطعی: ارسال واقعی ۱۰ درخواست مجاز (محدودیت ما ۱۰ درخواست در دقیقه است)
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson('/api/v1/register', ['phone' => $phone])->assertStatus(200);
+        }
 
-        $response = $this->postJson('/api/verify-otp', ['phone' => $phone]);
-        $response->assertStatus(429)->assertJson(['success' => false]);
+        // درخواست یازدهم باید با کد ۴۲۹ رد شود
+        $response = $this->postJson('/api/v1/register', ['phone' => $phone]);
+
+        $response->assertStatus(429); // Too Many Requests
     }
 
     public function test_user_can_login_with_valid_otp(): void
     {
         $phone = '09123456789';
-        Cache::put('otp_' . $phone, '12345', now()->addMinutes(5));
+        $validOtp = '12345';
         
-        $response = $this->postJson('/api/verify-otp', ['phone' => $phone, 'otp' => '12345']);
-        $response->assertStatus(200)->assertJson(['success' => true])->assertJsonStructure(['data' => ['user', 'token']]);
+        // Pre-seed the cache with a valid OTP
+        Cache::put('otp_' . $phone, $validOtp, now()->addMinutes(5));
+
+        $response = $this->postJson('/api/v1/verify-otp', [
+            'phone' => $phone, 
+            'otp' => $validOtp
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson(['success' => true])
+                 ->assertJsonStructure(['data' => ['user', 'token']]);
+                 
+        $this->assertDatabaseHas('users', ['phone' => $phone]);
     }
+
     protected function tearDown(): void
-{
-    // پاکسازی کامل کش برای جلوگیری از تداخل در تست‌های بعدی
-    \Illuminate\Support\Facades\Cache::flush();
-    
-    // فراخوانی tearDown پدر برای پاکسازی دیتابیس (RefreshDatabase)
-    parent::tearDown();
-}
+    {
+        Cache::flush();
+        parent::tearDown();
+    }
 }
