@@ -69,8 +69,9 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
 
+       // ✅ این بخش را پیدا کنید و کاملاً با این کد جایگزین کنید:
     Route::middleware('throttle:10,1')->group(function () {
-       Route::post('/register', [AuthController::class, 'register'])->name('register');
+        Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
         Route::post('/login', [AuthController::class, 'login'])->name('login');
     });
