@@ -33,22 +33,26 @@ class PublicSellerController extends Controller
         ]);
     }
 
-    /**
-     * 📦 دریافت محصولات شعبه آنلاین با فیلتر و مرتب‌سازی
+        /**
+     * 📦 دریافت محصولات شعبه آنلاین (نسخه ساده و بدون Resource)
      * GET /api/v1/sellers/{slug}/products
      */
-    public function products(Request $request, $slug)
+       public function products(Request $request, $slug)
     {
-        $seller = User::where('slug', $slug)
+        $seller = \App\Models\User::where('slug', $slug)
             ->where('role', 'seller')
             ->where('is_active', true)
-            ->firstOrFail();
+            ->first();
 
-        $query = $seller->products()
-            ->where('status', 'active')
-            ->with(['category', 'seller']);
+        if (!$seller) {
+            return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
+        }
 
-        // مرتب‌سازی
+        // ✅ اضافه کردن with('category') برای جلوگیری از خطای ۵۰۰ هنگام دسترسی به رابطه
+        $query = \App\Models\Product::where('seller_id', $seller->id)
+            ->where('is_active', true)
+            ->with('category');
+
         $sort = $request->input('sort', 'newest');
         match ($sort) {
             'popular' => $query->orderBy('sales_count', 'desc'),
@@ -58,28 +62,65 @@ class PublicSellerController extends Controller
             default => $query->latest(),
         };
 
-        // جستجو
         if ($search = $request->input('search')) {
             $query->where('name', 'like', "%{$search}%");
         }
 
-        // فیلتر دسته‌بندی
         if ($categoryId = $request->input('category_id')) {
             $query->where('category_id', $categoryId);
         }
 
-        // ✅ فیلتر محصولات تخفیف‌دار
         if ($request->boolean('has_discount')) {
-            $query->whereNotNull('compare_price')
-                  ->whereRaw('compare_price > price');
+            $query->whereNotNull('compare_price')->whereRaw('compare_price > price');
         }
 
-        // ✅ اصلاح ۳: استفاده از Paginator بومی لاراول (شامل meta و links به صورت خودکار)
-        $products = $query->paginate($request->input('per_page', 20));
+        $perPage = min((int) $request->input('per_page', 20), 50);
+        $paginatedProducts = $query->paginate($perPage);
+
+        // ✅ استفاده از transform روی Collection داخلی (روش استاندارد و امن لاراول)
+        $paginatedProducts->getCollection()->transform(function ($p) use ($seller) {
+            $discount = 0;
+            if ($p->compare_price && $p->compare_price > 0 && $p->compare_price > $p->price) {
+                $discount = round((($p->compare_price - $p->price) / $p->compare_price) * 100);
+            }
+
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'main_image' => $p->main_image,
+                'images' => is_string($p->images) ? json_decode($p->images, true) : ($p->images ?? []),
+                'price' => (float) $p->price,
+                'compare_price' => $p->compare_price ? (float) $p->compare_price : null,
+                'stock' => (int) $p->stock,
+                'status' => $p->status ?? 'active',
+                'rating' => (float) ($p->rating ?? 0),
+                'reviews_count' => (int) ($p->reviews_count ?? 0),
+                'sales_count' => (int) ($p->sales_count ?? 0),
+                'discount_percentage' => $discount,
+                'seller' => [
+                    'id' => $seller->id,
+                    'shop_name' => $seller->shop_name ?? $seller->name,
+                    'slug' => $seller->slug,
+                ],
+                'category' => $p->category ? [
+                    'id' => $p->category->id,
+                    'name' => $p->category->name,
+                    'slug' => $p->category->slug,
+                ] : null,
+                'created_at' => $p->created_at?->format('Y-m-d H:i:s'),
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => ProductResource::collection($products), // لاراول خودش meta و links را اضافه می‌کند
+            'data' => $paginatedProducts->items(),
+            'meta' => [
+                'current_page' => $paginatedProducts->currentPage(),
+                'per_page' => $paginatedProducts->perPage(),
+                'total' => $paginatedProducts->total(),
+                'last_page' => $paginatedProducts->lastPage(),
+            ],
         ]);
     }
 

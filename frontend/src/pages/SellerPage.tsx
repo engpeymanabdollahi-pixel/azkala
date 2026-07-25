@@ -12,9 +12,6 @@ import { useAuthStore } from '@/store/authStore';
 const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
 export default function SellerPage() {
-  // ==========================================
-  // ۱. تمام هوک‌ها باید در بالاترین سطح باشند (قبل از هر return)
-  // ==========================================
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -22,33 +19,39 @@ export default function SellerPage() {
   
   const [activeTab, setActiveTab] = useState<'products' | 'about' | 'reviews'>('products');
 
-  // دریافت اطلاعات فروشنده
+  // ۱. دریافت اطلاعات فروشنده
   const { data: sellerData, isLoading, isError } = useQuery({
     queryKey: ['seller', slug],
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/sellers/${slug}`);
       if (!res.ok) throw new Error('فروشنده یافت نشد');
       const result = await res.json();
+      console.log('👤 Seller Data Received:', result.data); // دیباگ
       return result.data;
     },
   });
 
-  // دریافت محصولات فروشنده
+  // ۲. دریافت محصولات فروشنده
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['seller-products', slug],
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/sellers/${slug}/products?per_page=20`);
-      if (!res.ok) throw new Error('خطا در دریافت محصولات');
-      return await res.json();
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('❌ Products API Error:', res.status, errText);
+        throw new Error('خطا در دریافت محصولات');
+      }
+      const result = await res.json();
+      console.log('📦 Raw Products API Response:', result); // دیباگ
+      return result;
     },
     enabled: !!sellerData && activeTab === 'products',
   });
 
-  // مدیریت دنبال کردن (Follow)
+  // ۳. مدیریت دنبال کردن (Follow)
   const followMutation = useMutation({
     mutationFn: async (action: 'follow' | 'unfollow') => {
       const token = localStorage.getItem('token');
-      
       if (!token || !isAuthenticated) {
         toast.error('برای دنبال کردن فروشگاه، لطفاً ابتدا وارد حساب کاربری خود شوید.');
         navigate('/auth');
@@ -56,6 +59,8 @@ export default function SellerPage() {
       }
 
       const url = `${API_BASE}/sellers/${sellerData!.id}/follow`;
+      console.log(`🔄 Sending ${action} request to:`, url); // دیباگ
+      
       const res = await fetch(url, {
         method: action === 'follow' ? 'POST' : 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
@@ -65,7 +70,9 @@ export default function SellerPage() {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || 'خطا در عملیات');
       }
-      return await res.json();
+      const responseData = await res.json();
+      console.log('✅ Follow/Unfollow Success Response:', responseData); // دیباگ
+      return responseData;
     },
     onMutate: async (action) => {
       await queryClient.cancelQueries({ queryKey: ['seller', slug] });
@@ -91,6 +98,14 @@ export default function SellerPage() {
       }
     },
     onSuccess: (data, action) => {
+      queryClient.setQueryData(['seller', slug], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          is_followed_by_current_user: data.is_following,
+          followers_count: data.followers_count,
+        };
+      });
       toast.success(action === 'follow' ? 'شعبه به لیست علاقه‌مندی‌ها اضافه شد ❤️' : 'دنبال کردن لغو شد');
     },
     onSettled: () => {
@@ -98,31 +113,24 @@ export default function SellerPage() {
     },
   });
 
-  // تنظیم عنوان صفحه (سئو)
   useEffect(() => {
     if (sellerData?.display_title) {
       document.title = `${sellerData.display_title} | ازکالا`;
     }
   }, [sellerData]);
 
-  // دیباگ محصولات (حالا در جای صحیح قرار دارد)
-  useEffect(() => {
-    if (activeTab === 'products' && productsData) {
-      console.log('📦 Products Data Received:', productsData);
-      console.log('📦 Extracted Products Array:', productsData?.data?.data || productsData?.data || []);
-    }
-  }, [productsData, activeTab]);
-
-  // ==========================================
-  // ۲. محاسبات و متغیرهای مشتق‌شده
-  // ==========================================
+  // محاسبات
   const isOwner = isAuthenticated && user && sellerData && user.id === sellerData.id;
-  const products = productsData?.data?.data || productsData?.data || [];
+  
+  // استخراج ایمن آرایه محصولات
+  const products = Array.isArray(productsData?.data) 
+    ? productsData.data 
+    : (Array.isArray(productsData?.data?.data) ? productsData.data.data : []);
+    
+  console.log('🛒 Final Extracted Products Array Length:', products.length); // دیباگ
+  
   const isFollowing = sellerData?.is_followed_by_current_user || false;
 
-  // ==========================================
-  // ۳. بازگشت‌های زودهنگام (Early Returns) - فقط بعد از تمام هوک‌ها
-  // ==========================================
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -143,12 +151,9 @@ export default function SellerPage() {
     );
   }
 
-  // ==========================================
-  // ۴. رندر اصلی UI
-  // ==========================================
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* ۱. هدر و بنر فروشگاه */}
+      {/* هدر و بنر فروشگاه */}
       <div className="bg-white shadow-sm">
         <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary-100 to-accent-100 relative overflow-hidden">
           {sellerData.banner ? (
@@ -249,7 +254,7 @@ export default function SellerPage() {
         </div>
       </div>
 
-      {/* ۲. محتوای اصلی (تب‌ها) */}
+      {/* محتوای اصلی (تب‌ها) */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="flex border-b border-gray-100 overflow-x-auto">
