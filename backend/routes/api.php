@@ -241,7 +241,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/{ticket}/message', [UserTicketController::class, 'sendMessage'])->name('send-message');
         });
 
-        // 🏪 فروشنده (داخل گروه auth)
+                // 🏪 فروشنده (داخل گروه auth)
         Route::prefix('seller')->middleware('throttle:seller')->name('seller.')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
@@ -272,7 +272,11 @@ Route::prefix('v1')->group(function () {
                 Route::get('/seller/{seller}', [SellerRatingController::class, 'getSellerRatings'])->name('seller-ratings');
                 Route::get('/can-rate/{order}', [SellerRatingController::class, 'canRate'])->name('can-rate');
             });
-        });
+
+            // ✅ روت جدید برای به‌روزرسانی تنظیمات فروشگاه
+            Route::post('/settings', [\App\Http\Controllers\Api\SellerSettingsController::class, 'update'])->name('settings.update');
+            
+        }); // ✅ پایان گروه seller (همه چیز حالا درست داخل این گروه است)
 
         // 👨‍💼 ادمین (داخل گروه auth)
         Route::prefix('admin')->middleware('admin')->name('admin.')->group(function () {

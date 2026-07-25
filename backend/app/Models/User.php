@@ -14,6 +14,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'shop_name',
+         'slug',               // ✅ اضافه شد
+        'banner',             // ✅ اضافه شد
+        'followers_count',    // ✅ اضافه ش
         'email',
         'role',
         'phone',

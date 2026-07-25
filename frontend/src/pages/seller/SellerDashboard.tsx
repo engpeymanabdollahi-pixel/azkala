@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   X,
   MessageCircle,
+  Store,
 } from 'lucide-react';
 import { formatPrice } from '@/utils/format';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +31,7 @@ import { SimpleChart } from '@/components/ui/SimpleChart';
 import { cn } from '@/utils/cn';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/services/api/client';
+import { toast } from 'react-hot-toast'; // ✅ ایمپورت toast اضافه شد
 
 // ==================== Types ====================
 interface DashboardStats {
@@ -453,8 +455,8 @@ export function SellerDashboard() {
                 </div>
               )}
             </div>
-
-            {/* Pagination (فقط یک بار و به درستی بسته شده) */}
+            
+            {/* Pagination */}
             {ordersData && ordersData.total > 5 && (
               <div className="p-2 border-t border-gray-100 flex items-center justify-between">
                 <Button variant="outline" size="xs" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="gap-0.5 text-[10px]">
@@ -467,6 +469,36 @@ export function SellerDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ✅ کارت دسترسی سریع به فروشگاه (کاملاً جدا و در جای صحیح) */}
+        <div className="bg-gradient-to-r from-primary-500 to-accent-600 rounded-2xl p-4 md:p-6 text-white mt-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-primary-500/20">
+          <div className="text-center md:text-right">
+            <h3 className="font-black text-lg md:text-xl mb-1 flex items-center justify-center md:justify-start gap-2">
+              <Store className="w-5 h-5" />
+              فروشگاه آنلاین شما
+            </h3>
+            <p className="text-white/80 text-sm">مشاهده صفحه عمومی فروشگاه همان‌طور که مشتریان می‌بینند</p>
+          </div>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              console.log('🔍 محتوای user:', user);
+              const storeSlug = user?.slug;
+              console.log('🔍 اسلاگ پیدا شده:', storeSlug);
+
+              if (storeSlug) {
+                window.open(`/seller/${storeSlug}`, '_blank');
+              } else {
+                toast.error('آدرس فروشگاه یافت نشد. لطفاً ابتدا به بخش تنظیمات رفته و نام فروشگاه را ذخیره کنید.');
+                navigate('/seller/settings');
+              }
+            }}
+            className="bg-white text-primary-600 hover:bg-gray-100 font-bold gap-2 w-full md:w-auto"
+          >
+            <Store className="w-4 h-4" />
+            مشاهده فروشگاه
+          </Button>
         </div>
 
         {/* Quick Actions & Tips */}

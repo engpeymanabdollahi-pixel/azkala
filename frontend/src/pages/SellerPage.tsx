@@ -11,6 +11,14 @@ import { useAuthStore } from '@/store/authStore';
 
 const API_BASE = 'http://127.0.0.1:8000/api/v1';
 
+// تابع کمکی برای تبدیل مسیر نسبی به مطلق و پشتیبانی از هر دو کلید logo/avatar
+const getImageUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.replace(/^storage\//, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
 export default function SellerPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -19,36 +27,26 @@ export default function SellerPage() {
   
   const [activeTab, setActiveTab] = useState<'products' | 'about' | 'reviews'>('products');
 
-  // ۱. دریافت اطلاعات فروشنده
   const { data: sellerData, isLoading, isError } = useQuery({
     queryKey: ['seller', slug],
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/sellers/${slug}`);
       if (!res.ok) throw new Error('فروشنده یافت نشد');
       const result = await res.json();
-      console.log('👤 Seller Data Received:', result.data); // دیباگ
       return result.data;
     },
   });
 
-  // ۲. دریافت محصولات فروشنده
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['seller-products', slug],
     queryFn: async () => {
       const res = await fetch(`${API_BASE}/sellers/${slug}/products?per_page=20`);
-      if (!res.ok) {
-        const errText = await res.text();
-        console.error('❌ Products API Error:', res.status, errText);
-        throw new Error('خطا در دریافت محصولات');
-      }
-      const result = await res.json();
-      console.log('📦 Raw Products API Response:', result); // دیباگ
-      return result;
+      if (!res.ok) throw new Error('خطا در دریافت محصولات');
+      return await res.json();
     },
     enabled: !!sellerData && activeTab === 'products',
   });
 
-  // ۳. مدیریت دنبال کردن (Follow)
   const followMutation = useMutation({
     mutationFn: async (action: 'follow' | 'unfollow') => {
       const token = localStorage.getItem('token');
@@ -59,8 +57,6 @@ export default function SellerPage() {
       }
 
       const url = `${API_BASE}/sellers/${sellerData!.id}/follow`;
-      console.log(`🔄 Sending ${action} request to:`, url); // دیباگ
-      
       const res = await fetch(url, {
         method: action === 'follow' ? 'POST' : 'DELETE',
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
@@ -70,14 +66,11 @@ export default function SellerPage() {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.message || 'خطا در عملیات');
       }
-      const responseData = await res.json();
-      console.log('✅ Follow/Unfollow Success Response:', responseData); // دیباگ
-      return responseData;
+      return await res.json();
     },
     onMutate: async (action) => {
       await queryClient.cancelQueries({ queryKey: ['seller', slug] });
       const previousSeller = queryClient.getQueryData(['seller', slug]);
-      
       if (previousSeller) {
         queryClient.setQueryData(['seller', slug], {
           ...previousSeller,
@@ -119,17 +112,16 @@ export default function SellerPage() {
     }
   }, [sellerData]);
 
-  // محاسبات
   const isOwner = isAuthenticated && user && sellerData && user.id === sellerData.id;
-  
-  // استخراج ایمن آرایه محصولات
   const products = Array.isArray(productsData?.data) 
     ? productsData.data 
     : (Array.isArray(productsData?.data?.data) ? productsData.data.data : []);
-    
-  console.log('🛒 Final Extracted Products Array Length:', products.length); // دیباگ
   
   const isFollowing = sellerData?.is_followed_by_current_user || false;
+
+  // ✅ استفاده از تابع کمکی برای اطمینان از لود صحیح عکس‌ها (پشتیبانی از logo و avatar)
+  const bannerUrl = getImageUrl(sellerData?.banner);
+  const logoUrl = getImageUrl(sellerData?.logo || (sellerData as any)?.avatar);
 
   if (isLoading) {
     return (
@@ -156,8 +148,8 @@ export default function SellerPage() {
       {/* هدر و بنر فروشگاه */}
       <div className="bg-white shadow-sm">
         <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary-100 to-accent-100 relative overflow-hidden">
-          {sellerData.banner ? (
-            <img src={sellerData.banner} alt="Banner" className="w-full h-full object-cover" />
+          {bannerUrl ? (
+            <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <Store className="w-20 h-20 text-primary-200" />
@@ -167,9 +159,10 @@ export default function SellerPage() {
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col md:flex-row items-start md:items-center gap-6">
+            {/* لوگو */}
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl border-4 border-white shadow-md bg-gray-100 flex-shrink-0 overflow-hidden">
-              {sellerData.logo ? (
-                <img src={sellerData.logo} alt={sellerData.shop_name} className="w-full h-full object-cover" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={sellerData.shop_name} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-primary-100 text-primary-600">
                   <Store className="w-12 h-12" />
@@ -243,7 +236,7 @@ export default function SellerPage() {
               )}
               {isOwner && (
                 <button 
-                  onClick={() => navigate('/seller/dashboard')}
+                  onClick={() => navigate('/seller')}
                   className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-accent-600 to-accent-700 hover:shadow-lg transition-all"
                 >
                   <Grid3x3 className="w-5 h-5" /> ورود به پنل مدیریت

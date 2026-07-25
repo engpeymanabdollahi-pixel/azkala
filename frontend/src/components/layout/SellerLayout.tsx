@@ -316,6 +316,19 @@ export function SellerLayout() {
               );
             })}
           </nav>
+          <button
+                        onClick={() => { 
+                          setUserMenuOpen(false); 
+                          const storeSlug = seller?.slug || user?.slug || '';
+                          if (storeSlug) navigate(`/seller/${storeSlug}`); 
+                          else toast.error('آدرس فروشگاه یافت نشد');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-right"
+                      >
+                        <Store className="w-4 h-4 text-accent-600 dark:text-accent-400 flex-shrink-0" />
+                        <span className="flex-1 text-sm text-gray-700 dark:text-gray-300">مشاهده فروشگاه</span>
+                        <ArrowLeft className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                      </button>
 
           {/* Bottom Section */}
           <div className={cn(
@@ -400,6 +413,7 @@ export function SellerLayout() {
                 </div>
                 <span className={cn(sidebarCollapsed && 'md:hidden')}>راهنما و پشتیبانی</span>
               </button>
+                                    
 
               {!sidebarCollapsed && (
                 <div className="flex items-center justify-center gap-1 mt-2 pt-2 border-t border-gray-100 dark:border-slate-700">

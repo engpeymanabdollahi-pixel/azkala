@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import type { ReactNode } from 'react';
 
+
 // ✅ ایمپورت SellerPage (فقط یک بار)
 import SellerPage from '@/pages/SellerPage';
 
@@ -79,6 +80,7 @@ const SellerOrderDetail = lazy(() => import('@/pages/seller/SellerOrderDetail').
 const SellerPayouts = lazy(() => import('@/pages/seller/SellerPayouts').then(m => ({ default: m.SellerPayouts })));
 const SellerLoginPage = lazy(() => import('@/pages/seller/sellerLogin').then(m => ({ default: m.sellerLogin })));
 const SellerChatPage = lazy(() => import('@/pages/seller/SellerChatPage').then(m => ({ default: m.SellerChatPage })));
+const SellerSettings = lazy(() => import('@/pages/seller/SellerSettings')); // ✅ صحیح
 
 // ==========================================
 // ایمپورت صفحات عمومی سایت (Lazy Loaded)
@@ -282,6 +284,7 @@ export default function App() {
                 </ProtectedRoute>
               }>
                 <Route index element={<SellerDashboard />} />
+                <Route path="settings" element={<SellerSettings />} /> {/* ✅ روت جدید */}
                 <Route path="products" element={<SellerProducts />} />
                 <Route path="products/new" element={<AddProduct />} />
                 <Route path="products/:productId/edit" element={<EditProduct />} />
