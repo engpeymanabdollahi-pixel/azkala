@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Repositories\OrderRepository;
+use App\Repositories\ProductRepository;
 use App\Services\Order\OrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -17,12 +18,18 @@ class OrderServiceTest extends TestCase
 
     protected OrderService $service;
     protected OrderRepository $repository;
+    protected ProductRepository $productRepository;
 
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // ✅ اصلاح: مقداردهی اولیه هر دو Repository
         $this->repository = new OrderRepository();
-        $this->service = new OrderService($this->repository);
+        $this->productRepository = new ProductRepository();
+        
+        // ✅ اصلاح: پاس دادن هر دو Dependency به سرویس
+        $this->service = new OrderService($this->repository, $this->productRepository);
     }
 
     // ==================== getUserOrders Tests ====================
@@ -31,7 +38,7 @@ class OrderServiceTest extends TestCase
     {
         $user = User::factory()->create();
         Order::factory()->count(3)->create(['user_id' => $user->id]);
-        
+
         $otherUser = User::factory()->create();
         Order::factory()->count(2)->create(['user_id' => $otherUser->id]);
 
@@ -65,11 +72,9 @@ class OrderServiceTest extends TestCase
 
         $result = $this->service->getOrderDetails($order->id, $user->id);
 
-        // نتیجه می‌تواند array یا model باشد
         $this->assertNotNull($result);
-        
+
         if (is_array($result)) {
-            // اگر array است، خالی نباشد
             $this->assertNotEmpty($result);
         }
     }
