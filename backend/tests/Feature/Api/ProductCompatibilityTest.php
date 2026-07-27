@@ -61,7 +61,7 @@ class ProductCompatibilityTest extends TestCase
 
     public function test_product_list_shows_is_compatible_true(): void
     {
-        $response = $this->getJson('/api/products?device_model_id=' . $this->modelAId);
+        $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelBId);
         $response->assertStatus(200);
 
         // پشتیبانی از همه ساختارهای ممکن
@@ -82,7 +82,7 @@ class ProductCompatibilityTest extends TestCase
 
     public function test_product_list_shows_is_compatible_false(): void
     {
-        $response = $this->getJson('/api/products?device_model_id=' . $this->modelBId);
+        $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelBId);
         $response->assertStatus(200);
 
         $data = $response->json('data');
@@ -101,8 +101,8 @@ class ProductCompatibilityTest extends TestCase
 
     public function test_product_detail_returns_compatible_models(): void
     {
-        $response = $this->getJson('/api/products/slug/' . $this->compatibleProduct->slug);
-        $response->assertStatus(200);
+              $response = $this->getJson('/api/v1/products/slug/' . $this->compatibleProduct->slug);
+           $response->assertStatus(200);
 
         $response->assertJsonFragment([
             'id' => $this->modelAId,
