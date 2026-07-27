@@ -6,230 +6,153 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
-use App\Http\Resources\UserResource;
-use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    protected AuthService $authService;
+
+    public function __construct(AuthService $authService)
+    {
+        $this->authService = $authService;
+    }
+
+    /**
+     * ثبت‌نام یا درخواست کد تایید
+     */
     public function register(Request $request)
     {
-        try {
-            $request->validate([
-                'phone' => 'required|regex:/^09[0-9]{9}$/',
-            ]);
+        $validated = $request->validate([
+            'phone' => 'required|string|regex:/^09[0-9]{9}$/',
+            'email' => 'nullable|email',
+            'name' => 'nullable|string|max:255',
+        ]);
 
-            $phone = $request->phone;
-            $otp = (string) rand(10000, 99999);
+        $result = $this->authService->registerOrRequestOtp(
+            $validated['phone'],
+            $validated['email'] ?? null,
+            $validated['name'] ?? null
+        );
 
-            Cache::put('otp_' . $phone, $otp, now()->addMinutes(2));
-            
-            // Log without emoji to prevent any encoding issues in CI/CD
-            Log::info("OTP code for phone {$phone} is: {$otp}");
-
-            User::firstOrCreate(
-                ['phone' => $phone],
-                [
-                    'name' => 'New User',
-                    'role' => 'customer',
-                    'email' => $phone . time() . '@azkala.temp',
-                    'password' => Hash::make(Str::random(16))
-                ]
-            );
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Verification code sent successfully.',
-                'phone' => $phone
-            ], 200);
-
-        } catch (\Exception $e) {
-            Log::error('AuthController@register: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error sending code: ' . $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'data' => ['user_id' => $result['user_id']]
+        ], 200);
     }
 
+    /**
+     * بررسی کد OTP و ورود
+     */
     public function handleOtp(Request $request)
     {
-        try {
-            $request->validate([
-                'phone' => 'required|regex:/^09[0-9]{9}$/',
-                'otp' => 'required|string|size:5'
-            ]);
+        $validated = $request->validate([
+            'phone' => 'required|string',
+            'otp' => 'required|string|size:5',
+        ]);
 
-            $phone = $request->phone;
-            $otp = (string) $request->otp;
-            $cachedOtp = Cache::get('otp_' . $phone);
+        $result = $this->authService->handleOtpLogin($validated['phone'], $validated['otp']);
 
-            if (!$cachedOtp || (string) $cachedOtp !== $otp) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Invalid or expired verification code.'
-                ], 422);
-            }
-
-            Cache::forget('otp_' . $phone);
-
-            $user = User::firstOrCreate(
-                ['phone' => $phone],
-                [
-                    'name' => 'User ' . substr($phone, -4),
-                    'role' => 'customer',
-                    'email' => $phone . time() . '@azkala.temp',
-                    'password' => Hash::make(Str::random(16))
-                ]
-            );
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful.',
-                'data' => [
-                    'user' => new UserResource($user),
-                    'token' => $token,
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('AuthController@handleOtp: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error verifying code: ' . $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'data' => [
+                'user' => $result['user'],
+                'token' => $result['token'],
+            ]
+        ], 200);
     }
 
+    /**
+     * ورود با ایمیل و رمز عبور
+     */
     public function login(LoginRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $user = User::where('email', $validated['email'])->first();
+        $result = $this->authService->loginWithEmail(
+            $request->email,
+            $request->password
+        );
 
-            if (!$user || !Hash::check($validated['password'], $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid email or password',
-                ], 401);
-            }
-
-            $token = $user->createToken('auth-token')->plainTextToken;
-
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'user' => new UserResource($user),
-                    'token' => $token,
-                ],
-                'message' => 'Login successful',
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('AuthController@login: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Login error',
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'data' => [
+                'user' => $result['user'],
+                'token' => $result['token'],
+            ]
+        ], 200);
     }
 
+    /**
+     * خروج از حساب کاربری
+     */
     public function logout(Request $request)
     {
-        try {
-            $request->user()->currentAccessToken()->delete();
+        $request->user()->currentAccessToken()->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Logged out successfully',
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AuthController@logout: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Logout error',
-            ], 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'با موفقیت خارج شدید',
+        ], 200);
     }
 
+    /**
+     * دریافت اطلاعات کاربر فعلی
+     */
     public function user(Request $request)
     {
         return response()->json([
             'success' => true,
-            'data' => new UserResource($request->user()),
-        ]);
+            'data' => $request->user(),
+        ], 200);
     }
 
+    /**
+     * به‌روزرسانی پروفایل
+     */
     public function update(UpdateProfileRequest $request)
     {
-        try {
-            $validated = $request->validated();
-            $user = $request->user();
-            $user->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Profile updated successfully',
-                'data' => [
-                    'user' => new UserResource($user->fresh()),
-                ],
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('AuthController@update: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Update error',
-            ], 500);
-        }
-    }
-
-    public function changePassword(ChangePasswordRequest $request)
-    {
-        try {
-            $validated = $request->validated();
-            $user = $request->user();
-
-            if (!Hash::check($validated['current_password'], $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Current password is incorrect',
-                ], 400);
-            }
-
-            $user->update([
-                'password' => Hash::make($validated['password']),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Password changed successfully',
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('AuthController@changePassword: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Password change error',
-            ], 500);
-        }
-    }
-
-    public function getSellerRequestStatus()
-    {
-        $requestModel = \App\Models\SellerRequest::where('user_id', auth()->id())
-            ->latest()
-            ->first();
+        $user = $request->user();
+        $user->update($request->validated());
 
         return response()->json([
             'success' => true,
-            'data' => $requestModel,
+            'message' => 'پروفایل با موفقیت به‌روزرسانی شد',
+            'data' => $user->fresh(),
+        ], 200);
+    }
+
+    /**
+     * تغییر رمز عبور
+     */
+    public function changePassword(ChangePasswordRequest $request)
+    {
+        $user = $request->user();
+        $user->update([
+            'password' => Hash::make($request->new_password),
         ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'رمز عبور با موفقیت تغییر کرد',
+        ], 200);
+    }
+
+    /**
+     * دریافت وضعیت درخواست فروشندگی
+     */
+    public function getSellerRequestStatus(Request $request)
+    {
+        $sellerRequest = $request->user()->sellerRequest;
+
+        return response()->json([
+            'success' => true,
+            'data' => $sellerRequest ? [
+                'status' => $sellerRequest->status,
+                'message' => $sellerRequest->rejection_reason,
+            ] : null,
+        ], 200);
     }
 }
