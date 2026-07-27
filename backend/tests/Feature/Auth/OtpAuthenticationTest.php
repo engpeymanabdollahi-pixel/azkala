@@ -19,7 +19,7 @@ class OtpAuthenticationTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJson(['success' => true])
-                 ->assertJsonStructure(['phone']);
+                 ->assertJsonStructure(['data' => ['user_id']]);
                  
         $this->assertDatabaseHas('users', ['phone' => $phone]);
     }

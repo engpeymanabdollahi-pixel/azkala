@@ -19,7 +19,7 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-    /**
+       /**
      * ثبت‌نام یا درخواست کد تایید
      */
     public function register(Request $request)
@@ -36,11 +36,12 @@ class AuthController extends Controller
             $validated['name'] ?? null
         );
 
-        return response()->json([
-            'success' => true,
-            'message' => $result['message'],
-            'data' => ['user_id' => $result['user_id']]
-        ], 200);
+       return response()->json([
+    'success' => true,
+    'message' => $result['message'],
+    'phone' => $validated['phone'], // ✅ در سطح ریشه
+    'data' => ['user_id' => $result['user_id']]
+], 200);
     }
 
     /**

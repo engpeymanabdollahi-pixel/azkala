@@ -22,17 +22,18 @@ class AuthService
     {
         $this->otpService->generateAndCache($phone);
         
-        // ✅ تولید نام پیش‌فرض اگر وارد نشده باشد
         $defaultName = $name ?: 'کاربر ' . substr($phone, -4);
-        
-        // ✅ تولید ایمیل پیش‌فرض و یکتا اگر وارد نشده باشد (برای رفع خطای NOT NULL)
         $defaultEmail = $email ?: "user_{$phone}@azkala.local";
+        
+        // ✅ رفع خطای NOT NULL: تولید یک پسورد هش‌شده پیش‌فرض
+        $defaultPassword = Hash::make('otp_user_' . $phone);
         
         $user = User::firstOrCreate(
             ['phone' => $phone],
             [
                 'name' => $defaultName,
                 'email' => $defaultEmail,
+                'password' => $defaultPassword, // ✅ اضافه شد
                 'role' => 'customer'
             ]
         );
@@ -54,17 +55,20 @@ class AuthService
 
         $defaultName = 'کاربر ' . substr($phone, -4);
         $defaultEmail = "user_{$phone}@azkala.local";
+        
+        // ✅ رفع خطای NOT NULL: تولید یک پسورد هش‌شده پیش‌فرض
+        $defaultPassword = Hash::make('otp_user_' . $phone);
 
         $user = User::firstOrCreate(
             ['phone' => $phone],
             [
                 'name' => $defaultName,
                 'email' => $defaultEmail,
+                'password' => $defaultPassword, // ✅ اضافه شد
                 'role' => 'customer'
             ]
         );
 
-        // حذف توکن‌های قبلی برای امنیت بیشتر (اختیاری اما توصیه‌شده)
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;
 
