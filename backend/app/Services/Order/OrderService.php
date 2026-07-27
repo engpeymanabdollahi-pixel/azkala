@@ -3,6 +3,7 @@
 namespace App\Services\Order;
 
 use App\DTOs\Order\CreateOrderDTO;
+use App\Events\Order\OrderCreated;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\User;
@@ -27,17 +28,11 @@ class OrderService
         $this->productRepository = $productRepository;
     }
 
-    /**
-     * Get user orders with pagination
-     */
     public function getUserOrders(int $userId, int $perPage = 20): LengthAwarePaginator
     {
         return $this->orderRepository->getUserOrders($userId, $perPage);
     }
 
-    /**
-     * Get order details
-     */
     public function getOrderDetails(int $orderId, ?int $userId = null): array
     {
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
@@ -49,9 +44,6 @@ class OrderService
         return $this->formatOrderData($order);
     }
 
-    /**
-     * Create new order from cart
-     */
     public function createOrder(CreateOrderDTO $dto): Model
     {
         $errors = $dto->validate();
@@ -60,16 +52,10 @@ class OrderService
         }
 
         return DB::transaction(function () use ($dto) {
-            // 1. اعتبارسنجی و آماده‌سازی آیتم‌ها (فقط ۱ کوئری برای تمام محصولات)
             $validatedItems = $this->validateAndPrepareItems($dto->items);
-
-            // 2. محاسبه مجموع‌ها (بدون هیچ کوئری اضافی)
             $totals = $this->calculateTotals($validatedItems);
-
-            // 3. تولید شماره سفارش یکتا
             $orderNumber = $this->generateOrderNumber();
 
-            // 4. آماده‌سازی داده‌های سفارش
             $orderData = [
                 'user_id' => $dto->user_id,
                 'order_number' => $orderNumber,
@@ -85,24 +71,19 @@ class OrderService
                 'note' => $dto->note,
             ];
 
-            // 5. ثبت سفارش و آیتم‌ها
             $order = $this->orderRepository->createOrderWithItems($orderData, $validatedItems);
-
-            // 6. به‌روزرسانی موجودی و آمار فروش
             $this->updateProductStock($validatedItems);
-
-            // 7. پاکسازی سبد خرید کاربر
             $this->clearUserCart($dto->user_id);
 
             Log::info("Order created: {$orderNumber} for user {$dto->user_id}");
+            
+            // ✅ فراخوانی Event برای جداسازی منطق (ارسال پیامک، نوتیفیکیشن و...)
+            OrderCreated::dispatch($order);
 
             return $order;
         });
     }
 
-    /**
-     * Cancel an order
-     */
     public function cancelOrder(int $orderId, int $userId): bool
     {
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
@@ -116,7 +97,6 @@ class OrderService
         }
 
         return DB::transaction(function () use ($order) {
-            // بازگرداندن موجودی محصولات
             foreach ($order->items as $item) {
                 Product::where('id', $item->product_id)->increment('stock', $item->quantity);
                 Product::where('id', $item->product_id)->decrement('sales_count', $item->quantity);
@@ -126,25 +106,16 @@ class OrderService
         });
     }
 
-    /**
-     * Get user order statistics
-     */
     public function getUserStats(int $userId): array
     {
         return $this->orderRepository->getUserStats($userId);
     }
 
-    // ==================== Protected Methods ====================
-
-    /**
-     * Validate items and prepare for order (بهینه‌شده با WhereIn)
-     */
     protected function validateAndPrepareItems(array $items): array
     {
         $validatedItems = [];
         $productIds = array_column($items, 'product_id');
         
-        // دریافت تمام محصولات در یک کوئری برای جلوگیری از N+1
         $products = $this->productRepository->getModel()::whereIn('id', $productIds)->get()->keyBy('id');
 
         foreach ($items as $item) {
@@ -153,11 +124,9 @@ class OrderService
             if (!$product) {
                 throw new \Exception("محصول با شناسه {$item['product_id']} یافت نشد", 404);
             }
-
             if (!$product->is_active) {
                 throw new \Exception("محصول {$product->name} دیگر فعال نیست", 400);
             }
-
             if ($product->stock < $item['quantity']) {
                 throw new \Exception("موجودی {$product->name} کافی نیست. موجودی فعلی: {$product->stock}", 400);
             }
@@ -174,9 +143,6 @@ class OrderService
         return $validatedItems;
     }
 
-    /**
-     * Calculate order totals (بدون کوئری دیتابیس)
-     */
     protected function calculateTotals(array $items): array
     {
         $subtotal = 0;
@@ -193,9 +159,9 @@ class OrderService
 
         $afterDiscount = $subtotal - $discount;
         
-        // حذف اعداد جادویی: استفاده از config (قابل هماهنگی با جدول settings)
+        // ✅ اصلاح تایپو: azkla -> azkala
         $freeShippingThreshold = (float) config('azkala.free_shipping_threshold', 500000);
-        $defaultShippingCost = (float) config('azkla.default_shipping_cost', 50000);
+        $defaultShippingCost = (float) config('azkala.default_shipping_cost', 50000);
         $taxRate = (float) config('azkala.tax_rate', 9);
 
         $shippingCost = $afterDiscount >= $freeShippingThreshold ? 0 : $defaultShippingCost;
@@ -211,9 +177,6 @@ class OrderService
         ];
     }
 
-    /**
-     * Generate unique order number
-     */
     protected function generateOrderNumber(): string
     {
         do {
@@ -224,9 +187,6 @@ class OrderService
         return $orderNumber;
     }
 
-    /**
-     * Update product stock after order
-     */
     protected function updateProductStock(array $items): void
     {
         foreach ($items as $item) {
@@ -238,9 +198,6 @@ class OrderService
         }
     }
 
-    /**
-     * Clear user's cart
-     */
     protected function clearUserCart(int $userId): void
     {
         $cart = Cart::where('user_id', $userId)->first();
@@ -249,9 +206,6 @@ class OrderService
         }
     }
 
-    /**
-     * Format order data for response
-     */
     protected function formatOrderData(Model $order): array
     {
         return [
@@ -290,33 +244,25 @@ class OrderService
         ];
     }
 
-    /**
-     * محاسبه و ثبت کمیسیون پلتفرم و واریز به کیف پول فروشنده (اصلاح‌شده برای چندفروشندگی)
-     */
     public function processCommission(Model $order): void
     {
-        // گروه‌بندی آیتم‌ها بر اساس فروشنده برای پشتیبانی از Multi-Vendor
         $sellerItems = $order->items->groupBy('seller_id');
-        $defaultCommissionRate = (float) config('azkla.default_commission_rate', 5.00);
+        // ✅ اصلاح تایپو: azkla -> azkala
+        $defaultCommissionRate = (float) config('azkala.default_commission_rate', 5.00);
 
         DB::beginTransaction();
         try {
             foreach ($sellerItems as $sellerId => $items) {
-                if (!$sellerId) continue; // رد شدن از آیتم‌های متعلق به خود پلتفرم
+                if (!$sellerId) continue;
 
                 $seller = User::find($sellerId);
                 if (!$seller || $seller->role !== 'seller') continue;
 
                 $commissionRate = (float) ($seller->seller_commission_rate ?? $defaultCommissionRate);
-                
-                $sellerOrderTotal = $items->sum(function($item) {
-                    return $item->price * $item->quantity;
-                });
-
+                $sellerOrderTotal = $items->sum(fn($item) => $item->price * $item->quantity);
                 $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
                 $netAmount = $sellerOrderTotal - $commissionAmount;
 
-                // ثبت تراکنش کسر کمیسیون
                 \App\Models\SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
@@ -326,7 +272,6 @@ class OrderService
                     'status' => 'completed',
                 ]);
 
-                // ثبت تراکنش واریز به کیف پول
                 \App\Models\SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
@@ -348,17 +293,14 @@ class OrderService
         }
     }
 
-    /**
-     * پردازش تسویه حساب فروشندگان پس از تکمیل/تحویل سفارش
-     */
     public function processSellerPayouts(Model $order): void
     {
         if ($order->status === 'settled') {
-            return; // جلوگیری از تسویه تکراری
+            return;
         }
 
         $sellerItems = $order->items->groupBy('seller_id');
-        $defaultCommissionRate = (float) config('azkla.default_commission_rate', 5.00);
+        $defaultCommissionRate = (float) config('azkala.default_commission_rate', 5.00);
 
         DB::beginTransaction();
         try {

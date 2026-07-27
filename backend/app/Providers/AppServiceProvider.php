@@ -4,49 +4,58 @@ namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
+// ایمپورت Event و Listenerها
+use App\Events\Order\OrderCreated;
+use App\Listeners\SendOrderConfirmationSms;
+use App\Listeners\NotifySellerOfNewOrder;
+
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // ==================== Rate Limiters ====================
+        // ==================== ۱. ثبت Eventها و Listenerها ====================
+        Event::listen(
+            OrderCreated::class,
+            SendOrderConfirmationSms::class,
+        );
+
+        Event::listen(
+            OrderCreated::class,
+            NotifySellerOfNewOrder::class,
+        );
+
+        // ==================== ۲. تنظیمات Rate Limiting ====================
         
-        // 🌍 Global API Rate Limiter (پیش‌فرض)
+        // 🌍 Global API Rate Limiter
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 🔐 Authentication Rate Limiter (login/register)
+        // 🔐 Authentication Rate Limiter
         RateLimiter::for('auth', function (Request $request) {
-            // اگر IP قبلاً بلاک شده، ۵ تلاش در دقیقه
-            // در غیر این صورت ۱۰ تلاش در دقیقه
             return Limit::perMinute(10)->by($request->ip());
         });
 
-        // 🔍 Search Rate Limiter (جلوگیری از scraping)
+        // 🔍 Search Rate Limiter
         RateLimiter::for('search', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 📤 Upload Rate Limiter (جلوگیری از abuse)
+        // 📤 Upload Rate Limiter
         RateLimiter::for('upload', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 💬 Chat Rate Limiter (جلوگیری از spam)
+        // 💬 Chat Rate Limiter
         RateLimiter::for('chat', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
@@ -56,7 +65,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 🛡️ Admin Actions Rate Limiter (سخت‌گیرانه‌تر برای عملیات سنگین)
+        // 🛡️ Admin Actions Rate Limiter
         RateLimiter::for('admin-reports', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
@@ -66,7 +75,7 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 📞 OTP Rate Limiter (اگر در آینده اضافه شود)
+        // 📞 OTP Rate Limiter
         RateLimiter::for('otp', function (Request $request) {
             return Limit::perMinute(3)->by($request->ip());
         });
