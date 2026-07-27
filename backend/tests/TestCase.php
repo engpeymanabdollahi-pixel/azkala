@@ -7,16 +7,16 @@ use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
-    use CreatesApplication;
+    // ✅ در لاراول ۱۱، استفاده از CreatesApplication حذف شده است.
 
     protected function tearDown(): void
     {
-        // ✅ بستن تمام تراکنش‌های باز برای جلوگیری از تداخل بین تست‌ها
+        // ✅ بستن اجباری تمام تراکنش‌های باز برای جلوگیری از خطای "already an active transaction" در SQLite
         while (DB::connection()->transactionLevel() > 0) {
             try {
                 DB::rollBack();
             } catch (\Exception $e) {
-                // اگر تراکنشی وجود نداشته باشد، خطا را نادیده بگیر
+                // اگر به هر دلیلی تراکنشی وجود نداشت، حلقه را بشکن
                 break;
             }
         }
