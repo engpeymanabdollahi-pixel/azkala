@@ -106,7 +106,43 @@ Route::prefix('v1')->group(function () {
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
-
+       
+          // ==========================================
+    // مسیر عمومی دریافت تنظیمات ظاهری سایت (بدون نیاز به لاگین)
+    // ==========================================
+    Route::get('/site-settings', function () {
+        try {
+            $keys = [
+                'site_name', 'site_logo', 'site_favicon', 
+                'support_phone', 'support_email', 'address', 'working_hours',
+                'instagram_url', 'telegram_url', 'twitter_url', 'about_text'
+            ];
+            
+            $settings = \App\Models\Setting::whereIn('key', $keys)->get();
+            
+            $result = [];
+            foreach ($settings as $setting) {
+                if (in_array($setting->key, ['site_logo', 'site_favicon']) && $setting->value) {
+                    // ✅ اصلاح حیاتی: فقط اسلش‌های ابتدایی را حذف می‌کنیم، نه کاراکترهای خاص
+                    $cleanPath = ltrim($setting->value, '/');
+                    
+                    // ساخت آدرس کامل و صحیح
+                    $result[$setting->key] = asset('storage/' . $cleanPath);
+                } else {
+                    $result[$setting->key] = $setting->value;
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Site Settings Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'data' => []], 500);
+        }
+    });
+    
     // ============================================================
     // ۲. مسیرهای محافظت‌شده (Auth)
     // ============================================================

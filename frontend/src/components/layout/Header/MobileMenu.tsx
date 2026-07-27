@@ -1,9 +1,10 @@
 import { memo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Smartphone, ChevronLeft, ArrowLeft, Store, User, LogOut, CheckCircle } from 'lucide-react';
+import { X, Smartphone, ChevronLeft, ArrowLeft, Store, User, LogOut, CheckCircle, Layers } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { Badge } from '@/components/ui/Badge';
-import { MOBILE_MENU_ITEMS, SECONDARY_MENU_ITEMS, CATEGORIES } from './constants';
+import { MOBILE_MENU_ITEMS, SECONDARY_MENU_ITEMS } from './constants';
+import { useCategories } from '@/hooks/useCategories';
 import type { UserData } from './types';
 
 interface MobileMenuProps {
@@ -14,10 +15,24 @@ interface MobileMenuProps {
   onLogout: () => void;
 }
 
+// رنگ‌های گرادیان چرخشی برای دسته‌بندی‌ها (چون از دیتابیس نمی‌آیند)
+const CATEGORY_COLORS = [
+  'from-primary-500 to-primary-600',
+  'from-accent-500 to-accent-600',
+  'from-success-500 to-success-600',
+  'from-warning-500 to-warning-600',
+  'from-error-500 to-error-600',
+  'from-blue-500 to-blue-600',
+  'from-purple-500 to-purple-600',
+];
+
 export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogout }: MobileMenuProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeSection, setActiveSection] = useState<'main' | 'categories'>('main');
+  
+  // دریافت دسته‌بندی‌های داینامیک از دیتابیس
+  const { data: categories } = useCategories();
 
   const handleNavigate = (path: string) => {
     onClose();
@@ -214,31 +229,42 @@ export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogo
             </div>
           ) : (
             <div className="py-3">
-              {CATEGORIES.map((category) => (
+              {/* نمایش دسته‌بندی‌های داینامیک */}
+              {categories?.map((category, catIndex) => (
                 <div key={category.id} className="mb-4">
                   <div className="flex items-center gap-2.5 px-5 py-2 mb-1">
                     <div className={cn(
                       'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-white shadow-md',
-                      category.color
+                      CATEGORY_COLORS[catIndex % CATEGORY_COLORS.length]
                     )}>
-                      {category.icon}
+                      {category.image ? (
+                        <img src={category.image} alt={category.name} className="w-5 h-5 object-contain" />
+                      ) : (
+                        <Layers className="w-4 h-4" />
+                      )}
                     </div>
                     <h4 className="font-black text-gray-900 dark:text-white text-sm">{category.name}</h4>
                   </div>
                   <div className="space-y-0.5 pr-4">
-                    {category.subcategories.map((subcat, index) => (
+                    {category.children?.map((subcat) => (
                       <button
-                        key={index}
-                        onClick={() => handleNavigate(subcat.path)}
+                        key={subcat.id}
+                        onClick={() => handleNavigate(`/products?category=${subcat.slug}`)}
                         className="w-full flex items-center gap-2.5 px-5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-right focus:outline-none focus:bg-primary-50 dark:focus:bg-primary-900/20"
                       >
-                        <span className="text-base">{subcat.icon}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600 flex-shrink-0" />
                         <span className="flex-1 text-right">{subcat.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               ))}
+              
+              {(!categories || categories.length === 0) && (
+                <div className="px-5 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  دسته‌بندی‌ای یافت نشد.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -259,7 +285,7 @@ export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogo
 
           <div className="p-4 bg-gradient-to-t from-gray-100 to-gray-50 dark:from-slate-800 dark:to-slate-900 border-t border-gray-200 dark:border-slate-700 text-center text-xs text-gray-600 dark:text-gray-400">
             <p className="font-bold">ازکالا - مارکت‌پلیس لوازم جانبی</p>
-            <p className="mt-1.5">پشتیبانی: ۰۲۱-۱۲۳۴۵۶۷۸</p>
+            <p className="mt-1.5">پشتیبانی: ۲۱-۱۲۳۴۵۶۷۸</p>
           </div>
         </div>
       </div>

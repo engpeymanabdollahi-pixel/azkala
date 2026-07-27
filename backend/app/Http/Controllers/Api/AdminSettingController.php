@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminSettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AdminSettingController extends Controller
 {
@@ -41,11 +42,11 @@ class AdminSettingController extends Controller
     }
 
     /**
-     * به‌روزرسانی گروهی تنظیمات
+     * به‌روزرسانی گروهی تنظیمات (با پشتیبانی هوشمند از آپلود فایل)
      */
     public function updateGroup(Request $request, string $group)
     {
-        $validated = $request->validate([
+        $request->validate([
             'settings' => 'required|array',
             'settings.*.key' => 'required|string',
             'settings.*.value' => 'nullable',
@@ -54,16 +55,70 @@ class AdminSettingController extends Controller
 
         try {
             $userId = $request->user()->id;
-            $updated = $this->settingService->updateGroup(
-                $group,
-                $validated['settings'],
-                $userId,
-                $validated['note'] ?? null
-            );
+            $updated = [];
+            $note = $request->input('note');
+            $rawSettings = $request->input('settings', []);
+
+            foreach ($rawSettings as $index => $settingData) {
+                $key = $settingData['key'] ?? null;
+                if (!$key) continue;
+
+                // بررسی اینکه آیا برای این ایندکس، فایل آپلود شده است یا خیر
+                $file = $request->file("settings.{$index}.value");
+                
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    // پردازش فایل با سیستم بهینه‌سازی اثبات‌شده (PHP GD)
+                    $request->validate([
+                        "settings.{$index}.value" => 'image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+                    ]);
+
+                    try {
+                        $tempPath = $file->getRealPath();
+                        $mime = $file->getMimeType();
+                        
+                        $fileName = $key . '_' . time() . '_' . Str::random(8) . '.webp';
+                        $path = 'admin/settings/' . $fileName;
+                        $fullPath = storage_path('app/public/' . $path);
+
+                        if (!file_exists(dirname($fullPath))) {
+                            mkdir(dirname($fullPath), 0755, true);
+                        }
+
+                        $sourceImage = $this->loadImage($tempPath, $mime);
+                        
+                        if ($sourceImage) {
+                            $width = imagesx($sourceImage);
+                            if ($width > 1200) {
+                                $resizedImage = imagescale($sourceImage, 1200, -1, IMG_BICUBIC_FIXED);
+                                imagedestroy($sourceImage);
+                                $sourceImage = $resizedImage;
+                            }
+
+                            imagewebp($sourceImage, $fullPath, 80);
+                            imagedestroy($sourceImage);
+                            
+                            $processedValue = $path;
+                        } else {
+                            // مکانیزم سقوط ایمن
+                            $processedValue = $file->store('admin/settings', 'public');
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Admin Setting Image Upload Error: ' . $e->getMessage());
+                        $processedValue = $file->store('admin/settings', 'public');
+                    }
+                } else {
+                    // اگر فایل نبود، مقدار متنی را حفظ کن
+                    $processedValue = $settingData['value'] ?? '';
+                }
+
+                // ذخیره در دیتابیس
+                $this->settingService->updateSetting($key, $processedValue, $userId, $note);
+                $updated[] = $key;
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => count($updated) . ' تنظیم به‌روزرسانی شد',
+                'message' => count($updated) . ' تنظیم با موفقیت به‌روزرسانی شد',
                 'data' => ['updated_keys' => $updated],
             ]);
         } catch (\Exception $e) {
@@ -285,6 +340,38 @@ class AdminSettingController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * بارگذاری تصویر با مدیریت خطای قوی (متد کمکی برای بهینه‌سازی عکس)
+     */
+    private function loadImage(string $path, string $mime)
+    {
+        try {
+            if (!file_exists($path)) return null;
+            switch ($mime) {
+                case 'image/jpeg':
+                case 'image/jpg':
+                    return @imagecreatefromjpeg($path) ?: null;
+                case 'image/png':
+                    $img = @imagecreatefrompng($path);
+                    if ($img) {
+                        imagepalettetotruecolor($img);
+                        imagealphablending($img, true);
+                        imagesavealpha($img, true);
+                    }
+                    return $img ?: null;
+                case 'image/webp':
+                    if (function_exists('imagecreatefromwebp')) {
+                        return @imagecreatefromwebp($path) ?: null;
+                    }
+                    return null;
+                default:
+                    return null;
+            }
+        } catch (\Exception $e) {
+            return null;
         }
     }
 }

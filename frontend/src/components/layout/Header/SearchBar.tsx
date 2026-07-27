@@ -3,7 +3,7 @@ import { Search, X, Mic, MicOff, Clock, TrendingUp, ArrowLeft, ChevronDown } fro
 import { cn } from '@/utils/cn';
 import { useSearch, POPULAR_SUGGESTIONS } from './hooks/useSearch';
 import { useVoiceSearch } from './hooks/useVoiceSearch';
-import { SEARCH_CATEGORIES } from './constants';
+import { useCategories } from '@/hooks/useCategories';
 import type { ModelData } from './types';
 
 interface SearchBarProps {
@@ -30,7 +30,14 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
   } = useSearch();
 
   const { isListening, isSupported, toggleVoiceSearch } = useVoiceSearch(setSearchQuery);
+  const { data: categories } = useCategories();
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // ساخت لیست دسته‌بندی‌های جستجو به صورت داینامیک
+  const searchCategories = [
+    { id: 'all', name: 'همه دسته‌ها', slug: '' },
+    ...(categories || []).map(c => ({ id: c.slug, name: c.name, slug: c.slug }))
+  ];
 
   const placeholder = selectedModel
     ? `جستجو در لوازم جانبی ${selectedModel.name}...`
@@ -59,8 +66,8 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
               )}
               aria-label="انتخاب دسته‌بندی جستجو"
             >
-              {SEARCH_CATEGORIES.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              {searchCategories.map((cat) => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
               ))}
             </select>
             <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

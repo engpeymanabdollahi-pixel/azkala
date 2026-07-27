@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query'; // ✅ این خط را اضافه کنید
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Search, User, Menu, X, Smartphone,
@@ -16,6 +17,7 @@ import { useChatStore } from '@/store/chatStore';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { AuthModal } from '@/components/auth/AuthModal';
+import apiClient from '@/services/api/client'; // ✅ این خط را اضافه کنید
 
 // Sub-components
 import { SearchBar } from './SearchBar';
@@ -33,6 +35,14 @@ import { useClickOutside } from './hooks/useClickOutside';
 
 // Constants
 import { NAV_ITEMS } from './constants';
+
+
+// ==================== تابع کمکی تبدیل آدرس عکس ====================
+const getImageUrl = (path: string | null | undefined) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `http://127.0.0.1:8000/storage/${path.replace(/^storage\//, '')}`;
+};
 
 // ==================== Main Header Component ====================
 export function Header() {
@@ -84,6 +94,25 @@ export function Header() {
   const itemsCount = getItemCount();
   const wishlistCount = wishlistItems.length;
   const currentPage = location.pathname;
+
+      // دریافت تنظیمات سایت (لوگو و ...) از مسیر عمومی
+  const { data: settingsData } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      try {
+        // ✅ استفاده از مسیر عمومی که نیاز به لاگین ندارد
+        const res = await apiClient.get('/site-settings');
+        return res.data.data;
+      } catch (e) {
+        return null;
+      }
+    },
+    staleTime: 1000 * 60 * 30, // ۳۰ دقیقه کش (چون تنظیمات سایت به ندرت تغییر می‌کند)
+  });
+
+  // استخراج آدرس لوگو از تنظیمات
+  const siteLogo = settingsData?.site_logo;
+  const logoUrl = getImageUrl(siteLogo);
 
   // Handlers
   const handleNavigate = useCallback((path: string) => {
@@ -167,29 +196,44 @@ export function Header() {
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
 
-            {/* Logo */}
+                       {/* Logo */}
             <button
               onClick={() => handleNavigate('/')}
               className="flex items-center gap-2.5 flex-shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg"
               aria-label="صفحه اصلی ازکالا"
             >
-              <div className={cn(
-                "bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:shadow-xl group-hover:scale-105 group-hover:rotate-3 transition-all duration-300",
-                isScrolled ? 'w-9 h-9' : 'w-11 h-11'
-              )}>
-                <Smartphone className={cn(
-                  "text-white",
-                  isScrolled ? 'w-4 h-4' : 'w-5 h-5'
-                )} aria-hidden="true" />
-              </div>
-              {!isScrolled && (
-                <div className="hidden sm:block">
-                  <div className="flex items-baseline gap-0.5">
-                    <span className="text-2xl font-black text-primary-600 dark:text-primary-400">از</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-white">کالا</span>
+              {logoUrl ? (
+                // ✅ اگر لوگو در ادمین آپلود شده باشد، این عکس نمایش داده می‌شود
+                <img
+                  src={logoUrl}
+                  alt="لوگو ازکالا"
+                  className={cn(
+  "object-contain transition-all duration-300 group-hover:scale-105", 
+  isScrolled ? 'h-14 md:h-16 w-auto' : 'h-18 md:h-20 w-auto'
+)}
+                />
+              ) : (
+                // ✅ حالت پیش‌فرض: اگر لوگویی آپلود نشده باشد، آیکون و متن نمایش داده می‌شود
+                <>
+                  <div className={cn(
+                    "bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30 group-hover:shadow-xl group-hover:scale-105 group-hover:rotate-3 transition-all duration-300",
+                    isScrolled ? 'w-9 h-9' : 'w-11 h-11'
+                  )}>
+                    <Smartphone className={cn(
+                      "text-white",
+                      isScrolled ? 'w-4 h-4' : 'w-5 h-5'
+                    )} aria-hidden="true" />
                   </div>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium -mt-0.5">مارکت‌پلیس لوازم جانبی</p>
-                </div>
+                  {!isScrolled && (
+                    <div className="hidden sm:block">
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="text-2xl font-black text-primary-600 dark:text-primary-400">از</span>
+                        <span className="text-2xl font-black text-gray-900 dark:text-white">کالا</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium -mt-0.5">مارکت‌پلیس لوازم جانبی</p>
+                    </div>
+                  )}
+                </>
               )}
             </button>
 

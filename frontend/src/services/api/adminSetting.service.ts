@@ -62,12 +62,31 @@ export const adminSettingService = {
     return response.data;
   },
 
-  async updateGroup(group: string, settings: Array<{ key: string; value: any }>, note?: string) {
-    const response = await apiClient.post(`/admin/settings/update-group/${group}`, {
-      settings,
-      note,
-    });
-    return response.data;
+    async updateGroup(group: string, settings: Array<{ key: string; value: any }>, note?: string) {
+    // بررسی هوشمند: آیا هیچ‌کدام از مقادیر، شیء File هستند؟
+    const hasFile = settings.some(s => s.value instanceof File);
+
+    if (hasFile) {
+      // ✅ اگر فایل وجود دارد، از FormData استفاده کن
+      const formData = new FormData();
+      if (note) formData.append('note', note);
+      
+      settings.forEach((item, index) => {
+        formData.append(`settings[${index}][key]`, item.key);
+        formData.append(`settings[${index}][value]`, item.value);
+      });
+
+      // Axios به صورت خودکار Boundary صحیح را تنظیم می‌کند
+      const response = await apiClient.post(`/admin/settings/update-group/${group}`, formData);
+      return response.data;
+    } else {
+      // ✅ اگر فقط متن/عدد/بولین است، همان JSON قبلی را ارسال کن
+      const response = await apiClient.post(`/admin/settings/update-group/${group}`, {
+        settings,
+        note,
+      });
+      return response.data;
+    }
   },
 
   async updateSetting(key: string, value: any, note?: string) {

@@ -5,7 +5,9 @@ namespace App\Services\Order;
 use App\DTOs\Order\CreateOrderDTO;
 use App\Models\Cart;
 use App\Models\Product;
+use App\Models\User;
 use App\Repositories\OrderRepository;
+use App\Repositories\ProductRepository;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +17,14 @@ use Illuminate\Support\Str;
 class OrderService
 {
     protected OrderRepository $orderRepository;
+    protected ProductRepository $productRepository;
 
-    public function __construct(OrderRepository $orderRepository)
-    {
+    public function __construct(
+        OrderRepository $orderRepository,
+        ProductRepository $productRepository
+    ) {
         $this->orderRepository = $orderRepository;
+        $this->productRepository = $productRepository;
     }
 
     /**
@@ -37,7 +43,7 @@ class OrderService
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
         if (!$order) {
-            throw new \Exception('ط³ظپط§ط±ط´ غŒط§ظپطھ ظ†ط´ط¯', 404);
+            throw new \Exception('سفارش یافت نشد', 404);
         }
 
         return $this->formatOrderData($order);
@@ -48,23 +54,22 @@ class OrderService
      */
     public function createOrder(CreateOrderDTO $dto): Model
     {
-        // Validate DTO
         $errors = $dto->validate();
         if (!empty($errors)) {
             throw new \Exception(implode(', ', $errors), 422);
         }
 
         return DB::transaction(function () use ($dto) {
-            // 1. Validate and prepare items
+            // 1. اعتبارسنجی و آماده‌سازی آیتم‌ها (فقط ۱ کوئری برای تمام محصولات)
             $validatedItems = $this->validateAndPrepareItems($dto->items);
 
-            // 2. Calculate totals
+            // 2. محاسبه مجموع‌ها (بدون هیچ کوئری اضافی)
             $totals = $this->calculateTotals($validatedItems);
 
-            // 3. Generate unique order number
+            // 3. تولید شماره سفارش یکتا
             $orderNumber = $this->generateOrderNumber();
 
-            // 4. Prepare order data
+            // 4. آماده‌سازی داده‌های سفارش
             $orderData = [
                 'user_id' => $dto->user_id,
                 'order_number' => $orderNumber,
@@ -80,16 +85,13 @@ class OrderService
                 'note' => $dto->note,
             ];
 
-            // 5. Create order with items
-            $order = $this->orderRepository->createOrderWithItems(
-                $orderData,
-                $validatedItems
-            );
+            // 5. ثبت سفارش و آیتم‌ها
+            $order = $this->orderRepository->createOrderWithItems($orderData, $validatedItems);
 
-            // 6. Update product stock and sales count
+            // 6. به‌روزرسانی موجودی و آمار فروش
             $this->updateProductStock($validatedItems);
 
-            // 7. Clear user's cart
+            // 7. پاکسازی سبد خرید کاربر
             $this->clearUserCart($dto->user_id);
 
             Log::info("Order created: {$orderNumber} for user {$dto->user_id}");
@@ -106,25 +108,20 @@ class OrderService
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
         if (!$order) {
-            throw new \Exception('ط³ظپط§ط±ط´ غŒط§ظپطھ ظ†ط´ط¯', 404);
+            throw new \Exception('سفارش یافت نشد', 404);
         }
 
-        // Check if order can be cancelled
         if (!in_array($order->status, ['pending', 'processing'])) {
-            throw new \Exception('ط§غŒظ† ط³ظپط§ط±ط´ ظ‚ط§ط¨ظ„ ظ„ط؛ظˆ ظ†غŒط³طھ', 400);
+            throw new \Exception('این سفارش قابل لغو نیست', 400);
         }
 
         return DB::transaction(function () use ($order) {
-            // 1. Restore product stock
+            // بازگرداندن موجودی محصولات
             foreach ($order->items as $item) {
-                Product::where('id', $item->product_id)
-                    ->increment('stock', $item->quantity);
-                
-                Product::where('id', $item->product_id)
-                    ->decrement('sales_count', $item->quantity);
+                Product::where('id', $item->product_id)->increment('stock', $item->quantity);
+                Product::where('id', $item->product_id)->decrement('sales_count', $item->quantity);
             }
 
-            // 2. Update order status
             return $this->orderRepository->updateStatus($orderId, 'cancelled');
         });
     }
@@ -140,34 +137,36 @@ class OrderService
     // ==================== Protected Methods ====================
 
     /**
-     * Validate items and prepare for order
+     * Validate items and prepare for order (بهینه‌شده با WhereIn)
      */
     protected function validateAndPrepareItems(array $items): array
     {
         $validatedItems = [];
+        $productIds = array_column($items, 'product_id');
+        
+        // دریافت تمام محصولات در یک کوئری برای جلوگیری از N+1
+        $products = $this->productRepository->getModel()::whereIn('id', $productIds)->get()->keyBy('id');
 
         foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
+            $product = $products->get($item['product_id']);
 
             if (!$product) {
-                throw new \Exception("ظ…ط­طµظˆظ„ ط¨ط§ ط´ظ†ط§ط³ظ‡ {$item['product_id']} غŒط§ظپطھ ظ†ط´ط¯", 404);
+                throw new \Exception("محصول با شناسه {$item['product_id']} یافت نشد", 404);
             }
 
             if (!$product->is_active) {
-                throw new \Exception("ظ…ط­طµظˆظ„ {$product->name} ط¯غŒع¯ط± ظپط¹ط§ظ„ ظ†غŒط³طھ", 400);
+                throw new \Exception("محصول {$product->name} دیگر فعال نیست", 400);
             }
 
             if ($product->stock < $item['quantity']) {
-                throw new \Exception(
-                    "ظ…ظˆط¬ظˆط¯غŒ {$product->name} ع©ط§ظپغŒ ظ†غŒط³طھ. ظ…ظˆط¬ظˆط¯غŒ: {$product->stock}",
-                    400
-                );
+                throw new \Exception("موجودی {$product->name} کافی نیست. موجودی فعلی: {$product->stock}", 400);
             }
 
             $validatedItems[] = [
                 'product_id' => $product->id,
                 'quantity' => $item['quantity'],
                 'price' => $product->price,
+                'discount_percentage' => $product->discount_percentage ?? 0,
                 'seller_id' => $product->seller_id,
             ];
         }
@@ -176,7 +175,7 @@ class OrderService
     }
 
     /**
-     * Calculate order totals
+     * Calculate order totals (بدون کوئری دیتابیس)
      */
     protected function calculateTotals(array $items): array
     {
@@ -184,19 +183,23 @@ class OrderService
         $discount = 0;
 
         foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
-            $itemTotal = $product->price * $item['quantity'];
+            $itemTotal = $item['price'] * $item['quantity'];
             $subtotal += $itemTotal;
 
-            // Calculate discount if any
-            if ($product->discount_percentage > 0) {
-                $discount += ($itemTotal * $product->discount_percentage) / 100;
+            if (!empty($item['discount_percentage'])) {
+                $discount += ($itemTotal * $item['discount_percentage']) / 100;
             }
         }
 
         $afterDiscount = $subtotal - $discount;
-        $shippingCost = $afterDiscount > 500000 ? 0 : 50000; // Free shipping over 500k
-        $tax = $afterDiscount * 0.09; // 9% tax
+        
+        // حذف اعداد جادویی: استفاده از config (قابل هماهنگی با جدول settings)
+        $freeShippingThreshold = (float) config('azkala.free_shipping_threshold', 500000);
+        $defaultShippingCost = (float) config('azkla.default_shipping_cost', 50000);
+        $taxRate = (float) config('azkala.tax_rate', 9);
+
+        $shippingCost = $afterDiscount >= $freeShippingThreshold ? 0 : $defaultShippingCost;
+        $tax = $afterDiscount * ($taxRate / 100);
         $total = $afterDiscount + $shippingCost + $tax;
 
         return [
@@ -227,10 +230,10 @@ class OrderService
     protected function updateProductStock(array $items): void
     {
         foreach ($items as $item) {
-            Product::where('id', $item['product_id'])
+            $this->productRepository->getModel()::where('id', $item['product_id'])
                 ->decrement('stock', $item['quantity']);
             
-            Product::where('id', $item['product_id'])
+            $this->productRepository->getModel()::where('id', $item['product_id'])
                 ->increment('sales_count', $item['quantity']);
         }
     }
@@ -287,113 +290,107 @@ class OrderService
         ];
     }
 
-
     /**
-     * محاسبه و ثبت کمیسیون پلتفرم و واریز به کیف پول فروشنده
+     * محاسبه و ثبت کمیسیون پلتفرم و واریز به کیف پول فروشنده (اصلاح‌شده برای چندفروشندگی)
      */
-    public function processCommission(Order $order): void
+    public function processCommission(Model $order): void
     {
-        // فرض: تمام آیتم‌های این سفارش متعلق به یک فروشنده است (یا فروشنده اصلی سفارش)
-        // اگر چند فروشنده دارید، این حلقه باید روی $order->items بچرخد
-        $firstItem = $order->items->first();
-        if (!$firstItem || !$firstItem->product) {
-            return;
-        }
-
-        // پیدا کردن فروشنده (فرض بر این است که product متعلق به user با نقش seller است)
-        $seller = $firstItem->product->user; // یا $firstItem->product->seller بسته به مدل شما
-        
-        if (!$seller || $seller->role !== 'seller') {
-            return; // اگر فروشنده مشخص نبود، کمیسیونی کسر نمی‌شود
-        }
-
-        // ۱. محاسبه مبالغ
-        $orderTotal = (float) $order->total;
-        $commissionRate = (float) ($seller->seller_commission_rate ?? 5.00); // پیش‌فرض ۵ درصد
-        $commissionAmount = $orderTotal * ($commissionRate / 100);
-        $sellerPayout = $orderTotal - $commissionAmount;
-
-        // ۲. ثبت تراکنش کمیسیون (کسر از سهم فروشنده)
-        \App\Models\SellerTransaction::create([
-            'seller_id' => $seller->id,
-            'order_id' => $order->id,
-            'type' => 'commission_deduction',
-            'amount' => $commissionAmount,
-            'description' => "کسر کمیسیون {}% از سفارش {->order_number}",
-            'status' => 'completed',
-        ]);
-
-        // ۳. ثبت تراکنش واریز به کیف پول
-        \App\Models\SellerTransaction::create([
-            'seller_id' => $seller->id,
-            'order_id' => $order->id,
-            'type' => 'payout',
-            'amount' => $sellerPayout,
-            'description' => "واریز سهم فروشنده از سفارش {->order_number}",
-            'status' => 'completed',
-        ]);
-
-        // ۴. افزایش موجودی کیف پول فروشنده
-        $seller->increment('wallet_balance', $sellerPayout);
-
-        \Illuminate\Support\Facades\Log::info("Commission processed for order {->order_number}. Total: {}, Commission: {}, Payout: {}");
-    }
-     
-        /**
-     * پردازش تسویه حساب فروشندگان پس از تکمیل/تحویل سفارش
-     * این متد باید زمانی فراخوانی شود که وضعیت سفارش به 'delivered' تغییر کند 
-     * یا توسط Cron Job پس از ۷ روز از 'shipped' شدن اجرا شود.
-     */
-    public function processSellerPayouts(\App\Models\Order $order): void
-    {
-        // گروه‌بندی آیتم‌های سفارش بر اساس فروشنده
+        // گروه‌بندی آیتم‌ها بر اساس فروشنده برای پشتیبانی از Multi-Vendor
         $sellerItems = $order->items->groupBy('seller_id');
+        $defaultCommissionRate = (float) config('azkla.default_commission_rate', 5.00);
 
-        \Illuminate\Support\Facades\DB::beginTransaction();
+        DB::beginTransaction();
         try {
             foreach ($sellerItems as $sellerId => $items) {
-                // اگر آیتم متعلق به خود پلتفرم است (seller_id ندارد)، از محاسبات رد می‌شود
-                if (!$sellerId) continue;
+                if (!$sellerId) continue; // رد شدن از آیتم‌های متعلق به خود پلتفرم
 
-                // ۱. دریافت نرخ کمیسیون اختصاصی فروشنده (پیش‌فرض ۵٪)
-                $seller = \App\Models\User::find($sellerId);
-                $commissionRate = (float) ($seller->seller_commission_rate ?? 5.00);
+                $seller = User::find($sellerId);
+                if (!$seller || $seller->role !== 'seller') continue;
 
-                // ۲. محاسبه مبلغ کل این فروشنده در این سفارش
+                $commissionRate = (float) ($seller->seller_commission_rate ?? $defaultCommissionRate);
+                
                 $sellerOrderTotal = $items->sum(function($item) {
                     return $item->price * $item->quantity;
                 });
 
-                // ۳. محاسبه کمیسیون و مبلغ خالص قابل پرداخت
                 $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
                 $netAmount = $sellerOrderTotal - $commissionAmount;
 
-                // ۴. افزایش موجودی کیف پول فروشنده
-                $seller->increment('wallet_balance', $netAmount);
-
-                // ۵. ثبت تراکنش شفاف برای فروشنده (مطابق با مایگریشن شما)
+                // ثبت تراکنش کسر کمیسیون
                 \App\Models\SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
-                    'type' => 'payout', // یا 'order_payout' اگر در enum دارید
-                    'amount' => $netAmount,
-                    'description' => "واریز سهم فروش سفارش {$order->order_number} (مبلغ کل: {$sellerOrderTotal} | کسر کمیسیون {$commissionRate}%: {$commissionAmount})",
+                    'type' => 'commission_deduction',
+                    'amount' => $commissionAmount,
+                    'description' => "کسر کمیسیون {$commissionRate}% از سفارش {$order->order_number}",
                     'status' => 'completed',
                 ]);
 
-                // ۶. (اختیاری) ثبت درآمد پلتفرم
-                // اگر جدولی برای درآمد پلتفرم دارید، اینجا رکورد آن را بسازید.
+                // ثبت تراکنش واریز به کیف پول
+                \App\Models\SellerTransaction::create([
+                    'seller_id' => $sellerId,
+                    'order_id' => $order->id,
+                    'type' => 'payout',
+                    'amount' => $netAmount,
+                    'description' => "واریز سهم فروشنده از سفارش {$order->order_number}",
+                    'status' => 'completed',
+                ]);
+
+                $seller->increment('wallet_balance', $netAmount);
             }
 
-            // به‌روزرسانی وضعیت نهایی سفارش
-            $order->update(['status' => 'settled']);
-
-            \Illuminate\Support\Facades\DB::commit();
-            \Illuminate\Support\Facades\Log::info("تسویه حساب سفارش {$order->order_number} با موفقیت انجام شد.");
-            
+            DB::commit();
+            Log::info("Commission processed for order {$order->order_number}");
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\DB::rollBack();
-            \Illuminate\Support\Facades\Log::error('خطا در پردازش تسویه حساب: ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('خطا در پردازش کمیسیون: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * پردازش تسویه حساب فروشندگان پس از تکمیل/تحویل سفارش
+     */
+    public function processSellerPayouts(Model $order): void
+    {
+        if ($order->status === 'settled') {
+            return; // جلوگیری از تسویه تکراری
+        }
+
+        $sellerItems = $order->items->groupBy('seller_id');
+        $defaultCommissionRate = (float) config('azkla.default_commission_rate', 5.00);
+
+        DB::beginTransaction();
+        try {
+            foreach ($sellerItems as $sellerId => $items) {
+                if (!$sellerId) continue;
+
+                $seller = User::find($sellerId);
+                if (!$seller) continue;
+
+                $commissionRate = (float) ($seller->seller_commission_rate ?? $defaultCommissionRate);
+                $sellerOrderTotal = $items->sum(fn($item) => $item->price * $item->quantity);
+                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
+                $netAmount = $sellerOrderTotal - $commissionAmount;
+
+                $seller->increment('wallet_balance', $netAmount);
+
+                \App\Models\SellerTransaction::create([
+                    'seller_id' => $sellerId,
+                    'order_id' => $order->id,
+                    'type' => 'final_payout',
+                    'amount' => $netAmount,
+                    'description' => "تسویه نهایی سفارش {$order->order_number} (مبلغ کل: {$sellerOrderTotal} | کسر کمیسیون {$commissionRate}%: {$commissionAmount})",
+                    'status' => 'completed',
+                ]);
+            }
+
+            $order->update(['status' => 'settled']);
+            DB::commit();
+            Log::info("تسویه حساب نهایی سفارش {$order->order_number} با موفقیت انجام شد.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('خطا در پردازش تسویه حساب نهایی: ' . $e->getMessage());
             throw $e;
         }
     }
