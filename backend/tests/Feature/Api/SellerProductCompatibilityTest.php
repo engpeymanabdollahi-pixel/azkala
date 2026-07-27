@@ -66,7 +66,7 @@ class SellerProductCompatibilityTest extends TestCase
         ];
 
         $response = $this->actingAs($this->seller, 'sanctum')
-                         ->postJson('/api/seller/products', $payload);
+                         ->postJson('/api/v1/seller/products', $payload);
 
         $response->assertStatus(201);
 
@@ -87,7 +87,7 @@ class SellerProductCompatibilityTest extends TestCase
         $product->deviceModels()->attach($this->modelAId);
 
         $response = $this->actingAs($this->seller, 'sanctum')
-                         ->putJson("/api/seller/products/{$product->id}", [
+                         ->putJson("/api/v1/seller/products/{$product->id}", [
                              'name' => 'ویرایش شده',
                              'price' => 160000,
                              'device_model_ids' => [$this->modelBId],
@@ -111,7 +111,7 @@ class SellerProductCompatibilityTest extends TestCase
         $product = Product::factory()->create(['seller_id' => $otherSeller->id]);
 
         $response = $this->actingAs($this->seller, 'sanctum')
-                         ->putJson("/api/seller/products/{$product->id}", [
+                         ->putJson("/api/v1/seller/products/{$product->id}", [
                              'name' => 'هک',
                              'device_model_ids' => [$this->modelAId],
                          ]);
