@@ -3,19 +3,24 @@
 namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Support\Facades\DB;
 
 abstract class TestCase extends BaseTestCase
 {
-    /**
-     * ✅ اصلاح شده: جلوگیری از افزودن تکراری /v1/
-     */
-    protected function prepareUrlForRequest($uri)
+    use CreatesApplication;
+
+    protected function tearDown(): void
     {
-        // فقط اگر /api/ بود و /api/v1/ نبود، تبدیل کن
-        if (str_starts_with($uri, '/api/') && !str_starts_with($uri, '/api/v1/')) {
-            $uri = '/api/v1' . substr($uri, 4);
+        // ✅ بستن تمام تراکنش‌های باز برای جلوگیری از تداخل بین تست‌ها
+        while (DB::connection()->transactionLevel() > 0) {
+            try {
+                DB::rollBack();
+            } catch (\Exception $e) {
+                // اگر تراکنشی وجود نداشته باشد، خطا را نادیده بگیر
+                break;
+            }
         }
-        
-        return parent::prepareUrlForRequest($uri);
+
+        parent::tearDown();
     }
 }
