@@ -116,7 +116,7 @@ class OrderService
         $validatedItems = [];
         $productIds = array_column($items, 'product_id');
         
-        $products = $this->productRepository->getModel()::whereIn('id', $productIds)->get()->keyBy('id');
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
         foreach ($items as $item) {
             $product = $products->get($item['product_id']);
@@ -187,13 +187,14 @@ class OrderService
         return $orderNumber;
     }
 
-    protected function updateProductStock(array $items): void
+       protected function updateProductStock(array $items): void
     {
         foreach ($items as $item) {
-            $this->productRepository->getModel()::where('id', $item['product_id'])
+            // ✅ اصلاح: استفاده مستقیم از کلاس Product به جای getModel()
+            Product::where('id', $item['product_id'])
                 ->decrement('stock', $item['quantity']);
             
-            $this->productRepository->getModel()::where('id', $item['product_id'])
+            Product::where('id', $item['product_id'])
                 ->increment('sales_count', $item['quantity']);
         }
     }
