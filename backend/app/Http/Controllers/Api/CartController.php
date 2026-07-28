@@ -2,50 +2,46 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\IncompatibleProductException;
+use App\Exceptions\OutOfStockException;
 use App\Http\Controllers\Controller;
-use App\Models\Cart;
 use App\Services\CartService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
-    protected CartService $cartService;
-
-    public function __construct(CartService $cartService)
-    {
-        $this->cartService = $cartService;
-    }
+    // ✅ استفاده از Constructor Property Promotion برای خلاصه‌نویسی
+    public function __construct(protected CartService $cartService) {}
 
     public function index()
     {
         $user = Auth::user();
         $cart = $this->cartService->getOrCreateCart($user?->id, session()->getId());
-        $cart->load('items.product');
 
         return response()->json([
             'success' => true,
-            'data' => $cart,
+            'data' => $cart->load('items.product'),
         ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
             'quantity' => 'required|integer|min:1',
             'device_model_id' => 'nullable|integer|exists:device_models,id',
         ]);
 
         try {
-            $user = Auth::user();
-            $cart = $this->cartService->getOrCreateCart($user?->id, session()->getId());
+            $cart = $this->cartService->getOrCreateCart(Auth::id(), session()->getId());
             
             $cartItem = $this->cartService->addItem(
-                $cart, 
-                $request->product_id, 
-                $request->quantity, 
-                $request->device_model_id
+                $cart,
+                $validated['product_id'],
+                $validated['quantity'],
+                $validated['device_model_id'] ?? null
             );
 
             return response()->json([
@@ -54,9 +50,7 @@ class CartController extends Controller
                 'data' => $cartItem->load('product'),
             ], 201);
 
-        } catch (\App\Exceptions\OutOfStockException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
-        } catch (\App\Exceptions\IncompatibleProductException $e) {
+        } catch (OutOfStockException|IncompatibleProductException $e) { // ✅ خلاصه‌سازی با Union Type
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطا در افزودن به سبد خرید.'], 500);
@@ -65,18 +59,16 @@ class CartController extends Controller
 
     public function update(Request $request, int $cartItemId)
     {
-        $request->validate([
+        $validated = $request->validate([
             'quantity' => 'required|integer|min:1',
         ]);
 
         try {
-            $user = Auth::user();
-            $cart = $this->cartService->getOrCreateCart($user?->id, session()->getId());
-            
-            // بررسی امنیت: مطمئن شویم آیتم متعلق به همین سبد است
-            $item = $cart->items()->findOrFail($cartItemId);
+            $cart = $this->cartService->getOrCreateCart(Auth::id(), session()->getId());
 
-            $updatedItem = $this->cartService->updateItemQuantity($cart, $cartItemId, $request->quantity);
+            // ✅ حذف خط اضافی findOrFail: سرویس خودش این بررسی امنیتی را انجام می‌دهد
+            
+            $updatedItem = $this->cartService->updateItemQuantity($cart, $cartItemId, $validated['quantity']);
 
             return response()->json([
                 'success' => true,
@@ -84,18 +76,16 @@ class CartController extends Controller
                 'data' => $updatedItem,
             ]);
 
-        } catch (\App\Exceptions\OutOfStockException $e) {
+        } catch (OutOfStockException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'آیتم در سبد خرید یافت نشد.'], 404);
         }
     }
 
     public function destroy(int $cartItemId)
     {
-        $user = Auth::user();
-        $cart = $this->cartService->getOrCreateCart($user?->id, session()->getId());
-        
+        $cart = $this->cartService->getOrCreateCart(Auth::id(), session()->getId());
         $deleted = $this->cartService->removeItem($cart, $cartItemId);
 
         if ($deleted) {
