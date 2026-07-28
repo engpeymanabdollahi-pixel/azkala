@@ -5,45 +5,31 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminCategoryService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class AdminCategoryController extends Controller
 {
-    protected AdminCategoryService $categoryService;
-
-    public function __construct(AdminCategoryService $categoryService)
-    {
-        $this->categoryService = $categoryService;
-    }
+    public function __construct(protected AdminCategoryService $categoryService) {}
 
     /**
      * لیست دسته‌بندی‌ها
      */
     public function index(Request $request)
     {
-        try {
-            $filters = [
-                'search' => $request->get('search'),
-                'type' => $request->get('type'),
-                'is_active' => $request->get('is_active'),
-                'parent_id' => $request->get('parent_id'),
-                'sort_by' => $request->get('sort_by', 'sort_order'),
-                'sort_order' => $request->get('sort_order', 'asc'),
-            ];
+        $filters = [
+            'search' => $request->get('search'),
+            'type' => $request->get('type'),
+            'is_active' => $request->get('is_active'),
+            'parent_id' => $request->get('parent_id'),
+            'sort_by' => $request->get('sort_by', 'sort_order'),
+            'sort_order' => $request->get('sort_order', 'asc'),
+        ];
 
-            $data = $this->categoryService->getCategories($filters, (int) $request->get('per_page', 50));
+        $data = $this->categoryService->getCategories($filters, (int) $request->get('per_page', 50));
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminCategoryController@index: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**
@@ -51,20 +37,12 @@ class AdminCategoryController extends Controller
      */
     public function tree()
     {
-        try {
-            $data = $this->categoryService->getCategoryTree();
+        $data = $this->categoryService->getCategoryTree();
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminCategoryController@tree: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**
@@ -94,21 +72,13 @@ class AdminCategoryController extends Controller
             'text_color' => 'nullable|string|max:20',
         ]);
 
-        try {
-            $category = $this->categoryService->createCategory($validated);
+        $category = $this->categoryService->createCategory($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'دسته‌بندی ایجاد شد',
-                'data' => $category,
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('AdminCategoryController@store: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'دسته‌بندی ایجاد شد',
+            'data' => $category,
+        ], 201);
     }
 
     /**
@@ -116,20 +86,12 @@ class AdminCategoryController extends Controller
      */
     public function show($id)
     {
-        try {
-            $data = $this->categoryService->getCategoryDetails((int) $id);
+        $data = $this->categoryService->getCategoryDetails((int) $id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**
@@ -158,21 +120,13 @@ class AdminCategoryController extends Controller
             'text_color' => 'nullable|string|max:20',
         ]);
 
-        try {
-            $category = $this->categoryService->updateCategory((int) $id, $validated);
+        $category = $this->categoryService->updateCategory((int) $id, $validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'دسته‌بندی به‌روزرسانی شد',
-                'data' => $category,
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'دسته‌بندی به‌روزرسانی شد',
+            'data' => $category,
+        ]);
     }
 
     /**
@@ -186,19 +140,11 @@ class AdminCategoryController extends Controller
             'action' => 'required|in:activate,deactivate,delete',
         ]);
 
-        try {
-            $result = $this->categoryService->bulkAction($validated['ids'], $validated['action']);
+        $result = $this->categoryService->bulkAction($validated['ids'], $validated['action']);
 
-            return response()->json([
-                'success' => true,
-                'message' => $result['message'],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminCategoryController@bulkAction: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+        ]);
     }
 }
