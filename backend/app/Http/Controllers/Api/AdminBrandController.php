@@ -5,52 +5,49 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminBrandService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class AdminBrandController extends Controller
 {
-    protected AdminBrandService $brandService;
-
-    public function __construct(AdminBrandService $brandService)
-    {
-        $this->brandService = $brandService;
-    }
+    public function __construct(protected AdminBrandService $brandService) {}
 
     /**
-     * ظ„غŒط³طھ ط¨ط±ظ†ط¯ظ‡ط§
+     * لیست برندها با فیلتر
      */
     public function index(Request $request)
     {
-        try {
-            $filters = [
-                'search' => $request->get('search'),
-                'is_active' => $request->filled('is_active') ? (bool) $request->is_active : null,
-                'is_featured' => $request->filled('is_featured') ? (bool) $request->is_featured : null,
-                'verified' => $request->filled('verified') ? (bool) $request->verified : null,
-                'country' => $request->get('country'),
-                'sort_by' => $request->get('sort_by', 'sort_order'),
-                'sort_order' => $request->get('sort_order', 'asc'),
-            ];
+        $filters = [
+            'search' => $request->get('search'),
+            'is_active' => $request->filled('is_active') ? (bool) $request->is_active : null,
+            'is_featured' => $request->filled('is_featured') ? (bool) $request->is_featured : null,
+            'verified' => $request->filled('verified') ? (bool) $request->verified : null,
+            'country' => $request->get('country'),
+            'sort_by' => $request->get('sort_by', 'sort_order'),
+            'sort_order' => $request->get('sort_order', 'asc'),
+        ];
 
-            $data = $this->brandService->getBrands($filters, (int) $request->get('per_page', 20));
+        $data = $this->brandService->getBrands($filters, (int) $request->get('per_page', 20));
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminBrandController@index: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
-   
+    /**
+     * نمایش جزئیات یک برند
+     */
+    public function show(int $id)
+    {
+        $data = $this->brandService->getBrandDetails($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
 
     /**
-     * ط§غŒط¬ط§ط¯ ط¨ط±ظ†ط¯ ط¬ط¯غŒط¯
+     * ایجاد برند جدید
      */
     public function store(Request $request)
     {
@@ -74,25 +71,17 @@ class AdminBrandController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        try {
-            $brand = $this->brandService->createBrand($validated);
+        $brand = $this->brandService->createBrand($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ط¨ط±ظ†ط¯ ط§غŒط¬ط§ط¯ ط´ط¯',
-                'data' => $brand,
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('AdminBrandController@store: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'برند ایجاد شد',
+            'data' => $brand,
+        ], 201);
     }
 
     /**
-     * ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ط¨ط±ظ†ط¯
+     * به‌روزرسانی برند
      */
     public function update(Request $request, $id)
     {
@@ -118,86 +107,56 @@ class AdminBrandController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        try {
-            $brand = $this->brandService->updateBrand((int) $id, $validated);
+        $brand = $this->brandService->updateBrand((int) $id, $validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ط¨ط±ظ†ط¯ ط¨ظ‡â€Œط±ظˆط²ط±ط³ط§ظ†غŒ ط´ط¯',
-                'data' => $brand,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminBrandController@update: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'برند به‌روزرسانی شد',
+            'data' => $brand,
+        ]);
     }
 
     /**
-     * ط­ط°ظپ ط¨ط±ظ†ط¯
+     * حذف برند
      */
     public function destroy($id)
     {
-        try {
-            $this->brandService->deleteBrand((int) $id);
+        $this->brandService->deleteBrand((int) $id);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ط¨ط±ظ†ط¯ ط­ط°ظپ ط´ط¯',
-            ]);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() ?: 500;
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $statusCode);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'برند حذف شد',
+        ]);
     }
 
     /**
-     * طھط£غŒغŒط¯ ط¨ط±ظ†ط¯
+     * تأیید برند
      */
     public function verify($id)
     {
-        try {
-            $this->brandService->verifyBrand((int) $id);
+        $this->brandService->verifyBrand((int) $id);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'ط¨ط±ظ†ط¯ طھط£غŒغŒط¯ ط´ط¯',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'برند تأیید شد',
+        ]);
     }
 
     /**
-     * ظ„ط؛ظˆ طھط£غŒغŒط¯ ط¨ط±ظ†ط¯
+     * لغو تأیید برند
      */
     public function unverify($id)
     {
-        try {
-            $this->brandService->unverifyBrand((int) $id);
+        $this->brandService->unverifyBrand((int) $id);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'طھط£غŒغŒط¯غŒظ‡ ط¨ط±ظ†ط¯ ظ„ط؛ظˆ ط´ط¯',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
+        return response()->json([
+            'success' => true,
+            'message' => 'تأیید برند لغو شد',
+        ]);
     }
 
     /**
-     * ط¹ظ…ظ„غŒط§طھ ع¯ط±ظˆظ‡غŒ
+     * عملیات گروهی
      */
     public function bulkAction(Request $request)
     {
@@ -207,46 +166,11 @@ class AdminBrandController extends Controller
             'action' => 'required|in:activate,deactivate,feature,unfeature,delete',
         ]);
 
-        try {
-            $result = $this->brandService->bulkAction($validated['ids'], $validated['action']);
+        $result = $this->brandService->bulkAction($validated['ids'], $validated['action']);
 
-            return response()->json([
-                'success' => true,
-                'message' => $result['message'],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('AdminBrandController@bulkAction: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
-        }
-    }
-    public function show(int $id)
-{
-    try {
-        $brand = \App\Models\Brand::findOrFail($id);
-        
         return response()->json([
             'success' => true,
-            'data' => [
-                'brand' => [
-                    'id' => $brand->id,
-                    'name' => $brand->name,
-                    'slug' => $brand->slug,
-                    'country' => $brand->country,
-                    'is_active' => $brand->is_active,
-                    'is_verified' => $brand->is_verified,
-                    'created_at' => $brand->created_at,
-                    'updated_at' => $brand->updated_at,
-                ]
-            ]
+            'message' => $result['message'],
         ]);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'برند یافت نشد'
-        ], 404);
     }
-}
 }
