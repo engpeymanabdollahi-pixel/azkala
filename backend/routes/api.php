@@ -322,8 +322,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/chat-stats', [AdminDashboardController::class, 'chatStats'])->name('chat-stats');
                 Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');
                 Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
-                Route::get('/brands/{id}', [\App\Http\Controllers\Api\AdminBrandController::class, 'show'])->name('brands.show');
-                Route::apiResource('brands', \App\Http\Controllers\Api\AdminBrandController::class)->except(['show']);
             });
             
             Route::prefix('settings')->name('settings.')->group(function () {
@@ -396,14 +394,14 @@ Route::prefix('v1')->group(function () {
                 Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->name('bulk-action');
             });
 
-            Route::prefix('brands')->name('brands.')->group(function () {
+                       Route::prefix('brands')->name('brands.')->group(function () {
                 Route::get('/', [AdminBrandController::class, 'index'])->name('index');
                 Route::post('/', [AdminBrandController::class, 'store'])->name('store');
-                Route::get('/{brand}', [AdminBrandController::class, 'show'])->name('show');
-                Route::put('/{brand}', [AdminBrandController::class, 'update'])->name('update');
-                Route::delete('/{brand}', [AdminBrandController::class, 'destroy'])->name('destroy');
-                Route::post('/{brand}/verify', [AdminBrandController::class, 'verify'])->name('verify');
-                Route::post('/{brand}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify');
+                Route::get('/{id}', [AdminBrandController::class, 'show'])->name('show');          // ✅ تغییر به {id}
+                Route::put('/{id}', [AdminBrandController::class, 'update'])->name('update');      // ✅ تغییر به {id}
+                Route::delete('/{id}', [AdminBrandController::class, 'destroy'])->name('destroy'); // ✅ تغییر به {id}
+                Route::post('/{id}/verify', [AdminBrandController::class, 'verify'])->name('verify');       // ✅ تغییر به {id}
+                Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify'); // ✅ تغییر به {id}
                 Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
             });
 

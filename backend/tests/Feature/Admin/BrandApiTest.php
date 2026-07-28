@@ -65,7 +65,7 @@ class BrandApiTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->customer)
-            ->putJson("/api/admin/brands/{$brand->id}", [
+            ->putJson("/api/v1/admin/brands/{$brand->id}", [ // ✅ اصلاح شد
                 'name' => 'Updated',
             ]);
 
@@ -77,7 +77,7 @@ class BrandApiTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->customer)
-            ->deleteJson("/api/admin/brands/{$brand->id}");
+            ->deleteJson("/api/v1/admin/brands/{$brand->id}"); // ✅ اصلاح شد
 
         $response->assertStatus(403);
     }
@@ -139,7 +139,7 @@ class BrandApiTest extends TestCase
         $brand = Brand::factory()->create();
 
         $response = $this->actingAs($this->admin)
-            ->getJson("/api/admin/brands/{$brand->id}");
+            ->getJson("/api/v1/admin/brands/{$brand->id}"); // ✅ اصلاح شد
 
         $response->assertStatus(200)
             ->assertJsonPath('data.brand.id', $brand->id)
@@ -204,12 +204,12 @@ class BrandApiTest extends TestCase
 
     // ==================== Update Brand Tests ====================
 
-    public function test_admin_can_update_brand(): void
+   public function test_admin_can_update_brand(): void
     {
         $brand = Brand::factory()->create(['name' => 'Old Name']);
 
         $response = $this->actingAs($this->admin)
-            ->putJson("/api/admin/brands/{$brand->id}", [
+            ->putJson("/api/v1/admin/brands/{$brand->id}", [ // ✅ اصلاح شد
                 'name' => 'New Name',
             ]);
 
@@ -233,24 +233,24 @@ class BrandApiTest extends TestCase
 
     // ==================== Delete Brand Tests ====================
 
-    public function test_admin_can_delete_brand(): void
+        public function test_admin_can_delete_brand(): void
     {
         $brand = Brand::factory()->create(['products_count' => 0]);
 
         $response = $this->actingAs($this->admin)
-            ->deleteJson("/api/admin/brands/{$brand->id}");
+            ->deleteJson("/api/v1/admin/brands/{$brand->id}"); // ✅ فقط همین خط را اصلاح کنید
 
         $response->assertStatus(200);
 
         $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
     }
 
-    public function test_admin_cannot_delete_brand_with_products(): void
+     public function test_admin_cannot_delete_brand_with_products(): void
     {
         $brand = Brand::factory()->create(['products_count' => 5]);
 
         $response = $this->actingAs($this->admin)
-            ->deleteJson("/api/admin/brands/{$brand->id}");
+            ->deleteJson("/api/v1/admin/brands/{$brand->id}"); // ✅ اصلاح شد
 
         $this->assertTrue(in_array($response->status(), [400, 422]));
 
@@ -264,7 +264,7 @@ class BrandApiTest extends TestCase
         $brand = Brand::factory()->create(['verified_at' => null]);
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/brands/{$brand->id}/verify");
+            ->postJson("/api/v1/admin/brands/{$brand->id}/verify"); // ✅ اصلاح شد
 
         $response->assertStatus(200);
 
@@ -277,7 +277,7 @@ class BrandApiTest extends TestCase
         $brand = Brand::factory()->create(['verified_at' => now()]);
 
         $response = $this->actingAs($this->admin)
-            ->postJson("/api/admin/brands/{$brand->id}/unverify");
+            ->postJson("/api/v1/admin/brands/{$brand->id}/unverify"); // ✅ اصلاح شد
 
         $response->assertStatus(200);
 
