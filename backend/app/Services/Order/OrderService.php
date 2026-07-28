@@ -44,7 +44,7 @@ class OrderService
         return $this->formatOrderData($order);
     }
 
-    public function createOrder(CreateOrderDTO $dto): Model
+                public function createOrder(CreateOrderDTO $dto): Model
     {
         $errors = $dto->validate();
         if (!empty($errors)) {
@@ -56,19 +56,36 @@ class OrderService
             $totals = $this->calculateTotals($validatedItems);
             $orderNumber = $this->generateOrderNumber();
 
+            // ✅ دریافت اطلاعات آدرس برای ذخیره در shipping_address (JSON)
+            $addressData = [];
+            if ($dto->address_id) {
+                $address = \App\Models\Address::find($dto->address_id);
+                if ($address) {
+                    $addressData = [
+                        'id' => $address->id,
+                        'full_name' => $address->full_name,
+                        'phone' => $address->phone,
+                        'province' => $address->province,
+                        'city' => $address->city,
+                        'address' => $address->address,
+                        'postal_code' => $address->postal_code,
+                    ];
+                }
+            }
+
             $orderData = [
                 'user_id' => $dto->user_id,
                 'order_number' => $orderNumber,
-                'address_id' => $dto->address_id,
                 'subtotal' => $totals['subtotal'],
                 'discount' => $totals['discount'],
-                'shipping_cost' => $totals['shipping_cost'],
+                'shipping' => $totals['shipping_cost'],
                 'tax' => $totals['tax'],
                 'total' => $totals['total'],
                 'status' => 'pending',
                 'payment_status' => 'pending',
                 'payment_method' => $dto->payment_method,
-                'note' => $dto->note,
+                'notes' => $dto->note,
+                'shipping_address' => json_encode($addressData), // ✅ تبدیل آرایه به JSON
             ];
 
             $order = $this->orderRepository->createOrderWithItems($orderData, $validatedItems);
@@ -77,7 +94,6 @@ class OrderService
 
             Log::info("Order created: {$orderNumber} for user {$dto->user_id}");
             
-            // ✅ فراخوانی Event برای جداسازی منطق (ارسال پیامک، نوتیفیکیشن و...)
             OrderCreated::dispatch($order);
 
             return $order;
@@ -111,7 +127,7 @@ class OrderService
         return $this->orderRepository->getUserStats($userId);
     }
 
-    protected function validateAndPrepareItems(array $items): array
+       protected function validateAndPrepareItems(array $items): array
     {
         $validatedItems = [];
         $productIds = array_column($items, 'product_id');
@@ -131,12 +147,18 @@ class OrderService
                 throw new \Exception("موجودی {$product->name} کافی نیست. موجودی فعلی: {$product->stock}", 400);
             }
 
+            // ✅ محاسبه total با در نظر گرفتن تخفیف
+            $subtotal = $product->price * $item['quantity'];
+            $discount = $product->discount_percentage ?? 0;
+            $total = $subtotal * (1 - ($discount / 100));
+
             $validatedItems[] = [
                 'product_id' => $product->id,
                 'quantity' => $item['quantity'],
                 'price' => $product->price,
-                'discount_percentage' => $product->discount_percentage ?? 0,
+                'discount_percentage' => $discount,
                 'seller_id' => $product->seller_id,
+                'total' => $total, // ✅ اضافه شد
             ];
         }
 

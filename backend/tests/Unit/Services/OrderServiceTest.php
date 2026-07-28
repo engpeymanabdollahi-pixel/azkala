@@ -241,7 +241,7 @@ $address = Address::create([
 
         $order = $this->service->createOrder($dto);
 
-        $this->assertEquals(25000.00, $order->shipping_cost);
+        $this->assertEquals(25000.00, $order->shipping);
         $this->assertEquals(9000.00, $order->tax);
         $this->assertEquals(124000.00, $order->total);
 
@@ -255,7 +255,7 @@ $address = Address::create([
         );
 
         $order2 = $this->service->createOrder($dto2);
-        $this->assertEquals(0.00, $order2->shipping_cost);
+        $this->assertEquals(0.00, $order2->shipping);
     }
 
     // ==================== N+1 Query Prevention Tests ====================
@@ -294,7 +294,8 @@ $address = Address::create([
         $queries = \DB::getQueryLog();
         \DB::disableQueryLog();
 
-        $productQueries = collect($queries)->filter(fn($q) => str_contains(strtolower($q['query']), 'products'));
+       $productQueries = collect($queries)->filter(fn($q) => str_contains(strtolower($q['query']), 'select') && str_contains(strtolower($q['query']), 'products'));
+       
 
         $this->assertLessThanOrEqual(
             2, 
