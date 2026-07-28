@@ -146,12 +146,13 @@ export default function App() {
   const isAuthPage = location.pathname === '/auth' || location.pathname === '/seller-request' || location.pathname === '/seller-login';
   const isAdminRoute = location.pathname.startsWith('/admin');
   
-  const isPrivateSellerRoute = 
-    location.pathname === '/seller' || 
-    location.pathname.startsWith('/seller/products') || 
-    location.pathname.startsWith('/seller/orders') || 
-    location.pathname.startsWith('/seller/payouts') || 
-    location.pathname.startsWith('/seller/chat');
+    const isPrivateSellerRoute =
+    location.pathname === '/seller' ||
+    location.pathname.startsWith('/seller/products') ||
+    location.pathname.startsWith('/seller/orders') ||
+    location.pathname.startsWith('/seller/payouts') ||
+    location.pathname.startsWith('/seller/chat') ||  // ✅ خط بعدی با OR وصل می‌شود
+    location.pathname.startsWith('/seller/settings'); // ✅ اینجا سمی‌کالن می‌آید چون پایان عبارت است
 
   const hideLayout = isPrivateSellerRoute || isAuthPage || isAdminRoute;
 
@@ -284,6 +285,7 @@ export default function App() {
                 </ProtectedRoute>
               }>
                 <Route index element={<SellerDashboard />} />
+                <Route path="settings" element={<SellerSettings />} /> 
                 <Route path="settings" element={<SellerSettings />} /> {/* ✅ روت جدید */}
                 <Route path="products" element={<SellerProducts />} />
                 <Route path="products/new" element={<AddProduct />} />
