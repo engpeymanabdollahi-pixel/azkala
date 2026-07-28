@@ -108,12 +108,12 @@ class CartService
         });
     }
 
-    public function updateItemQuantity(Cart $cart, int $cartItemId, int $quantity): CartItem
+        public function updateItemQuantity(Cart $cart, int $cartItemId, int $quantity): ?CartItem
     {
         return DB::transaction(function () use ($cart, $cartItemId, $quantity) {
             if ($quantity <= 0) {
                 $this->removeItem($cart, $cartItemId);
-                return null;
+                return null; // ✅ حالا Type Hint با null سازگار است
             }
 
             $cartItem = $cart->items()->findOrFail($cartItemId);
@@ -147,15 +147,17 @@ class CartService
         });
     }
 
-    private function recalculateCart(Cart $cart): void
+       private function recalculateCart(Cart $cart): void
     {
+        // ✅ بارگذاری مجدد آیتم‌ها برای اطمینان از به‌روز بودن
         $cart->load('items');
+        
         $itemsCount = $cart->items->sum('quantity');
         $subtotal = $cart->items->sum(function ($item) {
-            return $item->price * $item->quantity;
+            return (float)$item->price * (int)$item->quantity;
         });
 
-        $discount = 0; 
+        $discount = 0;
         $total = $subtotal - $discount;
 
         $cart->update([
@@ -164,5 +166,8 @@ class CartService
             'discount' => $discount,
             'total' => $total,
         ]);
+        
+        // ✅ بارگذاری مجدد برای اطمینان از اعمال تغییرات
+        $cart->refresh();
     }
 }

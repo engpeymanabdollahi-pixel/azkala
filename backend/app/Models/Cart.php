@@ -13,8 +13,13 @@ class Cart extends Model
 
     protected $fillable = [
         'user_id',
+         'session_id',        // ✅ اضافه شد
+        'items_count',       // ✅ اضافه شد
+        'subtotal',          // ✅ اضافه شد
+        'discount',          // ✅ اضافه شد
+        'total',             // ✅ اضافه شد
     ];
-
+    
     protected $casts = [
         'user_id' => 'integer',
     ];
