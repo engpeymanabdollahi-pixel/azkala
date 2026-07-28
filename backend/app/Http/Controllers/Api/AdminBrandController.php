@@ -116,12 +116,15 @@ class AdminBrandController extends Controller
         ]);
     }
 
-    /**
+        /**
      * حذف برند
      */
     public function destroy($id)
     {
-        $this->brandService->deleteBrand((int) $id);
+        // ✅ اصلاح حیاتی: اگر لاراول به دلیل Route Model Binding آبجکت فرستاد، ID آن را استخراج کن
+        $brandId = $id instanceof \App\Models\Brand ? $id->id : (int) $id;
+
+        $this->brandService->deleteBrand($brandId);
 
         return response()->json([
             'success' => true,

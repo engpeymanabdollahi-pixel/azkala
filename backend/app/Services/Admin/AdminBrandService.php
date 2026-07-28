@@ -5,6 +5,8 @@ namespace App\Services\Admin;
 use App\Models\Brand;
 use App\Repositories\AdminBrandRepository;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException; // ✅ این خط را اضافه کنید
+
 
 class AdminBrandService
 {
@@ -147,24 +149,20 @@ class AdminBrandService
     }
 
     /**
-     * Delete brand
+     * حذف برند
      */
     public function deleteBrand(int $id): bool
     {
-        try {
-            $brand = $this->repository->findOrFail($id);
-            
-            $canDelete = $this->repository->canDelete($brand);
-            
-            if (!$canDelete['can_delete']) {
-                throw new \Exception($canDelete['reason'], 400);
-            }
+        $brand = $this->repository->findOrFail($id);
 
-            return $this->repository->delete($brand);
-        } catch (\Exception $e) {
-            Log::error('AdminBrandService@deleteBrand: ' . $e->getMessage());
-            throw $e;
+        $canDelete = $this->repository->canDelete($brand);
+
+        if (!$canDelete['can_delete']) {
+            // ✅ پرتاب استثنا استاندارد HTTP برای بازگشت کد 400
+            throw new BadRequestHttpException($canDelete['reason']);
         }
+
+        return $this->repository->delete($brand);
     }
 
     /**
