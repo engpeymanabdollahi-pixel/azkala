@@ -10,8 +10,6 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\ProductDeviceCompatibility;
 use Illuminate\Support\Facades\DB;
-use App\Services\DeviceCompatibilityService;
-use Illuminate\Validation\ValidationException;
 
 class CartService
 {
@@ -22,47 +20,7 @@ class CartService
         }
         return Cart::firstOrCreate(['session_id' => $sessionId], ['user_id' => null]);
     }
-    public function addWithCompatibilityCheck(User $user, int $productId, int $quantity, ?int $deviceModelId = null)
-{
-    // ۱. بررسی سازگاری در صورت وجود دستگاه
-    if ($deviceModelId) {
-        $compatibilityService = app(DeviceCompatibilityService::class);
-        $isCompatible = $compatibilityService->check($productId, $deviceModelId);
-        
-        if (!$isCompatible) {
-            throw ValidationException::withMessages([
-                'product_id' => 'این محصول با دستگاه انتخابی شما سازگار نیست.'
-            ]);
-        }
-    }
-
-    // ۲. دریافت محصول برای گرفتن قیمت
-    $product = Product::findOrFail($productId);
-
-    // ۳. دریافت یا ایجاد سبد خرید
-    $cart = $user->cart ?: $user->cart()->create([
-        'user_id' => $user->id,
-        'items_count' => 0,
-        'subtotal' => 0,
-        'discount' => 0,
-        'total' => 0,
-    ]);
-    
-    // ۴. ایجاد یا به‌روزرسانی آیتم سبد با ارسال price
-    $cartItem = $cart->items()->updateOrCreate(
-        ['product_id' => $productId],
-        [
-            'quantity' => $quantity,
-            'price' => $product->price, // ✅ اضافه شد
-            'device_model_id' => $deviceModelId,
-        ]
-    );
-
-    // ۵. محاسبه مجدد سبد خرید
-    $this->recalculateCart($cart);
-
-    return $cartItem;
-}
+   
 
     public function addItem(Cart $cart, int $productId, int $quantity = 1, ?int $deviceModelId = null): CartItem
     {
