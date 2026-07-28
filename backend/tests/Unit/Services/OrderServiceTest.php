@@ -217,16 +217,17 @@ class OrderServiceTest extends TestCase
         $user = User::factory()->create();
         
         // ✅ اصلاح ۲: ساخت Address به صورت دستی چون Factory ندارد
-        $address = Address::create([
-            'user_id' => $user->id,
-            'recipient_name' => 'کاربر تست',
-            'phone' => '09123456789',
-            'province' => 'تهران',
-            'city' => 'تهران',
-            'address' => 'آدرس تست',
-            'postal_code' => '1234567890',
-            'is_default' => true,
-        ]);
+       // ✅ اصلاح: تغییر recipient_name به full_name مطابق با Migration
+$address = Address::create([
+    'user_id' => $user->id,
+    'full_name' => 'کاربر تست', // <--- اینجا تغییر کرد
+    'phone' => '09123456789',
+    'province' => 'تهران',
+    'city' => 'تهران',
+    'address' => 'آدرس تست',
+    'postal_code' => '1234567890',
+    'is_default' => true,
+]);
         
         $product = Product::factory()->create(['price' => 90000, 'stock' => 10]);
 

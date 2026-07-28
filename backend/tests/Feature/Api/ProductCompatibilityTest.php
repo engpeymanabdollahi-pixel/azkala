@@ -59,26 +59,20 @@ class ProductCompatibilityTest extends TestCase
         $this->compatibleProduct->deviceModels()->attach($this->modelAId);
     }
 
-    public function test_product_list_shows_is_compatible_true(): void
-    {
-        $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelBId);
-        $response->assertStatus(200);
+   public function test_product_list_shows_is_compatible_true(): void
+{
+    // ✅ اصلاح: استفاده از modelAId چون محصول در setUp به این مدل متصل شده است
+    $response = $this->getJson('/api/v1/products?device_model_id=' . $this->modelAId);
+    $response->assertStatus(200);
 
-        // پشتیبانی از همه ساختارهای ممکن
-        $data = $response->json('data');
-        $products = $data['data'] ?? $data;
+    $data = $response->json('data');
+    $products = $data['data'] ?? $data;
 
-        // اگر هنوز آرایه نیست، dump برای دیباگ
-        if (!is_array($products) || empty($products)) {
-            $response->dump();
-            $this->fail('Products array is empty or invalid structure');
-        }
+    $target = collect($products)->firstWhere(fn($p) => ($p['id'] ?? null) == $this->compatibleProduct->id);
 
-        $target = collect($products)->firstWhere(fn($p) => ($p['id'] ?? null) == $this->compatibleProduct->id);
-
-        $this->assertNotNull($target, 'Product with ID ' . $this->compatibleProduct->id . ' not found in list');
-        $this->assertTrue($target['is_compatible'] ?? false, 'is_compatible should be true');
-    }
+    $this->assertNotNull($target, 'Product with ID ' . $this->compatibleProduct->id . ' not found in list');
+    $this->assertTrue($target['is_compatible'] ?? false, 'is_compatible should be true');
+}
 
     public function test_product_list_shows_is_compatible_false(): void
     {
