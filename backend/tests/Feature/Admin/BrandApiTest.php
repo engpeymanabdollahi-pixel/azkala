@@ -26,13 +26,13 @@ class BrandApiTest extends TestCase
 
     public function test_unauthenticated_user_cannot_list_brands(): void
     {
-        $response = $this->getJson('/api/admin/brands');
+        $response = $this->getJson('/api/v1/admin/brands');
         $response->assertStatus(401);
     }
 
     public function test_unauthenticated_user_cannot_create_brand(): void
     {
-        $response = $this->postJson('/api/admin/brands', ['name' => 'Test']);
+        $response = $this->postJson('/api/v1/admin/brands', ['name' => 'Test']);
         $response->assertStatus(401);
     }
 
@@ -43,7 +43,7 @@ class BrandApiTest extends TestCase
         Brand::factory()->count(3)->create();
 
         $response = $this->actingAs($this->customer)
-            ->getJson('/api/admin/brands');
+            ->getJson('/api/v1/admin/brands');
 
         $response->assertStatus(403)
             ->assertJsonPath('success', false);
@@ -52,7 +52,7 @@ class BrandApiTest extends TestCase
     public function test_customer_cannot_create_brand(): void
     {
         $response = $this->actingAs($this->customer)
-            ->postJson('/api/admin/brands', [
+            ->postJson('/api/v1/admin/brands', [
                 'name' => 'Test Brand',
             ]);
 
@@ -89,7 +89,7 @@ class BrandApiTest extends TestCase
         Brand::factory()->count(5)->create();
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/brands');
+            ->getJson('/api/v1/admin/brands');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -114,7 +114,7 @@ class BrandApiTest extends TestCase
         Brand::factory()->count(2)->create(['is_active' => false]);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/brands?is_active=1');
+            ->getJson('/api/v1/admin/brands?is_active=1');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.pagination.total', 3);
@@ -126,7 +126,7 @@ class BrandApiTest extends TestCase
         Brand::factory()->create(['name' => 'Apple', 'slug' => 'apple']);
 
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/brands?search=Samsung');
+            ->getJson('/api/v1/admin/brands?search=Samsung');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.pagination.total', 1);
@@ -149,7 +149,7 @@ class BrandApiTest extends TestCase
     public function test_admin_cannot_show_nonexistent_brand(): void
     {
         $response = $this->actingAs($this->admin)
-            ->getJson('/api/admin/brands/9999');
+            ->getJson('/api/v1/admin/brands/9999');
 
         $this->assertTrue(in_array($response->status(), [404, 500]));
     }
@@ -167,7 +167,7 @@ class BrandApiTest extends TestCase
         ];
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands', $data);
+            ->postJson('/api/v1/admin/brands', $data);
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true);
@@ -181,7 +181,7 @@ class BrandApiTest extends TestCase
     public function test_create_brand_requires_name(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands', [
+            ->postJson('/api/v1/admin/brands', [
                 'description' => 'Test',
             ]);
 
@@ -194,7 +194,7 @@ class BrandApiTest extends TestCase
         Brand::factory()->create(['name' => 'Samsung', 'slug' => 'samsung-1']);
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands', [
+            ->postJson('/api/v1/admin/brands', [
                 'name' => 'Samsung',
             ]);
 
@@ -224,7 +224,7 @@ class BrandApiTest extends TestCase
     public function test_admin_cannot_update_nonexistent_brand(): void
     {
         $response = $this->actingAs($this->admin)
-            ->putJson('/api/admin/brands/9999', [
+            ->putJson('/api/v1/admin/brands/9999', [
                 'name' => 'New Name',
             ]);
 
@@ -293,7 +293,7 @@ class BrandApiTest extends TestCase
         $ids = $brands->pluck('id')->toArray();
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands/bulk-action', [
+            ->postJson('/api/v1/admin/brands/bulk-action', [
                 'ids' => $ids,
                 'action' => 'activate',
             ]);
@@ -309,7 +309,7 @@ class BrandApiTest extends TestCase
         $ids = $brands->pluck('id')->toArray();
 
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands/bulk-action', [
+            ->postJson('/api/v1/admin/brands/bulk-action', [
                 'ids' => $ids,
                 'action' => 'deactivate',
             ]);
@@ -322,7 +322,7 @@ class BrandApiTest extends TestCase
     public function test_bulk_action_requires_ids(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands/bulk-action', [
+            ->postJson('/api/v1/admin/brands/bulk-action', [
                 'action' => 'activate',
             ]);
 
@@ -333,7 +333,7 @@ class BrandApiTest extends TestCase
     public function test_bulk_action_requires_action(): void
     {
         $response = $this->actingAs($this->admin)
-            ->postJson('/api/admin/brands/bulk-action', [
+            ->postJson('/api/v1/admin/brands/bulk-action', [
                 'ids' => [1, 2, 3],
             ]);
 
