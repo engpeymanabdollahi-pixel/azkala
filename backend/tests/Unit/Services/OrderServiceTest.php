@@ -260,16 +260,16 @@ $address = Address::create([
 
     // ==================== N+1 Query Prevention Tests ====================
 
-    public function test_validate_and_prepare_items_prevents_n_plus_one_queries(): void
+        public function test_validate_and_prepare_items_prevents_n_plus_one_queries(): void
     {
         \DB::enableQueryLog();
         
         $user = User::factory()->create();
         
-        // ✅ اصلاح ۳: ساخت Address به صورت دستی
+        // ✅ اصلاح نهایی: تغییر recipient_name به full_name در اینجا هم انجام شود
         $address = Address::create([
             'user_id' => $user->id,
-            'recipient_name' => 'کاربر تست',
+            'full_name' => 'کاربر تست', // <--- این خط باید full_name باشد
             'phone' => '09123456789',
             'province' => 'تهران',
             'city' => 'تهران',
