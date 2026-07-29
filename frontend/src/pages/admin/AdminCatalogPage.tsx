@@ -1,30 +1,66 @@
 import { useState } from 'react';
-import { Package, Award, FolderTree } from 'lucide-react';
+import { Package, Award, FolderTree, Smartphone, Layers, Box } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { AdminBrandsPage } from './AdminBrandsPage';
 import { AdminCategoriesPage } from './AdminCategoriesPage';
+import { AdminDeviceBrandsPage } from './AdminDeviceBrandsPage';
+import { AdminDeviceSeriesPage } from './AdminDeviceSeriesPage';
+import { AdminDeviceModelsPage } from './AdminDeviceModelsPage';
 
-type TabType = 'categories' | 'brands';
+type TabType = 'categories' | 'brands' | 'device-brands' | 'device-series' | 'device-models';
 
 export function AdminCatalogPage() {
   const [activeTab, setActiveTab] = useState<TabType>('categories');
 
-  const tabs = [
+    const tabs = [
     {
       id: 'categories' as TabType,
-      label: 'دسته‌بندی‌ها',
+      label: 'دسته‌بندی محصولات', // مدیریت درخت دسته‌بندی‌های سایت
       icon: FolderTree,
-      count: null, // می‌توانیم بعداً از API بگیریم
       color: 'primary',
     },
     {
       id: 'brands' as TabType,
-      label: 'برندها',
+      label: 'برندهای فروشگاهی', // ✅ برندِ تولیدکننده‌ی خودِ کالا (مثل Spigen, Anker)
       icon: Award,
-      count: null,
       color: 'accent',
     },
+    {
+      id: 'device-brands' as TabType,
+      label: 'برندهای دستگاه‌ها', // ✅ برندِ گوشی/لپ‌تاپِ مشتری (مثل Apple, Samsung)
+      icon: Smartphone,
+      color: 'success',
+    },
+    {
+      id: 'device-series' as TabType,
+      label: 'سری‌های دستگاه', // ✅ زیرمجموعه برند دستگاه (مثل iPhone, Galaxy)
+      icon: Layers,
+      color: 'warning',
+    },
+    {
+      id: 'device-models' as TabType,
+      label: 'مدل‌های دستگاه', // ✅ مدل دقیق (مثل iPhone 13, Galaxy S23)
+      icon: Box,
+      color: 'info',
+    },
   ];
+
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'categories':
+        return <AdminCategoriesPage />;
+      case 'brands':
+        return <AdminBrandsPage />;
+      case 'device-brands':
+        return <AdminDeviceBrandsPage />;
+      case 'device-series':
+        return <AdminDeviceSeriesPage />;
+      case 'device-models':
+        return <AdminDeviceModelsPage />;
+      default:
+        return <AdminCategoriesPage />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -38,41 +74,43 @@ export function AdminCatalogPage() {
             مدیریت کاتالوگ
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            مدیریت دسته‌بندی‌ها و برندهای محصولات
+            مدیریت دسته‌بندی‌ها، برندها و سلسله‌مراتب دستگاه‌ها
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-2">
-        <div className="flex gap-2">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-2 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
+            // تعیین رنگ‌ها بر اساس وضعیت فعال
+            const getActiveClasses = () => {
+              switch (tab.color) {
+                case 'primary': return 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30';
+                case 'accent': return 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md shadow-accent-500/30';
+                case 'success': return 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-md shadow-success-500/30';
+                case 'warning': return 'bg-gradient-to-r from-warning-500 to-warning-600 text-white shadow-md shadow-warning-500/30';
+                case 'info': return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/30';
+                default: return 'bg-gradient-to-r from-primary-500 to-primary-600 text-white';
+              }
+            };
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all',
+                  'flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap',
                   isActive
-                    ? tab.color === 'primary'
-                      ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30'
-                      : 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md shadow-accent-500/30'
+                    ? getActiveClasses()
                     : 'text-gray-600 hover:bg-gray-100'
                 )}
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
-                {tab.count !== null && (
-                  <span className={cn(
-                    'px-2 py-0.5 rounded-full text-xs',
-                    isActive ? 'bg-white/20' : 'bg-gray-200'
-                  )}>
-                    {tab.count}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -80,9 +118,8 @@ export function AdminCatalogPage() {
       </div>
 
       {/* Content */}
-      <div className="min-h-[600px]">
-        {activeTab === 'categories' && <AdminCategoriesPage />}
-        {activeTab === 'brands' && <AdminBrandsPage />}
+      <div className="animate-fade-in">
+        {renderActiveTab()}
       </div>
     </div>
   );
