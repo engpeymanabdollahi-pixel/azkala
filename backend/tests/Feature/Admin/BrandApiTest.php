@@ -140,6 +140,7 @@ class BrandApiTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->getJson("/api/v1/admin/brands/{$brand->id}"); // ✅ اصلاح شد
+            dump($response->getContent()); // این خط را اضافه کنید
 
         $response->assertStatus(200)
             ->assertJsonPath('data.brand.id', $brand->id)

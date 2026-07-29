@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminBrandService;
 use Illuminate\Http\Request;
+use App\Models\Brand; // ✅ این خط را به بخش useها اضافه کنید
 
 class AdminBrandController extends Controller
 {
@@ -33,12 +34,16 @@ class AdminBrandController extends Controller
         ]);
     }
 
-    /**
+           /**
      * نمایش جزئیات یک برند
      */
-    public function show(int $id)
+    public function show($id) // ✅ حذف تایپ هینت سخت‌گیرانه برای پشتیبانی از هر دو روت
     {
-        $data = $this->brandService->getBrandDetails($id);
+        // ✅ اگر لاراول آبجکت Brand فرستاد (به خاطر روت {brand})، ID آن را بگیر
+        // ✅ اگر عدد یا رشته فرستاد (به خاطر روت {id})، آن را به عدد تبدیل کن
+        $brandId = $id instanceof \App\Models\Brand ? $id->id : (int) $id;
+
+        $data = $this->brandService->getBrandDetails($brandId);
 
         return response()->json([
             'success' => true,

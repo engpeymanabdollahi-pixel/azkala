@@ -46,23 +46,19 @@ class AdminBrandService
         }
     }
 
-    /**
+            /**
      * Get brand details with series and models
      */
     public function getBrandDetails(int $id): array
     {
-        try {
-            $data = $this->repository->getBrandWithDetails($id);
+        // ✅ حذف موقت try-catch برای دیدن خطای واقعی لاراول
+        $data = $this->repository->getBrandWithDetails($id);
 
-            return [
-                'brand' => $this->formatBrand($data['brand'], true),
-                'series' => $data['series'],
-                'models' => $data['models'],
-            ];
-        } catch (\Exception $e) {
-            Log::error('AdminBrandService@getBrandDetails: ' . $e->getMessage());
-            throw new \Exception('برند یافت نشد', 404);
-        }
+        return [
+            'brand' => $this->formatBrand($data['brand'], true),
+            'series' => $data['series'],
+            'models' => $data['models'],
+        ];
     }
 
     /**

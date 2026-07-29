@@ -128,21 +128,23 @@ class AdminBrandRepository
         return ['can_delete' => true];
     }
 
-    /**
+               /**
      * Get brand with series and models
      */
     public function getBrandWithDetails(int $id): array
     {
         $brand = $this->findOrFail($id);
 
+        // ✅ اصلاح حیاتی: نام جدول این رابطه phone_series است (بر اساس مدل PhoneSeries)
         $series = $brand->phoneSeries()
-            ->select('id', 'name', 'slug', 'image', 'models_count')
-            ->orderBy('name')
+            ->select('phone_series.id', 'phone_series.name', 'phone_series.slug', 'phone_series.image', 'phone_series.models_count')
+            ->orderBy('phone_series.name')
             ->get();
 
+        // ✅ اصلاح حیاتی: نام جدول نهایی این رابطه hasManyThrough، device_models است
         $models = $brand->deviceModels()
-            ->select('id', 'name', 'slug', 'image', 'series_id', 'release_year')
-            ->orderBy('name')
+            ->select('device_models.id', 'device_models.name', 'device_models.slug', 'device_models.image', 'device_models.series_id', 'device_models.release_year')
+            ->orderBy('device_models.name')
             ->take(50)
             ->get();
 
