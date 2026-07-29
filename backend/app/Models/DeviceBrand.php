@@ -9,9 +9,17 @@ class DeviceBrand extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'slug', 'is_active'];
+    // ✅ اضافه شدن 'type' برای ذخیره‌سازی نوع دستگاه (mobile, laptop, tablet, accessory)
+    protected $fillable = [
+        'name', 
+        'slug', 
+        'type', 
+        'is_active'
+    ];
 
-    // ✅ اصلاح: مشخص کردن نام دقیق کلید خارجی
+    /**
+     * رابطه با سری‌های دستگاه
+     */
     public function series()
     {
         return $this->hasMany(DeviceSeries::class, 'brand_id');

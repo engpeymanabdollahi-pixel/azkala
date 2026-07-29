@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\DeviceBrand;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class DeviceBrandFactory extends Factory
 {
@@ -11,9 +12,11 @@ class DeviceBrandFactory extends Factory
 
     public function definition(): array
     {
+        $name = $this->faker->company();
         return [
-            'name' => fake()->unique()->company(),
-            'slug' => fake()->unique()->slug(),
+            'name' => $name,
+            'slug' => Str::slug($name),
+            'type' => $this->faker->randomElement(['mobile', 'laptop', 'tablet', 'accessory']),
             'is_active' => true,
         ];
     }

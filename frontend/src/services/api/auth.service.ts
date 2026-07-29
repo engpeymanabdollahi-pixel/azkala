@@ -1,23 +1,26 @@
 import apiClient from './client';
 
+// ✅ تغییر: استفاده از phone به جای email برای لاگین
 export interface LoginData {
-  email: string;
+  phone: string;
   password: string;
 }
 
+// ✅ تغییر: phone اجباری شد، email اختیاری (nullable) شد
 export interface RegisterData {
   name: string;
-  email: string;
+  phone: string; 
   password: string;
   password_confirmation: string;
-  phone?: string;
+  email?: string; 
 }
 
+// ✅ تغییر: phone اجباری، email اختیاری
 export interface User {
   id: number;
   name: string;
-  email: string;
-  phone?: string;
+  email?: string; 
+  phone: string;  
   role: string;
 }
 

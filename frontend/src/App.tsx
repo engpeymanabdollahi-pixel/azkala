@@ -40,6 +40,8 @@ const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage').then(m 
 const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminReviewsPage').then(m => ({ default: m.AdminReviewsPage })));
 const AdminBrandsPage = lazy(() => import('@/pages/admin/AdminBrandsPage').then(m => ({ default: m.AdminBrandsPage })));
 const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage').then(m => ({ default: m.AdminCatalogPage })));
+const AdminDeviceBrandsPage = lazy(() => import('@/pages/admin/AdminDeviceBrandsPage').then(m => ({ default: m.AdminDeviceBrandsPage })));
+const AdminDeviceSeriesPage = lazy(() => import('@/pages/admin/AdminDeviceSeriesPage').then(m => ({ default: m.AdminDeviceSeriesPage })));
 const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage').then(m => ({ default: m.AdminCommunicationPage })));
 const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage').then(m => ({ default: m.AdminCouponsPage })));
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage').then(m => ({ default: m.AdminCategoriesPage })));
@@ -53,6 +55,7 @@ const AdminFaqManagementPage = lazy(() => import('@/pages/admin/AdminFaqManageme
 const AdminMessageTemplatesPage = lazy(() => import('@/pages/admin/AdminMessageTemplatesPage').then(m => ({ default: m.AdminMessageTemplatesPage })));
 const AdminSupportTicketsPage = lazy(() => import('@/pages/admin/AdminSupportTicketsPage').then(m => ({ default: m.AdminSupportTicketsPage })));
 const AdminSuggestionManagementPage = lazy(() => import('@/pages/admin/AdminSuggestionManagementPage').then(m => ({ default: m.AdminSuggestionManagementPage })));
+const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage').then(m => ({ default: m.AdminDeviceModelsPage })));
 
 // ==========================================
 // ایمپورت صفحات پنل کاربری (Lazy Loaded)
@@ -310,6 +313,9 @@ export default function App() {
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="reviews" element={<AdminReviewsPage />} />
                 <Route path="catalog" element={<AdminCatalogPage />} />
+                <Route path="device-brands" element={<AdminDeviceBrandsPage />} />
+                <Route path="device-series" element={<AdminDeviceSeriesPage />} />
+                <Route path="device-models" element={<AdminDeviceModelsPage />} /> 
                 
                 {/* ریدایرکت‌های ادمین */}
                 <Route path="categories" element={<Navigate to="/admin/catalog" replace />} />

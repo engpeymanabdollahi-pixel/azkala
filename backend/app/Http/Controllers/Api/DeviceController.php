@@ -198,13 +198,11 @@ class DeviceController extends Controller
             'data' => $models
         ]);
     }
-        /**
-     * دریافت سلسله‌مراتب دستگاه‌ها به صورت درختی (مخصوص هدر سایت)
-     */
-    public function getHeaderHierarchy()
+
+             public function getHeaderHierarchy()
     {
         $brands = \App\Models\DeviceBrand::with('series.models:id,name,series_id')
-            ->select('id', 'name', 'slug')
+            ->select('id', 'name', 'slug', 'type') // ✅ اضافه شدن 'type'
             ->where('is_active', true)
             ->get()
             ->map(function ($brand) {
@@ -212,6 +210,7 @@ class DeviceController extends Controller
                     'id' => $brand->id,
                     'name' => $brand->name,
                     'slug' => $brand->slug,
+                    'type' => $brand->type, // ✅ ارسال type به فرانت‌اند
                     'series' => $brand->series->map(function ($series) {
                         return [
                             'id' => $series->id,
@@ -219,16 +218,15 @@ class DeviceController extends Controller
                             'models' => $series->models->map(fn($m) => [
                                 'id' => $m->id,
                                 'name' => $m->name,
-                                'slug' => $m->slug
-                            ])
+                            ]),
                         ];
-                    })
+                    }),
                 ];
             });
 
         return response()->json([
             'success' => true,
-            'data' => $brands
+            'data' => $brands,
         ]);
     }
 }

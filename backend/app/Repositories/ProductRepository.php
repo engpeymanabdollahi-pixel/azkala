@@ -98,17 +98,22 @@ class ProductRepository extends BaseRepository
             ->get();
     }
 
-    /**
-     * دریافت محصولات سازگار با یک مدل دستگاه
+       /**
+     * دریافت محصولات سازگار با یک مدل دستگاه (شامل خود دستگاه + لوازم جانبی)
      */
     public function getCompatibleProducts(int $modelId): Collection
     {
         return Product::query()
             ->where('is_active', true)
-            ->whereHas('deviceModels', function ($query) use ($modelId) {
-                $query->where('device_model_id', $modelId);
+            ->where(function ($query) use ($modelId) {
+                // شرط ۱: خود دستگاه (که device_model_id مستقیم در جدول products دارد)
+                $query->where('device_model_id', $modelId)
+                      // شرط ۲: لوازم جانبی (که در جدول واسط device_model_product هستند)
+                      ->orWhereHas('deviceModels', function ($subQuery) use ($modelId) {
+                          $subQuery->where('device_model_id', $modelId);
+                      });
             })
-            ->with(['brand', 'category', 'deviceModels.series.brand'])
+            ->with(['brand', 'category', 'images', 'deviceModels.series.brand'])
             ->get();
     }
 
@@ -119,10 +124,13 @@ class ProductRepository extends BaseRepository
     {
         return Product::query()
             ->where('is_active', true)
-            ->whereHas('deviceModels', function ($query) use ($modelIds) {
-                $query->whereIn('device_model_id', $modelIds);
+            ->where(function ($query) use ($modelIds) {
+                $query->whereIn('device_model_id', $modelIds)
+                      ->orWhereHas('deviceModels', function ($subQuery) use ($modelIds) {
+                          $subQuery->whereIn('device_model_id', $modelIds);
+                      });
             })
-            ->with(['brand', 'category', 'deviceModels'])
+            ->with(['brand', 'category', 'images', 'deviceModels'])
             ->paginate($perPage);
     }
 

@@ -69,21 +69,41 @@ class AuthController extends Controller
     /**
      * ورود با ایمیل و رمز عبور
      */
-    public function login(LoginRequest $request)
+        public function login(LoginRequest $request)
     {
-        $result = $this->authService->loginWithEmail(
-            $request->email,
-            $request->password
-        );
+        // ۱. پیدا کردن کاربر بر اساس شماره موبایل
+        $user = User::where('phone', $request->phone)->first();
+
+        // ۲. بررسی وجود کاربر و صحت رمز عبور
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'شماره موبایل یا رمز عبور اشتباه است.',
+            ], 401);
+        }
+
+        // ۳. بررسی فعال بودن کاربر
+        if (!$user->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حساب کاربری شما غیرفعال است.',
+            ], 403);
+        }
+
+        // ۴. به‌روزرسانی زمان آخرین ورود
+        $user->update(['last_login_at' => now()]);
+
+        // ۵. ساخت توکن Sanctum
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => $result['message'],
+            'message' => 'ورود با موفقیت انجام شد',
             'data' => [
-                'user' => $result['user'],
-                'token' => $result['token'],
+                'user' => $user, // یا UserResource::make($user) اگر دارید
+                'token' => $token,
             ]
-        ], 200);
+        ]);
     }
 
     /**

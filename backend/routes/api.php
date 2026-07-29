@@ -45,6 +45,11 @@ use App\Http\Controllers\Api\AdminAdvancedReportController;
 use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AdminSettingController;
 use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\AdminDeviceBrandController;
+use App\Http\Controllers\Api\AdminDeviceSeriesController;
+use App\Http\Controllers\Api\AdminDeviceModelController;
+
+
 
 // ادمین (ویژه)
 use App\Http\Controllers\Admin\BlockManagementController;
@@ -323,6 +328,27 @@ Route::prefix('v1')->group(function () {
                 Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');
                 Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
             });
+            // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
+Route::prefix('device-brands')->group(function () {
+    Route::get('/', [AdminDeviceBrandController::class, 'index'])->name('index');
+    Route::post('/', [AdminDeviceBrandController::class, 'store'])->name('store');
+    Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->name('destroy');
+});
+Route::prefix('device-series')->group(function () {
+    Route::get('/', [AdminDeviceSeriesController::class, 'index'])->name('index');
+    Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->name('brands.dropdown'); // برای دراپ‌داون
+    Route::post('/', [AdminDeviceSeriesController::class, 'store'])->name('store');
+    Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->name('destroy');
+});
+Route::prefix('device-models')->group(function () {
+    Route::get('/', [AdminDeviceModelController::class, 'index'])->name('index');
+    Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->name('series.dropdown');
+    Route::post('/', [AdminDeviceModelController::class, 'store'])->name('store');
+    Route::put('/{id}', [AdminDeviceModelController::class, 'update'])->name('update');
+    Route::delete('/{id}', [AdminDeviceModelController::class, 'destroy'])->name('destroy');
+});
             
             Route::prefix('settings')->name('settings.')->group(function () {
                 Route::get('/', [AdminSettingController::class, 'index'])->name('index');

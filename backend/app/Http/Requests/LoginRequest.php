@@ -19,24 +19,21 @@ class LoginRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+        public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
-            'password' => ['required', 'string'],
+            'phone' => ['required', 'string', 'regex:/^09[0-9]{9}$/'], // اعتبارسنجی فرمت شماره موبایل ایران
+            'password' => ['required', 'string', 'min:6'],
         ];
     }
 
-    /**
-     * Custom messages for validation errors.
-     */
     public function messages(): array
     {
         return [
-            'email.required' => 'ایمیل الزامی است',
-            'email.email' => 'فرمت ایمیل نامعتبر است',
-            'email.max' => 'ایمیل نباید بیشتر از ۲۵۵ کاراکتر باشد',
+            'phone.required' => 'شماره موبایل الزامی است',
+            'phone.regex' => 'فرمت شماره موبایل صحیح نیست (مثال: 09123456789)',
             'password.required' => 'رمز عبور الزامی است',
+            'password.min' => 'رمز عبور باید حداقل ۶ کاراکتر باشد',
         ];
     }
 }
