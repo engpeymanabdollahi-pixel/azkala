@@ -56,6 +56,7 @@ const AdminMessageTemplatesPage = lazy(() => import('@/pages/admin/AdminMessageT
 const AdminSupportTicketsPage = lazy(() => import('@/pages/admin/AdminSupportTicketsPage').then(m => ({ default: m.AdminSupportTicketsPage })));
 const AdminSuggestionManagementPage = lazy(() => import('@/pages/admin/AdminSuggestionManagementPage').then(m => ({ default: m.AdminSuggestionManagementPage })));
 const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage').then(m => ({ default: m.AdminDeviceModelsPage })));
+const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates').then(m => ({ default: m.ProductTemplates })));
 
 // ==========================================
 // ایمپورت صفحات پنل کاربری (Lazy Loaded)
@@ -291,6 +292,7 @@ export default function App() {
                 <Route path="settings" element={<SellerSettings />} /> 
                 <Route path="settings" element={<SellerSettings />} /> {/* ✅ روت جدید */}
                 <Route path="products" element={<SellerProducts />} />
+                <Route path="products/templates" element={<ProductTemplatesPage />} />
                 <Route path="products/new" element={<AddProduct />} />
                 <Route path="products/:productId/edit" element={<EditProduct />} />
                 <Route path="orders" element={<SellerOrders />} />

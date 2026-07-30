@@ -11,46 +11,60 @@ interface NotificationsDropdownProps {
   onClose: () => void;
 }
 
-const NotificationItem = memo(({ notification, onMarkAsRead }: { notification: Notification; onMarkAsRead: (id: number) => void }) => (
-  <button
-    onClick={() => onMarkAsRead(notification.id)}
-    className={cn(
-      'w-full px-5 py-3.5 border-b border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-right group focus:outline-none focus:bg-gray-50 dark:focus:bg-slate-700',
-      !notification.read && 'bg-primary-50/30 dark:bg-primary-900/20 hover:bg-primary-50 dark:hover:bg-primary-900/30'
-    )}
-    aria-label={`${notification.title} - ${notification.read ? 'خوانده شده' : 'خوانده نشده'}`}
-  >
-    <div className="flex items-start gap-3">
-      <div
-        className={cn(
-          'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0 shadow-md',
-          notification.iconColor
-        )}
-      >
-        {notification.icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <p className={cn(
-            'font-bold text-sm text-gray-900 dark:text-white truncate',
-            !notification.read && 'text-primary-900 dark:text-primary-300'
-          )}>
-            {notification.title}
-          </p>
-          {!notification.read && (
-            <span className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1.5" aria-hidden="true" />
+const NotificationItem = memo(({ notification, onMarkAsRead }: { notification: any; onMarkAsRead: (id: number) => void }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    // ۱. ابتدا نوتیفیکیشن را به عنوان خوانده شده علامت بزن
+    onMarkAsRead(notification.id);
+    
+    // ۲. اگر نوتیفیکیشن مربوط به درخواست فروشندگی است، کاربر را به صفحه تکمیل مدارک هدایت کن
+    if (notification.type && notification.type.includes('seller_request')) {
+      navigate('/seller-request');
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={cn(
+        'w-full px-5 py-3.5 border-b border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors text-right group focus:outline-none focus:bg-gray-50 dark:focus:bg-slate-700',
+        !notification.read && 'bg-primary-50/30 dark:bg-primary-900/20 hover:bg-primary-50 dark:hover:bg-primary-900/30'
+      )}
+      aria-label={`${notification.title} - ${notification.read ? 'خوانده شده' : 'خوانده نشده'}`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            'w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center text-white flex-shrink-0 shadow-md',
+            notification.iconColor
           )}
+        >
+          {notification.icon}
         </div>
-        <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-          {notification.message}
-        </p>
-        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
-          {notification.time}
-        </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <p className={cn(
+              'font-bold text-sm text-gray-900 dark:text-white truncate',
+              !notification.read && 'text-primary-900 dark:text-primary-300'
+            )}>
+              {notification.title}
+            </p>
+            {!notification.read && (
+              <span className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-1.5" aria-hidden="true" />
+            )}
+          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+            {notification.message}
+          </p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5">
+            {notification.time}
+          </p>
+        </div>
       </div>
-    </div>
-  </button>
-));
+    </button>
+  );
+});
 
 NotificationItem.displayName = 'NotificationItem';
 

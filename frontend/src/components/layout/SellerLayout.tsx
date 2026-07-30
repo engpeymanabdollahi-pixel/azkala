@@ -133,12 +133,22 @@ export function SellerLayout() {
   const newMessagesCount = 5;
   const pendingPayoutsCount = 2;
 
-  const menuItems = [
+    const menuItems = [
     { path: '/seller', label: 'داشبورد', icon: LayoutDashboard, end: true, color: 'from-primary-500 to-primary-600', badge: null },
     { path: '/seller/products', label: 'محصولات من', icon: Package, color: 'from-accent-500 to-accent-600', badge: null },
+    
+    // ✅ آیتم جدید: کتابخانه محصولات آماده
+    { 
+      path: '/seller/products/templates', 
+      label: 'کتابخانه محصولات', 
+      icon: Sparkles, 
+      color: 'from-purple-500 to-purple-600', 
+      badge: 'جدید' // یک بج کوچک برای جلب توجه
+    },
+    
     { path: '/seller/orders', label: 'سفارشات', icon: ShoppingBag, color: 'from-success-500 to-success-600', badge: pendingOrdersCount },
     { path: '/seller/payouts', label: 'تسویه حساب', icon: CreditCard, color: 'from-warning-500 to-warning-600', badge: pendingPayoutsCount },
-     { 
+    { 
       path: '/seller/settings', 
       label: 'تنظیمات فروشگاه', 
       icon: Settings, 

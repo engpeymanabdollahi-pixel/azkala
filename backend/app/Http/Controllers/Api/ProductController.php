@@ -147,4 +147,19 @@ class ProductController extends Controller
             ],
         ]);
     }
+        /**
+     * دریافت لیست محصولات Template (برای کپی توسط فروشندگان)
+     */
+    public function templates(Request $request)
+    {
+        $templates = Product::whereNull('seller_id')
+            ->where('is_active', true)
+            ->with(['category', 'brand', 'deviceModels'])
+            ->paginate(20);
+
+        return response()->json([
+            'success' => true,
+            'data' => ProductResource::collection($templates),
+        ]);
+    }
 }

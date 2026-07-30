@@ -83,7 +83,7 @@ class ReviewController extends Controller
             Log::error('ReviewController@index: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ' | Line: ' . $e->getLine());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در دریافت نظرات: ' . $e->getMessage(),
+                'message' => 'خطا در دریافت نظرات.',
             ], 500);
         }
     }
@@ -128,7 +128,7 @@ class ReviewController extends Controller
                     'comment' => $validated['comment'],
                     'rating' => $validated['rating'],
                     'is_verified' => $isVerified,
-                    'status' => 'approved',
+                    'status' => 'pending', // بهتر است نظرات جدید در انتظار تأیید باشند
                 ]);
 
                 // به‌روزرسانی rating محصول
@@ -138,7 +138,7 @@ class ReviewController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'نظر شما با موفقیت ثبت شد',
+                    'message' => 'نظر شما با موفقیت ثبت شد و پس از تأیید نمایش داده می‌شود',
                     'data' => [
                         'id' => $review->id,
                         'user' => [
@@ -222,52 +222,55 @@ class ReviewController extends Controller
     }
 
     /**
-     * بررسی اینکه آیا کاربر می‌تواند نظر ثبت کند
+     * ✅ اصلاح شده: بررسی اینکه آیا کاربر می‌تواند نظر ثبت کند
      */
     public function canReview(Request $request, $productId)
     {
-        try {
-            $userId = $request->user()->id;
-
-            $hasReviewed = Review::where('user_id', $userId)
-                ->where('product_id', $productId)
-                ->exists();
-
-            $hasPurchased = $this->checkUserPurchased($userId, $productId);
-
+        $user = $request->user();
+        
+        if (!$user) {
             return response()->json([
-                'success' => true,
-                'data' => [
-                    'can_review' => !$hasReviewed,
-                    'has_reviewed' => $hasReviewed,
-                    'has_purchased' => $hasPurchased,
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('ReviewController@canReview: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'خطا: ' . $e->getMessage(),
-            ], 500);
+                'can_review' => false,
+                'message' => 'برای ثبت نظر باید وارد حساب کاربری خود شوید.'
+            ], 401);
         }
+
+        $product = Product::find($productId);
+        if (!$product) {
+            return response()->json([
+                'can_review' => false,
+                'message' => 'محصول مورد نظر یافت نشد.'
+            ], 404);
+        }
+
+        // بررسی خرید محصول
+        $hasPurchased = $this->checkUserPurchased($user->id, $productId);
+
+        return response()->json([
+            'can_review' => true, // اجازه ثبت نظر (حتی اگر نخریده باشد، بسته به سیاست سایت)
+            'has_purchased' => $hasPurchased,
+            'message' => $hasPurchased 
+                ? 'شما این محصول را خریداری کرده‌اید و نشان "خریدار تأییدشده" دریافت می‌کنید.' 
+                : 'شما می‌توانید نظر ثبت کنید (اما نشان خریدار تأییدشده نخواهید داشت).'
+        ]);
     }
 
     /**
      * بررسی اینکه آیا کاربر محصول را خریده است
      */
-   private function checkUserPurchased(int $userId, int $productId): bool
-{
-    try {
-        return OrderItem::whereHas('order', function ($q) use ($userId) {
-            $q->where('user_id', $userId)
-              ->where('payment_status', 'paid')
-              ->where('status', 'delivered');
-        })->where('product_id', $productId)->exists();
-    } catch (\Exception $e) {
-        Log::error('checkUserPurchased error: ' . $e->getMessage());
-        return false;
+    private function checkUserPurchased(int $userId, int $productId): bool
+    {
+        try {
+            return OrderItem::whereHas('order', function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                  ->where('payment_status', 'paid')
+                  ->whereIn('status', ['delivered', 'completed']);
+            })->where('product_id', $productId)->exists();
+        } catch (\Exception $e) {
+            Log::error('checkUserPurchased error: ' . $e->getMessage());
+            return false;
+        }
     }
-}
 
     /**
      * به‌روزرسانی rating محصول

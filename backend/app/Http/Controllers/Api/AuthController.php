@@ -124,6 +124,12 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
+        $user = $request->user();
+
+        // 🛡️ لایه امنیتی ۲: اگر اکانت غیرفعال شد یا نقشش تغییر کرد، فوراً دسترسی قطع شود
+        if (!$user->is_active) {
+            return response()->json(['message' => 'حساب کاربری شما غیرفعال است.'], 403);
+        }
         return response()->json([
             'success' => true,
             'data' => $request->user(),

@@ -14,6 +14,15 @@ class SellerRequestController extends Controller
      */
         public function store(Request $request)
     {
+         $user = $request->user();
+
+        // 🛡️ لایه امنیتی ۱: جلوگیری از تغییر نقش ادمین اصلی
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'مدیران سیستم نمی‌توانند درخواست فروشندگی ثبت کنند. لطفاً برای فعالیت فروشندگی از یک حساب کاربری جداگانه استفاده کنید.'
+            ], 403);
+        }
         $validated = $request->validate([
             'full_name' => 'required|string|max:255',
             'national_code' => 'required|string|size:10',
@@ -52,7 +61,7 @@ class SellerRequestController extends Controller
                 'national_code' => $validated['national_code'],
                 'phone' => $validated['phone'],
                 'description' => 'درخواست ثبت شده از فرم جدید', // مقدار پیش‌فرض برای ستون description
-                'status' => 'pending',
+                'status' => 'pending_initial',
             ]);
 
             return response()->json([
@@ -141,41 +150,68 @@ class SellerRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'خطای سرور در تکمیل اطلاعات.'], 500);
         }
     }
+
+          /**
+     * مرحله ۳: آپلود مدارک توسط فروشنده
+     */
+       /**
+     * مرحله ۳: آپلود مدارک توسط فروشنده
+     */
     public function uploadDocuments(Request $request, SellerRequest $sellerRequest)
-{
-    // اطمینان از اینکه درخواست متعلق به کاربر فعلی است
-    if ($sellerRequest->user_id !== auth()->id()) {
-        return response()->json(['message' => 'غیرمجاز'], 403);
+    {
+        try {
+            // ۱. بررسی امنیت
+            if ($sellerRequest->user_id !== auth()->id()) {
+                return response()->json(['success' => false, 'message' => 'دسترسی غیرمجاز'], 403);
+            }
+
+            // ۲. بررسی وضعیت
+            if ($sellerRequest->status !== 'pending_documents') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'وضعیت فعلی اجازه آپلود نمی‌دهد: ' . $sellerRequest->status
+                ], 400);
+            }
+
+            // ۳. اعتبارسنجی (حجم تا ۵ مگابایت افزایش یافت برای جلوگیری از خطاهای پنهان)
+            $validated = $request->validate([
+                'id_card_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+                'business_license_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+                'bank_account' => 'required|string|min:10',
+            ]);
+
+            $data = [
+                'bank_account' => $validated['bank_account'],
+                'status' => 'pending_final',
+            ];
+
+            // ۴. ذخیره‌سازی فایل‌ها
+            if ($request->hasFile('id_card_image')) {
+                $data['id_card_image'] = $request->file('id_card_image')->store('seller_docs/id_cards', 'public');
+            }
+
+            if ($request->hasFile('business_license_image')) {
+                $data['business_license_image'] = $request->file('business_license_image')->store('seller_docs/licenses', 'public');
+            }
+
+            // ۵. به‌روزرسانی دیتابیس
+            $sellerRequest->update($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'مدارک با موفقیت بارگذاری شد و در انتظار بررسی نهایی است.',
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // لاگ کردن دقیق خطای ولیدیشن برای دیباگ
+            \Illuminate\Support\Facades\Log::error('Validation Error in uploadDocuments: ', $e->errors());
+            throw $e; // لاراول خودکار پاسخ ۴۲۲ را برمی‌گرداند
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Critical Error in uploadDocuments: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطای داخلی سرور: ' . $e->getMessage()
+            ], 500);
+        }
     }
-
-    // فقط اگر در مرحله pending_documents باشد اجازه آپلود دارد
-    if ($sellerRequest->status !== 'pending_documents') {
-        return response()->json(['message' => 'در حال حاضر در این مرحله نیستید'], 400);
-    }
-
-    $request->validate([
-        'id_card_image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-        'business_license_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        'bank_account' => 'required|string|min:10', // شماره شبا یا حساب
-    ]);
-
-    $data = ['bank_account' => $request->bank_account];
-
-    if ($request->hasFile('id_card_image')) {
-        $data['id_card_image'] = $request->file('id_card_image')->store('seller_docs/id_cards', 'public');
-    }
-    if ($request->hasFile('business_license_image')) {
-        $data['business_license_image'] = $request->file('business_license_image')->store('seller_docs/licenses', 'public');
-    }
-
-    $sellerRequest->update($data);
-    
-    // تغییر وضعیت به "در انتظار بررسی نهایی"
-    $sellerRequest->update(['status' => 'pending_final']);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'مدارک با موفقیت بارگذاری شد و در انتظار بررسی نهایی ادمین است.'
-    ]);
-}
 }

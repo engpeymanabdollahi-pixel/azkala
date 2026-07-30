@@ -248,4 +248,45 @@ class SellerProductController extends Controller
             ], $statusCode);
         }
     }
+        /**
+     * کپی محصول از Template و اختصاص به فروشنده
+     */
+    public function copyFromTemplate(Request $request, int $templateId)
+    {
+        // ۱. پیدا کردن محصول template
+        $template = Product::whereNull('seller_id')->findOrFail($templateId);
+
+        // ۲. دریافت اطلاعات فروشنده فعلی
+        $sellerId = $request->user()->id;
+
+        // ۳. ساخت slug و sku منحصر به فرد برای محصول جدید
+        $newSlug = $template->slug . '-seller-' . $sellerId . '-' . time();
+        $newSku = $template->sku . '-S' . $sellerId;
+
+        // ۴. کپی محصول با تغییرات لازم
+        $newProduct = $template->replicate();
+        $newProduct->seller_id = $sellerId;
+        $newProduct->slug = $newSlug;
+        $newProduct->sku = $newSku;
+        $newProduct->is_active = false; // محصول کپی‌شده باید توسط فروشنده تایید شود
+        $newProduct->views_count = 0;
+        $newProduct->sales_count = 0;
+        $newProduct->rating = 0;
+        $newProduct->reviews_count = 0;
+        $newProduct->save();
+
+        // ۵. کپی روابط device_models (اگر وجود دارد)
+        if ($template->deviceModels()->exists()) {
+            $newProduct->deviceModels()->attach($template->deviceModels->pluck('id'));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'محصول با موفقیت کپی شد. اکنون می‌توانید آن را ویرایش و منتشر کنید.',
+            'data' => [
+                'product_id' => $newProduct->id,
+                'slug' => $newProduct->slug,
+            ]
+        ], 201);
+    }
 }

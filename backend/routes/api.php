@@ -290,9 +290,11 @@ Route::prefix('v1')->group(function () {
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
+                Route::post('/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('copy-template');
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [SellerProductController::class, 'destroy'])->name('destroy');
+                Route::post('/products/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('products.copy-template');
             });
 
             Route::prefix('orders')->name('orders.')->group(function () {

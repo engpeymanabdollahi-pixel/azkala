@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Rate Limiting برای API routes
         $middleware->throttleApi();
 
+        // ✅ اصلاح حیاتی: اضافه کردن صریح میدلور CORS به گروه api
+        $middleware->appendToGroup('api', [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         // Middleware برای دسترسی ادمین
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminRole::class,

@@ -31,18 +31,23 @@ export interface AdminUser {
 
 export interface SellerRequest {
   id: number;
-  user: {
+  user?: {
     id: number;
     name: string;
     email: string;
     phone?: string;
   };
-  shop_name: string;
-  national_code: string;
-  phone: string;
+  shop_name?: string;
+  proposed_shop_name?: string;
+  full_name?: string;
+  national_code?: string;
+  phone?: string;
   description?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending_initial' | 'pending_documents' | 'pending_final' | 'approved' | 'rejected' | 'pending';
   rejection_reason?: string;
+  id_card_image?: string | null;
+  business_license_image?: string | null;
+  bank_account?: string;
   created_at: string;
 }
 
@@ -69,10 +74,12 @@ export interface AdminUsersResponse {
   };
 }
 
-// ✅ اصلاح شده: data مستقیماً آرایه است، نه یک آبجکت با پراپرتی requests
+// ✅ اصلاح شده: مطابقت کامل با خروجی بک‌اند
 export interface SellerRequestsResponse {
   success: boolean;
-  data: SellerRequest[]; 
+  data: {
+    requests: SellerRequest[]; 
+  };
   message?: string;
 }
 
@@ -123,27 +130,29 @@ export const adminUserService = {
     return response.data;
   },
 
-  /**
-   * دریافت درخواست‌های فروشندگی
-   */
   async getSellerRequests(): Promise<SellerRequestsResponse> {
     const response = await client.get<SellerRequestsResponse>('/admin/users/seller-requests');
     return response.data;
   },
 
-  /**
-   * تأیید درخواست فروشندگی (هماهنگ با روت api.php)
-   */
   async approveSellerRequest(id: number) {
     const response = await client.post(`/admin/users/${id}/approve-seller-request`);
     return response.data;
   },
 
-  /**
-   * رد درخواست فروشندگی (هماهنگ با روت api.php)
-   */
+  // ✅ حذف تکرار و اصلاح نام متد برای هماهنگی با روت جدید
   async rejectSellerRequest(id: number, reason: string) {
-    const response = await client.post(`/admin/users/${id}/reject-seller-request`, { reason });
+    const response = await client.post(`/admin/users/${id}/reject`, { reason });
+    return response.data;
+  },
+
+  async initialApproveRequest(id: number) {
+    const response = await client.post(`/admin/users/${id}/initial-approve`);
+    return response.data;
+  },
+
+  async finalApproveRequest(id: number) {
+    const response = await client.post(`/admin/users/${id}/final-approve`);
     return response.data;
   },
 };
