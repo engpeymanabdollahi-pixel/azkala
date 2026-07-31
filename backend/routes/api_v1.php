@@ -351,6 +351,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->name('quick-update');
             Route::delete('/{product}', [AdminProductController::class, 'destroy'])->name('destroy');
             Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->name('bulk-action');
+            Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
         });
 
         Route::prefix('orders')->name('orders.')->group(function () {

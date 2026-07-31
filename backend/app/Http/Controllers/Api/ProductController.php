@@ -162,4 +162,32 @@ class ProductController extends Controller
             'data' => ProductResource::collection($templates),
         ]);
     }
+        /**
+     * دریافت لیست محصولات الگو (Template) برای فروشندگان
+     */
+    public function getTemplates(Request $request)
+    {
+        $query = \App\Models\Product::whereNull('seller_id')
+            ->with(['category:id,name', 'brand:id,name']);
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhereHas('category', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('brand', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $templates = $query->paginate($request->per_page ?? 50);
+
+        return response()->json([
+            'success' => true,
+            'data' => $templates
+        ]);
+    }
 }
