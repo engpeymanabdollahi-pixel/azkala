@@ -7,6 +7,8 @@ use App\Services\Seller\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB; // ✅ این خط حی
+use App\Models\Product; // ✅ این خط باید اضافه شود
 
 class SellerProductController extends Controller
 {
@@ -248,45 +250,57 @@ class SellerProductController extends Controller
             ], $statusCode);
         }
     }
-        /**
-     * کپی محصول از Template و اختصاص به فروشنده
+               /**
+     * کپی محصول از Template و اختصاص به فروشنده (Enterprise Grade)
      */
     public function copyFromTemplate(Request $request, int $templateId)
     {
-        // ۱. پیدا کردن محصول template
-        $template = Product::whereNull('seller_id')->findOrFail($templateId);
+        return DB::transaction(function () use ($request, $templateId) {
+            $template = Product::query()
+                ->whereNull('seller_id')
+                ->with(['category', 'brand', 'deviceModels'])
+                ->findOrFail($templateId);
 
-        // ۲. دریافت اطلاعات فروشنده فعلی
-        $sellerId = $request->user()->id;
+            $sellerId = $request->user()->id;
 
-        // ۳. ساخت slug و sku منحصر به فرد برای محصول جدید
-        $newSlug = $template->slug . '-seller-' . $sellerId . '-' . time();
-        $newSku = $template->sku . '-S' . $sellerId;
+            do {
+                $slug = Str::slug($template->name) . '-s' . $sellerId . '-' . Str::lower(Str::random(6));
+            } while (Product::where('slug', $slug)->exists());
 
-        // ۴. کپی محصول با تغییرات لازم
-        $newProduct = $template->replicate();
-        $newProduct->seller_id = $sellerId;
-        $newProduct->slug = $newSlug;
-        $newProduct->sku = $newSku;
-        $newProduct->is_active = false; // محصول کپی‌شده باید توسط فروشنده تایید شود
-        $newProduct->views_count = 0;
-        $newProduct->sales_count = 0;
-        $newProduct->rating = 0;
-        $newProduct->reviews_count = 0;
-        $newProduct->save();
+            $sku = sprintf('TMPL-%d-%s', $sellerId, Str::upper(Str::random(8)));
 
-        // ۵. کپی روابط device_models (اگر وجود دارد)
-        if ($template->deviceModels()->exists()) {
-            $newProduct->deviceModels()->attach($template->deviceModels->pluck('id'));
-        }
+            $newProduct = $template->replicate();
+            
+            $newProduct->seller_id = $sellerId;
+            $newProduct->slug = $slug;
+            $newProduct->sku = $sku;
+            $newProduct->is_active = false;
+            $newProduct->views_count = 0;
+            $newProduct->sales_count = 0;
+            $newProduct->rating = 0;
+            $newProduct->reviews_count = 0;
+            $newProduct->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'محصول با موفقیت کپی شد. اکنون می‌توانید آن را ویرایش و منتشر کنید.',
-            'data' => [
-                'product_id' => $newProduct->id,
-                'slug' => $newProduct->slug,
-            ]
-        ], 201);
+            if ($template->deviceModels->isNotEmpty()) {
+                $newProduct->deviceModels()->sync($template->deviceModels->pluck('id'));
+            }
+
+            $newProduct->load(['category', 'brand', 'deviceModels']);
+
+            Log::info('Template copied successfully', [
+                'template_id' => $template->id,
+                'seller_id'   => $sellerId,
+                'product_id'  => $newProduct->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'محصول با موفقیت ایجاد شد. اکنون می‌توانید قیمت و موجودی آن را ویرایش کنید.',
+                'data' => [
+                    'product_id' => $newProduct->id, // ✅ این خط حیاتی است تا ریدایرکت فرانت‌اند کار کند
+                    'product' => $newProduct,
+                ],
+            ], 201);
+        });
     }
 }

@@ -292,6 +292,7 @@ export default function App() {
                 <Route index element={<SellerDashboard />} />
                 <Route path="settings" element={<SellerSettings />} />
                 <Route path="products" element={<SellerProducts />} />
+                <Route path="products/:productId/edit" element={<SellerProducts />} />
                 <Route path="products/templates" element={<ProductTemplatesPage />} />
                 <Route path="products/new" element={<AddProduct />} />
                 <Route path="products/:productId/edit" element={<EditProduct />} />

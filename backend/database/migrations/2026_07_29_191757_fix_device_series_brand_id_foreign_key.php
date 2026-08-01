@@ -3,19 +3,25 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
         Schema::table('device_series', function (Blueprint $table) {
-            // ۱. حذف کلید خارجی اشتباه قبلی
-            $table->dropForeign(['brand_id']);
-            
-            // ۲. ایجاد کلید خارجی صحیح روی ستون موجود (بدون تلاش برای ساخت مجدد ستون)
+            // ۱. تلاش برای حذف کلید خارجی قدیمی با دستور خام SQL
+            try {
+                DB::statement('ALTER TABLE device_series DROP FOREIGN KEY device_series_brand_id_foreign');
+            } catch (\Exception $e) {
+                // اگر کلید خارجی وجود نداشت، خطا نادیده گرفته می‌شود و اجرا ادامه می‌یابد.
+                // این همان خطایی است که می‌خواستیم از آن جلوگیری کنیم.
+            }
+
+            // ۲. ایجاد کلید خارجی صحیح به جدول device_brands
             $table->foreign('brand_id')
                   ->references('id')
-                  ->on('device_brands') // ✅ اشاره به جدول صحیح
+                  ->on('device_brands')
                   ->onDelete('cascade');
         });
     }
@@ -23,11 +29,11 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('device_series', function (Blueprint $table) {
-            $table->dropForeign(['brand_id']);
-            $table->foreign('brand_id')
-                  ->references('id')
-                  ->on('brands') // بازگشت به حالت قبلی
-                  ->onDelete('cascade');
+            try {
+                $table->dropForeign(['brand_id']);
+            } catch (\Exception $e) {
+                // نادیده گرفتن خطا در حالت بازگشت
+            }
         });
     }
 };

@@ -470,26 +470,70 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
                 )}
               </div>
 
-              {/* Sidebar */}
+                            {/* Sidebar */}
               <div className="space-y-4">
+                
+                {/* ✅ بخش جدید: سوئیچ وضعیت انتشار */}
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-primary-600" />
+                    وضعیت انتشار
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">
+                      {formData.is_active ? 'محصول در سایت نمایش داده می‌شود' : 'محصول به صورت پیش‌نویس است'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleFieldChange('is_active', !formData.is_active)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
+                        formData.is_active ? 'bg-primary-600' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          formData.is_active ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* بخش تصاویر */}
                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                   <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                     <ImageIcon className="w-4 h-4 text-primary-600" />
                     تصاویر ({images.length})
                   </h3>
                   <div className="space-y-2 mb-3">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img src={image} alt="" className="w-full aspect-square object-cover rounded-xl" />
-                        <button onClick={() => setImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 w-6 h-6 bg-error-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <X className="w-3 h-3" />
-                        </button>
-                        {index === 0 && <span className="absolute bottom-1 right-1 bg-primary-500 text-white text-[10px] px-2 py-0.5 rounded-full">اصلی</span>}
+                    {images.length > 0 ? (
+                      images.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <img 
+                            src={image} 
+                            alt="" 
+                            className="w-full aspect-square object-cover rounded-xl bg-gray-100"
+                            onError={(e) => {
+                              // اگر عکس اصلی (مثلاً Unsplash) به دلیل محدودیت سرور لود نشد، این عکس جایگزین نمایش داده می‌شود
+                              (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/e2e8f0/64748b?text=No+Image';
+                            }}
+                          />
+                          <button onClick={() => setImages(prev => prev.filter((_, i) => i !== index))} className="absolute top-1 right-1 w-6 h-6 bg-error-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <X className="w-3 h-3" />
+                          </button>
+                          {index === 0 && <span className="absolute bottom-1 right-1 bg-primary-500 text-white text-[10px] px-2 py-0.5 rounded-full">اصلی</span>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                        <ImageIcon className="w-10 h-10 mb-2" />
+                        <span className="text-xs font-medium">هنوز تصویری اضافه نشده</span>
                       </div>
-                    ))}
+                    )}
                   </div>
                   <ImageUploader onUploadComplete={(urls) => setImages(prev => [...prev, ...urls])} maxFiles={5} maxSizeMB={4} />
                 </div>
+
               </div>
             </div>
           </div>

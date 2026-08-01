@@ -13,6 +13,8 @@ interface ProductTemplate {
   slug: string;
   short_description?: string;
   main_image?: string;
+   gallery?: string[]; // ✅ اضافه شد
+  specifications?: Record<string, any>; // ✅ اضافه شد
   price: number;
   compare_price?: number;
   discount_price?: number;
@@ -38,7 +40,7 @@ export default function ProductTemplates() {
       const res = await apiClient.get('/products/templates', {
         params: { search: searchTerm, per_page: 50 }
       });
-      setTemplates(res.data.data || []);
+      setTemplates(res.data?.data?.data || []);
     } catch (error) {
       toast.error('خطا در بارگذاری محصولات آماده');
       console.error(error);
@@ -57,7 +59,7 @@ export default function ProductTemplates() {
       
       // انتقال به صفحه ویرایش محصول جدید
       setTimeout(() => {
-        navigate(`/seller/products/${res.data.data.product_id}/edit`);
+       navigate(`/seller/products/${res.data.data.product.id}/edit`);
       }, 1000);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'خطا در کپی محصول');
@@ -162,6 +164,21 @@ export default function ProductTemplates() {
                     </Badge>
                   )}
                 </div>
+                                {/* ✅ Device Compatibility Badges (نمایش دستگاه‌های سازگار) */}
+                {template.device_models && template.device_models.length > 0 && (
+                  <div className="absolute bottom-2 right-2 flex flex-wrap gap-1 justify-end max-w-[90%]">
+                    {template.device_models.slice(0, 2).map((device: any) => (
+                      <Badge key={device.id} variant="outline" className="bg-white/95 backdrop-blur text-[10px] font-bold text-primary-700 border-primary-200 shadow-sm">
+                        📱 {device.name}
+                      </Badge>
+                    ))}
+                    {template.device_models.length > 2 && (
+                      <Badge variant="outline" className="bg-white/95 backdrop-blur text-[10px] font-bold text-gray-600">
+                        +{template.device_models.length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {template.discount_price && template.compare_price && (
                   <div className="absolute top-2 left-2 bg-error-500 text-white px-2 py-1 rounded-lg text-xs font-bold">

@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Package, Plus, Search, Edit, Trash2, Eye, MoreVertical,
   AlertCircle, CheckCircle, XCircle, X, Grid3x3, List,
@@ -17,6 +16,7 @@ import toast from 'react-hot-toast';
 import { useSellerProducts, useDeleteProduct } from '@/hooks/api/useSellerProducts';
 // ✅ ایمپورت کامپوننت یکپارچه فرم محصول
 import { ProductFormModal } from './ProductFormModal'; 
+import { useParams, useNavigate } from 'react-router-dom';
 
 type ViewMode = 'grid' | 'table';
 type StatusFilter = 'all' | 'active' | 'inactive' | 'out_of_stock';
@@ -99,7 +99,8 @@ export function SellerProducts() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showQuickView, setShowQuickView] = useState<Product | null>(null);
   const [showDropdown, setShowDropdown] = useState<number | null>(null);
-  
+    const { productId } = useParams<{ productId: string }>();
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +109,14 @@ export function SellerProducts() {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+  if (productId) {
+    setFormModalMode('edit');
+    setEditingProductId(Number(productId));
+    setIsFormModalOpen(true);
+  }
+}, [productId]);
 
   // ✅ Close dropdown when clicking outside
   useEffect(() => {

@@ -41,6 +41,7 @@ class Product extends Model
     'stock' => 'integer',
     'is_active' => 'boolean',
     'gallery' => 'array',
+    'specifications' => 'array',
 ];
 
     public function category()
