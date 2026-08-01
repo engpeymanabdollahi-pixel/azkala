@@ -380,3 +380,4 @@ export function OrdersSection() {
     </div>
   );
 }
+export default OrdersSection;

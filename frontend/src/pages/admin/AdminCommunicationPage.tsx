@@ -143,3 +143,4 @@ export function AdminCommunicationPage() {
     </div>
   );
 }
+export default AdminCommunicationPage;

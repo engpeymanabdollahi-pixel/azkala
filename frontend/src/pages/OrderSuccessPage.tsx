@@ -352,3 +352,4 @@ export function OrderSuccessPage() {
     </div>
   );
 }
+export default OrderSuccessPage;

@@ -1331,3 +1331,4 @@ useEffect(() => {
     </div>
   );
 }
+export default SellerChatPage;

@@ -1290,3 +1290,4 @@ useEffect(() => {
     </div>
   );
 }
+export default ProductDetailPage;

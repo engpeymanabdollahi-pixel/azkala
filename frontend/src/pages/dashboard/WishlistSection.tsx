@@ -247,3 +247,4 @@ export function WishlistSection() {
     </div>
   );
 }
+export default WishlistSection;

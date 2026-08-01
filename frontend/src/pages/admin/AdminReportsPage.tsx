@@ -1935,3 +1935,4 @@ const PieChart = memo(function PieChart({ data, size = 240 }: { data: TopCategor
     </svg>
   );
 });
+export default AdminReportsPage;

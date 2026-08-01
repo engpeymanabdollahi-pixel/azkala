@@ -116,3 +116,4 @@ export function SecuritySection() {
     </div>
   );
 }
+export default SecuritySection;

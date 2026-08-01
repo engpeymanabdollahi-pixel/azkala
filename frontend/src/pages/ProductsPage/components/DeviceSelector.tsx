@@ -89,3 +89,4 @@ export function DeviceSelector({
     </div>
   );
 }
+export default DeviceSelector;

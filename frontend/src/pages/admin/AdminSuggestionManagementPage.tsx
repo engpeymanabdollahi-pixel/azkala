@@ -727,3 +727,4 @@ export function AdminSuggestionManagementPage() {
     </div>
   );
 }
+export default AdminSuggestionManagementPage;

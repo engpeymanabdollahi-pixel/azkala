@@ -1468,3 +1468,4 @@ function CategoryFormModal({
     </div>
   );
 }
+export default AdminCategoriesPage;

@@ -509,3 +509,4 @@ export function SellerOrderDetailModal({ isOpen, onClose, orderId }: SellerOrder
     </>
   );
 }
+export default SellerOrderDetailModal;

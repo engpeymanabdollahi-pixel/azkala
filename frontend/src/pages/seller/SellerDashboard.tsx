@@ -550,3 +550,4 @@ export function SellerDashboard() {
     </div>
   );
 }
+export default SellerDashboard;

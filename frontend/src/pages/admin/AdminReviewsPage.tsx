@@ -691,3 +691,4 @@ function StatCard({ label, value, icon: Icon, color, isRating }: {
     </div>
   );
 }
+export default AdminReviewsPage;

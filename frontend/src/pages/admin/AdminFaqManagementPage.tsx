@@ -657,3 +657,4 @@ function Shield(props: any) {
     </svg>
   );
 }
+export default AdminFaqManagementPage;

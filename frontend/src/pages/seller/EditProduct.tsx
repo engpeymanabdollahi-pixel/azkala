@@ -15,3 +15,4 @@ export function EditProduct() {
     />
   );
 }
+export default EditProduct;

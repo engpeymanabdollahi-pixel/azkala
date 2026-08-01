@@ -53,3 +53,4 @@ export const AnimatedCounter = memo(({
 });
 
 AnimatedCounter.displayName = 'AnimatedCounter';
+export default AnimatedCounter;

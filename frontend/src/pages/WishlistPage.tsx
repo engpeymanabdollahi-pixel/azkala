@@ -373,3 +373,4 @@ export function WishlistPage() {
     </div>
   );
 }
+export default WishlistPage;

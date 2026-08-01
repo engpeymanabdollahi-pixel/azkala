@@ -155,3 +155,4 @@ export function SellerLogin() {
     </div>
   );
 }
+export default sellerLogin;

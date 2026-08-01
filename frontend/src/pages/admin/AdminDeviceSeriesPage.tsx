@@ -153,3 +153,4 @@ export function AdminDeviceSeriesPage() {
     </div>
   );
 }
+export default AdminDeviceSeriesPage;

@@ -121,3 +121,4 @@ export function ProductGrid({
     </>
   );
 }
+export default ProductGrid;

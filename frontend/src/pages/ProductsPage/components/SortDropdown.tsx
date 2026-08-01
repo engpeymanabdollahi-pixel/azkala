@@ -57,3 +57,4 @@ export function SortDropdown({ value, onChange }: SortDropdownProps) {
     </div>
   );
 }
+export default SortDropdown;

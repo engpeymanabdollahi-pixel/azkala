@@ -608,3 +608,4 @@ function StatCard({ icon: Icon, label, value, color }: {
     </div>
   );
 }
+export default AdminCouponsPage;

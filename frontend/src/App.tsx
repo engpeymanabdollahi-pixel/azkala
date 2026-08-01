@@ -32,77 +32,78 @@ function PageLoader() {
 // ==========================================
 // ایمپورت صفحات پنل ادمین (Lazy Loaded)
 // ==========================================
-const AdminLayout = lazy(() => import('@/components/layout/AdminLayout/AdminLayout').then(m => ({ default: m.AdminLayout })));
-const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage').then(m => ({ default: m.AdminProductsPage })));
-const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage').then(m => ({ default: m.AdminOrdersPage })));
-const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
-const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminReviewsPage').then(m => ({ default: m.AdminReviewsPage })));
-const AdminBrandsPage = lazy(() => import('@/pages/admin/AdminBrandsPage').then(m => ({ default: m.AdminBrandsPage })));
-const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage').then(m => ({ default: m.AdminCatalogPage })));
-const AdminDeviceBrandsPage = lazy(() => import('@/pages/admin/AdminDeviceBrandsPage').then(m => ({ default: m.AdminDeviceBrandsPage })));
-const AdminDeviceSeriesPage = lazy(() => import('@/pages/admin/AdminDeviceSeriesPage').then(m => ({ default: m.AdminDeviceSeriesPage })));
-const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage').then(m => ({ default: m.AdminCommunicationPage })));
-const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage').then(m => ({ default: m.AdminCouponsPage })));
-const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage').then(m => ({ default: m.AdminCategoriesPage })));
-const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage').then(m => ({ default: m.AdminSettingsPage })));
-const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
-const AdminChatReportsPage = lazy(() => import('@/pages/admin/AdminChatReportsPage').then(m => ({ default: m.AdminChatReportsPage })));
-const AdminChatMonitorPage = lazy(() => import('@/pages/admin/AdminChatMonitorPage').then(m => ({ default: m.AdminChatMonitorPage })));
-const AdminSentimentDashboard = lazy(() => import('@/pages/admin/AdminSentimentDashboard').then(m => ({ default: m.AdminSentimentDashboard })));
-const AdminBlocksPage = lazy(() => import('@/pages/admin/AdminBlocksPage').then(m => ({ default: m.AdminBlocksPage })));
-const AdminFaqManagementPage = lazy(() => import('@/pages/admin/AdminFaqManagementPage').then(m => ({ default: m.AdminFaqManagementPage })));
-const AdminMessageTemplatesPage = lazy(() => import('@/pages/admin/AdminMessageTemplatesPage').then(m => ({ default: m.AdminMessageTemplatesPage })));
-const AdminSupportTicketsPage = lazy(() => import('@/pages/admin/AdminSupportTicketsPage').then(m => ({ default: m.AdminSupportTicketsPage })));
-const AdminSuggestionManagementPage = lazy(() => import('@/pages/admin/AdminSuggestionManagementPage').then(m => ({ default: m.AdminSuggestionManagementPage })));
-const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage').then(m => ({ default: m.AdminDeviceModelsPage })));
-const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates').then(m => ({ default: m.ProductTemplates })));
+const AdminLayout = lazy(() => import('@/components/layout/AdminLayout/AdminLayout'));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'));
+const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
+const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminReviewsPage'));
+const AdminBrandsPage = lazy(() => import('@/pages/admin/AdminBrandsPage'));
+const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage'));
+const AdminDeviceBrandsPage = lazy(() => import('@/pages/admin/AdminDeviceBrandsPage'));
+const AdminDeviceSeriesPage = lazy(() => import('@/pages/admin/AdminDeviceSeriesPage'));
+const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage'));
+const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
+const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage'));
+const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'));
+const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
+const AdminChatReportsPage = lazy(() => import('@/pages/admin/AdminChatReportsPage'));
+const AdminChatMonitorPage = lazy(() => import('@/pages/admin/AdminChatMonitorPage'));
+const AdminSentimentDashboard = lazy(() => import('@/pages/admin/AdminSentimentDashboard'));
+const AdminBlocksPage = lazy(() => import('@/pages/admin/AdminBlocksPage'));
+const AdminFaqManagementPage = lazy(() => import('@/pages/admin/AdminFaqManagementPage'));
+const AdminMessageTemplatesPage = lazy(() => import('@/pages/admin/AdminMessageTemplatesPage'));
+const AdminSupportTicketsPage = lazy(() => import('@/pages/admin/AdminSupportTicketsPage'));
+const AdminSuggestionManagementPage = lazy(() => import('@/pages/admin/AdminSuggestionManagementPage'));
+const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage'));
+const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
 
 // ==========================================
 // ایمپورت صفحات پنل کاربری (Lazy Loaded)
 // ==========================================
-const UserDashboardLayout = lazy(() => import('@/components/layout/UserDashboardLayout').then(m => ({ default: m.UserDashboardLayout })));
-const ProfileSection = lazy(() => import('@/pages/dashboard/ProfileSection').then(m => ({ default: m.ProfileSection })));
-const OrdersSection = lazy(() => import('@/pages/dashboard/OrdersSection').then(m => ({ default: m.OrdersSection })));
-const WishlistSection = lazy(() => import('@/pages/dashboard/WishlistSection').then(m => ({ default: m.WishlistSection })));
-const AddressesSection = lazy(() => import('@/pages/dashboard/AddressesSection').then(m => ({ default: m.AddressesSection })));
-const DevicesSection = lazy(() => import('@/pages/dashboard/DevicesSection').then(m => ({ default: m.DevicesSection })));
-const SecuritySection = lazy(() => import('@/pages/dashboard/SecuritySection').then(m => ({ default: m.SecuritySection })));
-const NotificationsSection = lazy(() => import('@/pages/dashboard/NotificationsSection').then(m => ({ default: m.NotificationsSection })));
-const TicketsSection = lazy(() => import('@/pages/dashboard/TicketsSection').then(m => ({ default: m.TicketsSection })));
+const UserDashboardLayout = lazy(() => import('@/components/layout/UserDashboardLayout'));
+const ProfileSection = lazy(() => import('@/pages/dashboard/ProfileSection'));
+const OrdersSection = lazy(() => import('@/pages/dashboard/OrdersSection'));
+const WishlistSection = lazy(() => import('@/pages/dashboard/WishlistSection'));
+const AddressesSection = lazy(() => import('@/pages/dashboard/AddressesSection'));
+const DevicesSection = lazy(() => import('@/pages/dashboard/DevicesSection'));
+const SecuritySection = lazy(() => import('@/pages/dashboard/SecuritySection'));
+const NotificationsSection = lazy(() => import('@/pages/dashboard/NotificationsSection'));
+const TicketsSection = lazy(() => import('@/pages/dashboard/TicketsSection'));
 
 // ==========================================
 // ایمپورت صفحات پنل فروشندگان (Lazy Loaded)
 // ==========================================
-const SellerLayout = lazy(() => import('@/components/layout/SellerLayout').then(m => ({ default: m.SellerLayout })));
-const SellerDashboard = lazy(() => import('@/pages/seller/SellerDashboard').then(m => ({ default: m.SellerDashboard })));
-const SellerProducts = lazy(() => import('@/pages/seller/SellerProducts').then(m => ({ default: m.SellerProducts })));
-const AddProduct = lazy(() => import('@/pages/seller/AddProduct').then(m => ({ default: m.AddProduct })));
-const EditProduct = lazy(() => import('@/pages/seller/EditProduct').then(m => ({ default: m.EditProduct })));
-const SellerOrders = lazy(() => import('@/pages/seller/SellerOrders').then(m => ({ default: m.SellerOrders })));
-const SellerOrderDetail = lazy(() => import('@/pages/seller/SellerOrderDetail').then(m => ({ default: m.SellerOrderDetail })));
-const SellerPayouts = lazy(() => import('@/pages/seller/SellerPayouts').then(m => ({ default: m.SellerPayouts })));
-const SellerLoginPage = lazy(() => import('@/pages/seller/sellerLogin').then(m => ({ default: m.sellerLogin })));
-const SellerChatPage = lazy(() => import('@/pages/seller/SellerChatPage').then(m => ({ default: m.SellerChatPage })));
-const SellerSettings = lazy(() => import('@/pages/seller/SellerSettings')); // ✅ صحیح
+const SellerLayout = lazy(() => import('@/components/layout/SellerLayout'));
+const SellerDashboard = lazy(() => import('@/pages/seller/SellerDashboard'));
+const SellerProducts = lazy(() => import('@/pages/seller/SellerProducts'));
+const AddProduct = lazy(() => import('@/pages/seller/AddProduct'));
+const EditProduct = lazy(() => import('@/pages/seller/EditProduct'));
+const SellerOrders = lazy(() => import('@/pages/seller/SellerOrders'));
+const SellerOrderDetail = lazy(() => import('@/pages/seller/SellerOrderDetail'));
+const SellerPayouts = lazy(() => import('@/pages/seller/SellerPayouts'));
+const SellerLoginPage = lazy(() => import('@/pages/seller/sellerLogin'));
+const SellerChatPage = lazy(() => import('@/pages/seller/SellerChatPage'));
+const SellerSettings = lazy(() => import('@/pages/seller/SellerSettings'));
+// ✅ خط ProductTemplatesPage از اینجا حذف شد چون در بالا تعریف شده است
 
 // ==========================================
 // ایمپورت صفحات عمومی سایت (Lazy Loaded)
 // ==========================================
-const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })));
-const ProductsPage = lazy(() => import('@/pages/ProductsPage').then(m => ({ default: m.ProductsPage })));
-const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
-const CheckoutPage = lazy(() => import('@/pages/CheckoutPage').then(m => ({ default: m.CheckoutPage })));
-const AuthPage = lazy(() => import('@/pages/AuthPage').then(m => ({ default: m.AuthPage })));
-const BrandsPage = lazy(() => import('@/pages/BrandsPage').then(m => ({ default: m.BrandsPage })));
-const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ default: m.ContactPage })));
-const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
-const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })));
-const GuaranteePage = lazy(() => import('@/pages/GuaranteePage').then(m => ({ default: m.GuaranteePage })));
-const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m.TermsPage })));
-const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage').then(m => ({ default: m.OrderSuccessPage })));
-const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage').then(m => ({ default: m.UserTicketsPage })));
-const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage').then(m => ({ default: m.default })));
+const HomePage = lazy(() => import('@/pages/HomePage'));
+const ProductsPage = lazy(() => import('@/pages/ProductsPage'));
+const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage'));
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
+const AuthPage = lazy(() => import('@/pages/AuthPage'));
+const BrandsPage = lazy(() => import('@/pages/BrandsPage'));
+const ContactPage = lazy(() => import('@/pages/ContactPage'));
+const AboutPage = lazy(() => import('@/pages/AboutPage'));
+const HelpPage = lazy(() => import('@/pages/HelpPage'));
+const GuaranteePage = lazy(() => import('@/pages/GuaranteePage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'));
+const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage'));
+const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage'));
 
 // ==========================================
 // کامپوننت محافظت از روت‌ها (Protected Route)
@@ -289,8 +290,7 @@ export default function App() {
                 </ProtectedRoute>
               }>
                 <Route index element={<SellerDashboard />} />
-                <Route path="settings" element={<SellerSettings />} /> 
-                <Route path="settings" element={<SellerSettings />} /> {/* ✅ روت جدید */}
+                <Route path="settings" element={<SellerSettings />} />
                 <Route path="products" element={<SellerProducts />} />
                 <Route path="products/templates" element={<ProductTemplatesPage />} />
                 <Route path="products/new" element={<AddProduct />} />

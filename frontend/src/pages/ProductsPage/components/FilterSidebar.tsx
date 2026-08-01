@@ -222,3 +222,4 @@ export function FilterSidebar({
     </aside>
   );
 }
+export default FilterSidebar;

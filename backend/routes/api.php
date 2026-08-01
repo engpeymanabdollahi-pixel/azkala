@@ -1,4 +1,4 @@
-<?php
+شحه<?php
 
 use Illuminate\Support\Facades\Route;
 
@@ -109,6 +109,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti'])->name('compatible-multi');
         Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
        
@@ -290,6 +291,7 @@ Route::prefix('v1')->group(function () {
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
+                Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
                 Route::post('/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('copy-template');
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');

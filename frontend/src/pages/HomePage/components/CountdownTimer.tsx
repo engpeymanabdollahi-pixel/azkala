@@ -48,3 +48,4 @@ export const CountdownTimer = memo(({ timeLeft }: CountdownTimerProps) => {
 });
 
 CountdownTimer.displayName = 'CountdownTimer';
+export default CountdownTimer;

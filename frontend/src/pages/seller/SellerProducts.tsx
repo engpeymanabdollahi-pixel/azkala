@@ -704,3 +704,4 @@ export function SellerProducts() {
     </div>
   );
 }
+export default SellerProducts;

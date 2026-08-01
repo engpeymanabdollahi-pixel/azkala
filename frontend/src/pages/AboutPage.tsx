@@ -95,3 +95,4 @@ export function AboutPage() {
     </div>
   );
 }
+export default AboutPage;

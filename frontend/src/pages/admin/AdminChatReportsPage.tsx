@@ -590,3 +590,4 @@ export function AdminChatReportsPage() {
     </div>
   );
 }
+export default AdminChatReportsPage;

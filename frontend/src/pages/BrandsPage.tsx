@@ -247,3 +247,4 @@ export function BrandsPage({ onNavigate }: BrandsPageProps) {
     </div>
   );
 }
+export default BrandsPage;

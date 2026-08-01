@@ -879,3 +879,4 @@ export function SellerOrderDetail() {
     </div>
   );
 }
+export default SellerOrderDetail;

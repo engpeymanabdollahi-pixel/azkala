@@ -632,3 +632,4 @@ export function AdminMessageTemplatesPage() {
     </div>
   );
 }
+export default AdminMessageTemplatesPage;

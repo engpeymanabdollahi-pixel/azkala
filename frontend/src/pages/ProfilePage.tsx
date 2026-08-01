@@ -575,3 +575,4 @@ export function ProfilePage() {
     </div>
   );
 }
+export default ProfilePage;

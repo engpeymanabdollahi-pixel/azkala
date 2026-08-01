@@ -62,3 +62,4 @@ export function FilterTags({
     </div>
   );
 }
+export default FilterTags;

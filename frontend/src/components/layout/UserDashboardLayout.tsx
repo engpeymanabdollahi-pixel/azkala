@@ -189,3 +189,4 @@ export function UserDashboardLayout() {
     </div>
   );
 }
+export default UserDashboardLayout;

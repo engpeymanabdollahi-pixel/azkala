@@ -124,3 +124,4 @@ export function AdminCatalogPage() {
     </div>
   );
 }
+export default AdminCatalogPage;

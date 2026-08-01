@@ -320,3 +320,4 @@ function SummaryCard({ label, value, icon: Icon, color, badge }: {
     </div>
   );
 }
+export default AdminSentimentDashboard;

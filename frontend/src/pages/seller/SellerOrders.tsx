@@ -494,3 +494,4 @@ export function SellerOrders() {
     </div>
   );
 }
+export default SellerOrders;

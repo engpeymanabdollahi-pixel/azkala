@@ -99,3 +99,4 @@ export function NotificationsSection() {
     </div>
   );
 }
+export default NotificationsSection;

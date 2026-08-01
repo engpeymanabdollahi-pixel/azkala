@@ -253,3 +253,4 @@ export function AdminDeviceBrandsPage() {
     </div>
   );
 }
+export default AdminDeviceBrandsPage;

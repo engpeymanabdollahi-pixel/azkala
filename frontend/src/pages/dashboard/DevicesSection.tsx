@@ -544,3 +544,4 @@ function AddDeviceModal({
     </div>
   );
 }
+export default DevicesSection;

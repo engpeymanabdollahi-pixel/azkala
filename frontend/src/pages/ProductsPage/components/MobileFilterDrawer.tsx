@@ -166,3 +166,4 @@ export function MobileFilterDrawer({
     </>
   );
 }
+export default MobileFilterDrawer;

@@ -498,3 +498,4 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
     </>
   );
 }
+export default ProductFormModal;

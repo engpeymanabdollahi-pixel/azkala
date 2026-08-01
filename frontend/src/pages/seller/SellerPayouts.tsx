@@ -932,3 +932,4 @@ const payouts = payoutsData || [];
     </div>
   );
 }
+export default SellerPayouts;

@@ -819,3 +819,4 @@ function QuickEditModal({ product, onClose, onSave, isPending }: {
     </div>
   );
 }
+export default AdminProductsPage;

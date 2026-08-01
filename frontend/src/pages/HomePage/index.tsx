@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 import { useHomeData } from '@/hooks/useHomeData';
 
 // Import separated components
-import { SectionErrorBoundary } from './components/ErrorBoundary';
+import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { CountdownTimer } from './components/CountdownTimer';
 import { AnimatedCounter } from './components/AnimatedCounter';
 import { ProductCardWithQuickView } from './components/ProductCardWithQuickView';
@@ -813,3 +813,4 @@ export function HomePage() {
     </div>
   );
 }
+export default HomePage;

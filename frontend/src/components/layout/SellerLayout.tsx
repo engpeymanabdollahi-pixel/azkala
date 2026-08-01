@@ -800,3 +800,4 @@ export function SellerLayout() {
     </div>
   );
 }
+export default SellerLayout;

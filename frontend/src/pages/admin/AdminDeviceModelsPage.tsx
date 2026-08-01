@@ -177,3 +177,4 @@ export function AdminDeviceModelsPage() {
     </div>
   );
 }
+export default AdminDeviceModelsPage;

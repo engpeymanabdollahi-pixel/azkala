@@ -767,3 +767,4 @@ function HistoryTab() {
     </div>
   );
 }
+export default AdminSettingsPage;

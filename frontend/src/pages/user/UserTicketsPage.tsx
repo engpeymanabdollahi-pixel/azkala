@@ -615,3 +615,4 @@ export function UserTicketsPage() {
     </div>
   );
 }
+export default UserTicketsPage;

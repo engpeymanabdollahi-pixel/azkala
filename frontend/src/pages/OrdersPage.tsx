@@ -25,3 +25,4 @@ export function OrdersPage() {
     </div>
   );
 }
+export default OrdersPage;

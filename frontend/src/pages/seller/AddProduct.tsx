@@ -14,3 +14,4 @@ export function AddProduct() {
     />
   );
 }
+export default AddProduct;

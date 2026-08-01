@@ -218,3 +218,4 @@ export const ProductCardWithQuickView = memo(({
 });
 
 ProductCardWithQuickView.displayName = 'ProductCardWithQuickView';
+export default ProductCardWithQuickView;

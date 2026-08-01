@@ -74,3 +74,4 @@ export function GuaranteePage() {
     </div>
   );
 }
+export default GuaranteePage;

@@ -586,3 +586,4 @@ export function TicketsSection() {
     </div>
   );
 }
+export default TicketsSection;

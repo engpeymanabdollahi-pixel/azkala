@@ -479,3 +479,4 @@ export function AdminBrandsPage() {
     </div>
   );
 }
+export default AdminBrandsPage;

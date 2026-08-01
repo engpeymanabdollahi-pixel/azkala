@@ -476,3 +476,4 @@ export function AdminBlocksPage() {
     </div>
   );
 }
+export default AdminBlocksPage;

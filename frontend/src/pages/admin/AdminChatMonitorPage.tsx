@@ -586,3 +586,4 @@ export function AdminChatMonitorPage() {
     </div>
   );
 }
+export default AdminChatMonitorPage;
