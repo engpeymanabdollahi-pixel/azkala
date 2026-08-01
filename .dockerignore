@@ -1,0 +1,15 @@
+# Root .dockerignore
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+node_modules
+npm-debug.log
+vendor
+composer.lock
+.idea
+.vscode
+*.md
+Azkala_*.md
+Azkala_*.txt

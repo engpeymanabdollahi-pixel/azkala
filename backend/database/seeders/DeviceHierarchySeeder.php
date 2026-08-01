@@ -9,16 +9,11 @@ class DeviceHierarchySeeder extends Seeder
 {
     public function run()
     {
-        // ✅ غیرفعال کردن موقت بررسی کلیدهای خارجی برای جلوگیری از خطای Truncate
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        // پاک کردن داده‌های قبلی
+        // ✅ حذف دستورات مخصوص MySQL برای سازگاری کامل با SQLite و MySQL
+        // پاک کردن داده‌ها به ترتیب عکس وابستگی (از فرزند به والد) جلوی خطای Foreign Key را می‌گیرد
         DB::table('device_models')->truncate();
         DB::table('device_series')->truncate();
         DB::table('device_brands')->truncate();
-
-        // ✅ فعال کردن مجدد بررسی کلیدهای خارجی
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         // ==================== موبایل ====================
         
@@ -32,7 +27,7 @@ class DeviceHierarchySeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // iPhone Series (بدون فیلد image چون در جدول وجود ندارد)
+        // iPhone Series
         $iphoneSeriesId = DB::table('device_series')->insertGetId([
             'brand_id' => $appleMobileId,
             'name' => 'آیفون',
@@ -42,7 +37,7 @@ class DeviceHierarchySeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // iPhone Models (با فیلد image)
+        // iPhone Models
         DB::table('device_models')->insert([
             ['series_id' => $iphoneSeriesId, 'name' => 'آیفون ۱۵ پرو مکس', 'slug' => 'iphone-15-pro-max', 'image' => 'https://images.unsplash.com/photo-1695048133142-1a20484d6509?w=400&h=300&fit=crop', 'release_year' => 2023, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
             ['series_id' => $iphoneSeriesId, 'name' => 'آیفون ۱۵ پرو', 'slug' => 'iphone-15-pro', 'image' => 'https://images.unsplash.com/photo-1695048133142-1a20484d6509?w=400&h=300&fit=crop', 'release_year' => 2023, 'is_active' => true, 'created_at' => now(), 'updated_at' => now()],
