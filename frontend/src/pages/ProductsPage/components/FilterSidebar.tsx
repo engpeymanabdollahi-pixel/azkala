@@ -32,12 +32,13 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
     // دریافت دسته‌بندی‌های واقعی از دیتابیس
     const { data: categories = [] } = useQuery({
-    queryKey: ['all-categories'],
-    queryFn: async () => {
-      const res = await client.get('/categories');
-      return res.data?.data || res.data || [];
-    },
-  });
+  queryKey: ['all-categories'],
+  queryFn: async () => {
+    const res = await client.get('/categories');
+    // از آنجا که client کل response را برمی‌گرداند، res.data همان payload بک‌اند است
+    return res.data?.data || []; 
+  },
+});
   return (
     <aside className="hidden lg:block w-72 flex-shrink-0">
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sticky top-20 space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto scrollbar-thin">
