@@ -8,84 +8,107 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
-// ایمپورت Event و Listenerها
+// ایمپورت Event و Listenerهای مرتبط با سفارشات
 use App\Events\Order\OrderCreated;
 use App\Listeners\SendOrderConfirmationSms;
 use App\Listeners\NotifySellerOfNewOrder;
 
-// ✅ ایمپورت‌های جدید برای Observer محصول
+// ایمپورت Model و Observer مرتبط با محصولات (برای Audit Log)
 use App\Models\Product;
 use App\Observers\ProductObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     * 
+     * @return void
+     */
     public function register(): void
     {
-        //
+        // این متد برای ثبت کلاس‌ها در Service Container استفاده می‌شود.
+        // در حال حاضر نیازی به ثبت دستی سرویس خاصی در اینجا نیست.
     }
 
+    /**
+     * Bootstrap any application services.
+     * 
+     * @return void
+     */
     public function boot(): void
     {
-        // ==================== ۱. ثبت Observerها (جدید) ====================
-        // ✅ ثبت Observer برای ردیابی خودکار تغییرات قیمت و موجودی محصول
+        // ============================================================
+        // ۱. ثبت Observerها (ردیابی تغییرات داده‌ها)
+        // ============================================================
+        // ردیابی خودکار تغییرات قیمت و موجودی محصول و ذخیره در ProductHistory
         Product::observe(ProductObserver::class);
 
-        // ==================== ۲. ثبت Eventها و Listenerها ====================
+        // ============================================================
+        // ۲. ثبت Eventها و Listenerها (معماری Event-Driven)
+        // ============================================================
+        // ارسال پیامک تأیید سفارش به خریدار
         Event::listen(
             OrderCreated::class,
             SendOrderConfirmationSms::class,
         );
 
+        // اطلاع‌رسانی به فروشنده درباره سفارش جدید
         Event::listen(
             OrderCreated::class,
             NotifySellerOfNewOrder::class,
         );
 
-        // ==================== ۳. تنظیمات Rate Limiting ====================
-        
-        // 🌍 Global API Rate Limiter
+        // ============================================================
+        // ۳. تنظیمات Rate Limiting (محدودسازی نرخ درخواست‌ها)
+        // ============================================================
+        // نکته معماری: تعریف Rate Limiterها در اینجا (به جای bootstrap/app.php)
+        // از خطای "Facade root not resolved" در حین اجرای php artisan package:discover
+        // در محیط‌های CI/CD (مانند GitHub Actions) جلوگیری می‌کند.
+
+        // 🌍 محدودکننده عمومی API (۶۰ درخواست در دقیقه برای هر کاربر یا IP)
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 🔐 Authentication Rate Limiter
+        // 🔐 محدودکننده احراز هویت (۱۰ درخواست در دقیقه برای جلوگیری از Brute Force)
         RateLimiter::for('auth', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
         });
 
-        // 🔍 Search Rate Limiter
+        // 📞 محدودکننده ارسال OTP (۳ درخواست در دقیقه برای هر IP)
+        RateLimiter::for('otp', function (Request $request) {
+            return Limit::perMinute(3)->by($request->ip());
+        });
+
+        // 🔍 محدودکننده جستجو (۳۰ درخواست در دقیقه)
         RateLimiter::for('search', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 📤 Upload Rate Limiter
+        // 📤 محدودکننده آپلود فایل (۱۰ درخواست در دقیقه)
         RateLimiter::for('upload', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 💬 Chat Rate Limiter
+        // 💬 محدودکننده سیستم چت (۳۰ درخواست در دقیقه)
         RateLimiter::for('chat', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 🏪 Seller Actions Rate Limiter
-        RateLimiter::for('seller', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
-
-        // 🛡️ Admin Actions Rate Limiter
-        RateLimiter::for('admin-reports', function (Request $request) {
-            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
-        });
-
-        // 🎫 Ticket Rate Limiter
+        // 🎫 محدودکننده ارسال تیکت پشتیبانی (۱۰ درخواست در دقیقه)
         RateLimiter::for('tickets', function (Request $request) {
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
-        // 📞 OTP Rate Limiter
-        RateLimiter::for('otp', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+        // 🏪 محدودکننده اقدامات پنل فروشندگان (۶۰ درخواست در دقیقه)
+        RateLimiter::for('seller', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // 🛡️ محدودکننده اقدامات حساس ادمین (مانند Export و گزارش‌های پیشرفته)
+        // (۲۰ درخواست در دقیقه برای جلوگیری از فشار ناگهانی به دیتابیس)
+        RateLimiter::for('admin-reports', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
     }
 }
