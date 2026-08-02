@@ -276,6 +276,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
         Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
         Route::post('/settings', [SellerSettingsController::class, 'update'])->name('settings.update');
+        Route::get('/products/{id}/history', [SellerProductController::class, 'getHistory'])->name('products.history');
         
         Route::prefix('products')->name('products.')->group(function () {
             Route::get('/', [SellerProductController::class, 'index'])->name('index');
@@ -451,6 +452,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/orders/excel', [ReportExportController::class, 'exportOrdersExcel'])->name('orders.excel');
             Route::get('/orders/pdf', [ReportExportController::class, 'exportOrdersPdf'])->name('orders.pdf');
             Route::get('/users/excel', [ReportExportController::class, 'exportUsersExcel'])->name('users.excel');
+            Route::get('/users/pdf', [ReportExportController::class, 'exportUsersPdf'])->name('users.pdf');
             Route::get('/products/excel', [ReportExportController::class, 'exportProductsExcel'])->name('products.excel');
             Route::get('/chat/excel', [ReportExportController::class, 'exportChatExcel'])->name('chat.excel');
             Route::get('/reports/excel', [ReportExportController::class, 'exportReportsExcel'])->name('reports.excel');

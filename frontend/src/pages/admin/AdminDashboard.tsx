@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,6 +11,8 @@ import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import apiClient from '@/services/api/client';
 import { cn } from '@/utils/cn';
+import toast from 'react-hot-toast'; // ✅ ایمپورت جدید برای نوتیفیکیشن
+
 import { ChatStatsWidget } from '@/components/admin/widgets/ChatStatsWidget';
 import { SentimentWidget } from '@/components/admin/widgets/SentimentWidget';
 import { RecentChatActivityWidget } from '@/components/admin/widgets/RecentChatActivityWidget';
@@ -72,7 +75,7 @@ const fetchDashboardStats = async (): Promise<{ success: boolean; data: Dashboar
 
 const fetchReportStats = async (): Promise<{ success: boolean; data: ReportStats }> => {
   try {
-    const response = await apiClient.get('/admin/chat-reports/stats');
+    const response = await apiClient.get('/admin/chat-management/reports/stats'); 
     return response.data;
   } catch (error) {
     console.error('Failed to fetch report stats:', error);
@@ -97,20 +100,61 @@ const fetchReportStats = async (): Promise<{ success: boolean; data: ReportStats
 export function AdminDashboard() {
   const navigate = useNavigate();
 
+  // ✅ Refها برای مدیریت هوشمند نوتیفیکیشن (جلوگیری از اسپم در لود اولیه)
+  const previousPendingCount = useRef<number | null>(null);
+  const isFirstRender = useRef(true);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: fetchDashboardStats,
-    refetchInterval: 60000,
+    refetchInterval: 60000, // هر ۶۰ ثانیه برای آمار کلی
   });
 
+  // ✅ کوئری گزارش‌ها با نظرسنجی ۱۵ ثانیه‌ای برای احساس بلادرنگ بودن
   const { data: reportData, refetch: refetchReports } = useQuery({
     queryKey: ['admin-report-stats'],
     queryFn: fetchReportStats,
-    refetchInterval: 30000, // هر 30 ثانیه
+    refetchInterval: 15000, // هر ۱۵ ثانیه
+    refetchIntervalInBackground: true, // حتی وقتی تب مرورگر فعال نیست بررسی شود
   });
 
   const stats = data?.data;
   const reportStats = reportData?.data;
+
+  // ✅ منطق هوشمند بررسی افزایش درخواست‌های جدید و نمایش نوتیفیکیشن
+  useEffect(() => {
+    if (!reportStats) return;
+
+    const currentPending = reportStats.pending || 0;
+
+    // در اولین رندر، فقط مقدار پایه را ذخیره کن (بدون نمایش نوتیفیکیشن)
+    if (isFirstRender.current) {
+      previousPendingCount.current = currentPending;
+      isFirstRender.current = false;
+      return;
+    }
+
+    // اگر تعداد درخواست‌های در انتظار افزایش یافته باشد، نوتیفیکیشن نمایش بده
+    if (previousPendingCount.current !== null && currentPending > previousPendingCount.current) {
+      const newRequests = currentPending - previousPendingCount.current;
+      
+      toast.success(
+        `${newRequests} درخواست افتتاح شعبه جدید دریافت شد! 🏪`,
+        {
+          duration: 6000,
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+            fontWeight: 'bold',
+          },
+        }
+      );
+    }
+
+    // به‌روزرسانی مقدار مرجع برای دور بعدی
+    previousPendingCount.current = currentPending;
+  }, [reportStats]);
 
   // ==================== Loading State ====================
 
@@ -186,7 +230,6 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* 🆕 دکمه گزارش‌های تخلف */}
           <Button
             variant="outline"
             size="sm"
@@ -280,13 +323,7 @@ export function AdminDashboard() {
           </div>
           <p className="text-xl font-black text-primary-600">{stats?.total_coupons || 0}</p>
         </div>
-{/* 🆕 ویجت‌های چت */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <ChatStatsWidget />
-  <SentimentWidget />
-</div>
-
-<RecentChatActivityWidget />
+        
         {/* 🆕 ویجت گزارش‌های تخلف */}
         <div 
           onClick={() => navigate('/admin/reports')}
@@ -309,6 +346,13 @@ export function AdminDashboard() {
           </p>
         </div>
       </div>
+
+      {/* 🆕 ویجت‌های چت */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChatStatsWidget />
+        <SentimentWidget />
+      </div>
+      <RecentChatActivityWidget />
 
       {/* 🆕 Report Stats Section */}
       {reportStats && reportStats.total > 0 && (
@@ -524,4 +568,5 @@ export function AdminDashboard() {
     </div>
   );
 }
+
 export default AdminDashboard;

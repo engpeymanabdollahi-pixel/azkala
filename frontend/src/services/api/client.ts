@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/v1` : 'http://127.0.0.1:8000/api/v1',
   timeout: 120000,
+    withCredentials: true, // ✅ این خط را حتماً اضافه کنید
   headers: {
     'Accept': 'application/json',
   },
@@ -77,13 +78,24 @@ client.interceptors.response.use(
       );
     }
 
-    // مدیریت ۴۰۱ - Logout ساده و پایدار
-    if (status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      useAuthStore.getState().logout();
-      toast.error('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', { icon: '🔐', duration: 4000 });
-      return Promise.reject(error);
-    }
+          // مدیریت هوشمند خطای ۴۰۱
+      if (status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
+
+        // ✅ اگر درخواست مربوط به بررسی‌های پس‌زمینه (مثل can-review) است، کاربر را بیرون نانداز
+        if (originalRequest.url?.includes('can-review') || originalRequest.url?.includes('/reviews')) {
+          return Promise.reject(error);
+        }
+
+        // در غیر این صورت، اگر واقعاً نشست اصلی منقضی شده باشد، کاربر را خارج کن
+        const authState = useAuthStore.getState();
+        if (authState.isAuthenticated) {
+          authState.logout();
+          toast.error('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', { icon: '🔒', duration: 4000 });
+        }
+        
+        return Promise.reject(error);
+      }
 
     // مدیریت ۴۲۲ - Validation Errors
     if (status === 422 && errorData?.errors) {

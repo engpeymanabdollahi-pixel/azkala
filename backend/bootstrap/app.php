@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/api_v1.php'));
         },
     )
-    ->withMiddleware(function (Middleware $middleware) {
+        ->withMiddleware(function (Middleware $middleware) {
         // تنظیم redirect برای کاربران غیر وارد شده
         $middleware->redirectUsersTo('/auth');
 
@@ -28,8 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Rate Limiting برای API routes
         $middleware->throttleApi();
 
-        // ✅ اصلاح حیاتی: اضافه کردن صریح میدلور CORS به گروه api
+        // ✅ اصلاح حیاتی: اضافه کردن میدلورهای Stateful و CORS به گروه api
         $middleware->appendToGroup('api', [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, // ✅ این خط را اضافه کنید
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 

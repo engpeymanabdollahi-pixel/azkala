@@ -332,4 +332,38 @@ class ReportExportController extends Controller
         ];
         return $labels[$status] ?? $status;
     }
+           /**
+     * خروجی PDF لیست کاربران
+     */
+    public function exportUsersPdf(Request $request)
+    {
+        try {
+            $query = User::query();
+
+            // اعمال فیلترها (هماهنگ با متد Excel)
+            if ($request->filled('role') && $request->role !== 'all') {
+                $query->where('role', $request->role);
+            }
+            if ($request->filled('status') && $request->status !== 'all') {
+                $query->where('is_active', $request->status === 'active');
+            }
+
+            $users = $query->orderByDesc('created_at')->limit(200)->get();
+
+            // استفاده از Facade ایمپورت‌شده در بالای فایل
+            $pdf = Pdf::loadView('exports.users', [
+                'users' => $users,
+                'title' => 'گزارش کاربران',
+            ])->setPaper('a4', 'portrait');
+
+            $filename = 'users_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error('ReportExportController@exportUsersPdf: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در Export: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

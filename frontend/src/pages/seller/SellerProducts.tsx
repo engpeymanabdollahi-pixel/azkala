@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
-  Package, Plus, Search, Edit, Trash2, Eye, MoreVertical,
+  Package, Plus, Search, Edit, Trash2, Eye, MoreVertical, History,
   AlertCircle, CheckCircle, XCircle, X, Grid3x3, List,
   DollarSign, Loader2, Download, CheckSquare, Square,
   RefreshCw, Flame, ArrowUpDown, Copy, ExternalLink,
@@ -14,8 +14,8 @@ import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
 import toast from 'react-hot-toast';
 import { useSellerProducts, useDeleteProduct } from '@/hooks/api/useSellerProducts';
-// ✅ ایمپورت کامپوننت یکپارچه فرم محصول
 import { ProductFormModal } from './ProductFormModal'; 
+import { ProductHistoryModal } from './ProductHistoryModal';
 import { useParams, useNavigate } from 'react-router-dom';
 
 type ViewMode = 'grid' | 'table';
@@ -74,51 +74,55 @@ const MenuItem = ({ icon: Icon, label, color, onClick }: { icon: React.ElementTy
 
 export function SellerProducts() {
   const navigate = useNavigate();
+  const { productId } = useParams<{ productId: string }>();
   
-  // ✅ Fetch data (React Query handles caching and background refetching)
   const { data: productsData, isLoading, error, isRefetching } = useSellerProducts(1, 100);
   const deleteProductMutation = useDeleteProduct();
 
   const products = useMemo(() => productsData?.data || [], [productsData]);
 
-  // ✅ State Management
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState(''); // برای بهینه‌سازی پرفورمنس جستجو
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [selectedProducts, setSelectedProducts] = useState<Set<number>>(new Set());
   
-  // ✅ Unified Modal State
+  // ✅ State برای مودال تاریخچه
+  const [historyProductId, setHistoryProductId] = useState<number | null>(null);
+  
   const [formModalMode, setFormModalMode] = useState<'create' | 'edit'>('create');
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
 
-  // ✅ Temporary UI States
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showQuickView, setShowQuickView] = useState<Product | null>(null);
   const [showDropdown, setShowDropdown] = useState<number | null>(null);
-    const { productId } = useParams<{ productId: string }>();
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Debounce Search (Performance Optimization)
+  // ✅ محاسبه نام محصول برای نمایش در مودال تاریخچه
+  const historyProductName = useMemo(() => {
+    if (!historyProductId) return '';
+    const product = products.find((p) => p.id === historyProductId);
+    return product ? product.name : 'محصول نامشخص';
+  }, [historyProductId, products]);
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   useEffect(() => {
-  if (productId) {
-    setFormModalMode('edit');
-    setEditingProductId(Number(productId));
-    setIsFormModalOpen(true);
-  }
-}, [productId]);
+    if (productId) {
+      setFormModalMode('edit');
+      setEditingProductId(Number(productId));
+      setIsFormModalOpen(true);
+    }
+  }, [productId]);
 
-  // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -129,7 +133,6 @@ export function SellerProducts() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ✅ Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -140,16 +143,15 @@ export function SellerProducts() {
         setShowQuickView(null);
         setShowDeleteConfirm(null);
         setShowDropdown(null);
+        setHistoryProductId(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // ✅ Optimized Filtering & Sorting
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
-    
     if (statusFilter !== 'all') {
       filtered = filtered.filter((p) => {
         if (statusFilter === 'active') return p.is_active && p.stock > 0;
@@ -158,7 +160,6 @@ export function SellerProducts() {
         return true;
       });
     }
-    
     if (debouncedSearch.trim()) {
       const query = debouncedSearch.toLowerCase();
       filtered = filtered.filter((p) =>
@@ -167,7 +168,6 @@ export function SellerProducts() {
         p.description?.toLowerCase().includes(query)
       );
     }
-    
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'newest': return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -180,11 +180,9 @@ export function SellerProducts() {
         default: return 0;
       }
     });
-    
     return filtered;
   }, [products, statusFilter, debouncedSearch, sortBy]);
 
-  // ✅ Stats Calculation
   const stats = useMemo(() => {
     const active = products.filter((p) => p.is_active && p.stock > 0);
     const totalRevenue = active.reduce((sum, p) => sum + parseFloat(p.price) * Math.min(p.stock, 10), 0);
@@ -198,25 +196,24 @@ export function SellerProducts() {
     };
   }, [products]);
 
-  // ✅ Action Handlers
   const handleOpenCreateModal = useCallback(() => {
     setFormModalMode('create');
     setEditingProductId(null);
     setIsFormModalOpen(true);
   }, []);
 
-  const handleOpenEditModal = useCallback((productId: number) => {
+  const handleOpenEditModal = useCallback((id: number) => {
     setFormModalMode('edit');
-    setEditingProductId(productId);
+    setEditingProductId(id);
     setIsFormModalOpen(true);
     setShowDropdown(null);
     setShowQuickView(null);
   }, []);
 
-  const handleDelete = useCallback(async (productId: number) => {
-    const product = products.find((p) => p.id === productId);
+  const handleDelete = useCallback(async (id: number) => {
+    const product = products.find((p) => p.id === id);
     try {
-      await deleteProductMutation.mutateAsync(productId);
+      await deleteProductMutation.mutateAsync(id);
       setShowDeleteConfirm(null);
       toast.success(`محصول "${product?.name.slice(0, 20)}..." با موفقیت حذف شد`, { icon: '🗑️' });
     } catch {
@@ -236,10 +233,10 @@ export function SellerProducts() {
     }
   }, [deleteProductMutation, selectedProducts]);
 
-  const toggleProductSelection = useCallback((productId: number) => {
+  const toggleProductSelection = useCallback((id: number) => {
     setSelectedProducts((prev) => {
       const newSet = new Set(prev);
-      newSet.has(productId) ? newSet.delete(productId) : newSet.add(productId);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
       return newSet;
     });
   }, []);
@@ -275,8 +272,6 @@ export function SellerProducts() {
     return <Badge variant="success" size="sm" className="gap-1"><CheckCircle className="w-3 h-3" />فعال</Badge>;
   }, []);
 
-  // ==================== Render ====================
-
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 bg-gray-50/50 min-h-screen space-y-4">
@@ -308,8 +303,7 @@ export function SellerProducts() {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50/50 min-h-screen pb-24"> {/* pb-24 for sticky bulk bar */}
-      
+    <div className="p-4 md:p-6 bg-gray-50/50 min-h-screen pb-24">
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
@@ -318,9 +312,7 @@ export function SellerProducts() {
             مدیریت محصولات
             {isRefetching && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            مدیریت موجودی، قیمت‌گذاری و وضعیت محصولات فروشگاه
-          </p>
+          <p className="text-sm text-gray-500 mt-1">مدیریت موجودی، قیمت‌گذاری و وضعیت محصولات فروشگاه</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExportCSV} disabled={products.length === 0} className="gap-2">
@@ -373,7 +365,6 @@ export function SellerProducts() {
               </button>
             )}
           </div>
-          
           <div className="flex gap-2">
             <select
               value={sortBy}
@@ -385,7 +376,6 @@ export function SellerProducts() {
               <option value="price_desc">گران‌ترین</option>
               <option value="stock_asc">کم‌موجودی</option>
             </select>
-            
             <div className="flex items-center p-1 bg-gray-100 rounded-lg">
               <button onClick={() => setViewMode('table')} className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                 <List className="w-4 h-4" />
@@ -396,7 +386,6 @@ export function SellerProducts() {
             </div>
           </div>
         </div>
-
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           {[
             { id: 'all', label: 'همه', icon: Package, count: stats.total },
@@ -411,9 +400,7 @@ export function SellerProducts() {
                 key={filter.id}
                 onClick={() => setStatusFilter(filter.id as StatusFilter)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap border ${
-                  isActive 
-                    ? 'bg-primary-50 border-primary-200 text-primary-700' 
-                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  isActive ? 'bg-primary-50 border-primary-200 text-primary-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -507,12 +494,15 @@ export function SellerProducts() {
                           <Button variant="ghost" size="xs" onClick={() => handleOpenEditModal(product.id)} className="text-gray-500 hover:text-primary-600" title="ویرایش">
                             <Edit className="w-4 h-4" />
                           </Button>
+                          {/* ✅ دکمه تاریخچه تغییرات */}
+                          <Button variant="ghost" size="xs" onClick={() => setHistoryProductId(product.id)} className="text-gray-500 hover:text-accent-600" title="تاریخچه تغییرات">
+                            <History className="w-4 h-4" />
+                          </Button>
                           
                           <div className="relative">
                             <Button variant="ghost" size="xs" onClick={() => setShowDropdown(showDropdown === product.id ? null : product.id)} className="text-gray-500 hover:text-gray-900">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
-                            
                             {showDropdown === product.id && (
                               <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                 <MenuItem icon={Eye} label="مشاهده سریع" color="primary" onClick={() => { setShowQuickView(product); setShowDropdown(null); }} />
@@ -563,6 +553,7 @@ export function SellerProducts() {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 backdrop-blur-[2px]">
                     <button onClick={() => setShowQuickView(product)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Eye className="w-4 h-4" /></button>
                     <button onClick={() => handleOpenEditModal(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => setHistoryProductId(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-accent-600 hover:text-white transition-all shadow-lg hover:scale-110" title="تاریخچه"><History className="w-4 h-4" /></button>
                     <button onClick={() => setShowDeleteConfirm(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-error-600 hover:text-white transition-all shadow-lg hover:scale-110"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -595,13 +586,20 @@ export function SellerProducts() {
         mode={formModalMode}
         productId={editingProductId}
         onSuccess={() => {
-          // React Query به صورت خودکار لیست را رفرش می‌کند
           setIsFormModalOpen(false);
           setEditingProductId(null);
         }}
       />
 
-      {/* 6. Quick View Modal */}
+      {/* 6. Product History Modal (✅ اصلاح شده و در جای صحیح قرار گرفت) */}
+      <ProductHistoryModal 
+        isOpen={!!historyProductId} 
+        onClose={() => setHistoryProductId(null)} 
+        productId={historyProductId || 0}
+        productName={historyProductName}
+      />
+
+      {/* 7. Quick View Modal */}
       {showQuickView && (
         <Modal isOpen={!!showQuickView} onClose={() => setShowQuickView(null)} size="lg" title="مشاهده سریع محصول">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -650,7 +648,7 @@ export function SellerProducts() {
         </Modal>
       )}
 
-      {/* 7. Delete Confirmation Modal */}
+      {/* 8. Delete Confirmation Modal */}
       <Modal isOpen={showDeleteConfirm !== null} onClose={() => setShowDeleteConfirm(null)} size="sm" title="حذف محصول">
         <div className="text-center">
           <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -668,7 +666,7 @@ export function SellerProducts() {
         </div>
       </Modal>
 
-      {/* 8. Bulk Delete Confirmation */}
+      {/* 9. Bulk Delete Confirmation */}
       <Modal isOpen={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} size="sm" title="حذف دسته‌ای">
         <div className="text-center">
           <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -686,7 +684,7 @@ export function SellerProducts() {
         </div>
       </Modal>
 
-      {/* 9. Sticky Bulk Action Bar (Modern UX) */}
+      {/* 10. Sticky Bulk Action Bar */}
       {selectedProducts.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-2xl animate-in slide-in-from-bottom-5 fade-in duration-300">
           <div className="bg-gray-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-gray-700">
@@ -713,4 +711,5 @@ export function SellerProducts() {
     </div>
   );
 }
+
 export default SellerProducts;

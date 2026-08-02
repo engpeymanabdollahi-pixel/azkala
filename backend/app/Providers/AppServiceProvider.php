@@ -13,6 +13,10 @@ use App\Events\Order\OrderCreated;
 use App\Listeners\SendOrderConfirmationSms;
 use App\Listeners\NotifySellerOfNewOrder;
 
+// ✅ ایمپورت‌های جدید برای Observer محصول
+use App\Models\Product;
+use App\Observers\ProductObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -22,7 +26,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // ==================== ۱. ثبت Eventها و Listenerها ====================
+        // ==================== ۱. ثبت Observerها (جدید) ====================
+        // ✅ ثبت Observer برای ردیابی خودکار تغییرات قیمت و موجودی محصول
+        Product::observe(ProductObserver::class);
+
+        // ==================== ۲. ثبت Eventها و Listenerها ====================
         Event::listen(
             OrderCreated::class,
             SendOrderConfirmationSms::class,
@@ -33,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
             NotifySellerOfNewOrder::class,
         );
 
-        // ==================== ۲. تنظیمات Rate Limiting ====================
+        // ==================== ۳. تنظیمات Rate Limiting ====================
         
         // 🌍 Global API Rate Limiter
         RateLimiter::for('api', function (Request $request) {

@@ -303,4 +303,41 @@ class SellerProductController extends Controller
             ], 201);
         });
     }
+        /**
+     * دریافت تاریخچه تغییرات قیمت و موجودی یک محصول
+     */
+    public function getHistory(Request $request, int $id)
+    {
+        $sellerId = $request->user()->id;
+
+        // اطمینان از اینکه محصول متعلق به همین فروشنده است
+        $product = \App\Models\Product::where('id', $id)
+            ->where('seller_id', $sellerId)
+            ->first();
+
+        if (!$product) {
+            return response()->json([
+                'success' => false,
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
+            ], 403);
+        }
+
+        $histories = \App\Models\ProductHistory::where('product_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($history) {
+                return [
+                    'id' => $history->id,
+                    'field' => $history->field === 'price' ? 'قیمت' : 'موجودی',
+                    'old_value' => $history->old_value,
+                    'new_value' => $history->new_value,
+                    'created_at' => $history->created_at->diffForHumans(), // مثلاً: ۲ ساعت پیش
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $histories,
+        ]);
+    }
 }

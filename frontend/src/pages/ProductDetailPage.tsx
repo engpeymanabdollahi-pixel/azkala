@@ -43,6 +43,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SafeImage } from '@/components/ui/SafeImage';
+import { DynamicMeta } from '@/components/seo/DynamicMeta'; // ✅ این خط را اضافه کنید
 import { formatPrice } from '@/utils/format';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
@@ -148,6 +149,20 @@ export function ProductDetailPage() {
           // ✅ اطمینان از وجود deviceModels (اگر بک‌اند آن را هم فرستاده باشد)
           deviceModels: rawData?.deviceModels || productData?.deviceModels || [],
         };
+
+
+  // ✅ تزریق داینامیک متا تگ‌ها به محض لود شدن داده‌های محصول
+  if (productData) {
+    <DynamicMeta 
+      title={productData.name}
+      description={productData.short_description || productData.description?.substring(0, 150) || `خرید ${productData.name} با بهترین قیمت از ازکالا`}
+      image={productData.main_image || '/images/placeholder.png'}
+      url={`https://azkala.com/products/${productData.slug}`} // دامنه را با دامنه واقعی خود جایگزین کنید
+      type="product"
+    />
+  }
+
+  // ... (ادامه کدهای return و JSX)
 
         if (isMounted) {
           setProduct(safeProduct as any);

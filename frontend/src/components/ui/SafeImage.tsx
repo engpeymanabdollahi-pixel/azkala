@@ -54,6 +54,7 @@ export const SafeImage = memo(({
       className={className}
       onError={handleError}
       loading="lazy"
+     decoding="async" // ✅ این خط را برای بهینه‌سازی رمز
       {...props}
     />
   );
