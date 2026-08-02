@@ -10,7 +10,7 @@ jobs:
   backend-tests:
     name: Backend Tests (274 tests)
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
       - name: Verify composer.json exists
         working-directory: backend
         run: |
-          echo "📁 Current directory: C:\laragon\www\azkala"
+          echo "📁 Current directory: $(pwd)"
           echo "📋 Files in backend:"
           ls -la
           if [ ! -f composer.json ]; then
@@ -34,6 +34,15 @@ jobs:
           fi
           echo "✅ composer.json found"
 
+      # ✅ این مرحله در جای صحیح (قبل از composer install) قرار گرفته است
+      - name: Setup Bootstrap Cache Directory
+        working-directory: backend
+        run: |
+          echo "🔧 Creating bootstrap/cache directory..."
+          mkdir -p bootstrap/cache
+          chmod -R 777 bootstrap/cache
+          echo "✅ Directory created with full permissions"
+          ls -la bootstrap/
 
       - name: Install Dependencies
         working-directory: backend
@@ -52,7 +61,7 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -65,7 +74,7 @@ jobs:
       - name: Verify package files exist
         working-directory: frontend
         run: |
-          echo "📁 Current directory: C:\laragon\www\azkala"
+          echo "📁 Current directory: $(pwd)"
           echo "📋 Files in frontend:"
           ls -la
           if [ ! -f package.json ]; then
@@ -73,13 +82,7 @@ jobs:
             exit 1
           fi
           echo "✅ package.json found"
-        
-              - name: Setup Bootstrap Cache Directory
-        working-directory: backend
-        run: |
-          mkdir -p bootstrap/cache
-          chmod -R 775 bootstrap/cache
-          
+
       - name: Install Dependencies
         working-directory: frontend
         run: npm install
