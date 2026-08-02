@@ -13,6 +13,7 @@ import { chatModerationService } from '@/services/api/chatModeration.service';
 import { OnlineIndicator } from './OnlineIndicator';
 import toast from 'react-hot-toast';
 import apiClient from '@/services/api/client';
+import { startPolling, stopPolling } from '@/store/chatStore';
 
 export function ChatWidget() {
   const { isAuthenticated } = useAuthStore();
@@ -88,6 +89,20 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     
     return () => clearInterval(interval);
   }, [isOpen, isAuthenticated]);
+
+  useEffect(() => {
+  // شروع Polling وقتی چت باز می‌شود
+  if (isOpen) {
+    startPolling();
+  } else {
+    stopPolling();
+  }
+
+  // پاک‌سازی هنگام unmount
+  return () => {
+    stopPolling();
+  };
+}, [isOpen]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

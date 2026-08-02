@@ -17,6 +17,8 @@ import { chatModerationService } from '@/services/api/chatModeration.service';
 import { chatFaqService, type ChatFaq } from '@/services/api/chatFaq.service';
 import { OnlineIndicator } from '@/components/chat/OnlineIndicator';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
+import { playNotificationSound } from '@/lib/notification';
 
 export function SellerChatPage() {
   const navigate = useNavigate();
@@ -216,6 +218,51 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  // ==================== Smart Polling for Seller Chat ====================
+useEffect(() => {
+  const pollMessages = async () => {
+    if (!selectedConversation) return;
+
+    try {
+      const response = await chatService.getMessages(selectedConversation.id);
+      const newMessages = response.data.data || response.data;
+
+      // تشخیص پیام‌های جدید
+      if (newMessages.length > messages.length) {
+        const newOnes = newMessages.slice(messages.length);
+        newOnes.forEach((msg: ChatMessage) => {
+          if (msg.sender_id !== user?.id) {
+            playNotificationSound();
+            const senderName = msg.sender?.name || 'مشتری';
+            const preview = msg.content.length > 50 
+              ? msg.content.substring(0, 50) + '...' 
+              : msg.content;
+            toast.success(`${senderName}: ${preview}`, {
+              duration: 4000,
+              icon: '💬',
+            });
+          }
+        });
+        setMessages(newMessages);
+      }
+
+      // بروزرسانی لیست مکالمات
+      const convResponse = await chatService.getConversations();
+      const newConversations = convResponse.data.data || convResponse.data;
+      setConversations(newConversations);
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  };
+
+  // شروع Polling هر ۳ ثانیه
+  const intervalId = setInterval(pollMessages, 3000);
+
+  // اولین بار بلافاصله اجرا کن
+  pollMessages();
+
+  return () => clearInterval(intervalId);
+}, [selectedConversation, messages.length, user?.id]);
 
   // ==================== Handlers ====================
   const selectConversation = async (conv: ChatConversation) => {
