@@ -34,6 +34,7 @@ jobs:
           fi
           echo "✅ composer.json found"
 
+
       - name: Install Dependencies
         working-directory: backend
         run: composer install --prefer-dist --no-progress --no-interaction
@@ -72,7 +73,13 @@ jobs:
             exit 1
           fi
           echo "✅ package.json found"
-
+        
+              - name: Setup Bootstrap Cache Directory
+        working-directory: backend
+        run: |
+          mkdir -p bootstrap/cache
+          chmod -R 775 bootstrap/cache
+          
       - name: Install Dependencies
         working-directory: frontend
         run: npm install
