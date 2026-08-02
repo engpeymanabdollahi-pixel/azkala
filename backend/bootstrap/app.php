@@ -4,9 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,27 +19,22 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-        
-        // ✅ تعریف صریح Rate Limiter برای API (این خط مشکل تست‌ها را حل می‌کند)
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
-
         // تنظیم redirect برای کاربران غیر وارد شده
         $middleware->redirectUsersTo('/auth');
-
+        
         // Middleware برای بروزرسانی last_seen
         $middleware->append(\App\Http\Middleware\UpdateLastSeen::class);
-
-        // اعمال Throttle روی گروه api (حالا که 'api' تعریف شده، کار می‌کند)
-        $middleware->throttleApi();
-
-        // ✅ اصلاح حیاتی: اضافه کردن میدلورهای Stateful و CORS به گروه api
+        
+        // ❌ حذف شده: $middleware->throttleApi();
+        // دلیل: این دستور در مرحله package:discover باعث خطای Facade می‌شود
+        // Rate limiting همچنان کار می‌کند چون در routes/api_v1.php اعمال شده است
+        
+        // ✅ اضافه کردن میدلورهای Stateful و CORS به گروه api
         $middleware->appendToGroup('api', [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
-
+        
         // Middleware برای دسترسی ادمین
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminRole::class,
@@ -58,7 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
-
+        
         // مدیریت Too Many Requests (429)
         $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
