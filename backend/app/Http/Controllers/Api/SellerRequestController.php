@@ -4,17 +4,25 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SellerRequest;
+use App\Services\SellerRequestService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class SellerRequestController extends Controller
 {
+    protected SellerRequestService $sellerRequestService;
+
+    public function __construct(SellerRequestService $sellerRequestService)
+    {
+        $this->sellerRequestService = $sellerRequestService;
+    }
+
     /**
      * مرحله ۱: ثبت درخواست اولیه (همان روت store قدیمی که با فیلدهای جدید سازگار شد)
      */
-        public function store(Request $request)
+    public function store(Request $request)
     {
-         $user = $request->user();
+        $user = $request->user();
 
         // 🛡️ لایه امنیتی ۱: جلوگیری از تغییر نقش ادمین اصلی
         if ($user->role === 'admin') {
@@ -31,38 +39,14 @@ class SellerRequestController extends Controller
         ]);
 
         try {
-            $userId = auth()->id();
-
-            // ۱. بررسی درخواست تکراری
-            $existingRequest = \App\Models\SellerRequest::where('user_id', $userId)
-                ->whereIn('status', ['pending', 'approved'])
-                ->first();
-
-            if ($existingRequest) {
+            if ($this->sellerRequestService->findActiveRequest($user->id)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'شما قبلاً درخواست فروشندگی ثبت کرده‌اید و در حال بررسی است.'
                 ], 400);
             }
 
-            // ۲. به‌روزرسانی نام کاربر در جدول users
-            $request->user()->update([
-                'name' => $validated['full_name'],
-                'national_code' => $validated['national_code'],
-                'phone' => $validated['phone'],
-                'role' => 'pending_seller',
-            ]);
-
-            // ۳. ایجاد رکورد در seller_requests (با نگاشت صحیح نام ستون‌ها)
-            $sellerRequest = \App\Models\SellerRequest::create([
-                'user_id' => $userId,
-                // نگاشت proposed_shop_name به shop_name موجود در دیتابیس
-                'shop_name' => $validated['proposed_shop_name'] ?: ('فروشگاه ' . $validated['full_name']),
-                'national_code' => $validated['national_code'],
-                'phone' => $validated['phone'],
-                'description' => 'درخواست ثبت شده از فرم جدید', // مقدار پیش‌فرض برای ستون description
-                'status' => 'pending_initial',
-            ]);
+            $sellerRequest = $this->sellerRequestService->submitInitialRequest($user, $validated);
 
             return response()->json([
                 'success' => true,
@@ -77,7 +61,7 @@ class SellerRequestController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('SellerRequest Store Error: ' . $e->getMessage());
+            Log::error('SellerRequest Store Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'خطای سرور در ثبت درخواست: ' . $e->getMessage() // نمایش خطای دقیق برای دیباگ
@@ -90,8 +74,7 @@ class SellerRequestController extends Controller
      */
     public function getStatus()
     {
-        $userId = auth()->id();
-        $request = SellerRequest::where('user_id', $userId)->latest()->first();
+        $request = $this->sellerRequestService->getLatestRequest(auth()->id());
 
         if (!$request) {
             return response()->json(null); // درخواستی وجود ندارد
@@ -128,15 +111,7 @@ class SellerRequestController extends Controller
         ]);
 
         try {
-            $sellerRequest->update([
-                'shop_name' => $validated['shop_name'],
-                'shop_alias' => $validated['shop_alias'] ?? null,
-                'bank_name' => $validated['bank_name'],
-                'bank_account' => $validated['bank_account'],
-            ]);
-
-            // ارتقای قطعی نقش کاربر به فروشنده
-            $request->user()->update(['role' => 'seller']);
+            $this->sellerRequestService->completeRequest($sellerRequest, $request->user(), $validated);
 
             return response()->json([
                 'success' => true,
@@ -151,10 +126,7 @@ class SellerRequestController extends Controller
         }
     }
 
-          /**
-     * مرحله ۳: آپلود مدارک توسط فروشنده
-     */
-       /**
+    /**
      * مرحله ۳: آپلود مدارک توسط فروشنده
      */
     public function uploadDocuments(Request $request, SellerRequest $sellerRequest)
@@ -180,22 +152,13 @@ class SellerRequestController extends Controller
                 'bank_account' => 'required|string|min:10',
             ]);
 
-            $data = [
-                'bank_account' => $validated['bank_account'],
-                'status' => 'pending_final',
-            ];
-
-            // ۴. ذخیره‌سازی فایل‌ها
-            if ($request->hasFile('id_card_image')) {
-                $data['id_card_image'] = $request->file('id_card_image')->store('seller_docs/id_cards', 'public');
-            }
-
-            if ($request->hasFile('business_license_image')) {
-                $data['business_license_image'] = $request->file('business_license_image')->store('seller_docs/licenses', 'public');
-            }
-
-            // ۵. به‌روزرسانی دیتابیس
-            $sellerRequest->update($data);
+            // ۴. ذخیره‌سازی فایل‌ها و به‌روزرسانی دیتابیس
+            $this->sellerRequestService->uploadDocuments(
+                $sellerRequest,
+                $validated,
+                $request->file('id_card_image'),
+                $request->file('business_license_image')
+            );
 
             return response()->json([
                 'success' => true,
@@ -204,10 +167,10 @@ class SellerRequestController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             // لاگ کردن دقیق خطای ولیدیشن برای دیباگ
-            \Illuminate\Support\Facades\Log::error('Validation Error in uploadDocuments: ', $e->errors());
+            Log::error('Validation Error in uploadDocuments: ', $e->errors());
             throw $e; // لاراول خودکار پاسخ ۴۲۲ را برمی‌گرداند
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Critical Error in uploadDocuments: ' . $e->getMessage());
+            Log::error('Critical Error in uploadDocuments: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'خطای داخلی سرور: ' . $e->getMessage()

@@ -3,24 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlockedUser;
-use App\Models\ChatReport;
-use App\Models\Conversation;
+use App\Services\ChatModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class ChatModerationController extends Controller
 {
+    protected ChatModerationService $chatModerationService;
+
+    public function __construct(ChatModerationService $chatModerationService)
+    {
+        $this->chatModerationService = $chatModerationService;
+    }
+
     /**
      * لیست کاربران بلاک شده
      */
     public function getBlockedUsers(Request $request)
     {
         try {
-            $blockedUsers = BlockedUser::with('blockedUser:id,name,avatar')
-                ->where('user_id', $request->user()->id)
-                ->orderByDesc('created_at')
-                ->get();
+            $blockedUsers = $this->chatModerationService->getBlockedUsers($request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -56,17 +58,7 @@ class ChatModerationController extends Controller
                 ], 400);
             }
 
-            $blocked = BlockedUser::firstOrCreate([
-                'user_id' => $userId,
-                'blocked_user_id' => $blockedUserId,
-            ], ['reason' => $validated['reason'] ?? null]);
-
-            // پایان دادن به مکالمات فعال
-            Conversation::where(function ($query) use ($userId, $blockedUserId) {
-                $query->where('buyer_id', $userId)->where('seller_id', $blockedUserId);
-            })->orWhere(function ($query) use ($userId, $blockedUserId) {
-                $query->where('buyer_id', $blockedUserId)->where('seller_id', $userId);
-            })->update(['is_active' => false]);
+            $blocked = $this->chatModerationService->blockUser($userId, $blockedUserId, $validated['reason'] ?? null);
 
             return response()->json([
                 'success' => true,
@@ -88,9 +80,7 @@ class ChatModerationController extends Controller
     public function unblockUser(Request $request, $blockedUserId)
     {
         try {
-            $deleted = BlockedUser::where('user_id', $request->user()->id)
-                ->where('blocked_user_id', $blockedUserId)
-                ->delete();
+            $deleted = $this->chatModerationService->unblockUser($request->user()->id, (int) $blockedUserId);
 
             if (!$deleted) {
                 return response()->json([
@@ -118,9 +108,7 @@ class ChatModerationController extends Controller
     public function checkBlockStatus(Request $request, $userId)
     {
         try {
-            $isBlocked = BlockedUser::where('user_id', $request->user()->id)
-                ->where('blocked_user_id', $userId)
-                ->exists();
+            $isBlocked = $this->chatModerationService->isBlocked($request->user()->id, (int) $userId);
 
             return response()->json([
                 'success' => true,
@@ -151,14 +139,7 @@ class ChatModerationController extends Controller
                 'description' => 'nullable|string|max:1000',
             ]);
 
-            $report = ChatReport::create([
-                'reporter_id' => $request->user()->id,
-                'reported_user_id' => $validated['reported_user_id'],
-                'conversation_id' => $validated['conversation_id'] ?? null,
-                'message_id' => $validated['message_id'] ?? null,
-                'reason' => $validated['reason'],
-                'description' => $validated['description'] ?? null,
-            ]);
+            $report = $this->chatModerationService->reportUser($request->user()->id, $validated);
 
             return response()->json([
                 'success' => true,

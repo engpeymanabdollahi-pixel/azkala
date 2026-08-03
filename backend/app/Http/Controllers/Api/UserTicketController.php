@@ -3,40 +3,30 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\SupportTicket;
-use App\Models\TicketMessage;
-use App\Models\Conversation;
+use App\Services\UserTicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class UserTicketController extends Controller
 {
+    protected UserTicketService $userTicketService;
+
+    public function __construct(UserTicketService $userTicketService)
+    {
+        $this->userTicketService = $userTicketService;
+    }
+
     /**
      * لیست تیکت‌های کاربر
      */
     public function index(Request $request)
     {
         try {
-            $userId = $request->user()->id;
-
-            $query = SupportTicket::where('user_id', $userId)
-                ->withCount('messages')
-                ->with('assignedUser:id,name');
-
-            // فیلتر بر اساس وضعیت
-            if ($request->filled('status') && $request->status !== 'all') {
-                $query->where('status', $request->status);
-            }
-
-            $tickets = $query->orderByDesc('created_at')->paginate(10);
-
-            // آمار
-            $stats = [
-                'total' => SupportTicket::where('user_id', $userId)->count(),
-                'open' => SupportTicket::where('user_id', $userId)->where('status', 'open')->count(),
-                'in_progress' => SupportTicket::where('user_id', $userId)->where('status', 'in_progress')->count(),
-                'resolved' => SupportTicket::where('user_id', $userId)->where('status', 'resolved')->count(),
-            ];
+            $result = $this->userTicketService->getUserTickets(
+                $request->user()->id,
+                $request->filled('status') ? $request->status : null
+            );
+            $tickets = $result['tickets'];
 
             return response()->json([
                 'success' => true,
@@ -47,7 +37,7 @@ class UserTicketController extends Controller
                         'last_page' => $tickets->lastPage(),
                         'total' => $tickets->total(),
                     ],
-                    'stats' => $stats,
+                    'stats' => $result['stats'],
                 ],
             ]);
         } catch (\Exception $e) {
@@ -65,16 +55,7 @@ class UserTicketController extends Controller
     public function show(Request $request, $id)
     {
         try {
-            $userId = $request->user()->id;
-
-            $ticket = SupportTicket::where('user_id', $userId)
-                ->with([
-                    'assignedUser:id,name,avatar',
-                    'messages' => function ($q) {
-                        $q->with('user:id,name,avatar')->orderBy('created_at');
-                    },
-                ])
-                ->findOrFail($id);
+            $ticket = $this->userTicketService->getUserTicketDetail((int) $id, $request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -102,16 +83,7 @@ class UserTicketController extends Controller
                 'conversation_id' => 'nullable|integer|exists:conversations,id',
             ]);
 
-            $ticket = SupportTicket::create([
-                'ticket_number' => SupportTicket::generateTicketNumber(),
-                'user_id' => $request->user()->id,
-                'conversation_id' => $validated['conversation_id'] ?? null,
-                'subject' => $validated['subject'],
-                'description' => $validated['description'],
-                'priority' => $validated['priority'],
-                'category' => $validated['category'],
-                'status' => 'open',
-            ]);
+            $ticket = $this->userTicketService->createTicket($request->user()->id, $validated);
 
             return response()->json([
                 'success' => true,
@@ -135,13 +107,7 @@ class UserTicketController extends Controller
         try {
             $userId = $request->user()->id;
 
-            $conversation = Conversation::with([
-                'buyer:id,name,email',
-                'seller:id,name,email',
-                'messages' => function ($q) {
-                    $q->orderBy('created_at')->limit(10);
-                },
-            ])->findOrFail($conversationId);
+            $conversation = $this->userTicketService->findConversationForTicket((int) $conversationId);
 
             // بررسی اینکه کاربر صاحب مکالمه باشد
             if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
@@ -157,24 +123,7 @@ class UserTicketController extends Controller
                 'category' => 'required|in:general,technical,payment,shipping,product,account,other',
             ]);
 
-            // ساخت خلاصه از مکالمه
-            $summary = "مکالمه بین {$conversation->buyer->name} و {$conversation->seller->name}\n\n";
-            $summary .= "آخرین پیام‌ها:\n";
-            foreach ($conversation->messages as $msg) {
-                $senderName = $msg->sender->name ?? 'ناشناس';
-                $summary .= "- {$senderName}: {$msg->content}\n";
-            }
-
-            $ticket = SupportTicket::create([
-                'ticket_number' => SupportTicket::generateTicketNumber(),
-                'conversation_id' => $conversation->id,
-                'user_id' => $userId,
-                'subject' => $validated['subject'],
-                'description' => $summary,
-                'priority' => $validated['priority'],
-                'category' => $validated['category'],
-                'status' => 'open',
-            ]);
+            $ticket = $this->userTicketService->convertConversationToTicket($conversation, $userId, $validated);
 
             return response()->json([
                 'success' => true,
@@ -198,23 +147,16 @@ class UserTicketController extends Controller
         try {
             $userId = $request->user()->id;
 
-            $ticket = SupportTicket::where('user_id', $userId)->findOrFail($id);
-
             $validated = $request->validate([
                 'message' => 'required|string|max:5000',
             ]);
 
-            $message = TicketMessage::create([
-                'ticket_id' => $id,
-                'user_id' => $userId,
-                'message' => $validated['message'],
-                'is_internal' => false,
-            ]);
+            $message = $this->userTicketService->sendMessage((int) $id, $userId, $validated['message']);
 
             return response()->json([
                 'success' => true,
                 'message' => 'پیام ارسال شد',
-                'data' => $message->load('user:id,name,avatar'),
+                'data' => $message,
             ]);
         } catch (\Exception $e) {
             Log::error('UserTicketController@sendMessage: ' . $e->getMessage());

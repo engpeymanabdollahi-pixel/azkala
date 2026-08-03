@@ -6,22 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicSellerResource;
 use App\Http\Resources\ProductResource; // ✅ استفاده از ریسورس استاندارد محصول
 use App\Models\User;
+use App\Services\PublicSellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache; // ✅ ایمپورت کش
 use Illuminate\Support\Facades\DB;
 
 class PublicSellerController extends Controller
 {
+    protected PublicSellerService $publicSellerService;
+
+    public function __construct(PublicSellerService $publicSellerService)
+    {
+        $this->publicSellerService = $publicSellerService;
+    }
+
     /**
      * 🏪 دریافت اطلاعات پروفایل شعبه آنلاین (با کش ۵ دقیقه‌ای)
      * GET /api/v1/sellers/{slug}
      */
-       public function show($slug)
+    public function show($slug)
     {
-        $seller = \App\Models\User::where('slug', $slug)
-            ->where('role', 'seller')
-            ->where('is_active', true)
-            ->first();
+        $seller = $this->publicSellerService->findActiveSellerBySlug($slug);
 
         if (!$seller) {
             return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
@@ -29,53 +34,29 @@ class PublicSellerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new \App\Http\Resources\PublicSellerResource($seller),
+            'data' => new PublicSellerResource($seller),
         ]);
     }
 
-        /**
+    /**
      * 📦 دریافت محصولات شعبه آنلاین (نسخه ساده و بدون Resource)
      * GET /api/v1/sellers/{slug}/products
      */
-       public function products(Request $request, $slug)
+    public function products(Request $request, $slug)
     {
-        $seller = \App\Models\User::where('slug', $slug)
-            ->where('role', 'seller')
-            ->where('is_active', true)
-            ->first();
+        $seller = $this->publicSellerService->findActiveSellerBySlug($slug);
 
         if (!$seller) {
             return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
         }
 
-        // ✅ اضافه کردن with('category') برای جلوگیری از خطای ۵۰۰ هنگام دسترسی به رابطه
-        $query = \App\Models\Product::where('seller_id', $seller->id)
-            ->where('is_active', true)
-            ->with('category');
-
-        $sort = $request->input('sort', 'newest');
-        match ($sort) {
-            'popular' => $query->orderBy('sales_count', 'desc'),
-            'price_low' => $query->orderBy('price', 'asc'),
-            'price_high' => $query->orderBy('price', 'desc'),
-            'rating' => $query->orderBy('rating', 'desc'),
-            default => $query->latest(),
-        };
-
-        if ($search = $request->input('search')) {
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        if ($categoryId = $request->input('category_id')) {
-            $query->where('category_id', $categoryId);
-        }
-
-        if ($request->boolean('has_discount')) {
-            $query->whereNotNull('compare_price')->whereRaw('compare_price > price');
-        }
-
-        $perPage = min((int) $request->input('per_page', 20), 50);
-        $paginatedProducts = $query->paginate($perPage);
+        $paginatedProducts = $this->publicSellerService->getSellerProducts($seller, [
+            'sort' => $request->input('sort', 'newest'),
+            'search' => $request->input('search'),
+            'category_id' => $request->input('category_id'),
+            'has_discount' => $request->boolean('has_discount'),
+            'per_page' => $request->input('per_page', 20),
+        ]);
 
         // ✅ استفاده از transform روی Collection داخلی (روش استاندارد و امن لاراول)
         $paginatedProducts->getCollection()->transform(function ($p) use ($seller) {
@@ -131,10 +112,7 @@ class PublicSellerController extends Controller
     public function follow(Request $request, $id)
     {
         $user = $request->user();
-        $seller = User::where('id', $id)
-            ->where('role', 'seller')
-            ->where('is_active', true)
-            ->firstOrFail();
+        $seller = $this->publicSellerService->findActiveSellerById((int) $id);
 
         if ($user->id === $seller->id) {
             return response()->json(['success' => false, 'message' => 'شما نمی‌توانید فروشگاه خود را دنبال کنید.'], 400);
@@ -150,13 +128,7 @@ class PublicSellerController extends Controller
         }
 
         // ✅ نسخه دوم: استفاده از تراکنش برای جلوگیری از Race Condition
-        DB::transaction(function () use ($user, $seller) {
-            $user->followingSellers()->attach($seller->id);
-            $seller->increment('followers_count');
-            
-            // ✅ اصلاح ۱: پاک کردن کش پروفایل پس از تغییر تعداد فالوورها
-            Cache::forget("public_seller_profile_{$seller->slug}");
-        });
+        $this->publicSellerService->followSeller($user, $seller);
 
         return response()->json([
             'success' => true,
@@ -173,7 +145,7 @@ class PublicSellerController extends Controller
     public function unfollow(Request $request, $id)
     {
         $user = $request->user();
-        $seller = User::where('id', $id)->where('role', 'seller')->firstOrFail();
+        $seller = $this->publicSellerService->findSellerById((int) $id);
 
         if (!$user->isFollowingSeller($seller->id)) {
             return response()->json([
@@ -184,13 +156,7 @@ class PublicSellerController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($user, $seller) {
-            $user->followingSellers()->detach($seller->id);
-            $seller->decrement('followers_count');
-            
-            // ✅ اصلاح ۱: پاک کردن کش پروفایل
-            Cache::forget("public_seller_profile_{$seller->slug}");
-        });
+        $this->publicSellerService->unfollowSeller($user, $seller);
 
         return response()->json([
             'success' => true,
@@ -206,10 +172,7 @@ class PublicSellerController extends Controller
      */
     public function followedSellers(Request $request)
     {
-        $sellers = $request->user()->followingSellers()
-            ->where('is_active', true)
-            ->latest('seller_follows.created_at')
-            ->paginate(20);
+        $sellers = $this->publicSellerService->getFollowedSellers($request->user());
 
         return response()->json([
             'success' => true,
