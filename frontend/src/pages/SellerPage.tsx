@@ -8,15 +8,16 @@ import {
 import { toast } from 'react-hot-toast';
 import { ProductCard } from '@/components/features/ProductCard';
 import { useAuthStore } from '@/store/authStore';
+import { API_V1_URL, STORAGE_URL } from '@/lib/apiConfig';
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const API_BASE = API_V1_URL;
 
 // تابع کمکی برای تبدیل مسیر نسبی به مطلق و پشتیبانی از هر دو کلید logo/avatar
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
   const cleanPath = path.replace(/^storage\//, '');
-  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+  return `${STORAGE_URL}/${cleanPath}`;
 };
 
 export default function SellerPage() {

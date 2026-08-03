@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';
 import toast from 'react-hot-toast';
+import { API_V1_URL } from '@/lib/apiConfig';
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const API_BASE = API_V1_URL;
 
 export function WishlistSection() {
   const navigate = useNavigate();

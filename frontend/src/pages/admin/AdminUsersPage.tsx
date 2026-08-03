@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SafeImage } from '@/components/ui/SafeImage';
+import { STORAGE_URL } from '@/lib/apiConfig';
 import {
   adminUserService,
   type AdminUser,
@@ -536,7 +537,7 @@ function SellerRequestDetailModal({ request, onClose }: { request: any; onClose:
   const getImageUrl = (path: string | null | undefined) => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
-    return `http://127.0.0.1:8000/storage/${path}`;
+    return `${STORAGE_URL}/${path}`;
   };
 
   const handleInitialApprove = () => {

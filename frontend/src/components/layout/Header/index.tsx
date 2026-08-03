@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { AuthModal } from '@/components/auth/AuthModal';
 import apiClient from '@/services/api/client'; // ✅ این خط را اضافه کنید
+import { STORAGE_URL } from '@/lib/apiConfig';
 
 // Sub-components
 import { SearchBar } from './SearchBar';
@@ -41,7 +42,7 @@ import { NAV_ITEMS } from './constants';
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
-  return `http://127.0.0.1:8000/storage/${path.replace(/^storage\//, '')}`;
+  return `${STORAGE_URL}/${path.replace(/^storage\//, '')}`;
 };
 
 // ==================== Main Header Component ====================

@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { sellerService } from '@/services/api/seller.service';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { STORAGE_URL } from '@/lib/apiConfig';
 
 // تابع کمکی برای تبدیل مسیر نسبی به مطلق
 const getImageUrl = (path: string | null | undefined) => {
@@ -13,7 +14,7 @@ const getImageUrl = (path: string | null | undefined) => {
   if (path.startsWith('http')) return path;
   // حذف prefix احتمالی storage/ برای جلوگیری از تکرار
   const cleanPath = path.replace(/^storage\//, '');
-  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+  return `${STORAGE_URL}/${cleanPath}`;
 };
 
 export default function SellerSettings() {

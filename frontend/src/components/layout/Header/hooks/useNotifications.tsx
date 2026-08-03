@@ -2,8 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { Bell, Package, Truck, CreditCard, UserCheck, AlertCircle } from 'lucide-react';
 import type { UseNotificationsReturn } from '../types';
+import { API_V1_URL } from '@/lib/apiConfig';
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const API_BASE = API_V1_URL;
 
 // نگاشت آیکون‌ها بر اساس نوع نوتیفیکیشن
 const getNotificationIcon = (type: string) => {

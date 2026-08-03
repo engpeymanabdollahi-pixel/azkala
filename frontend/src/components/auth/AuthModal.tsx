@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { Smartphone, KeyRound, ArrowLeft, CheckCircle2, Loader2, X, RefreshCw } from 'lucide-react';
+import { API_V1_URL } from '@/lib/apiConfig';
 
 // ==================== Schema Definitions ====================
 const phoneSchema = z.object({
@@ -53,7 +54,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   // ۱. ارسال شماره موبایل برای دریافت OTP
   const sendOtpMutation = useMutation({
     mutationFn: async (data: PhoneData) => {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/register', {
+      const res = await fetch(`${API_V1_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ phone: data.phone }),
@@ -78,7 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   // ۲. تأیید OTP و ورود
   const verifyOtpMutation = useMutation({
     mutationFn: async (data: OtpData) => {
-      const res = await fetch('http://127.0.0.1:8000/api/v1/verify-otp', {
+      const res = await fetch(`${API_V1_URL}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ phone: phoneNumber, otp: data.otp }),

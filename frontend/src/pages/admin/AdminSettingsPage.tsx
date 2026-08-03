@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { adminSettingService, type Setting } from '@/services/api/adminSetting.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
+import { STORAGE_URL } from '@/lib/apiConfig';
 
 // ==================== Types ====================
 type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'notifications' | 'legal' | 'system' | 'history';
@@ -551,7 +552,7 @@ function FileUploadInput({ currentValue, onChange, isLocked, label }: {
 }) {
   const [preview, setPreview] = useState<string | null>(
     currentValue && typeof currentValue === 'string' && !currentValue.startsWith('http') 
-      ? `http://127.0.0.1:8000/storage/${currentValue.replace(/^storage\//, '')}` 
+      ? `${STORAGE_URL}/${currentValue.replace(/^storage\//, '')}`
       : (currentValue || null)
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);

@@ -1,10 +1,11 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
+import { API_V1_URL } from '@/lib/apiConfig';
 
 // ==================== Axios Instance ====================
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/v1` : 'http://127.0.0.1:8000/api/v1',
+  baseURL: API_V1_URL,
   timeout: 120000,
     withCredentials: true, // ✅ این خط را حتماً اضافه کنید
   headers: {

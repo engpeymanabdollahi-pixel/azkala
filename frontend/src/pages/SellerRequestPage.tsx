@@ -9,8 +9,9 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { API_V1_URL } from '@/lib/apiConfig';
 
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const API_BASE = API_V1_URL;
 
 // ==================== 1. Schema Definitions ====================
 const initialSchema = z.object({

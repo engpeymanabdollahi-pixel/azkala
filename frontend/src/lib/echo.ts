@@ -1,5 +1,6 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import { API_ORIGIN } from '@/lib/apiConfig';
 
 window.Pusher = Pusher;
 
@@ -16,7 +17,7 @@ const echo = new Echo({
   authorizer: (channel: any, options: any) => {
     return {
       authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token');
         
         if (!token) {
           console.error('❌ Auth token not found');
@@ -24,7 +25,7 @@ const echo = new Echo({
           return;
         }
 
-        fetch('http://127.0.0.1:8000/api/broadcasting/auth', {
+        fetch(`${API_ORIGIN}/api/broadcasting/auth`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
