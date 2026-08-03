@@ -132,19 +132,6 @@ class SellerProductController extends Controller
     {
         $sellerId = $request->user()->id;
 
-        // ۱. بررسی مالکیت: محصول باید هم وجود داشته باشد و هم متعلق به همین فروشنده باشد
-        $product = \App\Models\Product::where('id', $id)
-                                      ->where('seller_id', $sellerId)
-                                      ->first();
-
-        if (!$product) {
-            return response()->json([
-                'success' => false,
-                'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)'
-            ], 403); // 403 Forbidden به جای 500 Internal Error
-        }
-
-        // ۲. اعتبارسنجی داده‌ها
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
@@ -160,44 +147,28 @@ class SellerProductController extends Controller
             'main_image' => 'nullable|string',
             'gallery' => 'nullable|array',
             'gallery.*' => 'string',
-            
+
             // ✅ اعتبارسنجی دستگاه‌های سازگار
             'device_model_ids' => 'nullable|array',
             'device_model_ids.*' => 'exists:device_models,id',
         ]);
 
-        // ۳. بروزرسانی slug در صورت تغییر نام
-        if (isset($validated['name']) && $validated['name'] !== $product->name) {
-            $baseSlug = \Illuminate\Support\Str::slug($validated['name']);
-            $slug = $baseSlug;
-            $count = 1;
-            while (\App\Models\Product::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                $slug = $baseSlug . '-' . $count;
-                $count++;
-            }
-            $validated['slug'] = $slug;
-        }
-
         try {
-            // ۴. به‌روزرسانی مستقیم و امن محصول (بدون تکیه به Service که ممکن است findOrFail داشته باشد)
-            $product->update($validated);
-
-            // ۵. ✅ به‌روزرسانی رابطه چند به چند در جدول واسط
-            if (isset($validated['device_model_ids'])) {
-                $product->deviceModels()->sync($validated['device_model_ids']);
-            } else {
-                $product->deviceModels()->sync([]);
-            }
+            $product = $this->sellerService->updateProduct((int) $id, $sellerId, $validated);
 
             return response()->json([
                 'success' => true,
                 'message' => 'محصول با موفقیت به‌روزرسانی شد',
-                'data' => $product->fresh()->load(['category', 'brand', 'deviceModels']),
+                'data' => $product,
             ]);
-
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)'
+            ], 403);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('SellerProductController@update: ' . $e->getMessage());
-            
+            Log::error('SellerProductController@update: ' . $e->getMessage());
+
             $statusCode = $e->getCode();
             if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
                 $statusCode = 500;
@@ -217,28 +188,20 @@ class SellerProductController extends Controller
     {
         try {
             $sellerId = auth()->id();
-
-            $product = \App\Models\Product::where('id', $id)
-                                          ->where('seller_id', $sellerId)
-                                          ->first();
-
-            if (!$product) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
-                ], 404);
-            }
-
-            $product->delete();
+            $this->sellerService->deleteProduct((int) $id, $sellerId);
 
             return response()->json([
                 'success' => true,
                 'message' => 'محصول با موفقیت حذف شد.'
             ]);
-
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
+            ], 404);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('SellerProductController@destroy: ' . $e->getMessage());
-            
+            Log::error('SellerProductController@destroy: ' . $e->getMessage());
+
             $statusCode = $e->getCode();
             if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
                 $statusCode = 500;
@@ -308,36 +271,19 @@ class SellerProductController extends Controller
      */
     public function getHistory(Request $request, int $id)
     {
-        $sellerId = $request->user()->id;
+        try {
+            $sellerId = $request->user()->id;
+            $histories = $this->sellerService->getSellerProductHistory($id, $sellerId);
 
-        // اطمینان از اینکه محصول متعلق به همین فروشنده است
-        $product = \App\Models\Product::where('id', $id)
-            ->where('seller_id', $sellerId)
-            ->first();
-
-        if (!$product) {
+            return response()->json([
+                'success' => true,
+                'data' => $histories,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
             ], 403);
         }
-
-        $histories = \App\Models\ProductHistory::where('product_id', $id)
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($history) {
-                return [
-                    'id' => $history->id,
-                    'field' => $history->field === 'price' ? 'قیمت' : 'موجودی',
-                    'old_value' => $history->old_value,
-                    'new_value' => $history->new_value,
-                    'created_at' => $history->created_at->diffForHumans(), // مثلاً: ۲ ساعت پیش
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'data' => $histories,
-        ]);
     }
 }

@@ -10,6 +10,7 @@ use App\Models\SellerQuickReply;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SellerService
 {
@@ -146,23 +147,65 @@ class SellerService
         return Product::create($data);
     }
 
-    public function updateProduct(int $sellerId, int $productId, array $data): Product
+    public function updateProduct(int $productId, int $sellerId, array $data): Product
     {
         $product = Product::where('id', $productId)
             ->where('seller_id', $sellerId)
             ->firstOrFail();
 
+        if (isset($data['name']) && $data['name'] !== $product->name) {
+            $baseSlug = Str::slug($data['name']);
+            $slug = $baseSlug;
+            $count = 1;
+            while (Product::where('slug', $slug)->where('id', '!=', $productId)->exists()) {
+                $slug = $baseSlug . '-' . $count;
+                $count++;
+            }
+            $data['slug'] = $slug;
+        }
+
         $product->update($data);
-        return $product->fresh();
+
+        if (isset($data['device_model_ids'])) {
+            $product->deviceModels()->sync($data['device_model_ids']);
+        } else {
+            $product->deviceModels()->sync([]);
+        }
+
+        return $product->fresh()->load(['category', 'brand', 'deviceModels']);
     }
 
-    public function deleteProduct(int $sellerId, int $productId): bool
+    public function deleteProduct(int $productId, int $sellerId): bool
     {
         $product = Product::where('id', $productId)
             ->where('seller_id', $sellerId)
             ->firstOrFail();
 
         return $product->delete();
+    }
+
+    public function getSellerProductHistory(int $productId, int $sellerId)
+    {
+        $product = Product::where('id', $productId)
+            ->where('seller_id', $sellerId)
+            ->first();
+
+        if (!$product) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('محصول یافت نشد یا متعلق به شما نیست.');
+        }
+
+        return \App\Models\ProductHistory::where('product_id', $productId)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($history) {
+                return [
+                    'id' => $history->id,
+                    'field' => $history->field === 'price' ? 'قیمت' : 'موجودی',
+                    'old_value' => $history->old_value,
+                    'new_value' => $history->new_value,
+                    'created_at' => $history->created_at->diffForHumans(),
+                ];
+            });
     }
 
     public function createQuickReply(int $sellerId, string $title, string $content): SellerQuickReply
