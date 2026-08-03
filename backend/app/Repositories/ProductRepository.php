@@ -24,7 +24,10 @@ class ProductRepository extends BaseRepository
     {
         $query = $this->query()
             // ✅ حیاتی: اضافه کردن deviceModels برای محاسبه is_compatible در Resource بدون کوئری اضافی
-            ->with(['category', 'brand', 'images', 'deviceModels'])
+            // seller هم به همین دلیل اینجاست: ProductResource برای هر محصول
+            // loadMissing('seller') می‌زند، پس بدون این، هر ردیف یک کوئری users
+            // جداگانه می‌ساخت (N+1).
+            ->with(['category', 'brand', 'images', 'deviceModels', 'seller'])
             ->where('is_active', true);
 
         // Apply filters

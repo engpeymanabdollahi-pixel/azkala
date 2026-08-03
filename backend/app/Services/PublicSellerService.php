@@ -33,9 +33,11 @@ class PublicSellerService
 
     public function getSellerProducts(User $seller, array $filters): LengthAwarePaginator
     {
+        // images لازم است چون ProductResource آن را می‌خواند؛ بدون eager load
+        // هر محصول یک کوئری product_images جداگانه می‌زد.
         $query = Product::where('seller_id', $seller->id)
             ->where('is_active', true)
-            ->with('category');
+            ->with(['category', 'images']);
 
         $sort = $filters['sort'] ?? 'newest';
         match ($sort) {
