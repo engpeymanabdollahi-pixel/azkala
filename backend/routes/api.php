@@ -296,7 +296,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [SellerProductController::class, 'destroy'])->name('destroy');
-                Route::post('/products/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('products.copy-template');
             });
 
             Route::prefix('orders')->name('orders.')->group(function () {
@@ -310,12 +309,6 @@ Route::prefix('v1')->group(function () {
                 Route::get('/', [SellerQuickReplyController::class, 'index'])->name('index');
                 Route::post('/', [SellerQuickReplyController::class, 'store'])->name('store');
                 Route::delete('/{reply}', [SellerQuickReplyController::class, 'destroy'])->name('destroy');
-            });
-
-            Route::prefix('ratings')->name('ratings.')->group(function () {
-                Route::post('/', [SellerRatingController::class, 'store'])->name('store');
-                Route::get('/seller/{seller}', [SellerRatingController::class, 'getSellerRatings'])->name('seller-ratings');
-                Route::get('/can-rate/{order}', [SellerRatingController::class, 'canRate'])->name('can-rate');
             });
 
             // ✅ روت جدید برای به‌روزرسانی تنظیمات فروشگاه

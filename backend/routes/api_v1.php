@@ -303,11 +303,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{reply}', [SellerQuickReplyController::class, 'destroy'])->name('destroy');
         });
 
-        Route::prefix('ratings')->name('ratings.')->group(function () {
-            Route::post('/', [SellerRatingController::class, 'store'])->name('store');
-            Route::get('/seller/{seller}', [SellerRatingController::class, 'getSellerRatings'])->name('seller-ratings');
-            Route::get('/can-rate/{order}', [SellerRatingController::class, 'canRate'])->name('can-rate');
-        });
     });
 
     // ============================================================
