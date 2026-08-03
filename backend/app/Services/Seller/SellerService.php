@@ -50,15 +50,20 @@ class SellerService
         $pendingOrders = (clone $baseQuery)->whereIn('status', ['pending', 'processing'])->count();
 
         // ۳. آمار مالی (بدون محدودیت payment_status تا فروشنده درآمد در انتظار را هم ببیند)
+        // ✅ در تمام کوئری‌های زیر whereNull('orders.deleted_at') لازم است چون
+        // global scope مربوط به SoftDeletes فقط روی مدل اصلی (OrderItem) اعمال
+        // می‌شود، نه روی جدول join‌شده (orders).
         $totalRevenue = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('order_items.seller_id', $sellerId)
             ->whereNotIn('orders.status', ['cancelled'])
+            ->whereNull('orders.deleted_at')
             ->sum(\Illuminate\Support\Facades\DB::raw('order_items.quantity * order_items.price'));
 
         // در انتظار تسویه (سفارشات پردازش شده، ارسال شده یا تحویل داده شده)
         $pendingSettlements = \App\Models\OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('order_items.seller_id', $sellerId)
             ->whereIn('orders.status', ['processing', 'shipped', 'delivered'])
+            ->whereNull('orders.deleted_at')
             ->sum(\Illuminate\Support\Facades\DB::raw('order_items.quantity * order_items.price'));
 
                // ۴. فروش ماهانه (۶ ماه اخیر) - سازگار با MySQL و SQLite
@@ -77,6 +82,7 @@ class SellerService
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('order_items.seller_id', $sellerId)
             ->whereNotIn('orders.status', ['cancelled'])
+            ->whereNull('orders.deleted_at')
             ->groupBy('month')
             ->orderBy('month', 'desc')
             ->limit(6)
@@ -100,6 +106,7 @@ class SellerService
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('order_items.seller_id', $sellerId)
             ->whereNotIn('orders.status', ['cancelled'])
+            ->whereNull('orders.deleted_at')
             ->groupBy('order_items.product_id', 'products.name', 'products.main_image')
             ->orderByDesc('sales')
             ->limit(5)

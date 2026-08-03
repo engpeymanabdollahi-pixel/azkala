@@ -145,7 +145,8 @@ class AdminProductRepository
             return null;
         }
 
-        $sellerData = DB::table('users')->where('id', $sellerId)->first();
+        // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
+        $sellerData = DB::table('users')->where('id', $sellerId)->whereNull('deleted_at')->first();
         
         if (!$sellerData) {
             return null;

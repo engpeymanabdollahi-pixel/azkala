@@ -18,6 +18,7 @@ class DeviceController extends Controller
             $brands = DB::table('brands')
                 ->select('brands.id', 'brands.name', 'brands.slug')
                 ->where('brands.is_active', true)
+                ->whereNull('brands.deleted_at') // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
                 ->leftJoin('phone_series', 'brands.id', '=', 'phone_series.brand_id')
                 ->selectRaw('COUNT(phone_series.id) as series_count')
                 ->groupBy('brands.id', 'brands.name', 'brands.slug')
@@ -128,7 +129,10 @@ class DeviceController extends Controller
         try {
             $model = DB::table('phone_models')
                 ->where('phone_models.id', $modelId)
-                ->join('brands', 'phone_models.brand_id', '=', 'brands.id')
+                ->join('brands', function ($join) {
+                    $join->on('phone_models.brand_id', '=', 'brands.id')
+                        ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
+                })
                 ->leftJoin('phone_series', 'phone_models.series_id', '=', 'phone_series.id')
                 ->select(
                     'phone_models.*',

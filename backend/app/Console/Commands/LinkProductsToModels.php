@@ -106,7 +106,10 @@ protected $description = 'Smart link products to compatible phone models';
         $modelsWithProducts = DB::table('phone_models')
             ->select('phone_models.name', 'brands.name as brand_name', DB::raw('COUNT(product_phone_models.product_id) as product_count'))
             ->leftJoin('product_phone_models', 'phone_models.id', '=', 'product_phone_models.phone_model_id')
-            ->leftJoin('brands', 'phone_models.brand_id', '=', 'brands.id')
+            ->leftJoin('brands', function ($join) {
+                $join->on('phone_models.brand_id', '=', 'brands.id')
+                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+            })
             ->groupBy('phone_models.id', 'phone_models.name', 'brands.name')
             ->havingRaw('COUNT(product_phone_models.product_id) > 0')
             ->orderByDesc('product_count')
@@ -121,7 +124,10 @@ protected $description = 'Smart link products to compatible phone models';
         $modelsWithoutProducts = DB::table('phone_models')
             ->select('phone_models.name', 'brands.name as brand_name')
             ->leftJoin('product_phone_models', 'phone_models.id', '=', 'product_phone_models.phone_model_id')
-            ->leftJoin('brands', 'phone_models.brand_id', '=', 'brands.id')
+            ->leftJoin('brands', function ($join) {
+                $join->on('phone_models.brand_id', '=', 'brands.id')
+                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+            })
             ->groupBy('phone_models.id', 'phone_models.name', 'brands.name')
             ->havingRaw('COUNT(product_phone_models.product_id) = 0')
             ->limit(10)

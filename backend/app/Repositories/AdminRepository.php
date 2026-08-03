@@ -204,7 +204,10 @@ class AdminRepository
         $query = DB::table('user_devices')
             ->join('phone_models', 'user_devices.phone_model_id', '=', 'phone_models.id')
             ->join('phone_series', 'phone_models.series_id', '=', 'phone_series.id')
-            ->join('brands', 'phone_models.brand_id', '=', 'brands.id');
+            ->join('brands', function ($join) {
+                $join->on('phone_models.brand_id', '=', 'brands.id')
+                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+            });
 
         if ($startDate) {
             $query->where('user_devices.created_at', '>=', $startDate);
@@ -229,7 +232,10 @@ class AdminRepository
         // Devices by brand
         $devicesByBrand = DB::table('user_devices')
             ->join('phone_models', 'user_devices.phone_model_id', '=', 'phone_models.id')
-            ->join('brands', 'phone_models.brand_id', '=', 'brands.id');
+            ->join('brands', function ($join) {
+                $join->on('phone_models.brand_id', '=', 'brands.id')
+                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+            });
 
         if ($startDate) {
             $devicesByBrand->where('user_devices.created_at', '>=', $startDate);

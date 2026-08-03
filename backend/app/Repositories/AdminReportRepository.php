@@ -110,6 +110,7 @@ class AdminReportRepository
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->where('orders.payment_status', 'paid')
             ->whereNotIn('orders.status', ['cancelled'])
+            ->whereNull('orders.deleted_at') // ✅ join: SoftDeletes روی جدول join‌شده اعمال نمی‌شود
             ->select(
                 'products.id', 'products.name', 'products.slug', 'products.main_image',
                 DB::raw('SUM(order_items.quantity) as total_sold'),
@@ -135,6 +136,9 @@ class AdminReportRepository
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->where('orders.payment_status', 'paid')
             ->whereNotIn('orders.status', ['cancelled'])
+            // ✅ join: SoftDeletes روی جداول join‌شده اعمال نمی‌شود
+            ->whereNull('orders.deleted_at')
+            ->whereNull('categories.deleted_at')
             ->select(
                 'categories.id', 'categories.name', 'categories.slug',
                 DB::raw('SUM(order_items.quantity) as total_sold'),
@@ -178,6 +182,7 @@ class AdminReportRepository
             ->where('orders.created_at', '>=', $startDate)
             ->where('orders.payment_status', 'paid')
             ->whereNotIn('orders.status', ['cancelled'])
+            ->whereNull('orders.deleted_at') // ✅ join: SoftDeletes روی جدول join‌شده اعمال نمی‌شود
             ->select(
                 DB::raw('SUM(order_items.quantity) as total_sold'),
                 DB::raw('SUM(order_items.quantity * order_items.price) as total_revenue')

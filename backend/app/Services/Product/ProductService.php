@@ -175,10 +175,21 @@ class ProductService
     {
         $pivotTable = 'device_model_product';
 
+        // ✅ این کوئری خام است و global scope مربوط به SoftDeletes روی آن اعمال
+        // نمی‌شود، پس deleted_at باید دستی فیلتر شود. برای leftJoinها شرط داخل
+        // خود join گذاشته شده تا اگر سری/برند حذف نرم شده باشد، مدل همچنان
+        // برگردانده شود (با مقدار null) نه اینکه کل ردیف حذف شود.
         return DB::table('device_models')
             ->join($pivotTable, 'device_models.id', '=', $pivotTable . '.device_model_id')
-            ->leftJoin('device_series', 'device_models.series_id', '=', 'device_series.id')
-            ->leftJoin('device_brands', 'device_series.brand_id', '=', 'device_brands.id')
+            ->leftJoin('device_series', function ($join) {
+                $join->on('device_models.series_id', '=', 'device_series.id')
+                    ->whereNull('device_series.deleted_at');
+            })
+            ->leftJoin('device_brands', function ($join) {
+                $join->on('device_series.brand_id', '=', 'device_brands.id')
+                    ->whereNull('device_brands.deleted_at');
+            })
+            ->whereNull('device_models.deleted_at')
             ->where($pivotTable . '.product_id', $productId)
             ->select(
                 'device_models.id',

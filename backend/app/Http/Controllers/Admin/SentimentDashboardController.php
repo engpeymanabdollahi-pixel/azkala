@@ -90,6 +90,7 @@ class SentimentDashboardController extends Controller
                         ->whereColumn('conversations.seller_id', 'users.id');
                 }, 'conversations_count')
                 ->where('users.role', 'seller')
+                ->whereNull('users.deleted_at') // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
                 ->having('avg_score', '>', 0)
                 ->orderByDesc('avg_score')
                 ->limit(10)
