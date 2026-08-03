@@ -34,22 +34,9 @@ class WishlistController extends Controller
         }
     }
 
-    /**
-     * افزودن به علاقه‌مندی‌ها
-     */
-    public function store(Request $request)
+        public function store(Request $request)
     {
         try {
- // 🆕 Debug - حذف بعد از تست
-        Log::info('Wishlist store request:', [
-            'user_id' => $request->user()?->id,
-            'input' => $request->all(),
-            'headers' => $request->headers->get('Authorization'),
-        ]);
-        
-        $validated = $request->validate([
-            'product_id' => 'required|integer|exists:products,id',
-        ]);
             $validated = $request->validate([
                 'product_id' => 'required|integer|exists:products,id',
             ]);
@@ -57,7 +44,7 @@ class WishlistController extends Controller
             $userId = $request->user()->id;
             $productId = $validated['product_id'];
 
-            // بررسی تکرار
+            // بررسی تکراری نبودن
             $exists = Wishlist::where('user_id', $userId)
                 ->where('product_id', $productId)
                 ->exists();
@@ -65,7 +52,7 @@ class WishlistController extends Controller
             if ($exists) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'این محصول قبلاً در علاقه‌مندی‌های شما هست',
+                    'message' => 'این محصول قبلاً در لیست علاقه‌مندی‌های شما وجود دارد.',
                 ], 400);
             }
 
@@ -76,7 +63,7 @@ class WishlistController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'به علاقه‌مندی‌ها اضافه شد',
+                'message' => 'محصول با موفقیت به لیست علاقه‌مندی‌ها اضافه شد.',
                 'data' => $wishlist,
             ], 201);
 
@@ -87,10 +74,10 @@ class WishlistController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('WishlistController@store: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('WishlistController@store: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در افزودن به علاقه‌مندی‌ها',
+                'message' => 'خطای داخلی سرور در افزودن به علاقه‌مندی‌ها.',
             ], 500);
         }
     }
