@@ -158,7 +158,16 @@ class AdminProductService
      */
     protected function formatProduct(Product $product): array
     {
-        $seller = $this->repository->getSellerInfo($product->seller_id);
+        // از رابطه‌ی از پیش بارگذاری‌شده می‌خوانیم؛ getSellerInfo() یک کوئری خام
+        // به‌ازای هر محصول می‌زد. اگر رابطه بارگذاری نشده باشد (مسیرهایی که این
+        // متد را روی یک مدل تکی صدا می‌زنند) به همان مسیر قبلی برمی‌گردیم.
+        $seller = $product->relationLoaded('seller')
+            ? ($product->seller ? [
+                'id' => $product->seller->id,
+                'name' => $product->seller->name,
+                'shop_name' => $product->seller->shop_name ?? $product->seller->name,
+            ] : null)
+            : $this->repository->getSellerInfo($product->seller_id);
 
         return [
             'id' => $product->id,

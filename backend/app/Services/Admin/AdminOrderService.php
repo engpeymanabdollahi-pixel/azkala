@@ -162,8 +162,24 @@ class AdminOrderService
             $shippingAddress = json_decode($shippingAddress, true);
         }
 
-        $sellers = $this->repository->getOrderSellers($order->id);
-        $itemsCount = $this->repository->getOrderItemsCount($order->id);
+        // وقتی items از قبل بارگذاری شده (مسیر لیست)، هر دو مقدار از همان
+        // collection درمی‌آیند؛ در غیر این صورت به کوئری‌های تکی برمی‌گردیم.
+        if ($order->relationLoaded('items')) {
+            $sellers = $order->items
+                ->pluck('seller')
+                ->filter()
+                ->unique('id')
+                ->values()
+                ->map(fn ($seller) => [
+                    'id' => $seller->id,
+                    'name' => $seller->name,
+                    'shop_name' => $seller->shop_name ?? $seller->name,
+                ]);
+            $itemsCount = (int) $order->items->sum('quantity');
+        } else {
+            $sellers = $this->repository->getOrderSellers($order->id);
+            $itemsCount = $this->repository->getOrderItemsCount($order->id);
+        }
 
         return [
             'id' => $order->id,

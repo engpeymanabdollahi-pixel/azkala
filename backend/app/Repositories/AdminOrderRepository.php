@@ -16,7 +16,14 @@ class AdminOrderRepository
      */
     public function getOrdersWithFilters(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Order::with(['user:id,name,email,phone']);
+        // items و items.seller اینجا بارگذاری می‌شوند چون formatOrder برای هر
+        // سفارش هم فروشندگانش را می‌خواهد هم مجموع تعداد اقلام را؛ قبلاً هرکدام
+        // یک کوئری جداگانه به‌ازای هر ردیف می‌زدند.
+        $query = Order::with([
+            'user:id,name,email,phone',
+            'items:id,order_id,seller_id,quantity',
+            'items.seller:id,name,shop_name',
+        ]);
 
         // Search filter
         if (!empty($filters['search'])) {

@@ -13,7 +13,9 @@ class AdminProductRepository
      */
     public function getProductsWithFilters(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Product::with(['category:id,name', 'brand:id,name']);
+        // seller اینجا eager load می‌شود چون formatProduct برای هر محصول به آن
+        // نیاز دارد؛ بدون این، هر ردیف یک کوئری users جداگانه می‌زد.
+        $query = Product::with(['category:id,name', 'brand:id,name', 'seller:id,name,shop_name']);
 
         // Search filter
         if (!empty($filters['search'])) {
