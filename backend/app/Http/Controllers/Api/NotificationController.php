@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Notification;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
+
     /**
      * دریافت لیست نوتیفیکیشن‌های کاربر فعلی
      */
     public function index(Request $request)
     {
-        $notifications = Notification::where('user_id', $request->user()->id)
-            ->latest()
-            ->limit(20)
-            ->get();
+        $notifications = $this->notificationService->getUserNotifications($request->user()->id);
 
         return response()->json([
             'success' => true,
@@ -29,10 +33,7 @@ class NotificationController extends Controller
      */
     public function markAsRead(Request $request, $id)
     {
-        $notification = Notification::where('user_id', $request->user()->id)
-            ->findOrFail($id);
-
-        $notification->update(['read_at' => now()]);
+        $this->notificationService->markAsRead((int) $id, $request->user()->id);
 
         return response()->json([
             'success' => true,
@@ -45,9 +46,7 @@ class NotificationController extends Controller
      */
     public function markAllAsRead(Request $request)
     {
-        Notification::where('user_id', $request->user()->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
+        $this->notificationService->markAllAsRead($request->user()->id);
 
         return response()->json([
             'success' => true,

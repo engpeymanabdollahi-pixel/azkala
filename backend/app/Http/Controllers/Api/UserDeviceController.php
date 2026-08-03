@@ -3,19 +3,23 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserDevice;
+use App\Services\UserDeviceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class UserDeviceController extends Controller
 {
+    protected UserDeviceService $userDeviceService;
+
+    public function __construct(UserDeviceService $userDeviceService)
+    {
+        $this->userDeviceService = $userDeviceService;
+    }
+
     public function index(Request $request)
     {
         try {
-            $devices = UserDevice::with('phoneModel.brand', 'phoneModel.series')
-                ->where('user_id', $request->user()->id)
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $devices = $this->userDeviceService->getUserDevices($request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -35,18 +39,16 @@ class UserDeviceController extends Controller
         ]);
 
         try {
-            $device = UserDevice::firstOrCreate(
-                [
-                    'user_id' => $request->user()->id,
-                    'phone_model_id' => $request->phone_model_id,
-                ],
-                ['nickname' => $request->nickname]
+            $device = $this->userDeviceService->addDevice(
+                $request->user()->id,
+                (int) $request->phone_model_id,
+                $request->nickname
             );
 
             return response()->json([
                 'success' => true,
                 'message' => 'دستگاه اضافه شد',
-                'data' => $device->load('phoneModel.brand', 'phoneModel.series'),
+                'data' => $device,
             ], 201);
         } catch (\Exception $e) {
             Log::error('UserDeviceController@store: ' . $e->getMessage());
@@ -57,11 +59,7 @@ class UserDeviceController extends Controller
     public function destroy(Request $request, $deviceId)
     {
         try {
-            $device = UserDevice::where('id', $deviceId)
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
-            
-            $device->delete();
+            $this->userDeviceService->deleteDevice((int) $deviceId, $request->user()->id);
 
             return response()->json([
                 'success' => true,

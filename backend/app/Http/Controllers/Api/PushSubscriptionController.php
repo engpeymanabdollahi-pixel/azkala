@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\PushSubscription;
-use App\Support\VAPID;
-use App\Support\WebPush;
+use App\Services\PushSubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class PushSubscriptionController extends Controller
 {
+    protected PushSubscriptionService $pushSubscriptionService;
+
+    public function __construct(PushSubscriptionService $pushSubscriptionService)
+    {
+        $this->pushSubscriptionService = $pushSubscriptionService;
+    }
+
     /**
      * ذخیره subscription
      */
@@ -23,17 +27,7 @@ class PushSubscriptionController extends Controller
             'keys.auth' => 'required|string',
         ]);
 
-        $user = Auth::user();
-
-        $subscription = PushSubscription::updateOrCreate(
-            ['endpoint' => $validated['endpoint']],
-            [
-                'user_id' => $user->id,
-                'public_key' => $validated['keys']['p256dh'],
-                'auth_token' => $validated['keys']['auth'],
-                'is_active' => true,
-            ]
-        );
+        $subscription = $this->pushSubscriptionService->saveSubscription(Auth::id(), $validated);
 
         return response()->json([
             'success' => true,
@@ -47,15 +41,11 @@ class PushSubscriptionController extends Controller
      */
     public function destroy($id)
     {
-        $subscription = PushSubscription::where('id', $id)
-            ->where('user_id', Auth::id())
-            ->first();
+        $deactivated = $this->pushSubscriptionService->deactivateSubscription((int) $id, Auth::id());
 
-        if (!$subscription) {
+        if (!$deactivated) {
             return response()->json(['success' => false, 'message' => 'Not found'], 404);
         }
-
-        $subscription->deactivate();
 
         return response()->json(['success' => true, 'message' => 'Unsubscribed']);
     }
@@ -65,41 +55,18 @@ class PushSubscriptionController extends Controller
      */
     public function sendTest()
     {
-        $user = Auth::user();
-        $subscriptions = PushSubscription::where('user_id', $user->id)->active()->get();
+        $result = $this->pushSubscriptionService->sendTestNotification(Auth::id());
 
-        if ($subscriptions->isEmpty()) {
+        if (!$result['sent']) {
             return response()->json([
                 'success' => false,
                 'message' => 'No active subscriptions',
             ]);
         }
 
-        $webPush = new WebPush();
-        $payload = [
-            'title' => 'تست نوتیفیکیشن',
-            'body' => 'این یک پیام تست از ازکالا است',
-            'icon' => '/icons/icon-192.png',
-            'badge' => '/icons/icon-192.png',
-            'url' => '/',
-            'tag' => 'test',
-        ];
-
-        $results = [];
-        foreach ($subscriptions as $sub) {
-            $result = $webPush->send($sub->toWebPushArray(), $payload);
-            $results[] = $result;
-            
-            if ($result['success']) {
-                $sub->markAsUsed();
-            } else {
-                $sub->deactivate();
-            }
-        }
-
         return response()->json([
             'success' => true,
-            'results' => $results,
+            'results' => $result['results'],
         ]);
     }
 
