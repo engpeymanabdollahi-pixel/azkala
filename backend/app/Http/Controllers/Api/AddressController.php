@@ -3,23 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Address;
+use App\Services\AddressService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AddressController extends Controller
 {
+    protected AddressService $addressService;
+
+    public function __construct(AddressService $addressService)
+    {
+        $this->addressService = $addressService;
+    }
+
     /**
      * لیست آدرس‌های کاربر
      */
     public function index(Request $request)
     {
         try {
-            $addresses = Address::where('user_id', $request->user()->id)
-                ->orderByDesc('is_default')
-                ->orderByDesc('created_at')
-                ->get();
+            $addresses = $this->addressService->getUserAddresses($request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -51,34 +54,13 @@ class AddressController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($request, $validated) {
-                // اگر این آدرس پیش‌فرض است، بقیه را از حالت پیش‌فرض خارج کن
-                if (!empty($validated['is_default'])) {
-                    Address::where('user_id', $request->user()->id)
-                        ->update(['is_default' => false]);
-                }
+            $address = $this->addressService->createAddress($request->user()->id, $validated);
 
-                // اگر اولین آدرس کاربر است، به صورت خودکار پیش‌فرض شود
-                $isFirstAddress = Address::where('user_id', $request->user()->id)->count() === 0;
-
-                $address = Address::create([
-                    'user_id' => $request->user()->id,
-                    'title' => $validated['title'],
-                    'full_name' => $validated['full_name'],
-                    'phone' => $validated['phone'],
-                    'province' => $validated['province'],
-                    'city' => $validated['city'],
-                    'address' => $validated['address'],
-                    'postal_code' => $validated['postal_code'] ?? null,
-                    'is_default' => $isFirstAddress || !empty($validated['is_default']),
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'آدرس با موفقیت اضافه شد',
-                    'data' => $address,
-                ], 201);
-            });
+            return response()->json([
+                'success' => true,
+                'message' => 'آدرس با موفقیت اضافه شد',
+                'data' => $address,
+            ], 201);
         } catch (\Exception $e) {
             Log::error('AddressController@store: ' . $e->getMessage());
             return response()->json([
@@ -105,26 +87,13 @@ class AddressController extends Controller
         ]);
 
         try {
-            $address = Address::where('id', $addressId)
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
+            $address = $this->addressService->updateAddress((int) $addressId, $request->user()->id, $validated);
 
-            return DB::transaction(function () use ($request, $address, $validated) {
-                // اگر پیش‌فرض تنظیم شده، بقیه را از حالت پیش‌فرض خارج کن
-                if (isset($validated['is_default']) && $validated['is_default']) {
-                    Address::where('user_id', $request->user()->id)
-                        ->where('id', '!=', $address->id)
-                        ->update(['is_default' => false]);
-                }
-
-                $address->update($validated);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'آدرس به‌روزرسانی شد',
-                    'data' => $address,
-                ]);
-            });
+            return response()->json([
+                'success' => true,
+                'message' => 'آدرس به‌روزرسانی شد',
+                'data' => $address,
+            ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
@@ -145,24 +114,7 @@ class AddressController extends Controller
     public function destroy(Request $request, $addressId)
     {
         try {
-            $address = Address::where('id', $addressId)
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
-
-            $wasDefault = $address->is_default;
-            $address->delete();
-
-            // اگر آدرس حذف شده پیش‌فرض بود، اولین آدرس باقی‌مانده را پیش‌فرض کن
-            if ($wasDefault) {
-                $newDefault = Address::where('user_id', $request->user()->id)
-                    ->orderByDesc('created_at')
-                    ->first();
-                
-                if ($newDefault) {
-                    $newDefault->is_default = true;
-                    $newDefault->save();
-                }
-            }
+            $this->addressService->deleteAddress((int) $addressId, $request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -188,11 +140,7 @@ class AddressController extends Controller
     public function setDefault(Request $request, $addressId)
     {
         try {
-            $address = Address::where('id', $addressId)
-                ->where('user_id', $request->user()->id)
-                ->firstOrFail();
-
-            $address->setAsDefault();
+            $address = $this->addressService->setDefaultAddress((int) $addressId, $request->user()->id);
 
             return response()->json([
                 'success' => true,
