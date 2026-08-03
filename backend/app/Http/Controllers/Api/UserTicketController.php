@@ -62,11 +62,20 @@ class UserTicketController extends Controller
                 'success' => true,
                 'data' => $ticket,
             ]);
-        } catch (\Exception $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'تیکت یافت نشد',
             ], 404);
+        } catch (\Exception $e) {
+            // قبلاً همین‌جا هر استثنایی ۴۰۴ می‌شد، پس یک خطای واقعی دیتابیس هم
+            // به‌شکل «تیکت یافت نشد» ظاهر می‌شد و هیچ لاگی هم نمی‌گرفت.
+            Log::error('UserTicketController@show: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در دریافت تیکت',
+            ], 500);
         }
     }
 
