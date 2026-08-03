@@ -223,6 +223,8 @@ class BlockManagementController extends Controller
                 'message' => 'کاربر با موفقیت بلاک شد',
                 'data' => $block->load(['user:id,name', 'blockedUser:id,name']),
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('BlockManagementController@blockByAdmin: ' . $e->getMessage());
             return response()->json([

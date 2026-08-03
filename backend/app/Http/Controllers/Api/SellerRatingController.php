@@ -43,6 +43,8 @@ class SellerRatingController extends Controller
                 ],
             ], 201);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
             

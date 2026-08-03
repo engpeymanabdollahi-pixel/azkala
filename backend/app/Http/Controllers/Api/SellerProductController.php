@@ -94,6 +94,8 @@ class SellerProductController extends Controller
                 'data' => $product->load(['category', 'brand', 'deviceModels']),
             ], 201);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SellerProductController@store: ' . $e->getMessage());
             $statusCode = (int) $e->getCode();
@@ -166,6 +168,8 @@ class SellerProductController extends Controller
                 'success' => false,
                 'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)'
             ], 403);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SellerProductController@update: ' . $e->getMessage());
 

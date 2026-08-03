@@ -65,6 +65,8 @@ return response()->json([
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطای غیرمنتظره در ثبت سفارش.'], 500);
         }

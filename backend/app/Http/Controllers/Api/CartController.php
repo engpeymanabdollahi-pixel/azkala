@@ -52,6 +52,8 @@ class CartController extends Controller
 
         } catch (OutOfStockException|IncompatibleProductException $e) { // ✅ خلاصه‌سازی با Union Type
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطا در افزودن به سبد خرید.'], 500);
         }

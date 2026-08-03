@@ -60,6 +60,8 @@ class ChatFaqController extends Controller
                 'success' => true,
                 'data' => $faq,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatFaqController@store: ' . $e->getMessage());
             return response()->json([
@@ -91,6 +93,8 @@ class ChatFaqController extends Controller
                 'success' => true,
                 'data' => $faq,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatFaqController@update: ' . $e->getMessage());
             return response()->json([

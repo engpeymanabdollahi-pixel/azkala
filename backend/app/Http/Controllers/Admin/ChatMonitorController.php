@@ -199,6 +199,8 @@ class ChatMonitorController extends Controller
                 'message' => 'پیام با موفقیت ارسال شد',
                 'data' => $message->load('sender:id,name,avatar'),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatMonitorController@intervene: ' . $e->getMessage());
             return response()->json([

@@ -90,6 +90,8 @@ class UserTicketController extends Controller
                 'message' => 'تیکت با موفقیت ایجاد شد',
                 'data' => $ticket,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('UserTicketController@store: ' . $e->getMessage());
             return response()->json([
@@ -130,6 +132,8 @@ class UserTicketController extends Controller
                 'message' => 'مکالمه با موفقیت به تیکت تبدیل شد',
                 'data' => $ticket,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('UserTicketController@convertFromConversation: ' . $e->getMessage());
             return response()->json([
@@ -158,6 +162,8 @@ class UserTicketController extends Controller
                 'message' => 'پیام ارسال شد',
                 'data' => $message,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('UserTicketController@sendMessage: ' . $e->getMessage());
             return response()->json([

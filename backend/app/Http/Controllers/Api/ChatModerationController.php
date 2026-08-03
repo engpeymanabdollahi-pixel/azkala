@@ -65,6 +65,8 @@ class ChatModerationController extends Controller
                 'message' => 'کاربر بلاک شد',
                 'data' => $blocked,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatModerationController@blockUser: ' . $e->getMessage());
             return response()->json([
@@ -146,6 +148,8 @@ class ChatModerationController extends Controller
                 'message' => 'گزارش شما ثبت شد و بررسی خواهد شد',
                 'data' => $report,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatModerationController@reportUser: ' . $e->getMessage());
             return response()->json([

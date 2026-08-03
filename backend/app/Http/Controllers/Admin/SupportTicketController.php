@@ -170,6 +170,8 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت با موفقیت ایجاد شد',
                 'data' => $ticket,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SupportTicketController@store: ' . $e->getMessage());
             return response()->json([
@@ -222,6 +224,8 @@ class SupportTicketController extends Controller
                 'message' => 'مکالمه با موفقیت به تیکت تبدیل شد',
                 'data' => $ticket,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SupportTicketController@convertFromConversation: ' . $e->getMessage());
             return response()->json([
@@ -264,6 +268,8 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت بروزرسانی شد',
                 'data' => $ticket,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SupportTicketController@update: ' . $e->getMessage());
             return response()->json([
@@ -291,6 +297,8 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت اختصاص داده شد',
                 'data' => $ticket,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SupportTicketController@assign: ' . $e->getMessage());
             return response()->json([
@@ -352,6 +360,8 @@ class SupportTicketController extends Controller
                 'message' => 'پیام ارسال شد',
                 'data' => $message->load('user:id,name,avatar'),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SupportTicketController@sendMessage: ' . $e->getMessage());
             return response()->json([

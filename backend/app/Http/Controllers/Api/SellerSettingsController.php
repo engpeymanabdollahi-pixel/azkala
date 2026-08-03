@@ -73,7 +73,9 @@ class SellerSettingsController extends Controller
                     $data['avatar'] = $file->store('seller/avatars', 'public');
                 }
 
-            } catch (\Exception $e) {
+            } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (\Exception $e) {
                 Log::error('Seller Avatar Upload Error: ' . $e->getMessage());
                 $data['avatar'] = $request->file('avatar')->store('seller/avatars', 'public');
             }

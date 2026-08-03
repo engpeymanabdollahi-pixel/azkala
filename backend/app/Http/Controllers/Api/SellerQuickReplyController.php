@@ -60,6 +60,8 @@ class SellerQuickReplyController extends Controller
                 'success' => true,
                 'data' => $reply,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             $statusCode = $e->getCode() ?: 500;
             return response()->json([

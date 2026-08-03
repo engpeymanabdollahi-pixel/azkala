@@ -50,6 +50,8 @@ class UserDeviceController extends Controller
                 'message' => 'دستگاه اضافه شد',
                 'data' => $device,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('UserDeviceController@store: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'خطا'], 500);

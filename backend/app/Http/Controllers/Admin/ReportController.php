@@ -113,6 +113,8 @@ class ReportController extends Controller
                 'message' => 'گزارش بروزرسانی شد',
                 'data' => $report,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('Admin\ReportController@update: ' . $e->getMessage());
             return response()->json([
@@ -181,6 +183,8 @@ class ReportController extends Controller
                 'message' => 'اقدام با موفقیت انجام شد',
                 'data' => $report->fresh(),
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('Admin\ReportController@action: ' . $e->getMessage());
             return response()->json([

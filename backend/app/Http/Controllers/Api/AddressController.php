@@ -61,6 +61,8 @@ class AddressController extends Controller
                 'message' => 'آدرس با موفقیت اضافه شد',
                 'data' => $address,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('AddressController@store: ' . $e->getMessage());
             return response()->json([
@@ -99,6 +101,8 @@ class AddressController extends Controller
                 'success' => false,
                 'message' => 'آدرس یافت نشد',
             ], 404);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('AddressController@update: ' . $e->getMessage());
             return response()->json([

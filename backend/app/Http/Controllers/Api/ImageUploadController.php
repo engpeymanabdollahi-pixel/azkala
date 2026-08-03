@@ -69,7 +69,9 @@ class ImageUploadController extends Controller
 
                 $uploadedUrls[] = Storage::disk('public')->url($fullPath);
                 
-            } catch (\Exception $e) {
+            } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (\Exception $e) {
                 Log::error('Image upload error: ' . $e->getMessage());
                 $failedFiles[] = $originalName . ' (' . $e->getMessage() . ')';
                 continue;

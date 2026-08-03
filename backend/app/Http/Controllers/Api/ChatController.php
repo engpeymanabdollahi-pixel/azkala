@@ -47,6 +47,8 @@ class ChatController extends Controller
 
             $conversation = $this->chatService->startConversation($userId, $sellerId, $productId);
             return response()->json(['success' => true, 'data' => $conversation]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('ChatController@startConversation: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

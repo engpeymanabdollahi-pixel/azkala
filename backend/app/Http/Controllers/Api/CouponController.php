@@ -56,6 +56,8 @@ class CouponController extends Controller
         try {
             $coupon = $this->couponService->createCoupon($validated, Auth::id());
             return response()->json(['success' => true, 'message' => 'ایجاد شد', 'data' => $coupon], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('Coupon store error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'خطا در ایجاد کوپن'], 500);
@@ -89,6 +91,8 @@ class CouponController extends Controller
         try {
             $updated = $this->couponService->updateCoupon($coupon, $validated);
             return response()->json(['success' => true, 'message' => 'به‌روزرسانی شد', 'data' => $updated]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطا در به‌روزرسانی'], 500);
         }

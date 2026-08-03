@@ -105,6 +105,8 @@ class MessageTemplateController extends Controller
                 'message' => 'قالب با موفقیت ساخته شد',
                 'data' => $template,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('MessageTemplateController@store: ' . $e->getMessage());
             return response()->json([
@@ -144,6 +146,8 @@ class MessageTemplateController extends Controller
                 'message' => 'قالب بروزرسانی شد',
                 'data' => $template,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('MessageTemplateController@update: ' . $e->getMessage());
             return response()->json([

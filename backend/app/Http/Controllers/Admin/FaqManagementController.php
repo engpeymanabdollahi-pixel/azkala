@@ -186,6 +186,8 @@ class FaqManagementController extends Controller
                 'message' => 'FAQ سیستمی با موفقیت ساخته شد',
                 'data' => $faq,
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('FaqManagementController@storeSystem: ' . $e->getMessage());
             return response()->json([
@@ -217,6 +219,8 @@ class FaqManagementController extends Controller
                 'message' => 'FAQ بروزرسانی شد',
                 'data' => $faq,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('FaqManagementController@update: ' . $e->getMessage());
             return response()->json([

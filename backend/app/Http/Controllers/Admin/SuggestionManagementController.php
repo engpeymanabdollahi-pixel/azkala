@@ -295,6 +295,8 @@ class SuggestionManagementController extends Controller
                 'success' => true,
                 'message' => 'تنظیمات بروزرسانی شد',
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             Log::error('SuggestionManagementController@updateSettings: ' . $e->getMessage());
             return response()->json([
