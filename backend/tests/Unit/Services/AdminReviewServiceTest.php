@@ -142,7 +142,7 @@ class AdminReviewServiceTest extends TestCase
         $result = $this->service->deleteReview($review->id);
 
         $this->assertTrue($result);
-        $this->assertDatabaseMissing('reviews', ['id' => $review->id]);
+        $this->assertSoftDeleted('reviews', ['id' => $review->id]);
     }
 
     public function test_delete_review_throws_exception_for_nonexistent_review(): void

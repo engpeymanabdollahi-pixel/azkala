@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminBrandService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\Brand; // ✅ این خط را به بخش useها اضافه کنید
 
 class AdminBrandController extends Controller
@@ -57,8 +58,8 @@ class AdminBrandController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:brands,name',
-            'slug' => 'nullable|string|max:255|unique:brands,slug',
+            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')->whereNull('deleted_at')],
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('brands', 'slug')->whereNull('deleted_at')],
             'logo' => 'nullable|string',
             'description' => 'nullable|string',
             'is_active' => 'sometimes|boolean',
@@ -92,7 +93,7 @@ class AdminBrandController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:brands,slug,' . $id,
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('brands', 'slug')->whereNull('deleted_at')->ignore($id)],
             'logo' => 'nullable|string',
             'description' => 'nullable|string',
             'is_active' => 'sometimes|boolean',

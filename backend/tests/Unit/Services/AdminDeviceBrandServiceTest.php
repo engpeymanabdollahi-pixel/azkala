@@ -79,7 +79,7 @@ class AdminDeviceBrandServiceTest extends TestCase
         $result = $this->service->deleteBrand($brand->id);
 
         $this->assertTrue($result);
-        $this->assertDatabaseMissing('device_brands', ['id' => $brand->id]);
+        $this->assertSoftDeleted('device_brands', ['id' => $brand->id]);
     }
 
     public function test_cannot_delete_brand_with_existing_series()

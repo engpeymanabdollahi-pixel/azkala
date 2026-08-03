@@ -243,7 +243,7 @@ class BrandApiTest extends TestCase
 
         $response->assertStatus(200);
 
-        $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
+        $this->assertSoftDeleted('brands', ['id' => $brand->id]);
     }
 
      public function test_admin_cannot_delete_brand_with_products(): void

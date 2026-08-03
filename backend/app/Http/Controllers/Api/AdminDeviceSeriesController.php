@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminDeviceSeriesService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminDeviceSeriesController extends Controller
 {
@@ -27,7 +28,7 @@ class AdminDeviceSeriesController extends Controller
         $validated = $request->validate([
             'brand_id' => 'required|exists:device_brands,id',
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_series,slug',
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_series', 'slug')->whereNull('deleted_at')],
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -40,7 +41,7 @@ class AdminDeviceSeriesController extends Controller
         $validated = $request->validate([
             'brand_id' => 'sometimes|exists:device_brands,id',
             'name' => 'sometimes|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_series,slug,' . $id,
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_series', 'slug')->whereNull('deleted_at')->ignore($id)],
             'is_active' => 'sometimes|boolean',
         ]);
 

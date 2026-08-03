@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminDeviceModelService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminDeviceModelController extends Controller
 {
@@ -28,7 +29,7 @@ class AdminDeviceModelController extends Controller
         $validated = $request->validate([
             'series_id' => 'required|exists:device_series,id',
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_models,slug',
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_models', 'slug')->whereNull('deleted_at')],
             'release_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 5),
             'is_active' => 'sometimes|boolean',
         ]);
@@ -42,7 +43,7 @@ class AdminDeviceModelController extends Controller
         $validated = $request->validate([
             'series_id' => 'sometimes|exists:device_series,id',
             'name' => 'sometimes|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_models,slug,' . $id,
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_models', 'slug')->whereNull('deleted_at')->ignore($id)],
             'release_year' => 'nullable|integer|min:1900|max:' . (date('Y') + 5),
             'is_active' => 'sometimes|boolean',
         ]);

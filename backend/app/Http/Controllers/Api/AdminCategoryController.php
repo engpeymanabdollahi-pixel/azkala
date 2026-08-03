@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminCategoryService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminCategoryController extends Controller
 {
@@ -52,7 +53,7 @@ class AdminCategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug',
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')->whereNull('deleted_at')],
             'parent_id' => 'nullable|integer|exists:categories,id',
             'icon' => 'nullable|string|max:100',
             'image' => 'nullable|string',
@@ -101,7 +102,7 @@ class AdminCategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug,' . $id,
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('categories', 'slug')->whereNull('deleted_at')->ignore($id)],
             'parent_id' => 'nullable',
             'icon' => 'nullable|string|max:100',
             'image' => 'nullable|string',

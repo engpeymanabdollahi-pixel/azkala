@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminDeviceBrandService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AdminDeviceBrandController extends Controller
 {
@@ -33,7 +34,7 @@ class AdminDeviceBrandController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_brands,slug',
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_brands', 'slug')->whereNull('deleted_at')],
             'type' => 'required|in:mobile,laptop,tablet,accessory', // ✅ فیلد حیاتی برای سلکتور
             'is_active' => 'sometimes|boolean',
         ]);
@@ -54,7 +55,7 @@ class AdminDeviceBrandController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:device_brands,slug,' . $id,
+            'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_brands', 'slug')->whereNull('deleted_at')->ignore($id)],
             'type' => 'sometimes|in:mobile,laptop,tablet,accessory',
             'is_active' => 'sometimes|boolean',
         ]);
