@@ -213,9 +213,11 @@ Route::prefix('v1')->group(function () {
         Route::prefix('cart')->name('cart.')->group(function () {
             Route::get('/', [CartController::class, 'index'])->name('index');
             Route::post('/', [CartController::class, 'store'])->name('store');
+            // /clear باید قبل از /{cartItemId} بیاید، وگرنه wildcard آن را می‌گیرد
+            // و درخواست با «clear» به‌عنوان شناسه به destroy() می‌رسد.
+            Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
             Route::put('/{cartItemId}', [CartController::class, 'update'])->name('update');
             Route::delete('/{cartItemId}', [CartController::class, 'destroy'])->name('destroy');
-            Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
         });
 
         Route::prefix('orders')->name('orders.')->group(function () {
@@ -247,7 +249,8 @@ Route::prefix('v1')->group(function () {
 
         Route::prefix('reviews')->name('reviews.')->group(function () {
             Route::post('/', [ReviewController::class, 'store'])->name('store');
-            Route::put('/{review}', [ReviewController::class, 'update'])->name('update');
+            // PUT /reviews/{review} حذف شد: ReviewController::update وجود نداشت
+            // (۵۰۰ می‌داد) و فرانت‌اند هم فقط DELETE می‌زند.
             Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('destroy');
             Route::post('/{review}/helpful', [ReviewController::class, 'helpful'])->name('helpful');
         });
@@ -427,10 +430,13 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::get('/', [AdminCategoryController::class, 'index'])->name('index');
                 Route::get('/tree', [AdminCategoryController::class, 'tree'])->name('tree');
                 Route::post('/', [AdminCategoryController::class, 'store'])->name('store');
+                // /reorder باید قبل از /{category} بیاید؛ در غیر این صورت PUT
+                // روی آن با «reorder» به‌عنوان شناسه به update() می‌رسد و
+                // implicit binding با ۴۰۴ ردش می‌کند.
+                Route::put('/reorder', [AdminCategoryController::class, 'reorder'])->name('reorder');
                 Route::get('/{category}', [AdminCategoryController::class, 'show'])->name('show');
                 Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('update');
                 Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('destroy');
-                Route::put('/reorder', [AdminCategoryController::class, 'reorder'])->name('reorder');
                 Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->name('bulk-action');
             });
 
@@ -447,13 +453,15 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
 
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [AdminProductController::class, 'index'])->name('index');
-                Route::get('/stats', [AdminProductController::class, 'stats'])->name('stats');
                 // باید قبل از /{product} ثبت شود؛ در routes/api_v1.php بعد از آن
                 // تعریف شده بود و در عمل هرگز match نمی‌شد (implicit binding روی
                 // «templates» محصولی پیدا نمی‌کرد و ۴۰۴ می‌داد).
                 Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
-                Route::get('/{product}', [AdminProductController::class, 'show'])->name('show');
-                Route::get('/{product}/stats', [AdminProductController::class, 'productStats'])->name('product-stats');
+                // stats() آمارِ یک محصول را برمی‌گرداند (getProductStats($id) صدا
+                // می‌زند) ولی به /stats بدون پارامتر وصل بود، و /{product}/stats به
+                // متدِ ناموجودِ productStats اشاره می‌کرد. فرانت‌اند هم همین دومی را
+                // صدا می‌زند. جای درستش اینجاست؛ روت بی‌پارامتر حذف شد.
+                Route::get('/{product}/stats', [AdminProductController::class, 'stats'])->name('product-stats');
                 Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->name('quick-update');
                 Route::delete('/{product}', [AdminProductController::class, 'destroy'])->name('destroy');
                 Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->name('bulk-action');
@@ -465,7 +473,10 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::get('/{order}', [AdminOrderController::class, 'show'])->name('show');
                 Route::put('/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('update-status');
                 Route::put('/{order}/payment-status', [AdminOrderController::class, 'updatePaymentStatus'])->name('update-payment-status');
-                Route::post('/{order}/refund', [AdminOrderController::class, 'refund'])->name('refund');
+                // POST /{order}/refund حذف شد: AdminOrderController::refund وجود
+                // نداشت، هیچ‌جای فرانت‌اند صدایش نمی‌زد، و معنای بازپرداخت (کامل یا
+                // جزئی، اتصال به درگاه، برگشت موجودی) تصمیم محصولی است نه حدسِ ما.
+                // تا وقتی رفتارش مشخص شود، یک روتِ ۵۰۰دهنده بدتر از نبودنش است.
             });
 
             Route::prefix('reviews')->name('reviews.')->group(function () {

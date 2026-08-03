@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Admin\AdminCategoryService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -133,6 +134,64 @@ class AdminCategoryController extends Controller
     /**
      * عملیات گروهی
      */
+    /**
+     * حذف دسته‌بندی. اگر زیرمجموعه یا محصول داشته باشد ۴۰۹ برمی‌گردد؛ همان قاعده‌ی
+     * bulkAction('delete')، ولی با پیامی که می‌گوید چرا انجام نشد.
+     */
+    public function destroy($id)
+    {
+        try {
+            $this->categoryService->deleteCategory((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'دسته‌بندی حذف شد',
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'دسته‌بندی یافت نشد',
+            ], 404);
+        } catch (\Exception $e) {
+            $status = $e->getCode() === 409 ? 409 : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $status === 409 ? $e->getMessage() : 'خطا در حذف دسته‌بندی',
+            ], $status);
+        }
+    }
+
+    /**
+     * مرتب‌سازی مجدد. بدنه‌ی درخواست همان شکلی است که فرانت‌اند می‌فرستد:
+     * { items: [{ id, sort_order, parent_id? }] }
+     */
+    public function reorder(Request $request)
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.id' => 'required|integer|exists:categories,id',
+            'items.*.sort_order' => 'required|integer|min:0',
+            'items.*.parent_id' => 'nullable|integer|exists:categories,id',
+        ]);
+
+        try {
+            $count = $this->categoryService->reorderCategories($validated['items']);
+
+            return response()->json([
+                'success' => true,
+                'message' => "ترتیب {$count} دسته‌بندی بروزرسانی شد",
+            ]);
+        } catch (\Exception $e) {
+            $status = $e->getCode() === 400 ? 400 : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $status === 400 ? $e->getMessage() : 'خطا در مرتب‌سازی دسته‌بندی‌ها',
+            ], $status);
+        }
+    }
+
     public function bulkAction(Request $request)
     {
         $validated = $request->validate([

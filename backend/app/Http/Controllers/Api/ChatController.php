@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Chat\ChatService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -100,6 +101,25 @@ class ChatController extends Controller
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * جزئیات یک مکالمه. منطقش از قبل در ChatService::getConversation بود و فقط
+     * همین سیم‌کشی کنترلر کم بود، برای همین روت ۵۰۰ می‌داد.
+     */
+    public function show(Request $request, $conversationId)
+    {
+        try {
+            $conversation = $this->chatService->getConversation((int) $conversationId, $request->user()->id);
+
+            return response()->json(['success' => true, 'data' => $conversation]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'مکالمه یافت نشد'], 404);
+        } catch (\Exception $e) {
+            Log::error('ChatController@show: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'خطا در دریافت مکالمه'], 500);
         }
     }
 

@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\Category;
 use App\Repositories\AdminCategoryRepository;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdminCategoryService
@@ -157,6 +158,75 @@ class AdminCategoryService
             Log::error('AdminCategoryService@updateCategory: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    /**
+     * حذف یک دسته‌بندی.
+     *
+     * همان قاعده‌ای که bulkAction('delete') در مخزن اعمال می‌کند: فقط دسته‌ای که
+     * نه زیرمجموعه دارد نه محصول. تفاوت در گزارش‌دهی است — عملیات گروهی موارد
+     * غیرقابل‌حذف را بی‌صدا رد می‌کند، ولی حذف تکی باید بگوید چرا انجام نشد.
+     *
+     * @throws \Exception با کد ۴۰۹ اگر دسته وابستگی داشته باشد
+     */
+    public function deleteCategory(int $id): void
+    {
+        $category = $this->repository->findOrFail($id);
+
+        $children = $category->children()->count();
+        $products = $category->products()->count();
+
+        if ($children > 0 || $products > 0) {
+            $reasons = [];
+            if ($children > 0) {
+                $reasons[] = "{$children} زیرمجموعه";
+            }
+            if ($products > 0) {
+                $reasons[] = "{$products} محصول";
+            }
+
+            throw new \Exception(
+                'این دسته‌بندی '.implode(' و ', $reasons).' دارد و قابل حذف نیست.',
+                409
+            );
+        }
+
+        $category->delete();
+    }
+
+    /**
+     * مرتب‌سازی مجدد دسته‌ها.
+     *
+     * ورودی همان چیزی است که فرانت‌اند می‌فرستد: آرایه‌ای از
+     * {id, sort_order, parent_id?}. در یک تراکنش اعمال می‌شود تا یک آیتم نامعتبر
+     * ترتیب را نیمه‌کاره رها نکند.
+     */
+    public function reorderCategories(array $items): int
+    {
+        return DB::transaction(function () use ($items) {
+            $updated = 0;
+
+            foreach ($items as $item) {
+                $category = $this->repository->findOrFail((int) $item['id']);
+
+                $data = ['sort_order' => (int) $item['sort_order']];
+
+                if (array_key_exists('parent_id', $item)) {
+                    $parentId = $item['parent_id'] === '' ? null : $item['parent_id'];
+
+                    if ($parentId !== null && ! $this->repository->canBeParent($category->id, (int) $parentId)) {
+                        throw new \Exception('دسته نمی‌تواند والد خودش باشد', 400);
+                    }
+
+                    $data['parent_id'] = $parentId === null ? null : (int) $parentId;
+                }
+
+                $category->update($data);
+                $updated++;
+            }
+
+            return $updated;
+        });
     }
 
     /**

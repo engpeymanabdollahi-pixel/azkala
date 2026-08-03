@@ -96,4 +96,19 @@ class CartController extends Controller
 
         return response()->json(['success' => false, 'message' => 'آیتم یافت نشد.'], 404);
     }
+
+    /**
+     * خالی کردن کامل سبد خرید.
+     *
+     * روت این متد در routes/api.php باید قبل از /{cartItemId} ثبت شود، وگرنه
+     * wildcard زودتر match می‌شود و درخواست با «clear» به‌عنوان شناسه به
+     * destroy() می‌رسد.
+     */
+    public function clear()
+    {
+        $cart = $this->cartService->getOrCreateCart(Auth::id(), session()->getId());
+        $this->cartService->clearCart($cart);
+
+        return response()->json(['success' => true, 'message' => 'سبد خرید خالی شد.']);
+    }
 }

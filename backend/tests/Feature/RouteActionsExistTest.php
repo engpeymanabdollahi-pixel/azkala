@@ -10,11 +10,11 @@ use Tests\TestCase;
  * at boot, the route shows up in route:list looking perfectly healthy, and the
  * failure only appears when someone calls it - as a 500 BadMethodCallException.
  *
- * The repository currently has 14 such routes (see KNOWN_MISSING). They are
- * dead endpoints, including some that matter: DELETE /cart/clear,
- * PUT /reviews/{review}, DELETE /admin/categories/{category} and
- * POST /admin/orders/{order}/refund all answer 500 today. Implementing them is
- * feature work, so they are recorded here rather than silently tolerated.
+ * This started at 14 such routes. Those with existing service-layer support
+ * were wired up, and those nothing called were removed. The 6 that remain are
+ * a genuinely unbuilt feature - chat product-suggestions and sentiment - plus
+ * one stray seller-ratings action. Implementing them means deciding what they
+ * should do, so they are recorded here rather than silently tolerated.
  *
  * The test fails if a *new* one appears, and also if an entry in the list is
  * fixed without being removed from it - so the list cannot rot.
@@ -27,19 +27,11 @@ class RouteActionsExistTest extends TestCase
      */
     private const KNOWN_MISSING = [
         'GET|HEAD api/v1/seller-ratings/seller/{sellerId}',
-        'DELETE api/v1/cart/clear',
-        'PUT api/v1/reviews/{review}',
-        'GET|HEAD api/v1/chat/conversations/{conversation}',
         'GET|HEAD api/v1/chat/conversations/{conversation}/suggestions',
         'POST api/v1/chat/conversations/{conversation}/suggest',
         'GET|HEAD api/v1/chat/conversations/{conversation}/sentiment',
         'POST api/v1/chat/online-status',
         'GET|HEAD api/v1/admin/advanced-reports/chat-analytics',
-        'DELETE api/v1/admin/categories/{category}',
-        'PUT api/v1/admin/categories/reorder',
-        'GET|HEAD api/v1/admin/products/{product}',
-        'GET|HEAD api/v1/admin/products/{product}/stats',
-        'POST api/v1/admin/orders/{order}/refund',
     ];
 
     /**
