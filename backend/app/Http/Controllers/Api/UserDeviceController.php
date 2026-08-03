@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\UserDeviceService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -67,6 +68,13 @@ class UserDeviceController extends Controller
                 'success' => true,
                 'message' => 'دستگاه حذف شد',
             ]);
+        } catch (ModelNotFoundException $e) {
+            // deleteDevice() با where('user_id', ...) محدود شده، پس دستگاهِ کاربر
+            // دیگر هم به همین‌جا می‌رسد و همان پاسخ «یافت نشد» را می‌گیرد.
+            return response()->json([
+                'success' => false,
+                'message' => 'دستگاه مورد نظر یافت نشد.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('UserDeviceController@destroy: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'خطا'], 500);

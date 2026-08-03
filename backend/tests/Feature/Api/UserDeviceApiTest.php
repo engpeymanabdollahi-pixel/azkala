@@ -108,9 +108,30 @@ class UserDeviceApiTest extends TestCase
 
         $this->actingAs($this->user)
             ->deleteJson("/api/v1/user/devices/{$device->id}")
-            ->assertStatus(500); // controller maps every failure, including ownership, to 500
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
 
         // The important part: the other user's device must still exist.
         $this->assertDatabaseHas('user_devices', ['id' => $device->id]);
+    }
+
+    /**
+     * deleteDevice() scopes on user_id, so "no such device" and "someone else's
+     * device" are the same query miss. Both answer 404 with the same body, so
+     * the endpoint cannot be used to probe which device IDs exist.
+     */
+    public function test_deleting_a_missing_device_matches_the_foreign_device_response(): void
+    {
+        $foreign = UserDevice::create([
+            'user_id' => $this->otherUser->id,
+            'phone_model_id' => $this->phoneModel->id,
+        ]);
+
+        $missing = $this->actingAs($this->user)->deleteJson('/api/v1/user/devices/999999');
+        $others = $this->actingAs($this->user)->deleteJson("/api/v1/user/devices/{$foreign->id}");
+
+        $missing->assertStatus(404);
+        $others->assertStatus(404);
+        $this->assertSame($missing->json('message'), $others->json('message'));
     }
 }

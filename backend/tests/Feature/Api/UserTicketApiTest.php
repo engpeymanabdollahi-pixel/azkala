@@ -156,9 +156,36 @@ class UserTicketApiTest extends TestCase
 
         $this->actingAs($this->user)
             ->postJson("/api/v1/tickets/{$ticket->id}/message", ['message' => 'نفوذ'])
-            ->assertStatus(500); // ownership failure falls through to the generic handler
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
 
         $this->assertSame(0, TicketMessage::where('ticket_id', $ticket->id)->count());
+    }
+
+    public function test_posting_to_a_missing_ticket_matches_the_foreign_ticket_response(): void
+    {
+        $foreign = $this->makeTicket($this->otherUser);
+
+        $missing = $this->actingAs($this->user)
+            ->postJson('/api/v1/tickets/999999/message', ['message' => 'سلام']);
+        $others = $this->actingAs($this->user)
+            ->postJson("/api/v1/tickets/{$foreign->id}/message", ['message' => 'سلام']);
+
+        $missing->assertStatus(404);
+        $others->assertStatus(404);
+        $this->assertSame($missing->json('message'), $others->json('message'));
+    }
+
+    public function test_converting_a_missing_conversation_returns_404(): void
+    {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/tickets/convert/999999', [
+                'subject' => 'تبدیل مکالمه',
+                'priority' => 'medium',
+                'category' => 'other',
+            ])
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
     }
 
     public function test_owner_of_a_conversation_can_convert_it_to_a_ticket(): void

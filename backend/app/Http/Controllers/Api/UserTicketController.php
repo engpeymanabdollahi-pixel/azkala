@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\UserTicketService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -134,6 +135,11 @@ class UserTicketController extends Controller
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'مکالمه مورد نظر یافت نشد.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('UserTicketController@convertFromConversation: ' . $e->getMessage());
             return response()->json([
@@ -164,6 +170,13 @@ class UserTicketController extends Controller
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (ModelNotFoundException $e) {
+            // sendMessage() تیکت را با where('user_id', ...) پیدا می‌کند، پس تیکتِ
+            // کاربر دیگر هم همین‌جا می‌افتد و نباید ۵۰۰ بگیرد.
+            return response()->json([
+                'success' => false,
+                'message' => 'تیکت مورد نظر یافت نشد.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('UserTicketController@sendMessage: ' . $e->getMessage());
             return response()->json([
