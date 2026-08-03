@@ -45,6 +45,28 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         
+        // رکورد پیدا نشد → ۴۰۴ (نه ۵۰۰). سرویس‌ها برای اعمال مالکیت از الگوی
+        // where('user_id', $userId)->firstOrFail() استفاده می‌کنند، پس «متعلق به
+        // کاربر دیگر» هم از همین مسیر می‌آید و نباید به‌صورت خطای سرور ظاهر شود.
+        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'مورد درخواستی یافت نشد.',
+                ], 404);
+            }
+        });
+
+        // رد شدن Policy/Gate → ۴۰۳
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'شما مجاز به انجام این عملیات نیستید.',
+                ], 403);
+            }
+        });
+
         // مدیریت Too Many Requests (429)
         $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {

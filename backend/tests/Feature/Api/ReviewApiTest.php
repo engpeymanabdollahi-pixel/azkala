@@ -160,6 +160,14 @@ class ReviewApiTest extends TestCase
         $this->assertSoftDeleted('reviews', ['id' => $review->id]);
     }
 
+    /**
+     * deleteReview() applies the user_id filter inside the query, so "does not
+     * exist" and "belongs to someone else" both surface as ModelNotFoundException.
+     * That used to fall into the controller's generic catch and come back as a
+     * 500, which reported an authorization outcome as a server fault. Both cases
+     * answer 404 now - deliberately indistinguishable, so the endpoint does not
+     * confirm whether another user's review exists.
+     */
     public function test_user_cannot_delete_another_users_review(): void
     {
         $review = Review::factory()->create([
@@ -169,9 +177,33 @@ class ReviewApiTest extends TestCase
 
         $this->actingAs($this->user)
             ->deleteJson("/api/v1/reviews/{$review->id}")
-            ->assertStatus(500); // controller maps ownership failure to its generic handler
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
 
         $this->assertNotSoftDeleted('reviews', ['id' => $review->id]);
+    }
+
+    public function test_deleting_a_missing_review_is_indistinguishable_from_a_foreign_one(): void
+    {
+        $foreign = Review::factory()->create([
+            'user_id' => $this->otherUser->id,
+            'product_id' => $this->product->id,
+        ]);
+
+        $missing = $this->actingAs($this->user)->deleteJson('/api/v1/reviews/999999');
+        $others = $this->actingAs($this->user)->deleteJson("/api/v1/reviews/{$foreign->id}");
+
+        $missing->assertStatus(404);
+        $others->assertStatus(404);
+        $this->assertSame($missing->json('message'), $others->json('message'));
+    }
+
+    public function test_marking_a_missing_review_helpful_returns_404(): void
+    {
+        $this->actingAs($this->user)
+            ->postJson('/api/v1/reviews/999999/helpful')
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
     }
 
     public function test_helpful_count_increments(): void

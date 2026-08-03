@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\ReviewService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -150,6 +151,14 @@ class ReviewController extends Controller
                 'success' => true,
                 'message' => 'نظر حذف شد',
             ]);
+        } catch (ModelNotFoundException $e) {
+            // deleteReview() فیلترِ user_id را داخل کوئری اعمال می‌کند، پس «وجود
+            // ندارد» و «مالِ کاربر دیگر است» هر دو به همین‌جا می‌رسند. عمداً یک
+            // پاسخ یکسان می‌دهیم تا وجود/عدم‌وجود نظرِ دیگران فاش نشود.
+            return response()->json([
+                'success' => false,
+                'message' => 'نظر مورد نظر یافت نشد.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('ReviewController@destroy: ' . $e->getMessage());
             return response()->json([
@@ -171,6 +180,11 @@ class ReviewController extends Controller
                 'success' => true,
                 'data' => ['helpful_count' => $review->helpful_count],
             ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'نظر مورد نظر یافت نشد.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('ReviewController@helpful: ' . $e->getMessage());
             return response()->json([
