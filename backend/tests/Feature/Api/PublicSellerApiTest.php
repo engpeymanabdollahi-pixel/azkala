@@ -75,6 +75,36 @@ class PublicSellerApiTest extends TestCase
         $this->postJson("/api/v1/sellers/{$this->seller->id}/follow")->assertStatus(401);
     }
 
+    /**
+     * Regression: routes/api_v1.php used to redefine follow/unfollow inside its
+     * *public* group. Because both route files are mounted, that unauthenticated
+     * DELETE won registration over the authenticated one in routes/api.php, so
+     * unfollow reached the controller with $request->user() === null and threw
+     * "Attempt to read property id on null" - a 500 for every caller, even one
+     * sending a valid Sanctum token (the token was never resolved, since the
+     * route sat outside auth:sanctum). Note actingAs() cannot catch this: it
+     * sets the user directly and bypasses route middleware, which is why the
+     * other tests here passed against the broken routing.
+     */
+    public function test_unfollow_requires_authentication(): void
+    {
+        $this->deleteJson("/api/v1/sellers/{$this->seller->id}/follow")->assertStatus(401);
+    }
+
+    /**
+     * Regression: the same public group also exposed GET /sellers/{id}/follow
+     * mapped to the follow() action - a state-changing operation reachable by
+     * any plain GET. It is gone; only POST may follow.
+     */
+    public function test_following_is_not_reachable_over_get(): void
+    {
+        $this->actingAs($this->customer)
+            ->getJson("/api/v1/sellers/{$this->seller->id}/follow")
+            ->assertStatus(405);
+
+        $this->assertSame(0, (int) $this->seller->fresh()->followers_count);
+    }
+
     public function test_customer_can_follow_a_seller_and_counter_increments(): void
     {
         $this->actingAs($this->customer)

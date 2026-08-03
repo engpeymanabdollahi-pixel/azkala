@@ -92,8 +92,10 @@ Route::middleware('throttle:auth')->group(function () {
 Route::prefix('sellers')->name('sellers.')->group(function () {
     Route::get('/{slug}', [PublicSellerController::class, 'show'])->name('show');
     Route::get('/{slug}/products', [PublicSellerController::class, 'products'])->name('products');
-    Route::get('/{id}/follow', [PublicSellerController::class, 'follow'])->name('follow');
-    Route::delete('/{id}/follow', [PublicSellerController::class, 'unfollow'])->name('unfollow');
+    // ⚠️ follow/unfollow عمداً اینجا تعریف نمی‌شوند: این گروه عمومی است و
+    // PublicSellerController::follow/unfollow به $request->user() نیاز دارند.
+    // نسخه‌ی درست و احراز هویت‌شده‌ی این دو در routes/api.php داخل گروه
+    // auth:sanctum قرار دارد.
 });
 
 // Categories & Brands
