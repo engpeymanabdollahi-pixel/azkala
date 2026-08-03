@@ -8,6 +8,7 @@ import { formatPrice } from '@/utils/format';
 import type { Product } from '@/types/models';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
+import { usePrefetch } from '@/hooks/usePrefetch'; // ✅ هوک پیش‌واکشی
 
 interface ProductCardProps {
   product: Product;
@@ -25,6 +26,7 @@ export function ProductCard({
   const { selectedModel } = useModelStore();
   const { addItem } = useCartStore();
   const { isInWishlist, toggleItem } = useWishlistStore();
+  const { prefetchProduct } = usePrefetch(); // ✅ فراخوانی هوک
 
   const [imgError, setImgError] = useState(false);
   const isWishlisted = isInWishlist(product.id);
@@ -62,17 +64,10 @@ export function ProductCard({
     e.stopPropagation();
     toggleItem(product);
 
-    if (!isWishlisted) {
-      toast.success('به علاقه‌مندی‌ها اضافه شد', {
-        icon: '❤️',
-        duration: 1500,
-      });
-    } else {
-      toast.success('از علاقه‌مندی‌ها حذف شد', {
-        icon: '🗑️',
-        duration: 1500,
-      });
-    }
+    toast.success(isWishlisted ? 'از علاقه‌مندی‌ها حذف شد' : 'به علاقه‌مندی‌ها اضافه شد', {
+      icon: isWishlisted ? '🗑️' : '❤️',
+      duration: 1500,
+    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -89,15 +84,18 @@ export function ProductCard({
   // بررسی موجودی کم
   const isLowStock = product.stock > 0 && product.stock <= 5;
 
-  // بررسی پرفروش بودن (فرضی - می‌توانید از API بگیرید)
+  // بررسی پرفروش بودن
   const isBestSeller = product.sales_count && product.sales_count > 100;
 
+  // ==========================================================
   // نمای لیستی
+  // ==========================================================
   if (variant === 'list') {
     return (
       <div
         className="group flex bg-white rounded-2xl border border-gray-200 hover:border-primary-300 hover:shadow-xl transition-all cursor-pointer overflow-hidden"
         onClick={handleCardClick}
+        onMouseEnter={() => prefetchProduct(product.id)} // ✅ پیش‌واکشی در نمای لیستی
       >
         <div className="relative w-32 h-32 flex-shrink-0 bg-gray-50">
           {!imgError ? (
@@ -161,11 +159,14 @@ export function ProductCard({
     );
   }
 
+  // ==========================================================
   // نمای گرید (پیش‌فرض)
+  // ==========================================================
   return (
     <div
       className="group relative flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-primary-300 hover:shadow-2xl transition-all duration-300 cursor-pointer"
       onClick={handleCardClick}
+      onMouseEnter={() => prefetchProduct(product.id)} // ✅ پیش‌واکشی در نمای گرید
     >
       {/* بخش تصویر */}
       <div className="relative aspect-square overflow-hidden bg-gray-50">
@@ -231,7 +232,7 @@ export function ProductCard({
             'opacity-0 group-hover:opacity-100 transition-all duration-300',
             'bg-white shadow-lg hover:scale-110',
             isWishlisted ? 'text-red-500 opacity-100' : 'text-gray-400 hover:text-red-400',
-            isLowStock && 'top-10' // جابجایی به پایین اگر badge موجودی کم وجود دارد
+            isLowStock && 'top-10'
           )}
           aria-label="افزودن به علاقه‌مندی‌ها"
         >

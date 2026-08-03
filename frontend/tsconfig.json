@@ -23,6 +23,7 @@
 
     /* Linting */
     "strict": true,
+   "noImplicitAny": true,          // ✅ این خط را اضافه کنید
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true

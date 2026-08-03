@@ -1,28 +1,97 @@
 import type { Product, Category, Brand, PhoneModel, Seller } from '@/types/models';
 
-/**
- * تبدیل ساختار API به ساختار mockData
- */
-export function mapApiProductToProduct(apiProduct: any): Product {
-  const price = parseFloat(apiProduct.price) || 0;
+// ✅ تعریف دقیق ساختار پاسخ API
+interface ApiProductResponse {
+  id: number;
+  name: string;
+  slug: string;
+  price: string | number;
+  compare_price?: string | number | null;
+  discount_price?: string | number | null;
+  discount_percentage?: string | number | null;
+  main_image?: string;
+  images?: string[];
+  is_active?: boolean;
+  stock?: number;
+  sku?: string;
+  description?: string;
+  short_description?: string;
+  specifications?: Record<string, any>;
+  rating?: string | number;
+  reviews_count?: number;
+  views_count?: number;
+  sales_count?: number;
+  seller_id?: number;
+  category_id?: number;
+  brand_id?: number;
+  created_at?: string;
+  updated_at?: string;
+  compatible_models?: Array<{
+    id: number;
+    series_id?: number;
+    brand_id?: number;
+    brand?: { id: number; name: string; slug?: string; logo?: string | null };
+    name: string;
+    slug?: string;
+    image?: string | null;
+    release_year?: number | null;
+    specs?: Record<string, any>;
+    created_at?: string;
+    updated_at?: string;
+  }>;
+  brand?: {
+    id: number;
+    name: string;
+    slug?: string;
+    logo?: string | null;
+    series_count?: number;
+    models_count?: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+  seller?: {
+    id: number;
+    name?: string;
+    shop_name?: string;
+    slug?: string;
+    status?: string;
+    health_score?: number;
+    rating?: string | number;
+    reviews_count?: number;
+    products_count?: number;
+    orders_count?: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+  category?: {
+    id: number;
+    parent_id?: number | null;
+    name: string;
+    slug: string;
+    icon?: string;
+    is_active?: boolean;
+    products_count?: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+}
+
+export function mapApiProductToProduct(apiProduct: ApiProductResponse): Product {
+  const price = Number(apiProduct.price) || 0;
   
-  // ✅ محاسبه compare_price: اول discount_price، بعد compare_price
   const comparePrice = apiProduct.compare_price 
-    ? parseFloat(apiProduct.compare_price)
-    : (apiProduct.discount_price ? parseFloat(apiProduct.discount_price) : null);
+    ? Number(apiProduct.compare_price)
+    : (apiProduct.discount_price ? Number(apiProduct.discount_price) : null);
   
-  // محاسبه درصد تخفیف
   const discountPercentage = apiProduct.discount_percentage 
-    ? parseInt(apiProduct.discount_percentage)
+    ? Number(apiProduct.discount_percentage)
     : ((comparePrice && price > 0 && comparePrice < price)
       ? Math.round(((price - comparePrice) / price) * 100)
       : 0);
 
-  // تصویر اصلی
   const mainImage = apiProduct.main_image || apiProduct.images?.[0] || '/images/placeholder.svg';
 
-  // ✅ نگاشت compatible_models
-  const compatibleModels: PhoneModel[] = (apiProduct.compatible_models || []).map((m: any) => ({
+  const compatibleModels: PhoneModel[] = (apiProduct.compatible_models || []).map((m) => ({
     id: m.id,
     series_id: m.series_id || 0,
     brand_id: m.brand_id || m.brand?.id || 0,
@@ -58,7 +127,6 @@ export function mapApiProductToProduct(apiProduct: any): Product {
     updated_at: m.updated_at || '',
   }));
 
-  // ✅ نگاشت brand
   const brand: Brand | undefined = apiProduct.brand ? {
     id: apiProduct.brand.id,
     name: apiProduct.brand.name,
@@ -71,7 +139,6 @@ export function mapApiProductToProduct(apiProduct: any): Product {
     updated_at: apiProduct.brand.updated_at || '',
   } : undefined;
 
-  // ✅ نگاشت seller
   const seller: Seller | undefined = apiProduct.seller ? {
     id: apiProduct.seller.id,
     user_id: apiProduct.seller.id,
@@ -79,7 +146,7 @@ export function mapApiProductToProduct(apiProduct: any): Product {
     slug: apiProduct.seller.slug || 'shop',
     status: apiProduct.seller.status || 'active',
     health_score: apiProduct.seller.health_score || 90,
-    rating: parseFloat(apiProduct.seller.rating || 0),
+    rating: Number(apiProduct.seller.rating || 0),
     reviews_count: apiProduct.seller.reviews_count || 0,
     products_count: apiProduct.seller.products_count || 0,
     orders_count: apiProduct.seller.orders_count || 0,
@@ -104,17 +171,14 @@ export function mapApiProductToProduct(apiProduct: any): Product {
     images: apiProduct.images?.length ? apiProduct.images : [mainImage],
     main_image: mainImage,
     specifications: apiProduct.specifications || {},
-    rating: parseFloat(apiProduct.rating) || 0,
+    rating: Number(apiProduct.rating) || 0,
     reviews_count: apiProduct.reviews_count || 0,
     discount_percentage: discountPercentage,
     views_count: apiProduct.views_count || 0,
     sales_count: apiProduct.sales_count || 0,
-    
-    // ✅ فیلدهای جدید
     compatible_models: compatibleModels,
     brand: brand,
     seller: seller,
-    
     category: apiProduct.category ? {
       id: apiProduct.category.id,
       parent_id: apiProduct.category.parent_id,
@@ -122,35 +186,37 @@ export function mapApiProductToProduct(apiProduct: any): Product {
       slug: apiProduct.category.slug,
       icon: apiProduct.category.icon || '📦',
       type: 'mobile_accessory',
-      is_active: apiProduct.category.is_active,
+      is_active: apiProduct.category.is_active ?? true,
       products_count: apiProduct.category.products_count || 0,
-      created_at: apiProduct.category.created_at,
-      updated_at: apiProduct.category.updated_at,
+      created_at: apiProduct.category.created_at || '',
+      updated_at: apiProduct.category.updated_at || '',
     } : undefined,
-    created_at: apiProduct.created_at,
-    updated_at: apiProduct.updated_at,
+    created_at: apiProduct.created_at || '',
+    updated_at: apiProduct.updated_at || '',
   };
 }
 
-/**
- * نگاشت آیکون‌های string به emoji
- */
+// ✅ حذف any از توابع دیگر
+interface ApiCategoryResponse {
+  id: number;
+  parent_id?: number | null;
+  name: string;
+  slug: string;
+  icon?: string;
+  is_active?: boolean;
+  products_count?: number;
+  children?: ApiCategoryResponse[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 const iconMap: Record<string, string> = {
-  'shield': '🛡️',
-  'screen': '🔲',
-  'charger': '🔌',
-  'headphones': '🎧',
-  'battery': '🔋',
-  'watch': '⌚',
-  'holder': '📱',
-  'tools': '🔧',
-  'phone': '📱',
-  'laptop': '💻',
-  'tablet': '📟',
-  'console': '🎮',
+  'shield': '🛡️', 'screen': '🔲', 'charger': '🔌', 'headphones': '🎧',
+  'battery': '🔋', 'watch': '⌚', 'holder': '📱', 'tools': '🔧',
+  'phone': '📱', 'laptop': '💻', 'tablet': '📟', 'console': '🎮',
 };
 
-export function mapApiCategoryToCategory(apiCategory: any): Category {
+export function mapApiCategoryToCategory(apiCategory: ApiCategoryResponse): Category {
   return {
     id: apiCategory.id,
     parent_id: apiCategory.parent_id,
@@ -160,39 +226,49 @@ export function mapApiCategoryToCategory(apiCategory: any): Category {
       ? apiCategory.icon 
       : (iconMap[apiCategory.icon] || '📦'),
     type: 'mobile_accessory',
-    is_active: apiCategory.is_active,
-    products_count: apiCategory.products_count,
+    is_active: apiCategory.is_active ?? true,
+    products_count: apiCategory.products_count || 0,
     children: apiCategory.children?.map(mapApiCategoryToCategory),
-    created_at: apiCategory.created_at,
-    updated_at: apiCategory.updated_at,
+    created_at: apiCategory.created_at || '',
+    updated_at: apiCategory.updated_at || '',
   };
 }
 
-export function mapApiBrandToBrand(apiBrand: any): Brand {
+interface ApiBrandResponse {
+  id: number;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  is_active?: boolean;
+  series_count?: number;
+  models_count?: number;
+  products_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export function mapApiBrandToBrand(apiBrand: ApiBrandResponse): Brand {
   return {
     id: apiBrand.id,
     name: apiBrand.name,
     slug: apiBrand.slug,
     logo: apiBrand.logo || '',
-    is_active: apiBrand.is_active,
+    is_active: apiBrand.is_active ?? true,
     series_count: apiBrand.series_count || 0,
     models_count: apiBrand.models_count || apiBrand.products_count || 0,
-    created_at: apiBrand.created_at,
-    updated_at: apiBrand.updated_at,
+    created_at: apiBrand.created_at || '',
+    updated_at: apiBrand.updated_at || '',
   };
 }
 
-/**
- * تبدیل آرایه API به آرایه mockData
- */
-export function mapApiProducts(products: any[]): Product[] {
+export function mapApiProducts(products: ApiProductResponse[]): Product[] {
   return products.map(mapApiProductToProduct);
 }
 
-export function mapApiCategories(categories: any[]): Category[] {
+export function mapApiCategories(categories: ApiCategoryResponse[]): Category[] {
   return categories.map(mapApiCategoryToCategory);
 }
 
-export function mapApiBrands(brands: any[]): Brand[] {
+export function mapApiBrands(brands: ApiBrandResponse[]): Brand[] {
   return brands.map(mapApiBrandToBrand);
 }

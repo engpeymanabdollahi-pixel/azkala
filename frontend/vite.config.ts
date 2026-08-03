@@ -19,6 +19,7 @@ export default defineConfig({
     port: 5173
   },
   build: {
+        target: 'esnext', // ✅ این خط را برای خروجی مدرن‌تر و سبک‌تر اضافه کنی
     // کاهش هشدار حجم chunk
     chunkSizeWarningLimit: 600,
     
