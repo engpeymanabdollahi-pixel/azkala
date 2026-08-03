@@ -126,7 +126,9 @@ Route::prefix('products')->name('products.')->group(function () {
     Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
     Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
-    Route::get('/{productId}/can-review', [ReviewController::class, 'canReview'])->name('can-review');
+    // ⚠️ can-review عمداً اینجا تعریف نمی‌شود: این گروه عمومی است و
+    // ReviewController::canReview به کاربر احراز هویت‌شده نیاز دارد.
+    // نسخه‌ی درست آن در routes/api.php داخل گروه auth:sanctum است.
 });
 
 // Site Settings
@@ -165,7 +167,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [AuthController::class, 'user'])->name('profile');
         Route::put('/', [AuthController::class, 'update'])->name('update');
         Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
-        Route::get('/seller-request-status', [AuthController::class, 'getSellerRequestStatus'])->name('seller-request-status');
         Route::get('/followed-sellers', [PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');

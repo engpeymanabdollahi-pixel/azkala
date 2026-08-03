@@ -61,7 +61,11 @@ export function ProfileSection() {
     queryFn: async () => {
       try {
         const response = await apiClient.get('/user/seller-request-status');
-        return response.data.data; // اگر درخواستی نباشد، بک‌اند باید null برگرداند
+        // این اندپوینت آبجکت درخواست را مستقیماً برمی‌گرداند (نه داخل کلید data)،
+        // ولی نسخه‌ی قدیمی‌تر آن را داخل {success, data} می‌پیچید. مثل
+        // SellerRequestPage هر دو شکل را می‌پذیریم؛ خواندن مستقیم response.data.data
+        // باعث می‌شد مقدار undefined شود و کارت وضعیت درخواست هیچ‌وقت نمایش داده نشود.
+        return response.data?.data ?? response.data ?? null;
       } catch (error: any) {
         // اگر بک‌اند 404 داد (یعنی درخواستی وجود ندارد)، به جای خطا، null برگردان
         if (error.response?.status === 404 || error.response?.status === 403) {

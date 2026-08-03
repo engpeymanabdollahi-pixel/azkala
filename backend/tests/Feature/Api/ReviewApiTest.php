@@ -187,10 +187,38 @@ class ReviewApiTest extends TestCase
             ->assertJsonPath('data.helpful_count', 4);
     }
 
+    /**
+     * Regression: routes/api_v1.php redefined this route inside its public
+     * products group, overriding the authenticated definition in api.php.
+     * With no auth middleware Sanctum never resolved the bearer token, so
+     * $request->user() was always null and the endpoint returned 401 to
+     * *every* caller, including fully logged-in ones - permanently breaking
+     * the "can I review / am I a verified buyer" check. The frontend had even
+     * grown a workaround for it (client.ts skips the logout-on-401 path for
+     * URLs containing 'can-review'). Asserting 401 here only proves the
+     * middleware runs; test_can_review_reports_purchase_state covers the
+     * authenticated behavior.
+     */
     public function test_can_review_requires_authentication(): void
     {
         $this->getJson("/api/v1/products/{$this->product->id}/can-review")
             ->assertStatus(401);
+    }
+
+    /**
+     * Guards the same regression from the other side: a real Sanctum token
+     * must actually resolve to a user. Uses a token rather than actingAs()
+     * on purpose - actingAs bypasses route middleware, so it cannot detect a
+     * route that sits outside auth:sanctum.
+     */
+    public function test_can_review_resolves_a_real_sanctum_token(): void
+    {
+        $token = $this->user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->getJson("/api/v1/products/{$this->product->id}/can-review")
+            ->assertStatus(200)
+            ->assertJsonPath('can_review', true);
     }
 
     public function test_can_review_reports_purchase_state(): void

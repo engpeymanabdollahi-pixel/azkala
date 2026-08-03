@@ -157,7 +157,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->name('upload.images');
         
         // درخواست‌های فروشندگی
-        Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
+        // توجه: GET /user/seller-request-status اینجا تعریف نمی‌شود؛ تنها تعریف
+        // معتبر آن در routes/api_v1.php است (پایین‌ترین تعریف برنده می‌شود و
+        // داشتن چند تعریف باعث می‌شد معلوم نباشد کدام کنترلر واقعاً اجرا می‌شود).
         Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
         Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
         
@@ -177,8 +179,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [AuthController::class, 'user'])->name('profile');
             Route::put('/', [AuthController::class, 'update'])->name('update');
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
-            Route::get('/seller-request-status', [AuthController::class, 'getSellerRequestStatus'])->name('seller-request-status');
-            
+
             Route::prefix('devices')->name('devices.')->group(function () {
                 Route::get('/', [UserDeviceController::class, 'index'])->name('index');
                 Route::post('/', [UserDeviceController::class, 'store'])->name('store');
