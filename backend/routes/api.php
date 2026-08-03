@@ -72,9 +72,15 @@ Route::prefix('v1')->group(function () {
         return response()->json(['success' => true, 'message' => 'Azkala API v1 is working!', 'timestamp' => now()->toDateTimeString()]);
     })->name('test');
 
-    Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy']);
+    Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy'])->name('devices.hierarchy');
 
-    Route::middleware('throttle:10,1')->group(function () {
+    // throttle:auth (۱۰ درخواست در دقیقه به ازای هر IP، مشترک بین این سه مسیر)
+    // نه throttle:10,1 که سهمیه را برای هر مسیر جدا حساب می‌کند و عملاً سقف را
+    // برای یک مهاجم سه‌برابر می‌کند.
+    // نام‌ها با پیشوند auth. — به‌خصوص login که در غیر این صورت با روتِ وبِ
+    // هم‌نام (routes/web.php) تداخل می‌کند و چون بعد از آن ثبت می‌شود،
+    // route('login') در Authenticate.php را به این مسیرِ POSTیِ API می‌بَرَد.
+    Route::middleware('throttle:auth')->name('auth.')->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/verify-otp', [AuthController::class, 'handleOtp'])->name('verify-otp');
         Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -157,10 +163,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->name('upload.images');
         
         // درخواست‌های فروشندگی
-        // توجه: GET /user/seller-request-status اینجا تعریف نمی‌شود؛ تنها تعریف
-        // معتبر آن در routes/api_v1.php است (پایین‌ترین تعریف برنده می‌شود و
-        // داشتن چند تعریف باعث می‌شد معلوم نباشد کدام کنترلر واقعاً اجرا می‌شود).
+        // این تنها تعریف هر کدام از این مسیرهاست؛ قبلاً بخشی از آن‌ها در
+        // routes/api_v1.php هم تکرار شده بود و چون هر دو فایل mount می‌شدند،
+        // آخرین تعریف برنده می‌شد و معلوم نبود کدام کنترلر واقعاً اجرا می‌شود.
+        Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
         Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
+        Route::post('/seller-requests/{sellerRequest}/upload-documents', [\App\Http\Controllers\Api\SellerRequestController::class, 'uploadDocuments'])->name('seller-requests.upload-documents');
         Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
         
         // امتیاز و نظر به فروشنده
@@ -294,6 +302,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
                 Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
                 Route::post('/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('copy-template');
+                Route::get('/{id}/history', [SellerProductController::class, 'getHistory'])->name('history');
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [SellerProductController::class, 'destroy'])->name('destroy');
@@ -327,20 +336,23 @@ Route::prefix('v1')->group(function () {
                 Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
             });
             // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
-Route::prefix('device-brands')->group(function () {
+            // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
+            // الزامی است؛ بدون آن هر سه گروه نام‌های یکسانِ admin.index/store/update/
+            // destroy می‌گیرند و آخرین ثبت، قبلی‌ها را از جدولِ نام‌ها بیرون می‌کند.
+Route::prefix('device-brands')->name('device-brands.')->group(function () {
     Route::get('/', [AdminDeviceBrandController::class, 'index'])->name('index');
     Route::post('/', [AdminDeviceBrandController::class, 'store'])->name('store');
     Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->name('update');
     Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->name('destroy');
 });
-Route::prefix('device-series')->group(function () {
+Route::prefix('device-series')->name('device-series.')->group(function () {
     Route::get('/', [AdminDeviceSeriesController::class, 'index'])->name('index');
     Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->name('brands.dropdown'); // برای دراپ‌داون
     Route::post('/', [AdminDeviceSeriesController::class, 'store'])->name('store');
     Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->name('update');
     Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->name('destroy');
 });
-Route::prefix('device-models')->group(function () {
+Route::prefix('device-models')->name('device-models.')->group(function () {
     Route::get('/', [AdminDeviceModelController::class, 'index'])->name('index');
     Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->name('series.dropdown');
     Route::post('/', [AdminDeviceModelController::class, 'store'])->name('store');
@@ -393,6 +405,7 @@ Route::prefix('device-models')->group(function () {
                 Route::get('/chat/excel', [ReportExportController::class, 'exportChatExcel'])->name('chat.excel');
                 Route::get('/reports/excel', [ReportExportController::class, 'exportReportsExcel'])->name('reports.excel');
                 Route::get('/summary/pdf', [ReportExportController::class, 'exportSummaryPdf'])->name('summary.pdf');
+                Route::get('/users/pdf', [ReportExportController::class, 'exportUsersPdf'])->name('users.pdf');
             });
 
             Route::prefix('users')->name('users.')->group(function () {
@@ -405,6 +418,9 @@ Route::prefix('device-models')->group(function () {
                 Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->name('reject-seller');
                 Route::post('/{user}/approve-seller-request', [AdminUserController::class, 'approveSellerRequest'])->name('approve-seller-request');
                 Route::post('/{user}/reject-seller-request', [AdminUserController::class, 'rejectSellerRequest'])->name('reject-seller-request');
+                Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->name('initial-approve');
+                Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->name('final-approve');
+                Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->name('reject');
             });
 
             Route::prefix('categories')->name('categories.')->group(function () {
@@ -432,6 +448,10 @@ Route::prefix('device-models')->group(function () {
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [AdminProductController::class, 'index'])->name('index');
                 Route::get('/stats', [AdminProductController::class, 'stats'])->name('stats');
+                // باید قبل از /{product} ثبت شود؛ در routes/api_v1.php بعد از آن
+                // تعریف شده بود و در عمل هرگز match نمی‌شد (implicit binding روی
+                // «templates» محصولی پیدا نمی‌کرد و ۴۰۴ می‌داد).
+                Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
                 Route::get('/{product}', [AdminProductController::class, 'show'])->name('show');
                 Route::get('/{product}/stats', [AdminProductController::class, 'productStats'])->name('product-stats');
                 Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->name('quick-update');
