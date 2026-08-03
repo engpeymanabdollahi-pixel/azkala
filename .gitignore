@@ -10,7 +10,40 @@ frontend/build/
 .env
 .env.local
 .env.*.local
+.env.testing
 backend/.env
+backend/.env.testing
+
+# Backup files
+*.bak
+*.backup
+
+# Discovery/dump reports (generated locally, never commit)
+/tree.txt
+/*-structure.txt
+/*-key-files.txt
+/*-files.txt
+/*-routes.txt
+/*-routes-list.txt
+/*-migrations-status.txt
+/*-models.txt
+/*-controllers.txt*
+/*-layouts.txt*
+/*-services.txt
+/*-stores.txt
+/project-structure.txt
+/collect_data.ps1.txt
+/docker-compose.yml.txt
+backend/*-tree.txt
+backend/composer-packages.txt
+backend/json_output.txt
+backend/middleware.txt
+backend/routes.txt
+backend/routes_before.txt
+backend/routes_after.txt
+frontend/*-tree.txt
+frontend/npm-audit.txt
+frontend/npm-packages.txt
 
 # IDE
 .vscode/
