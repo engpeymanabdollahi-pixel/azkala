@@ -45,7 +45,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // 🔔 تشخیص پیام‌های جدید برای نمایش نوتیفیکیشن
       const currentUserId = useAuthStore.getState().user?.id;
-      let newUnreadMessages: { conversation: ChatConversation; message: ChatMessage }[] = [];
+      const newUnreadMessages: { conversation: ChatConversation; message: ChatMessage }[] = [];
 
       newConversations.forEach((newConv: ChatConversation) => {
         const prevConv = prevConversations.find(c => c.id === newConv.id);

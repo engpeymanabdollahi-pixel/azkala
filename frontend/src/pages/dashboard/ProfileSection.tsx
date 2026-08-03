@@ -33,6 +33,10 @@ export function ProfileSection() {
     email: user?.email ?? '',
     phone: user?.phone ?? '',
   });
+  // ✅ باید بالای early return زیر (`if (!user) return null`) تعریف شود، وگرنه
+  // تعداد هوک‌های فراخوانی‌شده بین رندرها فرق می‌کند و React با خطای
+  // "Rendered more hooks than during the previous render" کرش می‌کند.
+  const [activeTab, setActiveTab] = useState<'info' | 'security'>('info');
 
   useEffect(() => {
     if (user) {
@@ -62,7 +66,7 @@ export function ProfileSection() {
         // اگر بک‌اند 404 داد (یعنی درخواستی وجود ندارد)، به جای خطا، null برگردان
         if (error.response?.status === 404 || error.response?.status === 403) {
           return null;
-        }a
+        }
         throw error; // سایر خطاها را پرتاب کن
       }
     },
@@ -112,8 +116,6 @@ export function ProfileSection() {
     { label: 'امتیاز وفاداری', value: 850, icon: '⭐' },
     { label: 'کوپن فعال', value: 3, icon: '🎁' },
   ];
-
-  const [activeTab, setActiveTab] = useState<'info' | 'security'>('info');
 
   return (
     <div className="space-y-4">

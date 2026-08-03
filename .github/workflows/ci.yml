@@ -58,6 +58,15 @@ jobs:
         working-directory: backend
         run: php vendor/bin/phpunit --testdox
 
+      # Advisory for now: the codebase predates Pint, so ~328 files are
+      # unformatted. Reformatting them is a separate, deliberate commit;
+      # until then this reports the gap without blocking the build. Flip
+      # continue-on-error to false once `composer lint:fix` has been run.
+      - name: Check Formatting (Pint) [advisory]
+        working-directory: backend
+        continue-on-error: true
+        run: php vendor/bin/pint --test
+
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
@@ -86,6 +95,22 @@ jobs:
       - name: Install Dependencies
         working-directory: frontend
         run: npm install
+
+      # Blocking: the ESLint config is tuned so the codebase currently passes
+      # with 0 errors. Pre-existing debt (`any`, unused imports, the React
+      # Compiler rules) reports as warnings, so this catches new breakage
+      # without failing on day-one debt.
+      - name: Lint (ESLint)
+        working-directory: frontend
+        run: npm run lint
+
+      # Advisory: `tsc --noEmit` still reports pre-existing type errors that
+      # the Vite build tolerates (esbuild does not typecheck). Flip
+      # continue-on-error to false once those are cleared.
+      - name: Typecheck [advisory]
+        working-directory: frontend
+        continue-on-error: true
+        run: npm run typecheck
 
       - name: Build Application
         working-directory: frontend
