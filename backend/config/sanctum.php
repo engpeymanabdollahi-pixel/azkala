@@ -18,9 +18,12 @@ return [
     |
     */
 
+    // 5173 پورت پیش‌فرض Vite است و در فهرست پیش‌فرض لاراول نیست (آنجا 3000 آمده).
+    // بدون آن، درخواست فرانت‌اند stateful شناخته نمی‌شود، کوکی نشست نادیده گرفته
+    // می‌شود و احراز هویت بی‌صدا به حالت توکن برمی‌گردد.
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
+        'localhost,localhost:3000,localhost:5173,127.0.0.1,127.0.0.1:5173,127.0.0.1:8000,::1',
         Sanctum::currentApplicationUrlWithPort(),
         // Sanctum::currentRequestHost(),
     ))),

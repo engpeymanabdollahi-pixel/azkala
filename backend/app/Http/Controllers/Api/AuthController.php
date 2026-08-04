@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
+use App\Models\User;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -93,7 +96,25 @@ class AuthController extends Controller
         // ۴. به‌روزرسانی زمان آخرین ورود
         $user->update(['last_login_at' => now()]);
 
-        // ۵. ساخت توکن Sanctum
+        // ۵. ورود به نشست (احراز هویت کوکی‌محور Sanctum)
+        //
+        // کوکی نشست httpOnly است، پس برخلاف توکن در localStorage با XSS خوانده
+        // نمی‌شود و بعد از refresh صفحه هم باقی می‌ماند. تا پیش از این توکن در
+        // store نگهداری می‌شد ولی persist نمی‌شد، و چون isAuthenticated persist
+        // می‌شد، هر بار reload کاربر «لاگین» بود ولی بدون توکن — یعنی اولین
+        // درخواست ۴۰۱ می‌گرفت و interceptor بیرونش می‌انداخت.
+        //
+        // این مسیر فقط وقتی نشست می‌سازد که درخواست stateful باشد؛ یعنی مبدأ
+        // در SANCTUM_STATEFUL_DOMAINS باشد.
+        // درخواستِ غیر stateful (موبایل، اسکریپت، cURL) اصلاً session store ندارد؛
+        // صدا زدن session() روی آن استثنا می‌دهد. آن مسیر فقط با توکن پیش می‌رود.
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
+
+        // ۶. توکن هم ساخته می‌شود تا کلاینت‌های غیرمرورگری (موبایل، اسکریپت)
+        //    که نشست ندارند از کار نیفتند.
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -111,7 +132,22 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()->currentAccessToken();
+
+        // با احراز هویت کوکی‌محور، currentAccessToken یک TransientToken است که
+        // اصلاً متد delete ندارد — صدا زدنش BadMethodCallException و ۵۰۰ می‌داد.
+        // فقط توکن واقعیِ ذخیره‌شده حذف می‌شود.
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
+
+        // و نشست هم باید بسته شود، وگرنه کوکی همچنان معتبر می‌ماند و کاربر
+        // عملاً خارج نشده است.
+        if ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'success' => true,

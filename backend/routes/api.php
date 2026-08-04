@@ -185,10 +185,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/seller-ratings/can-rate/{orderId}', [SellerRatingController::class, 'canRate']);
 
         // خروج از حساب
-        Route::post('/logout', function (\Illuminate\Http\Request $request) {
-            $request->user()->currentAccessToken()->delete();
-            return response()->json(['success' => true, 'message' => 'با موفقیت خارج شدید']);
-        })->name('logout');
+        // این closure نسخه‌ی خودش از logout را داشت و AuthController::logout را
+        // کاملاً دور می‌زد — یعنی هر اصلاحی روی کنترلر بی‌اثر بود. حالا هر دو یک
+        // مسیر دارند و منطق خروج فقط یک جا زندگی می‌کند.
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
         // روت‌های مربوط به کاربر
         Route::prefix('user')->name('user.')->group(function () {
