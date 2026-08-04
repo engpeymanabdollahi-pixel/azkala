@@ -4,6 +4,7 @@ import { useModelStore, useCartStore } from '@/store';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import type { Product } from '@/types/models';
@@ -92,23 +93,17 @@ export const ProductCard = memo(({
   // بررسی پرفروش بودن
   const isBestSeller = product.sales_count && product.sales_count > 100;
 
-  // Stagger animation delay based on index
-  const animationDelay = `${index * 50}ms`;
 
   // نمای لیستی
   if (variant === 'list') {
     return (
-      <div
-        className={cn(
-          'group flex bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700',
-          'hover:border-primary-300 dark:hover:border-primary-500 hover:shadow-xl dark:hover:shadow-black/30',
-          'transition-all duration-300 cursor-pointer overflow-hidden',
-          'animate-in fade-in slide-in-from-bottom-2',
-          'focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 dark:focus-within:ring-offset-gray-900'
-        )}
+      <Card
+        variant={discountPercent > 0 ? 'accent' : 'tinted'}
+        interactive
+        entranceDelay={index * 50}
+        className="group flex"
         onClick={handleCardClick}
         onMouseEnter={handleMouseEnter}
-        style={{ animationDelay }}
         role="article"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
@@ -176,26 +171,22 @@ export const ProductCard = memo(({
             </Button>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   // نمای گرید (پیش‌فرض)
   return (
-    <div
-      className={cn(
-        'group relative flex flex-col bg-white dark:bg-gray-800 rounded-2xl overflow-hidden',
-        'border border-gray-200 dark:border-gray-700',
-        'hover:border-primary-300 dark:hover:border-primary-500',
-        'hover:shadow-2xl dark:hover:shadow-black/40',
-        'hover:-translate-y-1 hover:scale-[1.02]',
-        'transition-all duration-300 ease-out cursor-pointer',
-        'animate-in fade-in slide-in-from-bottom-2',
-        'focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 dark:focus-within:ring-offset-gray-900'
-      )}
+    <Card
+      // ته‌رنگ بر اساس وضعیت خودِ محصول انتخاب می‌شود، نه تصادفی: تخفیف‌دار
+      // نارنجی، سازگار با دستگاهِ انتخابیِ کاربر سبز، بقیه فیروزه‌ای ملایم.
+      // این‌طور رنگ یک نشانه است نه تزیین.
+      variant={discountPercent > 0 ? 'accent' : selectedModel && isCompatible ? 'success' : 'tinted'}
+      interactive
+      entranceDelay={index * 50}
+      className="group flex flex-col hover:scale-[1.02]"
       onClick={handleCardClick}
       onMouseEnter={handleMouseEnter}
-      style={{ animationDelay }}
       role="article"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
@@ -384,7 +375,7 @@ export const ProductCard = memo(({
           </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 });
 
