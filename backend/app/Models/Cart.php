@@ -13,11 +13,7 @@ class Cart extends Model
 
     protected $fillable = [
         'user_id',
-         'session_id',        // ✅ اضافه شد
-        'items_count',       // ✅ اضافه شد
-        'subtotal',          // ✅ اضافه شد
-        'discount',          // ✅ اضافه شد
-        'total',             // ✅ اضافه شد
+        'session_id',
     ];
     
     protected $casts = [
@@ -49,9 +45,14 @@ class Cart extends Model
      */
     public function getSubtotalAttribute(): float
     {
-        return (float) $this->items->sum(function ($item) {
-            return $item->price * $item->quantity;
-        });
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum(function ($item) {
+                return $item->price * $item->quantity;
+            });
+        }
+        
+        // اگر رابطه لود نشده، از دیتابیس بگیر
+        return (float) $this->items()->selectRaw('SUM(price * quantity) as total')->value('total') ?? 0;
     }
 
     /**
@@ -59,7 +60,11 @@ class Cart extends Model
      */
     public function getTotalItemsAttribute(): int
     {
-        return (int) $this->items->sum('quantity');
+        if ($this->relationLoaded('items')) {
+            return (int) $this->items->sum('quantity');
+        }
+        
+        return (int) $this->items()->selectRaw('SUM(quantity) as total')->value('total') ?? 0;
     }
 
     /**
@@ -67,7 +72,7 @@ class Cart extends Model
      */
     public function getUniqueProductsCountAttribute(): int
     {
-        return $this->items->count();
+        return $this->items()->count();
     }
 
     // ==================== Scopes ====================

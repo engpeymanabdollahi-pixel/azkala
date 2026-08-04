@@ -19,30 +19,37 @@ class Product extends Model
         'short_description',
         'description',
         'price',
+        'compare_price',
         'discount_price',
         'stock',
         'sku',
         'main_image',
         'gallery',
+        'specifications',
         'rating',
         'reviews_count',
         'views_count',
         'sales_count',
         'is_active',
         'is_featured',
+        'is_bestseller',
         'is_special_offer',
         'special_offer_ends_at',
     ];
 
     protected $casts = [
-    'price' => 'decimal:4',
-    'compare_price' => 'decimal:4',
-    'discount_price' => 'decimal:4',
-    'stock' => 'integer',
-    'is_active' => 'boolean',
-    'gallery' => 'array',
-    'specifications' => 'array',
-];
+        'price' => 'decimal:4',
+        'compare_price' => 'decimal:4',
+        'discount_price' => 'decimal:4',
+        'stock' => 'integer',
+        'is_active' => 'boolean',
+        'is_featured' => 'boolean',
+        'is_bestseller' => 'boolean',
+        'is_special_offer' => 'boolean',
+        'gallery' => 'array',
+        'specifications' => 'array',
+        'special_offer_ends_at' => 'datetime',
+    ];
 
     public function category()
     {
