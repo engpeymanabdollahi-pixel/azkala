@@ -37,13 +37,13 @@ ShoppingBag,
 
 import { useCartStore } from '@/store/cartStore';
 import { useModelStore } from '@/store/modelStore';
-import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
+import { useWishlistApi } from '@/hooks/api/useWishlistApi'; // ✅ تغییر به useWishlistApi
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SafeImage } from '@/components/ui/SafeImage';
-import { DynamicMeta } from '@/components/seo/DynamicMeta'; // ✅ این خط را اضافه کنید
+import { DynamicMeta } from '@/components/seo/DynamicMeta';
 import { formatPrice } from '@/utils/format';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
@@ -74,7 +74,7 @@ export function ProductDetailPage() {
 
   const { addItem } = useCartStore();
   const { selectedModel } = useModelStore();
-  const { isInWishlist, toggleItem } = useWishlistStore();
+  const { toggleWishlist, isInWishlist, prefetchProduct } = useWishlistApi(); // ✅ تغییر به useWishlistApi
 
   // ==================== State ====================
   const [product, setProduct] = useState<Product | null>(null);
@@ -324,11 +324,8 @@ useEffect(() => {
 
   const handleWishlistToggle = useCallback(() => {
     if (!product) return;
-    toggleItem(product);
-    toast.success(isWishlisted ? 'از علاقمندی‌ها حذف شد' : 'به علاقمندی‌ها اضافه شد', {
-      icon: isWishlisted ? '💔' : '❤️',
-    });
-  }, [product, isWishlisted, toggleItem]);
+    toggleWishlist(product); // ✅ Optimistic UI با react-query
+  }, [product, toggleWishlist]);
 
   const handleImageZoom = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1288,15 +1285,19 @@ useEffect(() => {
         {relatedProducts.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-black text-gray-900">محصولات مشابه</h2>
-              <Link to="/products" className="text-primary-600 hover:text-primary-700 font-bold text-xs flex items-center gap-1">
+              <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">محصولات مشابه</h2>
+              <Link to="/products" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-bold text-xs flex items-center gap-1">
                 مشاهده همه
                 <ChevronLeft className="w-3.5 h-3.5" />
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
               {relatedProducts.map((p) => (
-                <ProductCard key={p.id} product={p} onClick={() => navigate(`/products/${p.slug}`)} />
+                <ProductCard 
+                  key={p.id} 
+                  product={p} 
+                  onClick={() => navigate(`/products/${p.slug}`)} 
+                />
               ))}
             </div>
           </div>
