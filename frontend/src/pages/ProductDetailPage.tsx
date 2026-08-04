@@ -38,6 +38,7 @@ ShoppingBag,
 import { useCartStore } from '@/store/cartStore';
 import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';
+import { useAuthModalStore } from '@/store/authModalStore';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi'; // ✅ تغییر به useWishlistApi
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -69,6 +70,7 @@ export function ProductDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();  
+  const openAuthModal = useAuthModalStore((state) => state.open);
      const { openChat, startConversation } = useChatStore();
 
 
@@ -760,8 +762,12 @@ useEffect(() => {
     variant="outline"
     onClick={async () => {
       if (!isAuthenticated) {
-        toast.error('برای چت با فروشنده ابتدا وارد شوید');
-        navigate('/auth');
+        // مودال همین‌جا باز می‌شود و پس از ورود، خودِ گفتگو شروع می‌شود —
+        // کاربر از صفحه‌ی محصول بیرون نمی‌رود و دکمه را دوباره نمی‌زند.
+        openAuthModal({
+          reason: 'برای گفتگو با فروشنده وارد شوید.',
+          onSuccess: () => void startConversation(product.seller!.id, product.id),
+        });
         return;
       }
       try {
@@ -1043,7 +1049,11 @@ useEffect(() => {
                   <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                     <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
                     <p className="text-gray-700 font-bold text-sm mb-0.5">برای ثبت نظر وارد شوید</p>
-                    <Button onClick={() => navigate('/auth')} size="sm" className="mt-2">
+                    <Button
+                      onClick={() => openAuthModal({ reason: 'برای ثبت نظر درباره این محصول وارد شوید.' })}
+                      size="sm"
+                      className="mt-2"
+                    >
                       ورود به حساب
                     </Button>
                   </div>

@@ -16,11 +16,13 @@ import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { orderService } from '@/services/api/order.service';
 import { profileService } from '@/services/api/profile.service';
+import { useAuthModalStore } from '@/store/authModalStore';
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated, updateUser, logout } = useAuthStore();
+  const openAuthModal = useAuthModalStore((state) => state.open);
   const { items: wishlistItems } = useWishlistStore();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -102,7 +104,11 @@ export function ProfilePage() {
           </div>
           <h2 className="text-xl font-black text-gray-900 mb-2">ابتدا وارد شوید</h2>
           <p className="text-gray-600 text-sm mb-5">برای دسترسی به پروفایل خود وارد شوید</p>
-          <Button onClick={() => navigate('/auth')} size="md" className="w-full">
+          <Button
+            onClick={() => openAuthModal({ reason: 'برای دیدن پروفایلتان وارد شوید.' })}
+            size="md"
+            className="w-full"
+          >
             ورود به حساب
             <ChevronLeft className="w-4 h-4 mr-1.5 rotate-180" />
           </Button>

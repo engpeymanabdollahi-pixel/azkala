@@ -16,7 +16,7 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { useChatStore } from '@/store/chatStore';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
-import { AuthModal } from '@/components/auth/AuthModal';
+import { useAuthModalStore } from '@/store/authModalStore';
 import apiClient from '@/services/api/client'; // ✅ این خط را اضافه کنید
 import { STORAGE_URL } from '@/lib/apiConfig';
 
@@ -67,7 +67,9 @@ export function Header() {
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showQuickAccess, setShowQuickAccess] = useState(false);
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false); // ✅ این خط باید دقیقاً اینجا باشد
+    // مودال حالا یک بار در App سوار می‌شود و وضعیتش سراسری است، تا هر صفحه‌ای
+    // بتواند بازش کند — نه فقط هدر.
+    const openAuthModal = useAuthModalStore((state) => state.open);
 
   // Refs
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -324,7 +326,7 @@ export function Header() {
                 </div>
                            ) : (
                 <button
-                  onClick={() => setIsAuthModalOpen(true)} // ✅ این خط را جایگزین handleNavigate('/auth') کنید
+                  onClick={() => openAuthModal()}
                   className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl text-sm font-bold shadow-md shadow-primary-500/30 hover:shadow-lg hover:-translate-y-0.5 transition-all active:scale-95 group focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                   aria-label="ورود یا ثبت‌نام"
                 >
@@ -463,11 +465,6 @@ export function Header() {
         isOpen={showQuickAccess}
         onToggle={() => setShowQuickAccess(!showQuickAccess)}
         onChatClick={handleQuickAccessChat}
-      />
-            {/* ============ Auth Modal ============ */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
       />
     </>
   );

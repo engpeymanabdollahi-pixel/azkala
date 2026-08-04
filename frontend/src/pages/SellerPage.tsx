@@ -10,6 +10,7 @@ import { ProductCard } from '@/components/features/ProductCard';
 import { useAuthStore } from '@/store/authStore';
 import { API_V1_URL, STORAGE_URL } from '@/lib/apiConfig';
 import apiClient from '@/services/api/client';
+import { useAuthModalStore } from '@/store/authModalStore';
 
 const API_BASE = API_V1_URL;
 
@@ -26,6 +27,7 @@ export default function SellerPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAuthStore();
+  const openAuthModal = useAuthModalStore((state) => state.open);
   
   const [activeTab, setActiveTab] = useState<'products' | 'about' | 'reviews'>('products');
 
@@ -54,8 +56,10 @@ export default function SellerPage() {
       // شرط قبلی به localStorage.getItem('token') تکیه می‌کرد؛ کلیدی که عملاً
       // نوشته نمی‌شد، پس دنبال کردن فروشگاه برای کاربرِ واردشده هم رد می‌شد.
       if (!isAuthenticated) {
-        toast.error('برای دنبال کردن فروشگاه، لطفاً ابتدا وارد حساب کاربری خود شوید.');
-        navigate('/auth');
+        openAuthModal({
+          reason: 'برای دنبال کردن این فروشگاه وارد شوید.',
+          onSuccess: () => followMutation.mutate(action),
+        });
         throw new Error('Not authenticated');
       }
 

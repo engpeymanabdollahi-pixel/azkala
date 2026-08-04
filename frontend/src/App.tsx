@@ -8,6 +8,8 @@ import { ModelSelectorModal } from '@/components/features/ModelSelector/ModelSel
 import { CartDrawer } from '@/components/features/CartDrawer';
 import { ChatWidget } from '@/components/chat/ChatWidget';
 import { useAuthStore } from '@/store/authStore';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { useAuthModalStore } from '@/store/authModalStore';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import type { ReactNode } from 'react';
 
@@ -122,9 +124,18 @@ function ProtectedRoute({
   redirectTo = '/'
 }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore();
+  const openAuthModal = useAuthModalStore((state) => state.open);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      openAuthModal({ reason: 'برای دیدن این بخش وارد شوید.' });
+    }
+  }, [isAuthenticated, openAuthModal]);
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    // به خانه برمی‌گردیم نه به /auth: مودال روی همان صفحه باز می‌شود، پس کاربر
+    // به‌جای یک فرم تمام‌صفحه، جایی می‌ماند که بتواند ادامه بدهد یا بی‌خیال شود.
+    return <Navigate to="/" replace />;
   }
 
   if (requireSeller && user?.role !== 'seller') {
@@ -362,6 +373,8 @@ export default function App() {
         <CartDrawer onCheckout={() => navigate('/checkout')} />
         <ModelSelectorModal />
         <ChatWidget />
+        {/* یک نمونه برای کل اپ: هر صفحه‌ای با useRequireAuth بازش می‌کند */}
+        <AuthModal />
       </div>
     </AppErrorBoundary>
   );

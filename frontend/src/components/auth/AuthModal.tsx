@@ -1,254 +1,483 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import { ArrowRight, CheckCircle2, KeyRound, Loader2, Pencil, RefreshCw, ShieldCheck, Smartphone, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { Smartphone, KeyRound, ArrowLeft, CheckCircle2, Loader2, X, RefreshCw } from 'lucide-react';
-import { API_V1_URL } from '@/lib/apiConfig';
+import { useAuthModalStore } from '@/store/authModalStore';
+import apiClient, { fetchCsrfCookie } from '@/services/api/client';
+import { cn } from '@/utils/cn';
+import { OtpInput } from './OtpInput';
 
-// ==================== Schema Definitions ====================
+const OTP_LENGTH = 5;
+const RESEND_SECONDS = 120;
+
 const phoneSchema = z.object({
-  phone: z.string().regex(/^09\d{9}$/, 'شماره موبایل معتبر نیست (مثال: 09123456789)'),
-});
-
-const otpSchema = z.object({
-  otp: z.string().length(5, 'کد تأیید باید دقیقاً ۵ رقم باشد'), // ✅ تغییر به ۵ رقم
+  phone: z
+    .string()
+    .min(1, 'شماره موبایل را وارد کنید')
+    .regex(/^09\d{9}$/, 'شماره باید با ۰۹ شروع شود و ۱۱ رقم باشد'),
 });
 
 type PhoneData = z.infer<typeof phoneSchema>;
-type OtpData = z.infer<typeof otpSchema>;
 
-interface AuthModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface AuthApiResponse {
+  phone?: string;
+  token?: string;
+  user?: unknown;
+  data?: { phone?: string; token?: string; user?: unknown };
+  message?: string;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [timeLeft, setTimeLeft] = useState(120); // ✅ ثانیه‌شمار ۱۲۰ ثانیه
+/**
+ * مودال ورود و ثبت‌نام.
+ *
+ * ورود با کد یک‌بارمصرف است، پس ورود و ثبت‌نام یک مسیر واحدند — کاربر لازم
+ * نیست از قبل بداند حساب دارد یا نه، و رمزی هم برای فراموش کردن وجود ندارد.
+ *
+ * از هر جای اپ با useAuthModalStore().open() باز می‌شود و پس از ورود موفق،
+ * کاری که کاربر می‌خواست انجام دهد ادامه پیدا می‌کند.
+ */
+export function AuthModal() {
+  const { isOpen, reason, close, resolve } = useAuthModalStore();
   const { login } = useAuthStore();
 
-  const phoneForm = useForm<PhoneData>({ resolver: zodResolver(phoneSchema) });
-  const otpForm = useForm<OtpData>({ resolver: zodResolver(otpSchema) });
+  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
 
-  // ✅ مدیریت ثانیه‌شمار
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (step === 'otp' && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [step, timeLeft]);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+  const phoneForm = useForm<PhoneData>({
+    resolver: zodResolver(phoneSchema),
+    mode: 'onBlur',
+  });
 
-  // ۱. ارسال شماره موبایل برای دریافت OTP
-  const sendOtpMutation = useMutation({
+  const resetAll = useCallback(() => {
+    setStep('phone');
+    setPhoneNumber('');
+    setOtp('');
+    setSecondsLeft(RESEND_SECONDS);
+    phoneForm.reset();
+  }, [phoneForm]);
+
+  // ── ارسال کد ──────────────────────────────────────────────────────────────
+  const sendOtp = useMutation({
     mutationFn: async (data: PhoneData) => {
-      const res = await fetch(`${API_V1_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ phone: data.phone }),
-      });
-      
-      const responseData = await res.json();
-      if (!res.ok) throw new Error(responseData.message || 'خطا در ارسال کد تأیید');
-      return responseData;
+      // احراز هویت stateful توکن CSRF می‌خواهد؛ بدون این، درخواست ۴۱۹ می‌گیرد.
+      // نسخه‌ی قبلی fetch خام می‌زد و اصلاً از این مسیر رد نمی‌شد.
+      await fetchCsrfCookie();
+
+      const response = await apiClient.post<AuthApiResponse>('/register', { phone: data.phone });
+
+      return response.data;
     },
-    onSuccess: (data) => {
-      setPhoneNumber(data.phone);
+    onSuccess: (data, variables) => {
+      setPhoneNumber(data.phone ?? data.data?.phone ?? variables.phone);
       setStep('otp');
-      setTimeLeft(120); // ✅ ریست کردن تایمر
-      otpForm.reset();
-      toast.success('کد تأیید با موفقیت ارسال شد', { icon: '✅' }); // ✅ متن حرفه‌ای‌تر
+      setOtp('');
+      setSecondsLeft(RESEND_SECONDS);
+      toast.success('کد تأیید برایتان ارسال شد', { icon: '✉️' });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'شماره موبایل نامعتبر است یا خطایی رخ داده است');
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'ارسال کد ممکن نشد. لطفاً دوباره تلاش کنید';
+      toast.error(message);
     },
   });
 
-  // ۲. تأیید OTP و ورود
-  const verifyOtpMutation = useMutation({
-    mutationFn: async (data: OtpData) => {
-      const res = await fetch(`${API_V1_URL}/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ phone: phoneNumber, otp: data.otp }),
+  // ── تأیید کد ──────────────────────────────────────────────────────────────
+  const verifyOtp = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiClient.post<AuthApiResponse>('/verify-otp', {
+        phone: phoneNumber,
+        otp: code,
       });
-      
-      const responseData = await res.json();
-      if (!res.ok) throw new Error(responseData.message || 'کد تأیید اشتباه است');
-      return responseData;
+
+      return response.data;
     },
-       onSuccess: (data) => {
-      const token = data.token || data.data?.token;
-      const user = data.user || data.data?.user;
-      
-      // توکن دیگر در localStorage نوشته نمی‌شود: نشست روی کوکی httpOnly است.
-      // این خط تنها جایی بود که کلید 'token' را می‌نوشت، در حالی که هفت جای
-      // دیگر آن را می‌خواندند — پس رفتارشان به این بستگی داشت که کاربر از کدام
-      // مودال وارد شده باشد.
-      
+    onSuccess: async (data) => {
+      const user = data.user ?? data.data?.user;
+      const token = data.token ?? data.data?.token;
+
       if (user) {
-        // ✅ تغییر حیاتی: ارسال به صورت یک آبجکت واحد
-        login({ user, token } as any); 
+        await login({ user, token } as never);
       }
-      
-      toast.success('ورود با موفقیت انجام شد', { icon: '🎉' });
-      onClose();
-      
-      setTimeout(() => {
-        setStep('phone');
-        setPhoneNumber('');
-        setTimeLeft(120);
-        phoneForm.reset();
-        otpForm.reset();
-      }, 300);
+
+      toast.success('خوش آمدید', { icon: '🎉' });
+
+      // مودال بسته می‌شود و کاری که کاربر شروع کرده بود ادامه پیدا می‌کند.
+      resolve();
+      setTimeout(resetAll, 300);
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'کد تأیید اشتباه یا منقضی شده است');
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'کد وارد‌شده درست نیست یا منقضی شده';
+      toast.error(message);
+      setOtp('');
     },
   });
 
-  const handleResend = () => {
-    setTimeLeft(120);
-    sendOtpMutation.mutate({ phone: phoneNumber });
-  };
+  // ── شمارش معکوس ارسال مجدد ────────────────────────────────────────────────
+  useEffect(() => {
+    if (step !== 'otp' || secondsLeft <= 0) {
+      return;
+    }
 
-  if (!isOpen) return null;
+    const timer = setInterval(() => setSecondsLeft((current) => current - 1), 1000);
+
+    return () => clearInterval(timer);
+  }, [step, secondsLeft]);
+
+  // ── بستن با Escape ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        close();
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, close]);
+
+  // ── قفل اسکرول پس‌زمینه ───────────────────────────────────────────────────
+  // بدون این، صفحه‌ی زیر مودال با اسکرول می‌لغزد و کاربر موقعیتش را گم می‌کند.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isOpen]);
+
+  // ── نگه داشتن فوکوس داخل مودال ────────────────────────────────────────────
+  // بدون تله‌ی فوکوس، Tab کاربر را به صفحه‌ی پشت مودال می‌برد در حالی که آنجا
+  // برایش قابل دیدن نیست.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const node = dialogRef.current;
+    if (!node) {
+      return;
+    }
+
+    const selector =
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') {
+        return;
+      }
+
+      const focusable = Array.from(node.querySelectorAll<HTMLElement>(selector));
+      if (focusable.length === 0) {
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    node.addEventListener('keydown', onKeyDown);
+
+    return () => node.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, step]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const formatTime = (seconds: number) =>
+    `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
+
+  const handleClose = () => {
+    close();
+    setTimeout(resetAll, 300);
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+      <button
+        type="button"
+        aria-label="بستن"
+        onClick={handleClose}
+        className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      />
 
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-        <button onClick={onClose} className="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-600 transition-colors z-10">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+        className={cn(
+          'relative w-full sm:max-w-md bg-white dark:bg-gray-900',
+          // روی موبایل از پایین بالا می‌آید و گوشه‌های پایینش صاف است — الگویی
+          // که کاربر موبایل با آن آشناست و به شست نزدیک‌تر می‌ماند.
+          'rounded-t-3xl sm:rounded-3xl',
+          'shadow-2xl shadow-gray-900/20 dark:shadow-black/50',
+          'border border-gray-100 dark:border-gray-800',
+          'overflow-hidden',
+          'animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300'
+        )}
+      >
+        {/* دستگیره‌ی کشیدن روی موبایل */}
+        <div className="sm:hidden flex justify-center pt-3">
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label="بستن پنجره"
+          className={cn(
+            'absolute top-4 left-4 z-10 p-2 rounded-full',
+            'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200',
+            'hover:bg-gray-100 dark:hover:bg-gray-800',
+            'transition-colors active:scale-95',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
+          )}
+        >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="bg-gradient-to-r from-primary-600 to-accent-600 p-6 text-center">
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            {step === 'phone' ? <Smartphone className="w-8 h-8 text-white" /> : <KeyRound className="w-8 h-8 text-white" />}
+        <div className="px-6 pt-8 pb-6 sm:pt-10">
+          <div
+            className={cn(
+              'w-14 h-14 rounded-2xl flex items-center justify-center mb-5',
+              'bg-primary-50 dark:bg-primary-900/30',
+              'text-primary-600 dark:text-primary-400'
+            )}
+          >
+            {step === 'phone' ? <Smartphone className="w-7 h-7" /> : <KeyRound className="w-7 h-7" />}
           </div>
-          <h2 className="text-xl font-black text-white mb-1">
-            {step === 'phone' ? 'ورود یا ثبت‌نام' : 'تأیید شماره موبایل'}
+
+          <h2
+            id="auth-modal-title"
+            className="text-2xl font-black text-gray-900 dark:text-gray-50 mb-2 leading-tight"
+          >
+            {step === 'phone' ? 'ورود به آزکالا' : 'کد تأیید را وارد کنید'}
           </h2>
-          <p className="text-primary-100 text-sm">
-            {step === 'phone' 
-              ? 'برای ادامه، شماره موبایل خود را وارد کنید' 
-              : `کد ارسال شده به ${phoneNumber} را وارد کنید`}
+
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            {step === 'phone' ? (
+              // دلیلِ زمینه‌ای، اگر ورود وسط کاری لازم شده باشد. پیام مرتبط با
+              // همان کار خیلی بهتر از یک «لطفاً وارد شوید» خشک عمل می‌کند.
+              reason ?? 'شماره موبایلتان را وارد کنید تا کد ورود برایتان بفرستیم.'
+            ) : (
+              <>
+                کد ۵ رقمی به شماره{' '}
+                <span className="font-bold text-gray-700 dark:text-gray-200" dir="ltr">
+                  {phoneNumber}
+                </span>{' '}
+                پیامک شد.
+              </>
+            )}
           </p>
         </div>
 
-        <div className="p-6" key={step}>
+        <div className="px-6 pb-8">
           {step === 'phone' ? (
-            <form onSubmit={phoneForm.handleSubmit((data) => sendOtpMutation.mutate(data))} className="space-y-5">
+            <form
+              onSubmit={phoneForm.handleSubmit((data) => sendOtp.mutate(data))}
+              className="space-y-5"
+              noValidate
+            >
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">شماره موبایل</label>
+                <label
+                  htmlFor="auth-phone"
+                  className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  شماره موبایل
+                </label>
+
                 <div className="relative">
                   <input
                     {...phoneForm.register('phone')}
+                    id="auth-phone"
                     type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
                     placeholder="09123456789"
-                    className="w-full p-3.5 pr-12 border border-gray-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dir-ltr text-left font-mono text-lg"
                     maxLength={11}
-                    disabled={sendOtpMutation.isPending}
+                    disabled={sendOtp.isPending}
+                    aria-invalid={!!phoneForm.formState.errors.phone}
+                    aria-describedby={phoneForm.formState.errors.phone ? 'auth-phone-error' : undefined}
+                    dir="ltr"
+                    className={cn(
+                      'w-full h-14 pl-4 pr-12 rounded-2xl text-left text-lg font-semibold tracking-wide',
+                      'bg-gray-50 dark:bg-gray-800',
+                      'text-gray-900 dark:text-gray-100',
+                      'placeholder:text-gray-400 dark:placeholder:text-gray-600 placeholder:font-normal',
+                      'border-2 transition-all duration-200',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                      'disabled:opacity-60',
+                      phoneForm.formState.errors.phone
+                        ? 'border-error-400 dark:border-error-600 focus:ring-error-500'
+                        : 'border-gray-200 dark:border-gray-700 focus:border-primary-500 focus:ring-primary-500'
+                    )}
                   />
-                  <Smartphone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Smartphone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 </div>
+
                 {phoneForm.formState.errors.phone && (
-                  <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-                    <X className="w-3 h-3" /> {phoneForm.formState.errors.phone.message}
+                  <p
+                    id="auth-phone-error"
+                    role="alert"
+                    className="text-error-600 dark:text-error-400 text-xs mt-2 font-medium"
+                  >
+                    {phoneForm.formState.errors.phone.message}
                   </p>
                 )}
               </div>
 
               <button
                 type="submit"
-                disabled={sendOtpMutation.isPending}
-                className="w-full bg-gradient-to-r from-primary-600 to-accent-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-primary-500/30 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={sendOtp.isPending}
+                className={cn(
+                  'w-full h-14 rounded-2xl font-bold text-white',
+                  'bg-primary-600 hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-500',
+                  'shadow-lg shadow-primary-600/25 hover:shadow-xl hover:shadow-primary-600/30',
+                  'transition-all duration-300 active:scale-[0.98]',
+                  'disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+                  'flex items-center justify-center gap-2'
+                )}
               >
-                {sendOtpMutation.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> در حال ارسال...</> : <>دریافت کد تأیید <ArrowLeft className="w-5 h-5" /></>}
+                {sendOtp.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    در حال ارسال…
+                  </>
+                ) : (
+                  <>
+                    ارسال کد ورود
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
+
+              <p className="flex items-start gap-2 text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  اگر قبلاً حساب نداشته باشید، همین‌جا ساخته می‌شود. رمز عبوری در کار نیست.
+                </span>
+              </p>
             </form>
           ) : (
-            <form onSubmit={otpForm.handleSubmit((data) => verifyOtpMutation.mutate(data))} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 text-center">
-                  ✅ کد ۵ رقمی را وارد کنید
-                </label>
-                <div className="relative max-w-[260px] mx-auto"> {/* ✅ عرض کمی بیشتر برای جا شدن ۵ رقم */}
-                  <input
-                    {...otpForm.register('otp')}
-                    type="text"
-                    inputMode="numeric" // ✅ باز شدن کیبورد عددی در موبایل
-                    pattern="[0-9]*"
-                    placeholder="-----"
-                    className="w-full p-4 border-2 border-primary-200 dark:border-primary-800 rounded-xl bg-primary-50/30 dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all text-center text-2xl tracking-[0.5em] font-bold dir-ltr"
-                    maxLength={5}
-                    autoFocus
-                    disabled={verifyOtpMutation.isPending}
-                  />
-                </div>
-                {otpForm.formState.errors.otp && (
-                  <p className="text-red-500 text-xs mt-2 text-center flex items-center justify-center gap-1">
-                    <X className="w-3 h-3" /> {otpForm.formState.errors.otp.message}
-                  </p>
-                )}
-              </div>
+            <div className="space-y-6">
+              <OtpInput
+                length={OTP_LENGTH}
+                value={otp}
+                onChange={setOtp}
+                // با کامل شدن رقم آخر خودکار ارسال می‌شود؛ زدن دکمه پس از تایپ
+                // رقم پنجم یک گام اضافه است که هیچ کاری نمی‌کند.
+                onComplete={(code) => verifyOtp.mutate(code)}
+                disabled={verifyOtp.isPending}
+                hasError={verifyOtp.isError}
+              />
 
               <button
-                type="submit"
-                disabled={verifyOtpMutation.isPending}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-green-500/30 hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                type="button"
+                onClick={() => verifyOtp.mutate(otp)}
+                disabled={verifyOtp.isPending || otp.length !== OTP_LENGTH}
+                className={cn(
+                  'w-full h-14 rounded-2xl font-bold text-white',
+                  'bg-success-600 hover:bg-success-700 dark:bg-success-600 dark:hover:bg-success-500',
+                  'shadow-lg shadow-success-600/25 hover:shadow-xl hover:shadow-success-600/30',
+                  'transition-all duration-300 active:scale-[0.98]',
+                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500',
+                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+                  'flex items-center justify-center gap-2'
+                )}
               >
-                {verifyOtpMutation.isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> در حال بررسی...</> : <>تأیید و ورود <CheckCircle2 className="w-5 h-5" /></>}
+                {verifyOtp.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    در حال بررسی…
+                  </>
+                ) : (
+                  <>
+                    ورود
+                    <CheckCircle2 className="w-5 h-5" />
+                  </>
+                )}
               </button>
 
-              {/* ✅ بخش ثانیه‌شمار و ارسال مجدد */}
-              <div className="text-center">
-                {timeLeft > 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1.5">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
-                    امکان ارسال مجدد کد تا <span className="font-bold text-primary-600 font-mono">{formatTime(timeLeft)}</span> دیگر
+              <div className="flex flex-col items-center gap-3">
+                {secondsLeft > 0 ? (
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    ارسال دوباره تا{' '}
+                    <span className="font-bold text-gray-600 dark:text-gray-300 tabular-nums" dir="ltr">
+                      {formatTime(secondsLeft)}
+                    </span>
                   </p>
                 ) : (
                   <button
                     type="button"
-                    onClick={handleResend}
-                    disabled={sendOtpMutation.isPending}
-                    className="text-sm text-primary-600 hover:text-primary-700 font-bold flex items-center justify-center gap-1.5 mx-auto transition-colors"
+                    onClick={() => sendOtp.mutate({ phone: phoneNumber })}
+                    disabled={sendOtp.isPending}
+                    className={cn(
+                      'text-sm font-bold text-primary-600 dark:text-primary-400',
+                      'hover:text-primary-700 dark:hover:text-primary-300',
+                      'flex items-center gap-1.5 transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg px-2 py-1',
+                      'disabled:opacity-60'
+                    )}
                   >
-                    <RefreshCw className="w-4 h-4" />
-                    {sendOtpMutation.isPending ? 'در حال ارسال...' : 'ارسال مجدد کد تأیید'}
+                    <RefreshCw className={cn('w-4 h-4', sendOtp.isPending && 'animate-spin')} />
+                    {sendOtp.isPending ? 'در حال ارسال…' : 'ارسال دوباره‌ی کد'}
                   </button>
                 )}
-                
+
                 <button
                   type="button"
                   onClick={() => {
                     setStep('phone');
-                    otpForm.reset();
+                    setOtp('');
                   }}
-                  disabled={verifyOtpMutation.isPending}
-                  className="text-xs text-gray-400 hover:text-gray-600 mt-4 transition-colors"
+                  disabled={verifyOtp.isPending}
+                  className={cn(
+                    'text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300',
+                    'flex items-center gap-1.5 transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg px-2 py-1'
+                  )}
                 >
-                  ویرایش شماره موبایل
+                  <Pencil className="w-3.5 h-3.5" />
+                  ویرایش شماره
                 </button>
               </div>
-            </form>
+            </div>
           )}
         </div>
       </div>
     </div>
   );
-};
+}
