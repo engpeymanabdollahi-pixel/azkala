@@ -1,4 +1,4 @@
-import { useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { cn } from '@/utils/cn';
 
 interface OtpInputProps {
@@ -33,6 +33,15 @@ export function OtpInput({
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
 
   const digits = value.padEnd(length, ' ').slice(0, length).split('');
+
+  // اولین خانه‌ی خالی، یعنی جایی که باید تایپ شود.
+  const activeIndex = Math.min(value.length, length - 1);
+
+  // بدون این، کاربر پنج کادر خالی می‌بیند و هیچ‌کدام فوکوس ندارد — معلوم نیست
+  // از کجا باید شروع کند و باید حدس بزند کدام را کلیک کند.
+  useEffect(() => {
+    inputs.current[0]?.focus();
+  }, []);
 
   const focusAt = (index: number) => {
     inputs.current[Math.max(0, Math.min(index, length - 1))]?.focus();
@@ -132,17 +141,21 @@ export function OtpInput({
           onFocus={(event) => event.target.select()}
           aria-label={`رقم ${index + 1} از ${length}`}
           className={cn(
-            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-center text-2xl font-bold',
+            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-center text-2xl font-bold caret-primary-500',
             'border-2 bg-gray-50 dark:bg-gray-800',
             'text-gray-900 dark:text-gray-100',
             'transition-all duration-200',
-            'focus:outline-none focus:ring-2 focus:ring-offset-2',
-            'dark:focus:ring-offset-gray-900',
+            'focus:outline-none',
             'disabled:opacity-60 disabled:cursor-not-allowed',
-            hasError
-              ? 'border-error-400 dark:border-error-600 focus:ring-error-500'
-              : 'border-gray-200 dark:border-gray-700 focus:border-primary-500 focus:ring-primary-500',
-            digits[index].trim() && !hasError && 'border-primary-400 dark:border-primary-600'
+            hasError && 'border-error-400 dark:border-error-600 bg-error-50/40 dark:bg-error-900/10',
+            // خانه‌ی پرشده: مرز رنگی ملایم تا پیشرفت دیده شود
+            !hasError && digits[index].trim() && 'border-primary-300 dark:border-primary-700 bg-white dark:bg-gray-800',
+            !hasError && !digits[index].trim() && 'border-gray-200 dark:border-gray-700',
+            // خانه‌ی فعال: بزرگ‌تر، با هاله — تا بدون حدس زدن معلوم باشد نوبت
+            // کدام کادر است. صرفاً focus ring کافی نبود چون از دور دیده نمی‌شد.
+            !hasError &&
+              index === activeIndex &&
+              'border-primary-500 dark:border-primary-400 ring-4 ring-primary-500/15 scale-105 bg-white dark:bg-gray-900'
           )}
         />
       ))}

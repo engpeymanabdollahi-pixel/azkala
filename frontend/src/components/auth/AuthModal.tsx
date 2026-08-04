@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { ArrowRight, CheckCircle2, KeyRound, Loader2, Pencil, RefreshCw, ShieldCheck, Smartphone, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, KeyRound, Loader2, Pencil, RefreshCw, ShieldCheck, ShoppingBag, Smartphone, X } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
 import apiClient, { fetchCsrfCookie } from '@/services/api/client';
@@ -266,39 +266,71 @@ export function AuthModal() {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="px-6 pt-8 pb-6 sm:pt-10">
-          <div
-            className={cn(
-              'w-14 h-14 rounded-2xl flex items-center justify-center mb-5',
-              'bg-primary-50 dark:bg-primary-900/30',
-              'text-primary-600 dark:text-primary-400'
-            )}
-          >
-            {step === 'phone' ? <Smartphone className="w-7 h-7" /> : <KeyRound className="w-7 h-7" />}
+        {/* سرآمد با ته‌رنگ برند — همان فلسفه‌ی Card: رنگ ملایم، نه بنر پررنگ
+            که با محتوای فرم رقابت کند. */}
+        <div
+          className={cn(
+            'relative px-6 pt-8 pb-6 sm:pt-9',
+            'bg-gradient-to-br from-primary-50/80 via-white to-white',
+            'dark:from-primary-900/20 dark:via-gray-900 dark:to-gray-900',
+            'border-b border-gray-100 dark:border-gray-800'
+          )}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div
+              className={cn(
+                'w-11 h-11 rounded-2xl flex items-center justify-center shrink-0',
+                'bg-primary-600 text-white',
+                'shadow-lg shadow-primary-600/25'
+              )}
+            >
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <div className="leading-tight">
+              <p className="font-black text-lg text-gray-900 dark:text-gray-50">ازکالا</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                خرید لوازم جانبی بر اساس مدل دستگاه
+              </p>
+            </div>
           </div>
 
-          <h2
-            id="auth-modal-title"
-            className="text-2xl font-black text-gray-900 dark:text-gray-50 mb-2 leading-tight"
-          >
-            {step === 'phone' ? 'ورود به آزکالا' : 'کد تأیید را وارد کنید'}
-          </h2>
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
+                'bg-white dark:bg-gray-800',
+                'border border-primary-100 dark:border-primary-900/50',
+                'text-primary-600 dark:text-primary-400'
+              )}
+            >
+              {step === 'phone' ? <Smartphone className="w-5 h-5" /> : <KeyRound className="w-5 h-5" />}
+            </div>
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-            {step === 'phone' ? (
-              // دلیلِ زمینه‌ای، اگر ورود وسط کاری لازم شده باشد. پیام مرتبط با
-              // همان کار خیلی بهتر از یک «لطفاً وارد شوید» خشک عمل می‌کند.
-              reason ?? 'شماره موبایلتان را وارد کنید تا کد ورود برایتان بفرستیم.'
-            ) : (
-              <>
-                کد ۵ رقمی به شماره{' '}
-                <span className="font-bold text-gray-700 dark:text-gray-200" dir="ltr">
-                  {phoneNumber}
-                </span>{' '}
-                پیامک شد.
-              </>
-            )}
-          </p>
+            <div>
+              <h2
+                id="auth-modal-title"
+                className="text-xl font-black text-gray-900 dark:text-gray-50 mb-1 leading-tight"
+              >
+                {step === 'phone' ? 'ورود یا ثبت‌نام' : 'کد تأیید'}
+              </h2>
+
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                {step === 'phone' ? (
+                  // دلیلِ زمینه‌ای، اگر ورود وسط کاری لازم شده باشد. پیام مرتبط
+                  // با همان کار خیلی بهتر از یک «لطفاً وارد شوید» خشک عمل می‌کند.
+                  reason ?? 'شماره موبایلتان را وارد کنید تا کد ورود بفرستیم.'
+                ) : (
+                  <>
+                    کد ۵ رقمی به{' '}
+                    <span className="font-bold text-gray-700 dark:text-gray-200" dir="ltr">
+                      {phoneNumber}
+                    </span>{' '}
+                    پیامک شد.
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="px-6 pb-8">
@@ -392,6 +424,12 @@ export function AuthModal() {
             </form>
           ) : (
             <div className="space-y-6">
+              {/* راهنمای صریح: بدون آن، پنج کادر خالی معلوم نمی‌کند چه انتظاری
+                  از کاربر می‌رود و از کجا باید شروع کند. */}
+              <p className="text-center text-sm font-bold text-gray-700 dark:text-gray-300">
+                کد را در کادرهای زیر وارد کنید
+              </p>
+
               <OtpInput
                 length={OTP_LENGTH}
                 value={otp}
