@@ -1,13 +1,12 @@
-import { memo, useState, useEffect, useRef, useCallback } from 'react';
+import { memo, useState, useRef, useCallback } from 'react';
 import { Star, Eye, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
-import { useWishlistStore } from '@/store/wishlistStore';
-import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
+import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
-import toast from 'react-hot-toast';
+import { SafeImage } from '@/components/ui/SafeImage';
 
 interface ProductCardWithQuickViewProps {
   product: Product;
@@ -17,7 +16,10 @@ interface ProductCardWithQuickViewProps {
 
 /**
  * کامپوننت کارت محصول با قابلیت مشاهده سریع
- * با Intersection Observer برای lazy loading
+ * - Optimistic UI برای افزودن به علاقمندی‌ها
+ * - Prefetch on hover برای navigation لحظه‌ای
+ * - SafeImage با fallback emoji
+ * - Skeleton loading تا زمانی که کارت visible شود
  */
 export const ProductCardWithQuickView = memo(({ 
   product, 
@@ -25,66 +27,44 @@ export const ProductCardWithQuickView = memo(({
   onQuickAdd 
 }: ProductCardWithQuickViewProps) => {
   const [showQuickView, setShowQuickView] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const { items: wishlistItems, toggleItem } = useWishlistStore();
+  const { isInWishlist, toggleWishlist, prefetchProduct } = useWishlistApi();
   
-  const isWishlisted = wishlistItems.some(item => item.id === product.id);
+  const isWishlisted = isInWishlist(product.id);
 
-  // Lazy loading با Intersection Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '100px', threshold: 0.01 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-    
-    return () => observer.disconnect();
-  }, []);
+  // 🎯 Smart Prefetch: وقتی موس روی کارت می‌رود، کوئری wishlist را prefetch کن
+  const handleMouseEnter = useCallback(() => {
+    prefetchProduct(product);
+  }, [product, prefetchProduct]);
 
   const handleWishlistToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleItem(product);
-    toast.success(
-      isWishlisted ? 'از علاقمندی‌ها حذف شد' : 'به علاقمندی‌ها اضافه شد',
-      { icon: isWishlisted ? '💔' : '❤️', duration: 2000 }
-    );
-  }, [product, isWishlisted, toggleItem]);
-
-  // نمایش Skeleton تا زمانی که کارت visible شود
-  if (!isVisible) {
-    return (
-      <div ref={cardRef} className="aspect-square">
-        <ProductCardSkeleton />
-      </div>
-    );
-  }
+    // ✅ Optimistic UI توسط useWishlistApi مدیریت می‌شود
+    toggleWishlist(product);
+  }, [product, toggleWishlist]);
 
   return (
     <>
       <div
         ref={cardRef}
-        className="group relative bg-white dark:bg-slate-800 rounded-2xl border-2 border-gray-100 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer hover:-translate-y-2"
+        onMouseEnter={handleMouseEnter}
+        className="group relative bg-white dark:bg-slate-800 rounded-2xl border-2 border-gray-100 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-600 overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer hover:-translate-y-2 hover:scale-[1.02] active:scale-95"
         onClick={onClick}
       >
-        {/* تصویر محصول */}
+        {/* تصویر محصول با SafeImage */}
         <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 overflow-hidden">
-          <div className="w-full h-full flex items-center justify-center text-6xl group-hover:scale-125 transition-transform duration-500">
-            📦
-          </div>
+          <SafeImage
+            src={product.main_image}
+            alt={product.name}
+            fallbackEmoji="📦"
+            showEmojiOnError
+            className="w-full h-full object-cover group-hover:scale-125 transition-transform duration-500"
+          />
           
           {/* دکمه‌های Quick Actions */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center gap-2 p-4 opacity-0 group-hover:opacity-100 transition-all">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-center gap-2 p-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
             <button 
-              className="w-11 h-11 bg-white rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all hover:scale-110 shadow-xl"
+              className="w-11 h-11 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white dark:hover:bg-primary-500 transition-all hover:scale-110 shadow-xl active:scale-95"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowQuickView(true);
@@ -98,17 +78,17 @@ export const ProductCardWithQuickView = memo(({
                 e.stopPropagation();
                 onQuickAdd(e);
               }}
-              className="w-11 h-11 bg-white rounded-full flex items-center justify-center hover:bg-success-600 hover:text-white transition-all hover:scale-110 shadow-xl"
+              className="w-11 h-11 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center hover:bg-success-600 hover:text-white dark:hover:bg-success-500 transition-all hover:scale-110 shadow-xl active:scale-95"
               aria-label="افزودن به سبد خرید"
             >
               <ShoppingBag className="w-5 h-5" />
             </button>
             <button 
               className={cn(
-                "w-11 h-11 bg-white rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl",
+                "w-11 h-11 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl active:scale-95",
                 isWishlisted 
-                  ? "text-error-500" 
-                  : "hover:bg-error-500 hover:text-white"
+                  ? "text-error-500 dark:text-error-400" 
+                  : "hover:bg-error-500 hover:text-white dark:hover:bg-error-600"
               )}
               onClick={handleWishlistToggle}
               aria-label={isWishlisted ? 'حذف از علاقمندی‌ها' : 'افزودن به علاقمندی‌ها'}
@@ -132,7 +112,7 @@ export const ProductCardWithQuickView = memo(({
                     'w-3.5 h-3.5',
                     i < Math.floor(product.rating || 0)
                       ? 'text-warning-400 fill-warning-400'
-                      : 'text-gray-300'
+                      : 'text-gray-300 dark:text-slate-600'
                   )}
                 />
               ))}
@@ -163,8 +143,14 @@ export const ProductCardWithQuickView = memo(({
         title={product.name}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 rounded-2xl flex items-center justify-center text-9xl">
-            📦
+          <div className="aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-800 rounded-2xl overflow-hidden">
+            <SafeImage
+              src={product.main_image}
+              alt={product.name}
+              fallbackEmoji="📦"
+              showEmojiOnError
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-3">
@@ -179,7 +165,7 @@ export const ProductCardWithQuickView = memo(({
                       'w-5 h-5',
                       i < Math.floor(product.rating || 0)
                         ? 'text-warning-400 fill-warning-400'
-                        : 'text-gray-300'
+                        : 'text-gray-300 dark:text-slate-600'
                     )}
                   />
                 ))}

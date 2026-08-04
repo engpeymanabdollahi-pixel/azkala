@@ -3,30 +3,56 @@ import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import { FreeShippingProgress } from '@/components/features/FreeShippingProgress';
+import { useCartApi } from '@/hooks/api/useCartApi';
+import toast from 'react-hot-toast';
 
 interface CartDrawerProps {
   onCheckout?: () => void;
 }
 
 export function CartDrawer({ onCheckout }: CartDrawerProps) {
+  // removeItem/updateQuantity از store دیگر مستقیم صدا زده نمی‌شوند؛ useCartApi
+  // آن‌ها را با Optimistic UI و rollback پوشش می‌دهد.
   const {
     items,
     isDrawerOpen,
     closeDrawer,
-    removeItem,
-    updateQuantity,
     getSubtotal,
     getItemCount,
     getTotal, // ✅ اضافه شد برای محاسبه نوار پیشرفت
   } = useCartStore();
+  
+  // استفاده از هوک TanStack Query برای Optimistic UI
+  const { removeFromCart, updateQuantity } = useCartApi();
 
   if (!isDrawerOpen) return null;
 
   const subtotal = getSubtotal();
   const total = getTotal(); // ✅ مقدار کل برای نوار پیشرفت
   const itemCount = getItemCount();
+
+  // Handlerهای بهینه‌شده با Optimistic UI
+  const handleRemoveItem = (itemId: number) => {
+    removeFromCart(itemId, {
+      onSuccess: () => {
+        // Zustand به صورت خودکار sync می‌شود
+      },
+      onError: () => {
+        toast.error('خطا در حذف محصول');
+      },
+    });
+  };
+
+  const handleUpdateQuantity = (itemId: number, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      handleRemoveItem(itemId);
+      return;
+    }
+    updateQuantity({ itemId, quantity: newQuantity });
+  };
 
   return (
     <>
@@ -80,16 +106,16 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                   className="flex gap-3 bg-white border border-gray-200 rounded-xl p-3 hover:border-primary-300 hover:shadow-md transition-all animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center text-3xl border border-gray-100">
-                    {item.product.main_image ? (
-                      <img 
-                        src={item.product.main_image} 
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      '📦'
-                    )}
+                  {/* Image */}
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-50 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center border border-gray-100 dark:border-slate-600">
+                    <SafeImage
+                      src={item.product.main_image}
+                      alt={item.product.name}
+                      className="w-full h-full object-cover"
+                      fallbackEmoji="📦"
+                      showEmojiOnError
+                      aspectRatio="square"
+                    />
                   </div>
 
                   <div className="flex-1 min-w-0 flex flex-col gap-2">
@@ -98,20 +124,20 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                     </p>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                      <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-lg p-1">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="w-7 h-7 rounded-md bg-white shadow-sm flex items-center justify-center hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                          className="w-7 h-7 rounded-md bg-white dark:bg-slate-600 shadow-sm flex items-center justify-center hover:bg-primary-50 dark:hover:bg-slate-500 hover:text-primary-600 transition-all active:scale-95 text-gray-700 dark:text-gray-200"
                           aria-label="کاهش تعداد"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="text-sm font-bold text-gray-900 min-w-[28px] text-center">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 min-w-[28px] text-center">
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 rounded-md bg-white shadow-sm flex items-center justify-center hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                          onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                          className="w-7 h-7 rounded-md bg-white dark:bg-slate-600 shadow-sm flex items-center justify-center hover:bg-primary-50 dark:hover:bg-slate-500 hover:text-primary-600 transition-all active:scale-95 text-gray-700 dark:text-gray-200"
                           aria-label="افزایش تعداد"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -119,12 +145,12 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-primary-600">
+                        <span className="text-sm font-bold text-primary-600 dark:text-primary-400">
                           {formatPrice(item.price * item.quantity)}
                         </span>
                         <button
-                          onClick={() => removeItem(item.id)}
-                          className="p-1.5 hover:bg-error-50 rounded-lg transition-colors text-gray-400 hover:text-error-500"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="p-1.5 hover:bg-error-50 dark:hover:bg-error-900/30 rounded-lg transition-all active:scale-95 text-gray-400 hover:text-error-500 dark:hover:text-error-400"
                           aria-label="حذف محصول"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -139,26 +165,28 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
         </div>
 
         {items.length > 0 && (
-          <div className="p-5 border-t border-gray-100 bg-gradient-to-t from-gray-50 to-white">
+          <div className="p-5 border-t border-gray-100 dark:border-slate-700 bg-gradient-to-t from-gray-50 to-white dark:from-slate-800 dark:to-slate-900">
+            {/* خلاصه قیمت */}
             <div className="space-y-2 mb-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">جمع کل محصولات:</span>
-                <span className="font-semibold text-gray-900">{formatPrice(subtotal)}</span>
+                <span className="text-gray-600 dark:text-gray-400">جمع کل محصولات:</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{formatPrice(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">هزینه ارسال:</span>
+                <span className="text-gray-600 dark:text-gray-400">هزینه ارسال:</span>
                 <Badge variant="success" size="sm">رایگان</Badge>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                <span className="font-bold text-gray-900">مبلغ قابل پرداخت:</span>
-                <span className="text-xl font-bold text-primary-600">{formatPrice(total)}</span>
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-slate-700">
+                <span className="font-bold text-gray-900 dark:text-gray-100">مبلغ قابل پرداخت:</span>
+                {/* total نه subtotal: getTotal مالیات و ارسال و تخفیف را هم لحاظ می‌کند */}
+                <span className="text-xl font-bold text-primary-600 dark:text-primary-400">{formatPrice(total)}</span>
               </div>
             </div>
 
             <Button
               variant="primary"
               size="lg"
-              className="w-full"
+              className="w-full active:scale-[0.98] transition-transform"
               rightIcon={<ArrowLeft className="w-5 h-5" />}
               onClick={() => {
                 closeDrawer();
@@ -170,7 +198,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
             <button
               onClick={closeDrawer}
-              className="w-full mt-3 text-sm text-gray-600 hover:text-primary-600 font-medium transition-colors"
+              className="w-full mt-3 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 font-medium transition-colors"
             >
               ادامه خرید
             </button>
