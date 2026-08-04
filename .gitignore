@@ -1,50 +1,57 @@
+```
 # Dependencies
 node_modules/
-vendor/
 
 # Build outputs
-frontend/dist/
-frontend/build/
+dist/
+build/
+*.js.map
+*.tsbuildinfo
 
-# Environment files
+# Environment variables
 .env
 .env.local
-.env.*.local
-backend/.env
+*.env.*
 
-# IDE
+# Logs
+*.log
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Logs
-*.log
-npm-debug.log*
-backend/storage/logs/*.log
-
-# Cache
-.phpunit.result.cache
-.phpunit.cache
-backend/bootstrap/cache/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
-
-# Testing
-coverage/
-.nyc_output/
-backend/coverage/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Temporary files
 *.tmp
 *.temp
 
-# Laragon specific
-laragon/
+# Testing
+.pytest_cache/
+.mypy_cache/
+.coverage*
+
+# Distribution / packaging
+*.tar.gz
+*.whl
+*.egg-info/
+
+# System
+.DS_Store
+Thumbs.db
+```
