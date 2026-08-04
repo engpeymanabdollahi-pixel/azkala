@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
 import apiClient, { fetchCsrfCookie } from '@/services/api/client';
 import { cn } from '@/utils/cn';
+import { digitsOnly, toLatinDigits } from '@/utils/digits';
 import { OtpInput } from './OtpInput';
 
 const OTP_LENGTH = 5;
@@ -18,7 +19,11 @@ const phoneSchema = z.object({
   phone: z
     .string()
     .min(1, 'شماره موبایل را وارد کنید')
-    .regex(/^09\d{9}$/, 'شماره باید با ۰۹ شروع شود و ۱۱ رقم باشد'),
+    // پیش از بررسی الگو، ارقام به لاتین تبدیل می‌شوند. \d فقط ۰ تا ۹ لاتین را
+    // می‌گیرد، پس بدون این، شماره‌ای که با کیبورد فارسی تایپ شده رد می‌شد و به
+    // کاربر می‌گفت شماره‌اش اشتباه است — در حالی که درست وارد کرده بود.
+    .transform(toLatinDigits)
+    .refine((value) => /^09\d{9}$/.test(value), 'شماره باید با ۰۹ شروع شود و ۱۱ رقم باشد'),
 });
 
 type PhoneData = z.infer<typeof phoneSchema>;
@@ -351,6 +356,16 @@ export function AuthModal() {
                 <div className="relative">
                   <input
                     {...phoneForm.register('phone')}
+                    // همان لحظه‌ی تایپ به لاتین تبدیل می‌شود تا کاربر ببیند چه
+                    // چیزی ثبت شده و بعداً با پیام خطای بی‌ربط غافلگیر نشود.
+                    onInput={(event) => {
+                      const input = event.currentTarget;
+                      const normalised = digitsOnly(input.value).slice(0, 11);
+
+                      if (normalised !== input.value) {
+                        input.value = normalised;
+                      }
+                    }}
                     id="auth-phone"
                     type="tel"
                     inputMode="numeric"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { cn } from '@/utils/cn';
+import { digitsOnly } from '@/utils/digits';
 
 interface OtpInputProps {
   length?: number;
@@ -58,7 +59,10 @@ export function OtpInput({
   };
 
   const handleChange = (index: number, raw: string) => {
-    const digit = raw.replace(/\D/g, '').slice(-1);
+    // digitsOnly نه replace(/\D/g,''): ارقام فارسی و عربی اول به لاتین تبدیل
+    // می‌شوند، وگرنه تایپ با کیبورد فارسی رشته را خالی می‌کرد و کادر خالی
+    // می‌ماند بدون هیچ پیام خطایی.
+    const digit = digitsOnly(raw).slice(-1);
 
     if (!digit) {
       return;
@@ -107,7 +111,9 @@ export function OtpInput({
   const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
 
-    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, length);
+    // کد پیامک معمولاً با ارقام فارسی می‌آید، پس بدون تبدیل، چسباندن هم
+    // چیزی وارد نمی‌کرد.
+    const pasted = digitsOnly(event.clipboardData.getData('text')).slice(0, length);
 
     if (!pasted) {
       return;

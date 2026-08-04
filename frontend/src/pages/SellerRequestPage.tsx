@@ -11,13 +11,21 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/services/api/client';
 import { useAuthStore } from '@/store/authStore';
+import { toLatinDigits } from '@/utils/digits';
 
 
 // ==================== 1. Schema Definitions ====================
 const initialSchema = z.object({
   full_name: z.string().min(3, 'حداقل ۳ کاراکتر وارد کنید'),
-  national_code: z.string().regex(/^\d{10}$/, 'کد ملی باید دقیقاً ۱۰ رقم باشد'),
-  phone: z.string().regex(/^09\d{9}$/, 'شماره موبایل معتبر نیست (مثال: 09123456789)'),
+  // یکسان‌سازی پیش از بررسی الگو، وگرنه ورودی با ارقام فارسی رد می‌شود
+  national_code: z
+    .string()
+    .transform(toLatinDigits)
+    .refine((value) => /^\d{10}$/.test(value), 'کد ملی باید دقیقاً ۱۰ رقم باشد'),
+  phone: z
+    .string()
+    .transform(toLatinDigits)
+    .refine((value) => /^09\d{9}$/.test(value), 'شماره موبایل معتبر نیست (مثال: 09123456789)'),
   province: z.string().min(1, 'لطفاً استان را انتخاب کنید'),
   city: z.string().min(1, 'لطفاً شهر را انتخاب کنید'),
   proposed_shop_name: z.string().min(3, 'حداقل ۳ کاراکتر وارد کنید'),
