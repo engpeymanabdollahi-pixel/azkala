@@ -166,6 +166,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
+  // تأیید نشست، یک بار در هر بار بالا آمدن اپ.
+  //
+  // isAuthenticated از localStorage برمی‌گردد ولی چیزی را ثابت نمی‌کند. بدون
+  // این بررسی، اپ بعد از refresh خودش را لاگین فرض می‌کرد و اولین درخواست با
+  // ۴۰۱ کاربر را با پیام «نشست شما منقضی شده است» بیرون می‌انداخت. حالا کوکی
+  // نشست تعیین می‌کند، نه یک flag ذخیره‌شده.
+  useEffect(() => {
+    void useAuthStore.getState().checkAuth();
+  }, []);
+
   return (
     <AppErrorBoundary>
       <div className="min-h-screen flex flex-col bg-slate-50" dir="rtl">

@@ -17,19 +17,17 @@ const echo = new Echo({
   authorizer: (channel: any, options: any) => {
     return {
       authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => {
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-          console.error('❌ Auth token not found');
-          callback(true);
-          return;
-        }
-
+        // نشست روی کوکی httpOnly است، پس credentials: 'include' جای هدر
+        // Authorization را می‌گیرد. نسخه‌ی قبلی localStorage.getItem('token')
+        // را می‌خواند — کلیدی که عملاً هیچ‌وقت نوشته نمی‌شد — و همیشه پیش از
+        // ارسال درخواست با «Auth token not found» شکست می‌خورد. یعنی کانال‌های
+        // خصوصی و کل چت لحظه‌ای هرگز وصل نمی‌شدند.
         fetch(`${API_ORIGIN}/api/broadcasting/auth`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
           },
           body: JSON.stringify({
             socket_id: socketId,

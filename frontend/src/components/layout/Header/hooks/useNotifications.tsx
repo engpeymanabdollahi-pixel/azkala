@@ -2,9 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { Bell, Package, Truck, CreditCard, UserCheck, AlertCircle } from 'lucide-react';
 import type { UseNotificationsReturn } from '../types';
-import { API_V1_URL } from '@/lib/apiConfig';
+import apiClient from '@/services/api/client';
 
-const API_BASE = API_V1_URL;
+/** شکل نوتیفیکیشن همان‌طور که API برمی‌گرداند */
+interface NotificationApiItem {
+  id: number;
+  type: string;
+  title: string;
+  message: string;
+  created_at: string;
+  read_at: string | null;
+}
+import { useAuthStore } from '@/store/authStore';
 
 // نگاشت آیکون‌ها بر اساس نوع نوتیفیکیشن
 const getNotificationIcon = (type: string) => {
@@ -38,37 +47,30 @@ const getRelativeTime = (dateString: string): string => {
 
 export function useNotifications(): UseNotificationsReturn {
   const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   // ✅ دریافت لیست نوتیفیکیشن‌ها از API
   const { data: apiNotifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return [];
-
       try {
-        const res = await fetch(`${API_BASE}/user/notifications`, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json' 
-          },
-        });
-        
-        if (!res.ok) return [];
-        
-        const result = await res.json();
-        return result.data || [];
+        const res = await apiClient.get('/user/notifications');
+        return res.data?.data || [];
       } catch (error) {
         console.error('Error fetching notifications:', error);
         return [];
       }
     },
+    // فقط وقتی کاربر وارد شده باشد. پیش از این با نبودِ توکن در localStorage
+    // زودهنگام return می‌شد — و چون آن کلید عملاً هیچ‌وقت نوشته نمی‌شد،
+    // نوتیفیکیشن‌ها همیشه خالی بودند.
+    enabled: isAuthenticated,
     refetchInterval: 30000, // رفرش هر ۳۰ ثانیه
     staleTime: 10000,
   });
 
   // تبدیل داده‌های API به فرمت مورد نیاز کامپوننت
-  const notifications = apiNotifications.map((n: any) => {
+  const notifications = apiNotifications.map((n: NotificationApiItem) => {
     const iconData = getNotificationIcon(n.type);
     const Icon = iconData.icon;
     return {
@@ -85,16 +87,8 @@ export function useNotifications(): UseNotificationsReturn {
   // ✅ علامت‌گذاری یک نوتیفیکیشن به عنوان خوانده شده
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/user/notifications/${id}/read`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json' 
-        },
-      });
-      if (!res.ok) throw new Error('خطا در علامت‌گذاری');
-      return res.json();
+      const res = await apiClient.post(`/user/notifications/${id}/read`);
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -104,16 +98,8 @@ export function useNotifications(): UseNotificationsReturn {
   // ✅ علامت‌گذاری همه نوتیفیکیشن‌ها به عنوان خوانده شده
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/user/notifications/read-all`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json' 
-        },
-      });
-      if (!res.ok) throw new Error('خطا در علامت‌گذاری همه');
-      return res.json();
+      const res = await apiClient.post('/user/notifications/read-all');
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -128,7 +114,7 @@ export function useNotifications(): UseNotificationsReturn {
     markAllAsReadMutation.mutate();
   }, [markAllAsReadMutation]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: { read: boolean }) => !n.read).length;
 
   return {
     notifications,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 import { ProductCard } from '@/components/features/ProductCard';
 import { useAuthStore } from '@/store/authStore';
 import { API_V1_URL, STORAGE_URL } from '@/lib/apiConfig';
+import apiClient from '@/services/api/client';
 
 const API_BASE = API_V1_URL;
 
@@ -50,24 +51,20 @@ export default function SellerPage() {
 
   const followMutation = useMutation({
     mutationFn: async (action: 'follow' | 'unfollow') => {
-      const token = localStorage.getItem('token');
-      if (!token || !isAuthenticated) {
+      // شرط قبلی به localStorage.getItem('token') تکیه می‌کرد؛ کلیدی که عملاً
+      // نوشته نمی‌شد، پس دنبال کردن فروشگاه برای کاربرِ واردشده هم رد می‌شد.
+      if (!isAuthenticated) {
         toast.error('برای دنبال کردن فروشگاه، لطفاً ابتدا وارد حساب کاربری خود شوید.');
         navigate('/auth');
         throw new Error('Not authenticated');
       }
 
-      const url = `${API_BASE}/sellers/${sellerData!.id}/follow`;
-      const res = await fetch(url, {
-        method: action === 'follow' ? 'POST' : 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-      });
-      
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || 'خطا در عملیات');
-      }
-      return await res.json();
+      const url = `/sellers/${sellerData!.id}/follow`;
+      const res = action === 'follow'
+        ? await apiClient.post(url)
+        : await apiClient.delete(url);
+
+      return res.data;
     },
     onMutate: async (action) => {
       await queryClient.cancelQueries({ queryKey: ['seller', slug] });
@@ -83,7 +80,7 @@ export default function SellerPage() {
       }
       return { previousSeller };
     },
-    onError: (err: any, action, context) => {
+    onError: (err: any, _action, context) => {
       if (err.message !== 'Not authenticated' && context?.previousSeller) {
         queryClient.setQueryData(['seller', slug], context.previousSeller);
       }

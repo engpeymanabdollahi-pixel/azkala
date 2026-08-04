@@ -14,6 +14,8 @@ interface AuthState {
   
   login: (response: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
+  /** تأیید نشست از روی کوکی هنگام بالا آمدن اپ */
+  checkAuth: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setSeller: (seller: Seller | null) => void;
   
@@ -96,6 +98,39 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem('azkala-model-storage');
           
           window.location.href = '/';
+        }
+      },
+
+      /**
+       * تأیید نشست هنگام بالا آمدن اپ.
+       *
+       * isAuthenticated در localStorage persist می‌شود ولی خودش هیچ چیزی را
+       * ثابت نمی‌کند — فقط می‌گوید کاربر زمانی وارد شده بود. تا پیش از این هیچ
+       * چیز آن را راستی‌آزمایی نمی‌کرد، پس اپ بعد از هر refresh خودش را لاگین
+       * فرض می‌کرد و اولین درخواست با ۴۰۱ کاربر را بیرون می‌انداخت.
+       *
+       * حالا از سرور می‌پرسیم. کوکی نشست خودکار همراه درخواست می‌رود؛ اگر معتبر
+       * باشد کاربرِ تازه برمی‌گردد، وگرنه حالت بدون‌ورود پاک‌سازی می‌شود.
+       */
+      checkAuth: async () => {
+        // اگر هرگز واردی در کار نبوده، درخواستی هم لازم نیست.
+        if (!get().isAuthenticated && !get().user) {
+          return;
+        }
+
+        try {
+          const { authService } = await import('@/services/api/auth.service');
+          // auth.service نسخه‌ی سبک‌تری از User را اعلام می‌کند (بدون created_at
+          // و updated_at). منبع واقعی همان چیزی است که API می‌دهد؛ store روی
+          // نوع کامل types/models کار می‌کند.
+          const user = (await authService.getUser()) as unknown as User;
+
+          set({ user, isAuthenticated: true });
+        } catch {
+          // ۴۰۱ یعنی کوکی نبود یا منقضی شده. بی‌صدا پاک می‌کنیم؛ اینجا toast
+          // «نشست منقضی شد» نشان نمی‌دهیم چون بازدیدکننده‌ای که فقط localStorage
+          // کهنه دارد کار اشتباهی نکرده است.
+          set({ user: null, token: null, isAuthenticated: false, seller: null });
         }
       },
 

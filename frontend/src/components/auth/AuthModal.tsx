@@ -93,9 +93,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       const token = data.token || data.data?.token;
       const user = data.user || data.data?.user;
       
-      if (token) {
-        localStorage.setItem('token', token);
-      }
+      // توکن دیگر در localStorage نوشته نمی‌شود: نشست روی کوکی httpOnly است.
+      // این خط تنها جایی بود که کلید 'token' را می‌نوشت، در حالی که هفت جای
+      // دیگر آن را می‌خواندند — پس رفتارشان به این بستگی داشت که کاربر از کدام
+      // مودال وارد شده باشد.
       
       if (user) {
         // ✅ تغییر حیاتی: ارسال به صورت یک آبجکت واحد

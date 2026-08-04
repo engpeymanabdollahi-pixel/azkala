@@ -1,7 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
-import { API_V1_URL } from '@/lib/apiConfig';
+import { API_ORIGIN, API_V1_URL } from '@/lib/apiConfig';
 
 // ==================== Axios Instance ====================
 const client = axios.create({
@@ -117,6 +117,22 @@ client.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * دریافت کوکی CSRF از Sanctum.
+ *
+ * وقتی درخواست stateful باشد (مبدأ در SANCTUM_STATEFUL_DOMAINS)، لاراول توکن
+ * CSRF را اجباری می‌کند. بدون این فراخوانی، هر POST از مرورگر ۴۱۹ می‌گیرد.
+ *
+ * مسیرش زیر api/v1 نیست، پس از API_ORIGIN استفاده می‌شود نه baseURL کلاینت.
+ * axios خودش کوکی XSRF-TOKEN را می‌خواند و در هدر X-XSRF-TOKEN می‌گذارد؛ فقط
+ * باید کوکی وجود داشته باشد.
+ *
+ * باید پیش از هر عملیات ورود/ثبت‌نام صدا زده شود.
+ */
+export const fetchCsrfCookie = async (): Promise<void> => {
+  await axios.get(`${API_ORIGIN}/sanctum/csrf-cookie`, { withCredentials: true });
+};
 
 // ✅ تابع Dummy برای جلوگیری از خطای import در ۳ فایل دیگر
 export const cancelAllRequests = (): void => {

@@ -9,9 +9,9 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { API_V1_URL } from '@/lib/apiConfig';
+import apiClient from '@/services/api/client';
+import { useAuthStore } from '@/store/authStore';
 
-const API_BASE = API_V1_URL;
 
 // ==================== 1. Schema Definitions ====================
 const initialSchema = z.object({
@@ -68,25 +68,26 @@ const provinces = [
 export default function SellerRequestPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [selectedProvince, setSelectedProvince] = useState('');
 
-  const getToken = () => localStorage.getItem('token');
+  // getToken حذف شد: کلید 'token' در localStorage نوشته نمی‌شد، پس هر سه
+  // درخواست این صفحه پیش از ارسال با «وارد حساب شوید» رد می‌شدند — حتی برای
+  // کاربری که واقعاً وارد شده بود. نشست حالا روی کوکی است و apiClient خودش
+  // آن را می‌فرستد.
 
   // دریافت وضعیت درخواست
   const { data: requestData, isLoading } = useQuery({
     queryKey: ['seller-request-status'],
     queryFn: async () => {
-      const token = getToken();
-      if (!token) return null;
-
-      const res = await fetch(`${API_BASE}/user/seller-request-status`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      
-      if (!res.ok) return null; 
-      const json = await res.json();
-      return json.data || json; 
+      try {
+        const res = await apiClient.get('/user/seller-request-status');
+        return res.data?.data ?? res.data ?? null;
+      } catch {
+        return null;
+      }
     },
+    enabled: isAuthenticated,
     retry: false,
   });
 
@@ -96,22 +97,10 @@ export default function SellerRequestPage() {
   // --- Mutation 1: فرم ثبت‌نام اولیه ---
   const initialMutation = useMutation({
     mutationFn: async (data: InitialFormData) => {
-      const token = getToken();
-      if (!token) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
+      if (!isAuthenticated) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
 
-      const res = await fetch(`${API_BASE}/seller-requests`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${token}`, 
-          'Accept': 'application/json' 
-        },
-        body: JSON.stringify(data),
-      });
-      
-      const errorData = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(errorData.message || `خطای سرور: ${res.status}`);
-      return res.json();
+      const res = await apiClient.post('/seller-requests', data);
+      return res.data;
     },
     onSuccess: () => {
       toast.success('درخواست اولیه با موفقیت ثبت شد. منتظر تأیید ادمین باشید.');
@@ -123,8 +112,7 @@ export default function SellerRequestPage() {
   // --- Mutation 2: فرم بارگذاری مدارک (نسخه ضدگلوله) ---
   const documentsMutation = useMutation({
     mutationFn: async (data: DocumentsFormData) => {
-      const token = getToken();
-      if (!token) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
+      if (!isAuthenticated) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
       if (!requestData?.id) throw new Error('شناسه درخواست یافت نشد. لطفاً صفحه را رفرش کنید.');
 
       const formData = new FormData();
@@ -141,33 +129,14 @@ export default function SellerRequestPage() {
         formData.append('business_license_image', licenseFiles[0]);
       }
 
-      const res = await fetch(`${API_BASE}/seller-requests/${requestData.id}/upload-documents`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-          // ⚠️ نکته حیاتی: Content-Type را دستی ست نکنید. مرورگر آن را با boundary صحیح تنظیم می‌کند.
-        },
-        body: formData,
-      });
+      // apiClient وقتی بدنه FormData باشد هدر Content-Type را حذف می‌کند تا
+      // مرورگر خودش boundary درست را بگذارد.
+      const res = await apiClient.post(
+        `/seller-requests/${requestData.id}/upload-documents`,
+        formData
+      );
 
-      const responseJson = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        let errorMsg = 'خطای ناشناخته در سرور';
-        if (responseJson.message) {
-          errorMsg = responseJson.message;
-        } else if (responseJson.errors) {
-          // استخراج اولین پیام خطای ولیدیشن لاراول
-          const firstErrorKey = Object.keys(responseJson.errors)[0];
-          errorMsg = responseJson.errors[firstErrorKey][0];
-        } else {
-          errorMsg = `خطای سرور: ${res.status}`;
-        }
-        throw new Error(errorMsg);
-      }
-      
-      return responseJson;
+      return res.data;
     },
     onSuccess: () => {
       toast.success('مدارک با موفقیت بارگذاری شد. منتظر بررسی نهایی ادمین باشید.');

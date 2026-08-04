@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient, { fetchCsrfCookie } from './client';
 
 // ✅ تغییر: استفاده از phone به جای email برای لاگین
 export interface LoginData {
@@ -36,10 +36,15 @@ export interface AuthResponse {
 export const authService = {
   async login(data: LoginData): Promise<AuthResponse> {
     try {
+      // با احراز هویت stateful، لاراول توکن CSRF می‌خواهد؛ بدون این، POST
+      // با ۴۱۹ رد می‌شود.
+      await fetchCsrfCookie();
+
       const response = await apiClient.post<AuthResponse>('/login', data);
-      
+
       if (response.data.success) {
-        localStorage.setItem('auth_token', response.data.data.token);
+        // توکن دیگر در localStorage نگهداری نمی‌شود: نشست روی کوکی httpOnly
+        // سوار است که جاوااسکریپت — و در نتیجه XSS — نمی‌تواند بخواندش.
         localStorage.setItem('user', JSON.stringify(response.data.data.user));
       }
       
@@ -55,10 +60,11 @@ export const authService = {
 
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
+      await fetchCsrfCookie();
+
       const response = await apiClient.post<AuthResponse>('/register', data);
-      
+
       if (response.data.success) {
-        localStorage.setItem('auth_token', response.data.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.data.user));
       }
       
@@ -78,7 +84,6 @@ export const authService = {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('auth_token');
       localStorage.removeItem('user');
     }
   },
@@ -88,8 +93,12 @@ export const authService = {
     return response.data.data;
   },
 
+  /**
+   * @deprecated نشست روی کوکی httpOnly است و از جاوااسکریپت خوانده نمی‌شود.
+   * apiClient خودش کوکی را همراه هر درخواست می‌فرستد؛ چیزی برای برگرداندن نیست.
+   */
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return null;
   },
 
   isAuthenticated(): boolean {

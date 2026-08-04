@@ -9,9 +9,8 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';
 import toast from 'react-hot-toast';
-import { API_V1_URL } from '@/lib/apiConfig';
+import apiClient from '@/services/api/client';
 
-const API_BASE = API_V1_URL;
 
 export function WishlistSection() {
   const navigate = useNavigate();
@@ -36,14 +35,8 @@ export function WishlistSection() {
   const fetchFollowedSellers = async () => {
     setIsLoadingSellers(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/user/followed-sellers`, {
-        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setFollowedSellers(result.data || []);
-      }
+      const res = await apiClient.get('/user/followed-sellers');
+      setFollowedSellers(res.data?.data || []);
     } catch (error) {
       console.error('Error fetching followed sellers:', error);
     } finally {
