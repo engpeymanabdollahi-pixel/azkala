@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\SellerRating;
 use App\Models\SellerQuickReply;
 use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -148,10 +149,20 @@ class SellerService
         ];
     }
 
+    /**
+     * کلیدهایی که از فرم می‌آیند ولی ستون جدول محصولات نیستند.
+     *
+     * device_model_ids ورودی جدول واسط است. تا حالا مستقیم به create/update
+     * می‌رفت و Eloquent بی‌صدا دورش می‌ریخت؛ یعنی درست کار می‌کرد ولی فقط
+     * تصادفی — با فعال شدن preventSilentlyDiscardingAttributes خطا می‌شود.
+     */
+    private const NON_COLUMN_KEYS = ['device_model_ids'];
+
     public function createProduct(int $sellerId, array $data): Product
     {
         $data['seller_id'] = $sellerId;
-        return Product::create($data);
+
+        return Product::create(Arr::except($data, self::NON_COLUMN_KEYS));
     }
 
     public function updateProduct(int $productId, int $sellerId, array $data): Product
@@ -171,7 +182,7 @@ class SellerService
             $data['slug'] = $slug;
         }
 
-        $product->update($data);
+        $product->update(Arr::except($data, self::NON_COLUMN_KEYS));
 
         if (isset($data['device_model_ids'])) {
             $product->deviceModels()->sync($data['device_model_ids']);

@@ -23,14 +23,21 @@ class ProductResource extends JsonResource
             'short_description' => $this->short_description,
             'price' => (float) $this->price,
             'compare_price' => $this->compare_price ? (float) $this->compare_price : null,
-            'stock' => $this->stock,
-            'status' => $this->status,
+            'discount_price' => $this->discount_price ? (float) $this->discount_price : null,
+            // قیمتی که واقعاً پرداخت می‌شود. تا حالا هر مصرف‌کننده‌ای خودش
+            // discount_price ?? price را حساب می‌کرد و جاهایی از قلم افتاده بود.
+            'final_price' => (float) ($this->discount_price ?? $this->price),
+            'stock' => $this->stock ?? 0,
+            'is_in_stock' => ($this->stock ?? 0) > 0,
             'is_active' => (bool) $this->is_active,
             'is_featured' => (bool) $this->is_featured,
+            'is_bestseller' => (bool) $this->is_bestseller,
             'is_special_offer' => (bool) $this->is_special_offer,
             'sku' => $this->sku,
             'main_image' => $this->main_image,
-            'images' => $this->images ?? [],
+            // whenLoaded نه دسترسی مستقیم: بدون eager load، `$this->images` برای
+            // هر محصول یک کوئری جدا می‌زد (N+1 روی هر لیست محصول).
+            'images' => $this->whenLoaded('images'),
             'specifications' => $this->specifications ?? [],
             'sales_count' => $this->sales_count ?? 0,
             'views_count' => $this->views_count ?? 0,

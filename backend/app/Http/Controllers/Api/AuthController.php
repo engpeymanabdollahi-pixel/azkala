@@ -8,9 +8,11 @@ use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Models\User;
 use App\Services\Auth\AuthService;
+use App\Support\Digits;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
@@ -22,14 +24,25 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-       /**
+    /**
      * ثبت‌نام یا درخواست کد تایید
      */
     public function register(Request $request)
     {
+        // پاک‌سازی *پیش از* اعتبارسنجی. اگر بعد از validate انجام شود بی‌اثر است،
+        // چون خودِ regex هر رشته‌ای با فاصله یا خط تیره را از قبل رد کرده است.
+        //
+        // «۰۹۱۲۳۴۵۶۷۸۹» با ارقام فارسی هم همین‌جا رد می‌شد: [0-9] فقط ارقام
+        // لاتین را می‌گیرد و کاربرِ کیبورد فارسی بدون هیچ توضیحی خطا می‌گرفت.
+        $request->merge([
+            'phone' => Str::replace([' ', '-', '+', '(', ')'], '', Digits::toLatin($request->input('phone'))),
+            'email' => $request->filled('email') ? Str::lower(trim((string) $request->input('email'))) : $request->input('email'),
+            'name' => $request->filled('name') ? Str::squish((string) $request->input('name')) : $request->input('name'),
+        ]);
+
         $validated = $request->validate([
             'phone' => 'required|string|regex:/^09[0-9]{9}$/',
-            'email' => 'nullable|email',
+            'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
         ]);
 

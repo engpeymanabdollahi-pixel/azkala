@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -37,6 +38,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // ============================================================
+        // ۰. سخت‌گیری Eloquent در محیط غیرتولید
+        // ============================================================
+        // به‌صورت پیش‌فرض، اگر کلیدی که به create/update می‌دهید در $fillable
+        // نباشد، Laravel بی‌صدا دورش می‌ریزد. یعنی یک ستون از قلم‌افتاده در
+        // fillable باعث می‌شود مقدار هرگز ذخیره نشود، بدون هیچ خطا یا لاگی —
+        // دقیقاً همان اتفاقی که برای جمع‌های سبد خرید افتاده بود.
+        //
+        // در تولید فعال نمی‌شود تا یک درخواست تکی کل صفحه را نشکند.
+        Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
+
         // ============================================================
         // ۱. ثبت Observerها (ردیابی تغییرات داده‌ها)
         // ============================================================

@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 
 class OrderRepository extends BaseRepository
 {
@@ -80,8 +81,13 @@ class OrderRepository extends BaseRepository
             $order = $this->create($orderData);
 
             // Create order items
+            //
+            // discount_percentage فقط برای محاسبه‌ی جمع‌ها در سرویس ساخته شده و
+            // ستونی در order_items ندارد. تا حالا Eloquent بی‌صدا دورش می‌ریخت؛
+            // حالا صریح حذف می‌شود تا با preventSilentlyDiscardingAttributes
+            // خطا ندهد. (رفتار عوض نمی‌شود — قبلاً هم ذخیره نمی‌شد.)
             foreach ($items as $item) {
-                $order->items()->create($item);
+                $order->items()->create(Arr::except($item, ['discount_percentage']));
             }
 
             return $order->load(['items.product', 'address']);
