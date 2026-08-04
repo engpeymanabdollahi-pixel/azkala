@@ -4,6 +4,11 @@
 @import "swiper/css/pagination";
 @import "swiper/css/navigation";
 
+/* کلاس‌های animate-in / slide-in-from-* / zoom-in در ۱۶ جای کد استفاده
+   می‌شوند ولی این پلاگین هیچ‌وقت ثبت نشده بود، پس هیچ CSSی تولید نمی‌کردند.
+   با Tailwind v4 کار می‌کند؛ با ساخت خروجی تأیید شد. */
+@plugin "tailwindcss-animate";
+
 @custom-variant dark (&:where(.dark, .dark *));
 /* ==================== Tailwind v4 Theme Configuration ==================== */
 @theme {

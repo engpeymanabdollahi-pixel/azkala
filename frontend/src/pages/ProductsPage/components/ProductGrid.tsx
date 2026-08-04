@@ -103,12 +103,13 @@ export function ProductGrid({
             : 'flex flex-col'
         )}
       >
-        {products.map((product) => (
+        {products.map((product, index) => (
           <ProductCard
             key={product.id}
             product={product}
             onClick={() => onViewProduct(product)}
             variant={layoutMode}
+            index={index}
           />
         ))}
       </div>
