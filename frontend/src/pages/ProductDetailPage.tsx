@@ -361,17 +361,63 @@ useEffect(() => {
   // ==================== Loading State ====================
   if (isLoading) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-          <div className="h-8 bg-white rounded-xl mb-4 animate-pulse" />
+          {/* Breadcrumb Skeleton */}
+          <div className="h-8 bg-white dark:bg-gray-800 rounded-xl mb-4 animate-pulse" />
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-            <div className="aspect-square bg-white rounded-2xl animate-pulse" />
+            {/* Image Gallery Skeleton */}
             <div className="space-y-3">
-              <div className="h-7 bg-white rounded-xl animate-pulse" />
-              <div className="h-5 w-3/4 bg-white rounded-xl animate-pulse" />
-              <div className="h-28 bg-white rounded-2xl animate-pulse" />
-              <div className="h-20 bg-white rounded-xl animate-pulse" />
-              <div className="h-32 bg-white rounded-xl animate-pulse" />
+              <div className="aspect-square bg-white dark:bg-gray-800 rounded-2xl animate-pulse shadow-lg" />
+              <div className="grid grid-cols-4 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="aspect-square bg-white dark:bg-gray-800 rounded-xl animate-pulse"
+                    style={{ animationDelay: `${i * 100}ms` }}
+                  />
+                ))}
+              </div>
+            </div>
+            
+            {/* Product Info Skeleton */}
+            <div className="space-y-4">
+              <div className="h-7 w-3/4 bg-white dark:bg-gray-800 rounded-xl animate-pulse" style={{ animationDelay: '0ms' }} />
+              <div className="h-5 w-1/2 bg-white dark:bg-gray-800 rounded-xl animate-pulse" style={{ animationDelay: '50ms' }} />
+              <div className="flex gap-2">
+                <div className="h-6 w-20 bg-white dark:bg-gray-800 rounded-full animate-pulse" style={{ animationDelay: '100ms' }} />
+                <div className="h-6 w-20 bg-white dark:bg-gray-800 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+              </div>
+              <div className="h-20 bg-white dark:bg-gray-800 rounded-2xl animate-pulse shadow-sm" style={{ animationDelay: '200ms' }} />
+              <div className="h-16 bg-white dark:bg-gray-800 rounded-xl animate-pulse" style={{ animationDelay: '250ms' }} />
+              <div className="flex gap-3">
+                <div className="h-12 flex-1 bg-white dark:bg-gray-800 rounded-xl animate-pulse" style={{ animationDelay: '300ms' }} />
+                <div className="h-12 flex-1 bg-white dark:bg-gray-800 rounded-xl animate-pulse" style={{ animationDelay: '350ms' }} />
+              </div>
+              <div className="h-32 bg-white dark:bg-gray-800 rounded-xl animate-pulse shadow-sm" style={{ animationDelay: '400ms' }} />
+            </div>
+          </div>
+          
+          {/* Tabs & Reviews Skeleton */}
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              {[...Array(4)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="h-10 w-24 bg-white dark:bg-gray-800 rounded-xl animate-pulse"
+                  style={{ animationDelay: `${450 + i * 50}ms` }}
+                />
+              ))}
+            </div>
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="h-24 bg-white dark:bg-gray-800 rounded-2xl animate-pulse"
+                  style={{ animationDelay: `${600 + i * 100}ms` }}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -383,24 +429,31 @@ useEffect(() => {
   if (error || !product) {
     const isNotFound = error?.includes('یافت نشد');
     return (
-      <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-6 text-center">
+      <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className={cn(
-            'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg',
+            'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg transition-transform duration-300 hover:scale-110',
             isNotFound ? 'bg-gradient-to-br from-warning-500 to-warning-600' : 'bg-gradient-to-br from-error-500 to-error-600'
           )}>
             {isNotFound ? <Search className="w-8 h-8 text-white" /> : <AlertCircle className="w-8 h-8 text-white" />}
           </div>
-          <h2 className="text-xl font-black text-gray-900 mb-2">
+          <h2 className="text-xl font-black text-gray-900 dark:text-gray-100 mb-2">
             {isNotFound ? 'محصول یافت نشد' : 'خطا در بارگذاری'}
           </h2>
-          <p className="text-gray-600 text-sm mb-5">{error || 'مشکلی رخ داد'}</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-5">{error || 'مشکلی رخ داد'}</p>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate('/products')} className="flex-1">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/products')} 
+              className="flex-1 focus-visible:ring-2 focus-visible:ring-primary-500"
+            >
               مشاهده محصولات
             </Button>
             {!isNotFound && (
-              <Button onClick={() => window.location.reload()} className="flex-1">
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="flex-1 focus-visible:ring-2 focus-visible:ring-primary-500"
+              >
                 تلاش مجدد
               </Button>
             )}
