@@ -25,7 +25,7 @@ export function Button({
 }: ButtonProps) {
   const variants = {
     primary: 
-      'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 active:from-primary-700 active:to-primary-800 shadow-lg shadow-primary-500/30 dark:shadow-primary-900/40',
+      'bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 active:from-primary-700 active:to-primary-800 shadow-lg shadow-primary-500/30 dark:from-primary-600 dark:to-primary-500 dark:hover:from-primary-700 dark:hover:to-primary-600 dark:shadow-primary-900/40',
     secondary: 
       'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600',
     outline: 
@@ -33,9 +33,9 @@ export function Button({
     ghost: 
       'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-800 dark:active:bg-gray-700',
     danger: 
-      'bg-gradient-to-r from-error-500 to-error-600 text-white hover:from-error-600 hover:to-error-700 active:from-error-700 active:to-error-800 shadow-lg shadow-error-500/30 dark:shadow-error-900/40',
+      'bg-gradient-to-r from-error-500 to-error-600 text-white hover:from-error-600 hover:to-error-700 active:from-error-700 active:to-error-800 shadow-lg shadow-error-500/30 dark:from-error-600 dark:to-error-500 dark:hover:from-error-700 dark:hover:to-error-600 dark:shadow-error-900/40',
     accent: 
-      'bg-gradient-to-r from-accent-500 to-accent-600 text-white hover:from-accent-600 hover:to-accent-700 active:from-accent-700 active:to-accent-800 shadow-lg shadow-accent-500/30 dark:shadow-accent-900/40',
+      'bg-gradient-to-r from-accent-500 to-accent-600 text-white hover:from-accent-600 hover:to-accent-700 active:from-accent-700 active:to-accent-800 shadow-lg shadow-accent-500/30 dark:from-accent-600 dark:to-accent-500 dark:hover:from-accent-700 dark:hover:to-accent-600 dark:shadow-accent-900/40',
   };
 
   const sizes = {
