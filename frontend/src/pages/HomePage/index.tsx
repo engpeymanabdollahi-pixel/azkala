@@ -145,7 +145,7 @@ export function HomePage() {
   const isTimerExpired = timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0;
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-900 min-h-screen pb-20 md:pb-0 transition-colors duration-300">
+    <div className="min-h-screen pb-20 md:pb-0 transition-colors duration-300 bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Dev Indicator */}
       {import.meta.env.DEV && (
         <div className={cn(
@@ -156,10 +156,10 @@ export function HomePage() {
         </div>
       )}
 
-      {/* Scroll Progress */}
-      <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-gray-200 dark:bg-slate-800" role="progressbar">
+      {/* Scroll Progress with Multi-color Gradient */}
+      <div className="fixed top-0 left-0 right-0 z-[100] h-1.5 bg-gray-200 dark:bg-slate-800" role="progressbar">
         <div 
-          className="h-full bg-gradient-to-r from-primary-500 via-accent-500 to-primary-500 transition-all duration-150"
+          className="h-full bg-gradient-to-r from-primary-500 via-accent-500 via-success-500 via-warning-500 to-primary-500 transition-all duration-150 shadow-lg"
           style={{ width: `${scrollProgress}%` }}
         />
       </div>
@@ -300,17 +300,27 @@ export function HomePage() {
 
       {/* 3. Trust Bar */}
       <SectionErrorBoundary sectionName="Trust Bar">
-        <section className="py-10 bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+        <section className="py-10 bg-gradient-to-r from-white via-primary-50/30 to-accent-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 border-b border-gray-100 dark:border-slate-700 backdrop-blur-sm">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {TRUST_BADGES.map((badge, idx) => {
                 const Icon = badge.icon;
+                const gradients = [
+                  'from-pink-500 to-rose-500',
+                  'from-purple-500 to-indigo-500',
+                  'from-blue-500 to-cyan-500',
+                  'from-emerald-500 to-teal-500',
+                  'from-orange-500 to-amber-500',
+                  'from-red-500 to-pink-500'
+                ];
+                const gradient = gradients[idx % gradients.length];
                 return (
-                  <div key={idx} className="flex flex-col items-center text-center group cursor-default">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+                  <div key={idx} className="group relative flex flex-col items-center text-center cursor-default">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 rounded-2xl blur-xl transition-opacity duration-500`} />
+                    <div className={`relative w-16 h-16 bg-gradient-to-br ${gradient} dark:from-slate-700 dark:to-slate-600 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg group-hover:shadow-xl`}>
+                      <Icon className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{badge.title}</h3>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{badge.title}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{badge.description}</p>
                   </div>
                 );
@@ -322,46 +332,76 @@ export function HomePage() {
 
       {/* 4. Categories Grid */}
       <SectionErrorBoundary sectionName="Categories">
-        <section className="py-12 bg-gray-50 dark:bg-slate-900">
+        <section className="py-12 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-slate-800/30 dark:to-transparent">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30">
-                  <Package className="w-6 h-6 text-white" />
+                <div className="relative w-12 h-12">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-accent-500 to-success-500 rounded-2xl blur-lg opacity-50 animate-pulse" />
+                  <div className="relative w-12 h-12 bg-gradient-to-br from-primary-500 via-accent-500 to-success-500 rounded-2xl flex items-center justify-center shadow-xl shadow-primary-500/30">
+                    <Package className="w-6 h-6 text-white" />
+                  </div>
                 </div>
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 dark:text-white">دسته‌بندی محصولات</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">انتخاب از بین هزاران محصول باکیفیت</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate('/products')} className="hidden md:flex btn-outline-enhanced">
-                مشاهده همه <ArrowLeft className="w-4 h-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={() => navigate('/products')} className="hidden md:flex btn-outline-enhanced group">
+                مشاهده همه <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
               </Button>
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-              {activeCategories.map((cat, index) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat.id)}
-                  className="group relative bg-white dark:bg-slate-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-2xl p-6 border-2 border-gray-100 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 transition-all hover:shadow-xl hover:-translate-y-2 overflow-hidden animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl" />
-                  <div className="relative z-10 flex flex-col items-center text-center">
-                    <div className="text-4xl mb-3 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500">
-                      {cat.icon || '📦'}
+              {activeCategories.map((cat, index) => {
+                const categoryGradients = [
+                  'from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600',
+                  'from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600',
+                  'from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600',
+                  'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600',
+                  'from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600',
+                  'from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600',
+                  'from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600',
+                  'from-fuchsia-500 to-pink-500 hover:from-fuchsia-600 hover:to-pink-600'
+                ];
+                const gradient = categoryGradients[index % categoryGradients.length];
+                
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryClick(cat.id)}
+                    className={`group relative bg-white dark:bg-slate-800 rounded-2xl p-6 border-2 border-gray-100 dark:border-slate-700 overflow-hidden animate-fade-in hover:shadow-2xl hover:-translate-y-2 transition-all duration-500`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Animated Background Gradient */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
+                    
+                    {/* Gradient Border on Hover */}
+                    <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} style={{ background: `linear-gradient(135deg, transparent 2px, rgba(0,0,0,0) 2px)`, padding: '2px' }}>
+                      <div className={`w-full h-full rounded-2xl bg-gradient-to-br ${gradient} opacity-20 blur-sm`} />
                     </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-1 group-hover:text-primary-700 dark:group-hover:text-primary-400 transition-colors line-clamp-1">
-                      {cat.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                      <span>{cat.products_count || 0} محصول</span>
-                      <ChevronLeft className="w-3 h-3 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                    </p>
-                  </div>
-                </button>
-              ))}
+                    
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                      {/* Glow Effect */}
+                      <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${gradient} rounded-full opacity-0 group-hover:opacity-30 transition-opacity blur-3xl`} />
+                      
+                      {/* Icon with Gradient Background */}
+                      <div className={`text-4xl mb-3 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-500 drop-shadow-lg`}>
+                        {cat.icon || '📦'}
+                      </div>
+                      
+                      <h3 className={`font-bold text-gray-900 dark:text-white text-sm mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r ${gradient} transition-all line-clamp-1`}>
+                        {cat.name}
+                      </h3>
+                      
+                      <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <span>{cat.products_count || 0} محصول</span>
+                        <ChevronLeft className="w-3 h-3 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-500" />
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -563,15 +603,19 @@ export function HomePage() {
 
       {/* 8. Features (Why Azkala) */}
       <SectionErrorBoundary sectionName="Features">
-        <section className="py-20 bg-gray-50 dark:bg-slate-900">
-          <div className="container mx-auto px-4">
+        <section className="py-20 bg-gradient-to-b from-gray-50 via-white to-primary-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 relative overflow-hidden">
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-gradient-to-br from-primary-200/20 to-accent-200/20 dark:from-primary-900/10 dark:to-accent-900/10 rounded-full blur-3xl opacity-50" />
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-success-200/20 to-warning-200/20 dark:from-success-900/10 dark:to-warning-900/10 rounded-full blur-3xl opacity-50" />
+          
+          <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-14">
-              <Badge className="mb-4 px-4 py-2 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
+              <Badge className="mb-4 px-4 py-2 bg-gradient-to-r from-primary-100 to-accent-100 dark:bg-gradient-to-r dark:from-primary-900/30 dark:to-accent-900/30 text-primary-700 dark:text-primary-300 border-none shadow-lg">
                 <Sparkles className="w-4 h-4 ml-1" />
                 چرا ازکالا؟
               </Badge>
-              <h2 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-4">
-                مزایای خرید از <span className="text-primary-600">ازکالا</span>
+              <h2 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-accent-600 to-primary-600 dark:from-primary-400 dark:via-accent-400 dark:to-primary-400 mb-4 animate-pulse">
+                مزایای خرید از <span className="text-primary-600 dark:text-primary-400">ازکالا</span>
               </h2>
               <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto text-lg">
                 تجربه خرید آسان، سریع و مطمئن با بهترین خدمات پس از فروش و تضمین سازگاری
@@ -581,16 +625,43 @@ export function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {FEATURES.map((item, i) => {
                 const Icon = item.icon;
+                const featureGradients = [
+                  'from-pink-500 to-rose-500',
+                  'from-purple-500 to-indigo-500',
+                  'from-blue-500 to-cyan-500',
+                  'from-emerald-500 to-teal-500'
+                ];
+                const gradient = featureGradients[i % featureGradients.length];
+                
                 return (
-                  <div key={i} className="card-enhanced group p-8 hover:-translate-y-3">
-                    <div className="relative mb-6">
-                      <div className={cn('absolute inset-0 bg-gradient-to-br rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity', item.gradient)} />
-                      <div className={cn('relative w-20 h-20 rounded-3xl bg-gradient-to-br flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500', item.gradient)}>
-                        <Icon className="w-10 h-10 text-white" />
-                      </div>
+                  <div key={i} className="card-enhanced group relative p-8 hover:-translate-y-3 overflow-hidden">
+                    {/* Animated Background Glow */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 rounded-3xl transition-opacity duration-500`} />
+                    
+                    {/* Gradient Border on Hover */}
+                    <div className={`absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} style={{ padding: '2px' }}>
+                      <div className={`w-full h-full rounded-3xl bg-gradient-to-br ${gradient} opacity-20 blur-md`} />
                     </div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 group-hover:text-primary-600 transition-colors">{item.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">{item.desc}</p>
+                    
+                    <div className="relative">
+                      <div className="relative mb-6">
+                        {/* Glow Effect Behind Icon */}
+                        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`} />
+                        
+                        {/* Icon Container with Gradient */}
+                        <div className={`relative w-20 h-20 rounded-3xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+                          <Icon className="w-10 h-10 text-white" />
+                        </div>
+                      </div>
+                      
+                      <h3 className={`text-xl font-black text-gray-900 dark:text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r ${gradient} transition-all duration-300`}>
+                        {item.title}
+                      </h3>
+                      
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-sm group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                        {item.desc}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
@@ -673,40 +744,90 @@ export function HomePage() {
 
       {/* 10. Payment & Shipping */}
       <SectionErrorBoundary sectionName="Payment & Shipping">
-        <section className="py-16 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
+        <section className="py-16 bg-gradient-to-r from-white via-primary-50/20 to-accent-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-gray-100 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/10 dark:to-slate-800 rounded-3xl p-8 border-2 border-primary-100 dark:border-primary-900/30">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <CreditCard className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white">روش‌های پرداخت امن</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {PAYMENT_METHODS.map((method, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all">
-                      <span className="text-3xl">{method.icon}</span>
-                      <span className="font-bold text-gray-900 dark:text-white text-sm">{method.name}</span>
+              {/* Payment Methods */}
+              <div className="group relative bg-gradient-to-br from-primary-50 via-white to-primary-50 dark:from-primary-900/10 dark:via-slate-800 dark:to-primary-900/10 rounded-3xl p-8 border-2 border-primary-100 dark:border-primary-900/30 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                {/* Decorative Glow */}
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-primary-200 to-accent-200 dark:from-primary-900/30 dark:to-accent-900/30 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-700" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="relative w-12 h-12">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity" />
+                      <div className="relative w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-xl">
+                        <CreditCard className="w-6 h-6 text-white" />
+                      </div>
                     </div>
-                  ))}
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white">روش‌های پرداخت امن</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {PAYMENT_METHODS.map((method, idx) => {
+                      const methodColors = [
+                        'from-pink-500 to-rose-500',
+                        'from-purple-500 to-indigo-500',
+                        'from-blue-500 to-cyan-500',
+                        'from-emerald-500 to-teal-500'
+                      ];
+                      const color = methodColors[idx % methodColors.length];
+                      
+                      return (
+                        <div key={idx} className={`group/method relative flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700 hover:border-transparent hover:shadow-lg transition-all overflow-hidden`}>
+                          {/* Gradient Background on Hover */}
+                          <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover/method:opacity-10 transition-opacity duration-300`} />
+                          
+                          <span className="relative text-3xl group-hover/method:scale-125 group-hover/method:rotate-12 transition-transform duration-300">{method.icon}</span>
+                          <span className="relative font-bold text-gray-900 dark:text-white text-sm group-hover/method:text-transparent group-hover/method:bg-clip-text group-hover/method:bg-gradient-to-r group-hover/method:from-gray-900 group-hover/method:to-gray-600 dark:group-hover/method:from-white dark:group-hover/method:to-gray-300 transition-all">
+                            {method.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-success-50 to-white dark:from-success-900/10 dark:to-slate-800 rounded-3xl p-8 border-2 border-success-100 dark:border-success-900/30">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Truck className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-black text-gray-900 dark:text-white">شرکای ارسال سریع</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {SHIPPING_PARTNERS.map((partner, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700 hover:border-success-300 dark:hover:border-success-700 hover:shadow-md transition-all">
-                      <span className="text-3xl">{partner.icon}</span>
-                      <span className="font-bold text-gray-900 dark:text-white text-sm">{partner.name}</span>
+              {/* Shipping Partners */}
+              <div className="group relative bg-gradient-to-br from-success-50 via-white to-success-50 dark:from-success-900/10 dark:via-slate-800 dark:to-success-900/10 rounded-3xl p-8 border-2 border-success-100 dark:border-success-900/30 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                {/* Decorative Glow */}
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-success-200 to-warning-200 dark:from-success-900/30 dark:to-warning-900/30 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-700" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="relative w-12 h-12">
+                      <div className="absolute inset-0 bg-gradient-to-br from-success-500 to-success-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity" />
+                      <div className="relative w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-2xl flex items-center justify-center shadow-xl">
+                        <Truck className="w-6 h-6 text-white" />
+                      </div>
                     </div>
-                  ))}
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white">شرکای ارسال سریع</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {SHIPPING_PARTNERS.map((partner, idx) => {
+                      const partnerColors = [
+                        'from-orange-500 to-amber-500',
+                        'from-red-500 to-pink-500',
+                        'from-violet-500 to-purple-500',
+                        'from-fuchsia-500 to-pink-500'
+                      ];
+                      const color = partnerColors[idx % partnerColors.length];
+                      
+                      return (
+                        <div key={idx} className={`group/partner relative flex items-center gap-3 bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-100 dark:border-slate-700 hover:border-transparent hover:shadow-lg transition-all overflow-hidden`}>
+                          {/* Gradient Background on Hover */}
+                          <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover/partner:opacity-10 transition-opacity duration-300`} />
+                          
+                          <span className="relative text-3xl group-hover/partner:scale-125 group-hover/partner:rotate-12 transition-transform duration-300">{partner.icon}</span>
+                          <span className="relative font-bold text-gray-900 dark:text-white text-sm group-hover/partner:text-transparent group-hover/partner:bg-clip-text group-hover/partner:bg-gradient-to-r group-hover/partner:from-gray-900 group-hover/partner:to-gray-600 dark:group-hover/partner:from-white dark:group-hover/partner:to-gray-300 transition-all">
+                            {partner.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
@@ -716,23 +837,38 @@ export function HomePage() {
 
       {/* 11. Newsletter */}
       <SectionErrorBoundary sectionName="Newsletter">
-        <section className="py-16 bg-gray-50 dark:bg-slate-900 border-t dark:border-slate-800">
+        <section className="py-16 bg-gradient-to-b from-gray-50 via-white to-primary-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-t border-gray-100 dark:border-slate-800">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
-              <div className="bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-primary-900/20 dark:via-slate-800 dark:to-accent-900/20 rounded-3xl p-10 md:p-14 border-2 border-primary-100 dark:border-primary-900/30 relative overflow-hidden">
-                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary-200 dark:bg-primary-900/30 rounded-full blur-3xl opacity-30" />
-                <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-accent-200 dark:bg-accent-900/30 rounded-full blur-3xl opacity-30" />
+              <div className="group relative bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-primary-900/20 dark:via-slate-800 dark:to-accent-900/20 rounded-[2.5rem] p-10 md:p-14 border-2 border-primary-100 dark:border-primary-900/30 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                {/* Animated Background Orbs */}
+                <div className="absolute -top-32 -right-32 w-80 h-80 bg-gradient-to-br from-primary-300 to-accent-300 dark:from-primary-900/40 dark:to-accent-900/40 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 animate-pulse" />
+                <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-br from-accent-300 to-success-300 dark:from-accent-900/40 dark:to-success-900/40 rounded-full blur-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 animate-pulse" style={{ animationDelay: '1s' }} />
                 
                 <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
-                    <Gift className="w-8 h-8 text-white" />
+                  {/* Gift Icon with Glow */}
+                  <div className="relative w-20 h-20 mx-auto mb-6">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary-500 via-accent-500 to-success-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity animate-pulse" />
+                    <div className="relative w-20 h-20 bg-gradient-to-br from-primary-500 via-accent-500 to-success-500 rounded-2xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                      <Gift className="w-10 h-10 text-white" />
+                    </div>
                   </div>
-                  <h3 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-3">عضویت در خبرنامه</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">از جدیدترین تخفیف‌ها و پیشنهادات ویژه باخبر شوید</p>
+                  
+                  <h3 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-600 via-accent-600 to-primary-600 dark:from-primary-400 dark:via-accent-400 dark:to-primary-400 mb-3 group-hover:animate-pulse">
+                    عضویت در خبرنامه
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                    از جدیدترین تخفیف‌ها و پیشنهادات ویژه باخبر شوید
+                  </p>
                   
                   {isSubscribed ? (
-                    <div className="bg-success-50 dark:bg-success-900/20 border-2 border-success-200 dark:border-success-800 rounded-2xl p-6 animate-fade-in">
-                      <CheckCircle className="w-12 h-12 text-success-500 mx-auto mb-3" />
+                    <div className="bg-gradient-to-br from-success-50 to-emerald-50 dark:from-success-900/20 dark:to-emerald-900/20 border-2 border-success-200 dark:border-success-800 rounded-2xl p-6 animate-fade-in">
+                      <div className="relative w-16 h-16 mx-auto mb-3">
+                        <div className="absolute inset-0 bg-gradient-to-br from-success-500 to-emerald-500 rounded-full blur-lg opacity-50" />
+                        <div className="relative w-16 h-16 bg-gradient-to-br from-success-500 to-emerald-500 rounded-full flex items-center justify-center shadow-xl">
+                          <CheckCircle className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
                       <p className="text-success-700 dark:text-success-400 font-bold text-lg">با موفقیت عضو شدید!</p>
                       <p className="text-success-600 dark:text-success-500 text-sm mt-2">از اینکه همراه ما هستید متشکریم</p>
                     </div>
@@ -740,21 +876,23 @@ export function HomePage() {
                     <form onSubmit={handleNewsletterSubmit} className="space-y-3">
                       <div className="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
                         <div className="flex-1 relative">
-                          <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-lg">
+                            <Mail className="w-4 h-4 text-white" />
+                          </div>
                           <input
                             type="email"
                             value={email}
                             onChange={(e) => handleEmailChange(e.target.value)}
                             placeholder="ایمیل خود را وارد کنید"
                             className={cn(
-                              "w-full pr-12 pl-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all text-right bg-white dark:bg-slate-800 dark:text-white",
+                              "w-full pr-14 pl-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-4 transition-all text-right bg-white dark:bg-slate-800 dark:text-white",
                               emailError ? "border-error-500 focus:border-error-500 focus:ring-error-100" : "border-gray-200 dark:border-slate-700 focus:border-primary-500 focus:ring-primary-100 dark:focus:ring-primary-900/30"
                             )}
                             required
                           />
                         </div>
-                        <Button type="submit" size="lg" className="whitespace-nowrap btn-primary-enhanced">
-                          <Gift className="w-5 h-5 ml-2" />
+                        <Button type="submit" size="lg" className="whitespace-nowrap btn-primary-enhanced group/btn">
+                          <Gift className="w-5 h-5 ml-2 group-hover/btn:rotate-12 transition-transform" />
                           عضویت
                         </Button>
                       </div>
@@ -763,7 +901,7 @@ export function HomePage() {
                   )}
                   
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                    با عضویت، با <a href="/terms" className="text-primary-600 hover:text-primary-700 font-medium underline">قوانین و مقررات</a> ازکالا موافقت می‌کنید
+                    با عضویت، با <a href="/terms" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium underline decoration-2 underline-offset-2 hover:decoration-primary-500 transition-all">قوانین و مقررات</a> ازکالا موافقت می‌کنید
                   </p>
                 </div>
               </div>
