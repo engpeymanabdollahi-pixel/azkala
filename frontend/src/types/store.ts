@@ -81,15 +81,19 @@ export type CartStore = CartState & CartActions;
 export interface UIState {
   isMobileMenuOpen: boolean;
   isSearchOpen: boolean;
-  theme: 'light' | 'dark';
+  // 'system' یعنی از ترجیح سیستم‌عامل پیروی کن. ThemeToggle این گزینه را ارائه
+  // می‌دهد، پس نوع باید بپذیردش وگرنه setTheme('system') کامپایل نمی‌شود.
+  theme: ThemePreference;
 }
+
+export type ThemePreference = 'light' | 'dark' | 'system';
 
 export interface UIActions {
   toggleMobileMenu: () => void;
   closeMobileMenu: () => void;
   toggleSearch: () => void;
   closeSearch: () => void;
-  setTheme: (theme: 'light' | 'dark') => void;
+  setTheme: (theme: ThemePreference) => void;
 }
 
 export type UIStore = UIState & UIActions;

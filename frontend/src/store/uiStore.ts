@@ -17,7 +17,14 @@ export const useUIStore = create<UIStore>()(
       closeSearch: () => set({ isSearchOpen: false }),
       setTheme: (theme) => {
         set({ theme });
-        document.documentElement.classList.toggle('dark', theme === 'dark');
+        // 'system' ذخیره می‌شود ولی برای اعمال باید به تیره/روشن ترجمه شود،
+        // وگرنه کلاس dark هیچ‌وقت ست نمی‌شود و انتخاب کاربر بی‌اثر می‌ماند.
+        const isDark =
+          theme === 'dark' ||
+          (theme === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+        document.documentElement.classList.toggle('dark', isDark);
       },
     }),
     {

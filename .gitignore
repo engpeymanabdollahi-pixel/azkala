@@ -2,6 +2,14 @@
 node_modules/
 vendor/
 
+# npm در جای اشتباه اجرا شده: پروژه فقط یک package.json دارد، در frontend/.
+# تا الان دو بار lockfile سرگردان وارد شده — یکی در ریشه، یکی در backend/ که
+# اصلاً پروژه‌ی PHP است.
+/package.json
+/package-lock.json
+backend/package.json
+backend/package-lock.json
+
 # Build outputs
 frontend/dist/
 frontend/build/
