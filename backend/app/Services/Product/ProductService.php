@@ -117,7 +117,10 @@ class ProductService
         return Cache::remember('featured_products_' . $limit, 3600, function () use ($limit) {
             return Product::where('is_featured', true)
                 ->where('is_active', true)
-                ->with(['brand', 'category'])
+                // images و seller هم لازم‌اند چون ProductResource می‌خواندشان.
+                // کش این را پنهان می‌کرد: فقط در cache miss یک کوئری اضافه به‌ازای
+                // هر محصول زده می‌شد، که در شمارش کوئری روی درخواست دوم دیده نمی‌شد.
+                ->with(['brand', 'category', 'images', 'seller'])
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
                 ->get();

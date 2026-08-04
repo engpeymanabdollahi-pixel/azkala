@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\EnsureAdminRole;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
+use Throwable;
 
 /**
  * Structural guards for the API route table.
@@ -24,6 +26,66 @@ use Tests\TestCase;
  */
 class RoutingIntegrityTest extends TestCase
 {
+    /**
+     * A literal route registered after a wildcard that also matches it is
+     * unreachable: Laravel returns the first route whose pattern matches, so
+     * the wildcard wins and the literal segment arrives as a route parameter.
+     * The symptom is a 404 from implicit binding, or a TypeError - never
+     * anything that points at the route file.
+     *
+     * This has now happened six times in routes/api.php: admin/products/templates,
+     * seller/products/{id}/history, cart/clear (which reached destroy() with
+     * "clear" as the id), admin/categories/reorder, and products/my-products,
+     * where the authenticated route sat in a later group than the public
+     * products/{product} that swallowed it - so "my purchased products" 404'd
+     * for everyone while the frontend went on calling it.
+     *
+     * Reading the file does not catch this, because the two routes are often
+     * hundreds of lines and several groups apart. Asking the router which route
+     * actually answers each literal URI does.
+     */
+    public function test_no_literal_route_is_shadowed_by_an_earlier_wildcard(): void
+    {
+        $routes = Route::getRoutes();
+        $shadowed = [];
+
+        foreach ($routes as $route) {
+            // Only literal URIs can be probed; inventing values for a
+            // parameterised URI would not prove anything about matching order.
+            if (str_contains($route->uri(), '{')) {
+                continue;
+            }
+
+            foreach ($route->methods() as $method) {
+                if (in_array($method, ['HEAD', 'OPTIONS'], true)) {
+                    continue;
+                }
+
+                try {
+                    $matched = $routes->match(Request::create('/'.ltrim($route->uri(), '/'), $method));
+                } catch (Throwable) {
+                    // Unroutable in isolation (e.g. needs a host or a body) - not a shadowing question.
+                    continue;
+                }
+
+                if ($matched->getActionName() !== $route->getActionName()) {
+                    $shadowed[$method.' '.$route->uri()] = sprintf(
+                        'declared %s but %s answers it',
+                        $route->getActionName(),
+                        $matched->getActionName()
+                    );
+                }
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $shadowed,
+            "These routes are registered but unreachable - an earlier pattern matches their URI first:\n  ".
+            implode("\n  ", array_map(fn ($k, $v) => "{$k}: {$v}", array_keys($shadowed), $shadowed))
+        );
+    }
+
     /**
      * A duplicated name silently evicts the earlier route from the name lookup,
      * so route() starts resolving to a different URL than the author intended.

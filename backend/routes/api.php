@@ -116,6 +116,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
+        // نیازمند ورود است، ولی باید همین‌جا — قبل از /{product} — ثبت شود.
+        // قبلاً پایین‌تر داخل گروه auth:sanctum بود، یعنی بعد از wildcard، پس
+        // «my-products» به‌عنوان شناسه‌ی محصول تفسیر می‌شد و ۴۰۴ می‌گرفت.
+        Route::get('/my-products', [ProductController::class, 'myProducts'])
+            ->middleware('auth:sanctum')
+            ->name('my-products');
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
        

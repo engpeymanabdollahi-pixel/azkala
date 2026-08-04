@@ -259,6 +259,60 @@ class RevivedEndpointsTest extends TestCase
         $this->getJson("/api/v1/chat/conversations/{$conversation->id}")->assertStatus(401);
     }
 
+    // ------------------------------------------------------------ my products
+
+    /**
+     * GET /products/my-products lived in the authenticated group, which is
+     * registered after the public products/{product}. The wildcard matched
+     * first, so "my-products" was treated as a product id and implicit binding
+     * answered 404 - for every caller, while product.service.ts kept calling it.
+     * The route is now declared before the wildcard, still behind auth:sanctum.
+     */
+    public function test_my_products_is_reachable_and_lists_only_purchased_products(): void
+    {
+        $purchased = Product::factory()->create(['is_active' => true, 'name' => 'خریداری‌شده']);
+        Product::factory()->create(['is_active' => true, 'name' => 'خریداری‌نشده']);
+
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => 'delivered',
+            'payment_status' => 'paid',
+        ]);
+        \App\Models\OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $purchased->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/v1/products/my-products')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $names = collect($response->json('data.data'))->pluck('name')->all();
+        $this->assertContains('خریداری‌شده', $names);
+        $this->assertNotContains('خریداری‌نشده', $names);
+    }
+
+    /**
+     * Moving the route out of the auth group must not have dropped its guard.
+     */
+    public function test_my_products_still_requires_authentication(): void
+    {
+        $this->getJson('/api/v1/products/my-products')->assertStatus(401);
+    }
+
+    /**
+     * The literal route must not shadow the wildcard it was placed in front of.
+     */
+    public function test_product_detail_still_resolves_after_the_reorder(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+
+        $this->getJson("/api/v1/products/{$product->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.product.id', $product->id);
+    }
+
     // ---------------------------------------------------------- removed routes
 
     /**

@@ -94,7 +94,8 @@ class ProductRepository extends BaseRepository
     public function getSpecialOffers(int $limit = 10): Collection
     {
         return $this->query()
-            ->with(['category', 'brand', 'images', 'deviceModels'])
+            // seller: ProductResource برای هر محصول loadMissing('seller') می‌زند.
+            ->with(['category', 'brand', 'images', 'deviceModels', 'seller'])
             ->where('is_active', true)
             ->where('is_special_offer', true)
             ->limit($limit)
@@ -162,7 +163,9 @@ class ProductRepository extends BaseRepository
         })->pluck('product_id')->unique();
 
         return $this->query()
-            ->with(['category', 'brand', 'images', 'deviceModels'])
+            // seller لازم است چون ProductResource برای هر محصول loadMissing('seller')
+            // می‌زند؛ بدون آن هر ردیف یک کوئری users جداگانه می‌ساخت.
+            ->with(['category', 'brand', 'images', 'deviceModels', 'seller'])
             ->whereIn('id', $purchasedProductIds)
             ->where('is_active', true)
             ->orderByDesc('updated_at')
