@@ -65,7 +65,7 @@ export function AdminMessageTemplatesPage() {
   const loadTemplates = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/message-templates', {
+      const res = await apiClient.get('/admin/chat-management/message-templates', {
         params: {
           category: categoryFilter !== 'all' ? categoryFilter : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -129,14 +129,14 @@ export function AdminMessageTemplatesPage() {
     setIsSaving(true);
     try {
       if (editingTemplate) {
-        const res = await apiClient.put(`/admin/message-templates/${editingTemplate.id}`, formData);
+        const res = await apiClient.put(`/admin/chat-management/message-templates/${editingTemplate.id}`, formData);
         if (res.data.success) {
           toast.success('قالب بروزرسانی شد');
           setShowFormModal(false);
           loadTemplates();
         }
       } else {
-        const res = await apiClient.post('/admin/message-templates', formData);
+        const res = await apiClient.post('/admin/chat-management/message-templates', formData);
         if (res.data.success) {
           toast.success('قالب ساخته شد');
           setShowFormModal(false);
@@ -154,7 +154,7 @@ export function AdminMessageTemplatesPage() {
     if (!confirm('آیا مطمئن هستید که می‌خواهید این قالب را حذف کنید؟')) return;
 
     try {
-      const res = await apiClient.delete(`/admin/message-templates/${id}`);
+      const res = await apiClient.delete(`/admin/chat-management/message-templates/${id}`);
       if (res.data.success) {
         toast.success('قالب حذف شد');
         loadTemplates();
@@ -168,7 +168,7 @@ export function AdminMessageTemplatesPage() {
 
   const handleToggle = async (id: number) => {
     try {
-      const res = await apiClient.post(`/admin/message-templates/${id}/toggle`);
+      const res = await apiClient.post(`/admin/chat-management/message-templates/${id}/toggle`);
       if (res.data.success) {
         toast.success(res.data.message);
         loadTemplates();
@@ -182,7 +182,7 @@ export function AdminMessageTemplatesPage() {
     if (!confirm('آیا می‌خواهید قالب‌های پیش‌فرض را ایجاد کنید؟')) return;
 
     try {
-      const res = await apiClient.post('/admin/message-templates/seed-defaults');
+      const res = await apiClient.post('/admin/chat-management/message-templates/seed-defaults');
       if (res.data.success) {
         toast.success('قالب‌های پیش‌فرض ایجاد شدند');
         loadTemplates();

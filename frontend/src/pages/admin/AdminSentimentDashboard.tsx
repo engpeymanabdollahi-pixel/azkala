@@ -61,9 +61,9 @@ export function AdminSentimentDashboard() {
     setIsLoading(true);
     try {
       const [dashRes, sellersRes, alertsRes] = await Promise.all([
-        apiClient.get('/admin/sentiment/dashboard'),
-        apiClient.get('/admin/sentiment/top-sellers'),
-        apiClient.get('/admin/sentiment/alerts'),
+        apiClient.get('/admin/chat-management/sentiment/dashboard'),
+        apiClient.get('/admin/chat-management/sentiment/top-sellers'),
+        apiClient.get('/admin/chat-management/sentiment/alerts'),
       ]);
 
       if (dashRes.data.success) setDashboardData(dashRes.data.data);

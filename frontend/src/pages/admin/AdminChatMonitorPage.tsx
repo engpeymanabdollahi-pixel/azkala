@@ -100,7 +100,7 @@ export function AdminChatMonitorPage() {
   const loadConversations = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/chat-monitor', {
+      const res = await apiClient.get('/admin/chat-management/monitor', {
         params: {
           status: statusFilter !== 'all' ? statusFilter : undefined,
           messages_count: messagesCountFilter !== 'all' ? messagesCountFilter : undefined,
@@ -122,7 +122,7 @@ export function AdminChatMonitorPage() {
 
   const loadStats = async () => {
     try {
-      const res = await apiClient.get('/admin/chat-monitor/stats');
+      const res = await apiClient.get('/admin/chat-management/monitor/stats');
       if (res.data.success) {
         setStats(res.data.data);
       }
@@ -144,7 +144,7 @@ export function AdminChatMonitorPage() {
 
   const handleViewDetail = async (conv: Conversation) => {
     try {
-      const res = await apiClient.get(`/admin/chat-monitor/${conv.id}`);
+      const res = await apiClient.get(`/admin/chat-management/monitor/${conv.id}`);
       if (res.data.success) {
         setSelectedConversation(conv);
         setConversationMessages(res.data.data.messages);
@@ -161,7 +161,7 @@ export function AdminChatMonitorPage() {
 
     setIsSending(true);
     try {
-      const res = await apiClient.post(`/admin/chat-monitor/${selectedConversation.id}/intervene`, {
+      const res = await apiClient.post(`/admin/chat-management/monitor/${selectedConversation.id}/intervene`, {
         message: adminMessage,
       });
       if (res.data.success) {
@@ -181,7 +181,7 @@ export function AdminChatMonitorPage() {
     if (!confirm('آیا مطمئن هستید که می‌خواهید این مکالمه را ببندید؟')) return;
 
     try {
-      const res = await apiClient.post(`/admin/chat-monitor/${selectedConversation.id}/close`);
+      const res = await apiClient.post(`/admin/chat-management/monitor/${selectedConversation.id}/close`);
       if (res.data.success) {
         toast.success('مکالمه بسته شد');
         setShowDetailModal(false);

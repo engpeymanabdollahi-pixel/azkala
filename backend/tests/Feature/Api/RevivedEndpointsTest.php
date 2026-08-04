@@ -313,6 +313,45 @@ class RevivedEndpointsTest extends TestCase
             ->assertJsonPath('data.product.id', $product->id);
     }
 
+    // ----------------------------------------------------------------- brands
+
+    /**
+     * brand.service.ts called /brands/slug/{slug}, mirroring the existing
+     * /products/slug/{slug}, but no such route was ever registered - so it 404'd
+     * every time. Added, and placed before /brands/{brand} so "slug" is not
+     * taken for a brand id.
+     */
+    public function test_a_brand_can_be_fetched_by_slug(): void
+    {
+        $brand = \App\Models\Brand::factory()->create(['slug' => 'apple', 'is_active' => true]);
+
+        $this->getJson('/api/v1/brands/slug/apple')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $brand->id);
+    }
+
+    public function test_an_unknown_brand_slug_returns_404(): void
+    {
+        $this->getJson('/api/v1/brands/slug/does-not-exist')->assertStatus(404);
+    }
+
+    public function test_an_inactive_brand_is_not_exposed_by_slug(): void
+    {
+        \App\Models\Brand::factory()->create(['slug' => 'hidden', 'is_active' => false]);
+
+        $this->getJson('/api/v1/brands/slug/hidden')->assertStatus(404);
+    }
+
+    public function test_fetching_a_brand_by_id_still_works(): void
+    {
+        $brand = \App\Models\Brand::factory()->create(['is_active' => true]);
+
+        $this->getJson("/api/v1/brands/{$brand->id}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.id', $brand->id);
+    }
+
     // ---------------------------------------------------------- removed routes
 
     /**

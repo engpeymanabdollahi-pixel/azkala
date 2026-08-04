@@ -79,7 +79,7 @@ export function AdminChatReportsPage() {
   const loadReports = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/chat-reports', {
+      const res = await apiClient.get('/admin/chat-management/reports', {
         params: {
           status: statusFilter !== 'all' ? statusFilter : undefined,
           reason: reasonFilter !== 'all' ? reasonFilter : undefined,
@@ -101,7 +101,7 @@ export function AdminChatReportsPage() {
 
   const loadStats = async () => {
     try {
-      const res = await apiClient.get('/admin/chat-reports/stats');
+      const res = await apiClient.get('/admin/chat-management/reports/stats');
       if (res.data.success) {
         setStats(res.data.data);
       }
@@ -123,7 +123,7 @@ export function AdminChatReportsPage() {
 
   const handleViewDetail = async (report: ChatReport) => {
     try {
-      const res = await apiClient.get(`/admin/chat-reports/${report.id}`);
+      const res = await apiClient.get(`/admin/chat-management/reports/${report.id}`);
       if (res.data.success) {
         setSelectedReport(res.data.data);
         setShowDetailModal(true);
@@ -137,7 +137,7 @@ export function AdminChatReportsPage() {
     if (!selectedReport) return;
 
     try {
-      const res = await apiClient.post(`/admin/chat-reports/${selectedReport.id}/action`, {
+      const res = await apiClient.post(`/admin/chat-management/reports/${selectedReport.id}/action`, {
         action,
         reason: actionReason || undefined,
       });

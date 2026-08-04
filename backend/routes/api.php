@@ -95,6 +95,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
     Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
     Route::get('/brands', [BrandController::class, 'index'])->name('brands.index');
+    // قبل از /{brand} — وگرنه «slug» به‌عنوان شناسه‌ی برند تفسیر می‌شود.
+    Route::get('/brands/slug/{slug}', [BrandController::class, 'bySlug'])->name('brands.by-slug');
     Route::get('/brands/{brand}', [BrandController::class, 'show'])->name('brands.show');
 
     Route::prefix('devices')->name('devices.')->group(function () {

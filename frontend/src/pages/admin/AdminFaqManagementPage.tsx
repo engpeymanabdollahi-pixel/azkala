@@ -87,7 +87,7 @@ export function AdminFaqManagementPage() {
   const loadFaqs = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/faq-management', {
+      const res = await apiClient.get('/admin/chat-management/faq', {
         params: {
           category: categoryFilter !== 'all' ? categoryFilter : undefined,
           status: statusFilter !== 'all' ? statusFilter : undefined,
@@ -110,7 +110,7 @@ export function AdminFaqManagementPage() {
 
   const loadStats = async () => {
     try {
-      const res = await apiClient.get('/admin/faq-management/stats');
+      const res = await apiClient.get('/admin/chat-management/faq/stats');
       if (res.data.success) {
         setStats(res.data.data);
       }
@@ -161,7 +161,7 @@ export function AdminFaqManagementPage() {
     setIsSaving(true);
     try {
       if (editingFaq) {
-        const res = await apiClient.put(`/admin/faq-management/${editingFaq.id}`, formData);
+        const res = await apiClient.put(`/admin/chat-management/faq/${editingFaq.id}`, formData);
         if (res.data.success) {
           toast.success('FAQ بروزرسانی شد');
           setShowFormModal(false);
@@ -169,7 +169,7 @@ export function AdminFaqManagementPage() {
           loadStats();
         }
       } else {
-        const res = await apiClient.post('/admin/faq-management/system', formData);
+        const res = await apiClient.post('/admin/chat-management/faq/system', formData);
         if (res.data.success) {
           toast.success('FAQ سیستمی ساخته شد');
           setShowFormModal(false);
@@ -188,7 +188,7 @@ export function AdminFaqManagementPage() {
     if (!confirm('آیا مطمئن هستید که می‌خواهید این FAQ را حذف کنید؟')) return;
 
     try {
-      const res = await apiClient.delete(`/admin/faq-management/${id}`);
+      const res = await apiClient.delete(`/admin/chat-management/faq/${id}`);
       if (res.data.success) {
         toast.success('FAQ حذف شد');
         loadFaqs();
@@ -201,7 +201,7 @@ export function AdminFaqManagementPage() {
 
   const handleToggle = async (id: number) => {
     try {
-      const res = await apiClient.post(`/admin/faq-management/${id}/toggle`);
+      const res = await apiClient.post(`/admin/chat-management/faq/${id}/toggle`);
       if (res.data.success) {
         toast.success(res.data.message);
         loadFaqs();

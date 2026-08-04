@@ -116,7 +116,7 @@ export function AdminSuggestionManagementPage() {
   // ==================== Loaders ====================
   const loadStats = async () => {
     try {
-      const res = await apiClient.get('/admin/suggestions/stats');
+      const res = await apiClient.get('/admin/chat-management/suggestions/stats');
       if (res.data.success) setStats(res.data.data);
     } catch (error) {
       console.error(error);
@@ -126,7 +126,7 @@ export function AdminSuggestionManagementPage() {
   const loadSuggestions = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/suggestions', {
+      const res = await apiClient.get('/admin/chat-management/suggestions', {
         params: {
           source: sourceFilter !== 'all' ? sourceFilter : undefined,
           clicked: clickedFilter !== 'all' ? clickedFilter : undefined,
@@ -148,7 +148,7 @@ export function AdminSuggestionManagementPage() {
 
   const loadTopPerformers = async () => {
     try {
-      const res = await apiClient.get('/admin/suggestions/top-performers');
+      const res = await apiClient.get('/admin/chat-management/suggestions/top-performers');
       if (res.data.success) setTopProducts(res.data.data);
     } catch (error) {
       console.error(error);
@@ -157,7 +157,7 @@ export function AdminSuggestionManagementPage() {
 
   const loadTopSellers = async () => {
     try {
-      const res = await apiClient.get('/admin/suggestions/top-sellers');
+      const res = await apiClient.get('/admin/chat-management/suggestions/top-sellers');
       if (res.data.success) setTopSellers(res.data.data);
     } catch (error) {
       console.error(error);
@@ -166,7 +166,7 @@ export function AdminSuggestionManagementPage() {
 
   const loadSettings = async () => {
     try {
-      const res = await apiClient.get('/admin/suggestions/settings');
+      const res = await apiClient.get('/admin/chat-management/suggestions/settings');
       if (res.data.success) setSettings(res.data.data);
     } catch (error) {
       console.error(error);
@@ -188,7 +188,7 @@ export function AdminSuggestionManagementPage() {
   // ==================== Handlers ====================
   const handleSaveSettings = async () => {
     try {
-      const res = await apiClient.put('/admin/suggestions/settings', settings);
+      const res = await apiClient.put('/admin/chat-management/suggestions/settings', settings);
       if (res.data.success) {
         toast.success('تنظیمات ذخیره شد');
       }

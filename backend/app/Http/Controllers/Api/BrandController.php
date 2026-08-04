@@ -21,6 +21,19 @@ class BrandController extends Controller
         ]);
     }
 
+    /**
+     * برند بر اساس slug — قرینه‌ی /products/slug/{slug}.
+     *
+     * brand.service.ts از قبل این مسیر را صدا می‌زد ولی هیچ روتی برایش وجود
+     * نداشت، پس همیشه ۴۰۴ می‌گرفت. فقط برندهای فعال، مثل show().
+     */
+    public function bySlug(string $slug)
+    {
+        $brand = Brand::active()->where('slug', $slug)->firstOrFail();
+
+        return $this->show($brand);
+    }
+
     public function show(Brand $brand)
     {
         $brand->load(["products" => function ($query) {

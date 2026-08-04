@@ -76,7 +76,7 @@ export function AdminBlocksPage() {
   const loadBlocks = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get('/admin/blocks', {
+      const res = await apiClient.get('/admin/chat-management/blocks', {
         params: {
           reason: reasonFilter !== 'all' ? reasonFilter : undefined,
           search: searchQuery || undefined,
@@ -97,7 +97,7 @@ export function AdminBlocksPage() {
 
   const loadStats = async () => {
     try {
-      const res = await apiClient.get('/admin/blocks/stats');
+      const res = await apiClient.get('/admin/chat-management/blocks/stats');
       if (res.data.success) {
         setStats(res.data.data);
       }
@@ -121,7 +121,7 @@ export function AdminBlocksPage() {
     if (!confirm('آیا مطمئن هستید که می‌خواهید این کاربر را آنبلاک کنید؟')) return;
 
     try {
-      const res = await apiClient.delete(`/admin/blocks/${blockId}`);
+      const res = await apiClient.delete(`/admin/chat-management/blocks/${blockId}`);
       if (res.data.success) {
         toast.success('کاربر آنبلاک شد');
         loadBlocks();
@@ -140,7 +140,7 @@ export function AdminBlocksPage() {
 
     setIsBlocking(true);
     try {
-      const res = await apiClient.post('/admin/blocks/block', {
+      const res = await apiClient.post('/admin/chat-management/blocks/block', {
         blocked_user_id: parseInt(blockUserId),
         reason: blockReason,
       });

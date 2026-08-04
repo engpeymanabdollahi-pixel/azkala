@@ -27,12 +27,12 @@ export interface ChatReport {
 
 export const chatModerationService = {
   async getBlockedUsers() {
-    const response = await apiClient.get('/chat/blocked-users');
+    const response = await apiClient.get('/chat/moderation/blocked-users');
     return response.data;
   },
 
   async blockUser(blockedUserId: number, reason?: string) {
-    const response = await apiClient.post('/chat/block', {
+    const response = await apiClient.post('/chat/moderation/block', {
       blocked_user_id: blockedUserId,
       reason,
     });
@@ -40,12 +40,12 @@ export const chatModerationService = {
   },
 
   async unblockUser(blockedUserId: number) {
-    const response = await apiClient.delete(`/chat/unblock/${blockedUserId}`);
+    const response = await apiClient.delete(`/chat/moderation/unblock/${blockedUserId}`);
     return response.data;
   },
 
   async checkBlockStatus(userId: number) {
-    const response = await apiClient.get(`/chat/check-block/${userId}`);
+    const response = await apiClient.get(`/chat/moderation/check-block/${userId}`);
     return response.data;
   },
 
@@ -56,7 +56,7 @@ export const chatModerationService = {
     reason: 'spam' | 'harassment' | 'inappropriate' | 'scam' | 'other';
     description?: string;
   }) {
-    const response = await apiClient.post('/chat/report', data);
+    const response = await apiClient.post('/chat/moderation/report', data);
     return response.data;
   },
 };
