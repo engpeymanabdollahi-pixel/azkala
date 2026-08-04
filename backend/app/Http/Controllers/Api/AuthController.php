@@ -7,8 +7,10 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Services\Auth\AuthService;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -19,16 +21,25 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-       /**
+    /**
      * ثبت‌نام یا درخواست کد تایید
      */
     public function register(Request $request)
     {
         $validated = $request->validate([
             'phone' => 'required|string|regex:/^09[0-9]{9}$/',
-            'email' => 'nullable|email',
+            'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
         ]);
+
+        // Sanitization فیلدها
+        $validated['phone'] = Str::replace([' ', '-', '+'], '', $validated['phone']);
+        if (isset($validated['email'])) {
+            $validated['email'] = Str::lower(trim($validated['email']));
+        }
+        if (isset($validated['name'])) {
+            $validated['name'] = Str::squish(trim($validated['name']));
+        }
 
         $result = $this->authService->registerOrRequestOtp(
             $validated['phone'],

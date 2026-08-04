@@ -23,17 +23,20 @@ class ProductResource extends JsonResource
             'short_description' => $this->short_description,
             'price' => (float) $this->price,
             'compare_price' => $this->compare_price ? (float) $this->compare_price : null,
-            'stock' => $this->stock,
-            'status' => $this->status,
+            'discount_price' => $this->discount_price ? (float) $this->discount_price : null,
+            'stock' => $this->stock ?? 0,
+            'is_in_stock' => ($this->stock ?? 0) > 0,
             'is_active' => (bool) $this->is_active,
             'is_featured' => (bool) $this->is_featured,
+            'is_bestseller' => (bool) $this->is_bestseller,
             'is_special_offer' => (bool) $this->is_special_offer,
             'sku' => $this->sku,
             'main_image' => $this->main_image,
-            'images' => $this->images ?? [],
+            'images' => $this->whenLoaded('images', fn() => $this->images ?? []),
             'specifications' => $this->specifications ?? [],
             'sales_count' => $this->sales_count ?? 0,
             'views_count' => $this->views_count ?? 0,
+            'final_price' => (float) ($this->discount_price ?? $this->price),
             
             // بررسی سازگاری
             'is_compatible' => $this->when($request->has('device_model_id'), function () use ($request) {

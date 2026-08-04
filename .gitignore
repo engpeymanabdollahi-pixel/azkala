@@ -1,50 +1,38 @@
-# Dependencies
-node_modules/
+```
+# Laravel-specific ignores
 vendor/
-
-# Build outputs
-frontend/dist/
-frontend/build/
-
-# Environment files
+composer.lock
 .env
-.env.local
-.env.*.local
-backend/.env
+.env.*
+!.env.example
+
+# Database
+database/seeds/
+database/factories/
+
+# Cache
+bootstrap/cache/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+
+# Logs
+storage/logs/
+
+# Assets
+public/storage/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Logs
+# General
 *.log
-npm-debug.log*
-backend/storage/logs/*.log
-
-# Cache
-.phpunit.result.cache
-.phpunit.cache
-backend/bootstrap/cache/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
-
-# Testing
-coverage/
-.nyc_output/
-backend/coverage/
-
-# Temporary files
 *.tmp
-*.temp
-
-# Laragon specific
-laragon/
+```
