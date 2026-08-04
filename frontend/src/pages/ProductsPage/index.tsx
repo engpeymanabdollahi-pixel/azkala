@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query'; // ✅ اضافه شد
-import { Smartphone, Package, BadgeCheck } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Smartphone, Package, BadgeCheck, Sparkles, Zap, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';
-import { categoryService } from '@/services/api/category.service'; // ✅ اضافه شد
+import { categoryService } from '@/services/api/category.service';
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
 import type { FilterMode, LayoutMode } from './types';
@@ -35,8 +35,7 @@ export function ProductsPage() {
     queryKey: ['all-categories'],
     queryFn: async () => {
       try {
-        // اگر نام متد در category.service.ts شما getCategories است، آن را تغییر دهید
-        const res = await categoryService.getAll(); 
+        const res = await categoryService.getAll();
         return res.data?.data || res.data || [];
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -109,10 +108,11 @@ export function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-          <div className="h-12 bg-white rounded-xl mb-3 animate-pulse" />
-          <div className="h-10 bg-white rounded-xl mb-3 animate-pulse" />
+          {/* Header Skeleton */}
+          <div className="h-12 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl mb-3 animate-pulse shadow-lg" />
+          <div className="h-10 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl mb-3 animate-pulse shadow-lg" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
               <ProductCardSkeleton key={i} />
@@ -124,19 +124,19 @@ export function ProductsPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-300">
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-        
-        {/* دکمه‌های فیلتر اصلی */}
-        <div className="bg-white rounded-xl border border-gray-100 p-2 mb-3 shadow-sm sticky top-20 z-30">
+
+        {/* دکمه‌های فیلتر اصلی - با رنگ‌های گرادینت و افکت شیشه‌ای */}
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-2xl border border-white/20 dark:border-slate-700 p-2 mb-3 shadow-xl sticky top-20 z-30">
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => handleFilterModeChange('all')}
               className={cn(
-                'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
+                'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95',
                 filterMode === 'all'
-                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg hover:shadow-xl'
+                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
               )}
             >
               <Package className="w-3.5 h-3.5" />
@@ -147,10 +147,10 @@ export function ProductsPage() {
               <button
                 onClick={() => handleFilterModeChange('my-devices')}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
+                  'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95',
                   filterMode === 'my-devices'
-                    ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-lg hover:shadow-xl'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
                 )}
               >
                 <Smartphone className="w-3.5 h-3.5" />
@@ -167,10 +167,10 @@ export function ProductsPage() {
               <button
                 onClick={() => handleFilterModeChange('header-device')}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
+                  'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105 active:scale-95',
                   filterMode === 'header-device'
-                    ? 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-lg hover:shadow-xl'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
                 )}
               >
                 <BadgeCheck className="w-3.5 h-3.5" />
@@ -196,7 +196,7 @@ export function ProductsPage() {
           layoutMode={layoutMode}
           sortBy={filters.sortBy}
           filters={filters}
-          categories={categories} // ✅ این خط اضافه شد
+          categories={categories}
           activeFiltersCount={activeFiltersCount}
           onSearchChange={setSearchQuery}
           onLayoutChange={setLayoutMode}
@@ -214,7 +214,7 @@ export function ProductsPage() {
           {/* ✅ ارسال categories به FilterSidebar */}
           <FilterSidebar
             filters={filters}
-            categories={categories} // ✅ این خط اضافه شد
+            categories={categories}
             products={products}
             activeFiltersCount={activeFiltersCount}
             onCategoryChange={setSelectedCategory}
@@ -248,7 +248,7 @@ export function ProductsPage() {
       <MobileFilterDrawer
         isOpen={showMobileFilters}
         filters={filters}
-        categories={categories} // ✅ این خط اضافه شد
+        categories={categories}
         activeFiltersCount={activeFiltersCount}
         filteredCount={filteredProducts.length}
         onClose={() => setShowMobileFilters(false)}
