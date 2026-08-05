@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import type { ComponentType } from 'react';
 import { Bell, Package, Truck, CreditCard, UserCheck, AlertCircle } from 'lucide-react';
 import type { UseNotificationsReturn } from '../types';
 import apiClient from '@/services/api/client';
@@ -17,7 +18,7 @@ import { useAuthStore } from '@/store/authStore';
 
 // نگاشت آیکون‌ها بر اساس نوع نوتیفیکیشن
 const getNotificationIcon = (type: string) => {
-  const iconMap: Record<string, { icon: any; color: string }> = {
+  const iconMap: Record<string, { icon: ComponentType<{ className?: string }>; color: string }> = {
     order_placed: { icon: Package, color: 'from-primary-500 to-primary-600' },
     order_shipped: { icon: Truck, color: 'from-blue-500 to-blue-600' },
     order_delivered: { icon: Package, color: 'from-success-500 to-success-600' },
