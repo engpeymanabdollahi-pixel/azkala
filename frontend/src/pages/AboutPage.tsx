@@ -1,5 +1,5 @@
 // src/pages/AboutPage.tsx
-import { Shield, Truck, Headphones, Award, Users, Target, Heart, Zap } from 'lucide-react';
+import { Shield, Truck, Headphones, Award, Users, Target, Heart, Zap, Package } from 'lucide-react';
 
 export function AboutPage() {
   const features = [
@@ -9,6 +9,9 @@ export function AboutPage() {
     { icon: Award, title: 'بهترین قیمت', desc: 'تضمین بهترین قیمت با امکان مقایسه' },
   ];
 
+  // ✅ Package هیچ‌وقت import نشده بود — این خط با هر بار رندر خطای
+  // «Cannot find name 'Package'» (runtime ReferenceError) می‌داد و کل
+  // بخش آمار صفحه را کرش می‌کرد.
   const stats = [
     { value: '+۱۰,۰۰۰', label: 'محصول', icon: Package },
     { value: '+۵۰۰', label: 'فروشنده', icon: Users },
@@ -17,7 +20,7 @@ export function AboutPage() {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 dark:bg-slate-900 min-h-screen">
       {/* هدر */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white py-16">
         <div className="container mx-auto px-4 text-center">
@@ -28,34 +31,34 @@ export function AboutPage() {
 
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         {/* داستان ما */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm border mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">داستان ازکالا</h2>
-          <p className="text-gray-700 leading-relaxed mb-4">
-            ازکالا در سال ۱۴۰۲ با هدف ساده‌سازی خرید لوازم جانبی موبایل و حذف خطاهای سازگاری تأسیس شد. 
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm border border-gray-100 dark:border-slate-700 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">داستان ازکالا</h2>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+            ازکالا در سال ۱۴۰۲ با هدف ساده‌سازی خرید لوازم جانبی موبایل و حذف خطاهای سازگاری تأسیس شد.
             ما متوجه شدیم بسیاری از کاربران هنگام خرید لوازم جانبی، محصولی می‌خرند که با گوشی آنها سازگار نیست.
           </p>
-          <p className="text-gray-700 leading-relaxed">
-            به همین دلیل «قانون هوشمند ازکالا» را طراحی کردیم: با انتخاب مدل گوشی، تنها محصولاتی نمایش داده می‌شوند 
-            که ۱۰۰٪ با دستگاه شما سازگار هستند. امروز ازکالا با بیش از ۱۰,۰۰۰ محصول و ۵۰۰ فروشنده معتبر، 
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            به همین دلیل «قانون هوشمند ازکالا» را طراحی کردیم: با انتخاب مدل گوشی، تنها محصولاتی نمایش داده می‌شوند
+            که ۱۰۰٪ با دستگاه شما سازگار هستند. امروز ازکالا با بیش از ۱۰,۰۰۰ محصول و ۵۰۰ فروشنده معتبر،
             مقصد اصلی خرید لوازم جانبی موبایل در ایران است.
           </p>
         </div>
 
         {/* ماموریت و چشم‌انداز */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-              <Target className="w-6 h-6 text-blue-600" />
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
+              <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">ماموریت ما</h3>
-            <p className="text-gray-600">ارائه بهترین تجربه خرید آنلاین با ضمانت اصالت، قیمت منصفانه و ارسال سریع</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">ماموریت ما</h3>
+            <p className="text-gray-600 dark:text-gray-400">ارائه بهترین تجربه خرید آنلاین با ضمانت اصالت، قیمت منصفانه و ارسال سریع</p>
           </div>
-          <div className="bg-white rounded-2xl p-6 shadow-sm border">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-              <Zap className="w-6 h-6 text-blue-600" />
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
+              <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">چشم‌انداز</h3>
-            <p className="text-gray-600">تبدیل شدن به بزرگترین پلتفرم تخصصی لوازم جانبی موبایل در خاورمیانه</p>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">چشم‌انداز</h3>
+            <p className="text-gray-600 dark:text-gray-400">تبدیل شدن به بزرگترین پلتفرم تخصصی لوازم جانبی موبایل در خاورمیانه</p>
           </div>
         </div>
 
@@ -76,17 +79,17 @@ export function AboutPage() {
         </div>
 
         {/* ویژگی‌ها */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">چرا ازکالا؟</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">چرا ازکالا؟</h2>
         <div className="grid md:grid-cols-4 gap-6">
           {features.map((item, i) => {
             const Icon = item.icon;
             return (
-              <div key={i} className="bg-white rounded-2xl p-6 text-center shadow-sm border hover:shadow-md transition">
-                <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-7 h-7 text-blue-600" />
+              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-6 text-center shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md transition">
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-sm text-gray-500">{item.desc}</p>
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-2">{item.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{item.desc}</p>
               </div>
             );
           })}

@@ -22,12 +22,12 @@ export function HelpPage() {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen py-12">
+    <div className="bg-gray-50 dark:bg-slate-900 min-h-screen py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-10">
-          <HelpCircle className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-black text-gray-900 mb-3">راهنمای استفاده از ازکالا</h1>
-          <p className="text-gray-600">پاسخ سوالات خود را پیدا کنید</p>
+          <HelpCircle className="w-16 h-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-3">راهنمای استفاده از ازکالا</h1>
+          <p className="text-gray-600 dark:text-gray-400">پاسخ سوالات خود را پیدا کنید</p>
         </div>
 
         {/* موضوعات راهنما */}
@@ -35,37 +35,37 @@ export function HelpPage() {
           {topics.map((topic, i) => {
             const Icon = topic.icon;
             return (
-              <div key={i} className="bg-white rounded-xl p-4 text-center shadow-sm border hover:shadow-md cursor-pointer">
-                <Icon className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                <p className="text-xs font-medium text-gray-800">{topic.title}</p>
+              <div key={i} className="bg-white dark:bg-slate-800 rounded-xl p-4 text-center shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md cursor-pointer">
+                <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{topic.title}</p>
               </div>
             );
           })}
         </div>
 
         {/* سوالات متداول */}
-        <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="bg-blue-600 text-white p-5">
             <h2 className="text-xl font-bold">سوالات متداول</h2>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-slate-700">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => setOpenIndex(openIndex === idx ? null : idx)}>
+              <div key={idx} className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700" onClick={() => setOpenIndex(openIndex === idx ? null : idx)}>
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900">{faq.q}</h3>
-                  {openIndex === idx ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{faq.q}</h3>
+                  {openIndex === idx ? <ChevronUp className="w-5 h-5 text-gray-500 dark:text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-500 dark:text-gray-400" />}
                 </div>
-                {openIndex === idx && <p className="text-gray-600 text-sm mt-3 pt-3 border-t">{faq.a}</p>}
+                {openIndex === idx && <p className="text-gray-600 dark:text-gray-400 text-sm mt-3 pt-3 border-t border-gray-100 dark:border-slate-700">{faq.a}</p>}
               </div>
             ))}
           </div>
         </div>
 
         {/* پشتیبانی */}
-        <div className="mt-8 bg-blue-50 rounded-2xl p-6 text-center">
-          <p className="text-gray-700 mb-3">هنوز سوالی دارید؟</p>
-          <p className="text-gray-500 text-sm mb-4">کارشناسان ما آماده پاسخگویی هستند</p>
-          <a href="/contact" className="inline-flex items-center gap-2 text-blue-600 font-bold">تماس با پشتیبانی →</a>
+        <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 text-center">
+          <p className="text-gray-700 dark:text-gray-300 mb-3">هنوز سوالی دارید؟</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">کارشناسان ما آماده پاسخگویی هستند</p>
+          <a href="/contact" className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold">تماس با پشتیبانی →</a>
         </div>
       </div>
     </div>

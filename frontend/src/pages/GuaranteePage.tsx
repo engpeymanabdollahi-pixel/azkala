@@ -1,4 +1,4 @@
-import { Shield, CheckCircle, Clock, RefreshCw, Truck, Award } from 'lucide-react';
+import { Shield, CheckCircle, Clock, RefreshCw, Truck } from 'lucide-react';
 
 export function GuaranteePage() {
   const guarantees = [
@@ -16,12 +16,12 @@ export function GuaranteePage() {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen py-12">
+    <div className="bg-gray-50 dark:bg-slate-900 min-h-screen py-12">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-10">
-          <Shield className="w-20 h-20 text-blue-600 mx-auto mb-4" />
-          <h1 className="text-3xl font-black text-gray-900 mb-3">گارانتی و اصالت کالا</h1>
-          <p className="text-gray-600">خرید مطمئن با ضمانت ازکالا</p>
+          <Shield className="w-20 h-20 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 mb-3">گارانتی و اصالت کالا</h1>
+          <p className="text-gray-600 dark:text-gray-400">خرید مطمئن با ضمانت ازکالا</p>
         </div>
 
         {/* تضمین‌ها */}
@@ -29,41 +29,41 @@ export function GuaranteePage() {
           {guarantees.map((item, i) => {
             const Icon = item.icon;
             return (
-              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border">
-                <Icon className="w-10 h-10 text-blue-600 mb-4" />
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm">{item.desc}</p>
+              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
+                <Icon className="w-10 h-10 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">{item.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{item.desc}</p>
               </div>
             );
           })}
         </div>
 
         {/* مراحل بازگشت کالا */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-blue-600" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             مراحل بازگشت کالا
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {returnSteps.map((step) => (
               <div key={step.step} className="text-center">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="font-bold text-blue-600">{step.step}</span>
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="font-bold text-blue-600 dark:text-blue-400">{step.step}</span>
                 </div>
-                <p className="font-semibold text-gray-900 text-sm">{step.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{step.desc}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{step.title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{step.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* شرایط بازگشت */}
-        <div className="bg-blue-50 rounded-2xl p-6">
-          <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-emerald-600" />
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6">
+          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             شرایط بازگشت کالا
           </h3>
-          <ul className="space-y-2 text-sm text-gray-700">
+          <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
             <li>• کالا باید در بسته‌بندی اصلی و بدون آسیب فیزیکی باشد</li>
             <li>• اعلام مشکل حداکثر تا ۷ روز پس از تحویل</li>
             <li>• داشتن فاکتور خرید</li>
