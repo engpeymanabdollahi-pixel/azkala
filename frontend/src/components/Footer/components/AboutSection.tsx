@@ -1,21 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
 import { Smartphone } from 'lucide-react';
 import { SocialLinks } from './SocialLinks';
-import apiClient from '@/services/api/client';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 export function AboutSection() {
-  const { data: settings } = useQuery({
-    queryKey: ['site-settings'], // ✅ اشتراک‌گذاری کش
-    queryFn: async () => {
-      try {
-        const res = await apiClient.get('/site-settings');
-        return res.data.data || {};
-      } catch {
-        return {};
-      }
-    },
-    staleTime: 1000 * 60 * 30,
-  });
+  // ✅ قبلاً همین کوئری اینجا و در Header/index.tsx و Footer/ContactInfo.tsx
+  // به‌طور جداگانه کپی شده بود — هوک مشترک، هم کد تکراری را حذف می‌کند هم
+  // یک تایپ واقعی (نه any ضمنی) به settings می‌دهد.
+  const { data: settings } = useSiteSettings();
 
   // جداسازی هوشمند نام سایت برای نمایش دو بخشی (اختیاری ولی زیبا)
   const siteName = settings?.site_name || 'ازکالا';

@@ -1,5 +1,5 @@
 import { Shield, Truck, CreditCard, RefreshCw } from 'lucide-react';
-import type { TrustBadge, QuickLink, ServiceLink, TrustCertificate } from './types';
+import type { TrustBadge, QuickLink, ServiceLink } from './types';
 
 // ==================== Trust Badges (نوار اعتماد بالا) ====================
 
@@ -55,28 +55,11 @@ export const SERVICE_LINKS: ServiceLink[] = [
   { label: 'حریم خصوصی', path: '/terms' },
 ];
 
-// ==================== Trust Certificates (نمادهای اعتماد) ====================
-
-export const TRUST_CERTIFICATES: TrustCertificate[] = [
-  {
-    icon: Shield,
-    label: 'نماد',
-    title: 'اینماد',
-    color: 'from-blue-500 to-blue-600',
-  },
-  {
-    icon: Shield,
-    label: 'نماد',
-    title: 'ساماندهی',
-    color: 'from-green-500 to-green-600',
-  },
-  {
-    icon: CreditCard,
-    label: 'درگاه',
-    title: 'زرین‌پال',
-    color: 'from-purple-500 to-purple-600',
-  },
-];
+// ✅ TRUST_CERTIFICATES (اینماد/ساماندهی/زرین‌پال به‌صورت نمادهای ثابت و
+// بدون کد تایید) از اینجا حذف شد — TrustCertificates.tsx حالا مستقیماً از
+// useSiteSettings می‌خواند و فقط با کد واقعیِ enamad_code/samandehi_code
+// نماد نشان می‌دهد؛ «زرین‌پال» هم چون هیچ سرویس پرداخت واقعی در بک‌اند به
+// آن وصل نیست، حذف شد (رجوع به کامنت بالای TrustCertificates.tsx).
 
 // ✅ CONTACT_INFO، SOCIAL_LINKS و SUPPORT_HOURS قبلاً همین‌جا بودند، ولی هیچ
 // مصرف‌کننده‌ای نداشتند و مدت‌ها بود از واقعیت عقب افتاده بودند:

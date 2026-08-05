@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query'; // ✅ این خط را اضافه کنید
 import { useNavigate, useLocation } from 'react-router-dom';
 // ✅ قبلاً ۲۹ آیکون اضافه (بدون هیچ استفاده‌ای در JSX این فایل) اینجا ایمپورت
 // می‌شد — فقط حجم باندل را زیاد می‌کرد. لیست زیر فقط آیکون‌های واقعاً استفاده‌شده است.
@@ -13,7 +12,7 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { useChatStore } from '@/store/chatStore';
 import { cn } from '@/utils/cn';
 import { useAuthModalStore } from '@/store/authModalStore';
-import apiClient from '@/services/api/client'; // ✅ این خط را اضافه کنید
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { STORAGE_URL } from '@/lib/apiConfig';
 
 // Sub-components
@@ -103,21 +102,10 @@ export function Header() {
     closeMobileMenu();
   }, [currentPage, currentSearch, closeMobileMenu]);
 
-      // دریافت تنظیمات سایت (لوگو و ...) از مسیر عمومی
-  const { data: settingsData } = useQuery({
-    queryKey: ['site-settings'],
-    queryFn: async () => {
-      try {
-        // ✅ استفاده از مسیر عمومی که نیاز به لاگین ندارد
-        const res = await apiClient.get('/site-settings');
-        return res.data.data;
-      } catch (error) {
-        console.error('Error fetching site settings:', error);
-        return null;
-      }
-    },
-    staleTime: 1000 * 60 * 30, // ۳۰ دقیقه کش (چون تنظیمات سایت به ندرت تغییر می‌کند)
-  });
+  // ✅ قبلاً این کوئری اینجا (و به‌طور جداگانه در Footer/AboutSection.tsx و
+  // Footer/ContactInfo.tsx) کپی شده بود — حالا از هوک مشترک useSiteSettings
+  // می‌آید.
+  const { data: settingsData } = useSiteSettings();
 
   // استخراج آدرس لوگو از تنظیمات
   const siteLogo = settingsData?.site_logo;

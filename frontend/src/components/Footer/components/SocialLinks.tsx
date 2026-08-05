@@ -1,4 +1,8 @@
-export function SocialLinks({ settings }: { settings?: any }) {
+import type { SiteSettings } from '@/services/api/siteSettings.service';
+
+// ✅ قبلاً settings?: any بود — با نبودِ تایپ، این کامپوننت هیچ حفاظتی در
+// برابر نام فیلد اشتباه یا typo نداشت.
+export function SocialLinks({ settings }: { settings?: SiteSettings }) {
   const links = [
     {
       // آیکون اینستاگرام (SVG مستقیم - بدون نیاز به lucide-react)

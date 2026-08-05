@@ -17,12 +17,8 @@ export interface ServiceLink {
   path: string;
 }
 
-export interface TrustCertificate {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  title: string;
-  color: string;
-}
+// ✅ TrustCertificate قبلاً اینجا بود؛ TrustCertificates.tsx حالا شکل داده‌ی
+// خودش را مستقیماً از useSiteSettings می‌سازد (رجوع به کامنت آن فایل).
 
 // ✅ ContactInfo و SocialLink قبلاً اینجا بودند، ولی هیچ‌کدام مصرف‌کننده‌ی
 // واقعی نداشتند: کامپوننت‌های واقعی (ContactInfo.tsx و SocialLinks.tsx)
