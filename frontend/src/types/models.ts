@@ -52,6 +52,10 @@ export interface Brand {
   // برندهایی که کاربر از مدال هدر انتخاب می‌کند لوگو ندارند — device_brands
   // اصلاً چنین ستونی ندارد. اجباری‌بودنِ قبلی همیشه با null نقض می‌شد.
   logo: string | null;
+  // نوعِ برند (موبایل/لپ‌تاپ/تبلت/...) — پیام‌های سازگاری در سراسر اپ برای
+  // ساختن جمله‌ی درست («با لپ‌تاپ سازگار نیست» به‌جای فرض همیشگیِ «گوشی») به
+  // این فیلد نیاز دارند.
+  type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
   is_active: boolean;
   series_count?: number;
   models_count?: number;

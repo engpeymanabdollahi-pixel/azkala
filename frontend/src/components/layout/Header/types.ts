@@ -69,6 +69,11 @@ export interface ModelData {
   id: number;
   name: string;
   slug: string;
+  // برای برچسب و آیکون درستِ نوع دستگاه (گوشی/لپ‌تاپ/تبلت) در نشانگر هدر.
+  brand?: {
+    name: string;
+    type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
+  } | null;
 }
 
 // ==================== Hook Types ====================

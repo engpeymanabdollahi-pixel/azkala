@@ -88,6 +88,9 @@ Route::prefix('v1')->group(function () {
 
     // 🏪 روت‌های عمومی شعبه آنلاین فروشندگان (خارج از auth)
     Route::prefix('sellers')->name('sellers.')->group(function () {
+        // /top باید قبل از /{slug} ثبت شود — وگرنه به‌عنوان اسلاگ یک فروشنده
+        // تفسیر می‌شود و همیشه ۴۰۴ می‌دهد.
+        Route::get('/top', [\App\Http\Controllers\Api\PublicSellerController::class, 'top'])->name('top');
         Route::get('/{slug}', [\App\Http\Controllers\Api\PublicSellerController::class, 'show'])->name('show');
         Route::get('/{slug}/products', [\App\Http\Controllers\Api\PublicSellerController::class, 'products'])->name('products');
     });

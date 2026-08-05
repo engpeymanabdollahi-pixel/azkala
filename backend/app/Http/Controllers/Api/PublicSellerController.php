@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PublicSellerResource;
-use App\Http\Resources\ProductResource; // ✅ استفاده از ریسورس استاندارد محصول
+// ✅ استفاده از ریسورس استاندارد محصول
 use App\Models\User;
 use App\Services\PublicSellerService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache; // ✅ ایمپورت کش
-use Illuminate\Support\Facades\DB;
+
+// ✅ ایمپورت کش
 
 class PublicSellerController extends Controller
 {
@@ -21,6 +21,21 @@ class PublicSellerController extends Controller
     }
 
     /**
+     * 🏆 فروشگاه‌های برتر برای صفحه‌ی اصلی
+     * GET /api/v1/sellers/top
+     */
+    public function top(Request $request)
+    {
+        $limit = min((int) $request->input('limit', 8), 20);
+        $sellers = $this->publicSellerService->getTopSellers($limit);
+
+        return response()->json([
+            'success' => true,
+            'data' => PublicSellerResource::collection($sellers),
+        ]);
+    }
+
+    /**
      * 🏪 دریافت اطلاعات پروفایل شعبه آنلاین (با کش ۵ دقیقه‌ای)
      * GET /api/v1/sellers/{slug}
      */
@@ -28,7 +43,7 @@ class PublicSellerController extends Controller
     {
         $seller = $this->publicSellerService->findActiveSellerBySlug($slug);
 
-        if (!$seller) {
+        if (! $seller) {
             return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
         }
 
@@ -46,7 +61,7 @@ class PublicSellerController extends Controller
     {
         $seller = $this->publicSellerService->findActiveSellerBySlug($slug);
 
-        if (!$seller) {
+        if (! $seller) {
             return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
         }
 
@@ -147,7 +162,7 @@ class PublicSellerController extends Controller
         $user = $request->user();
         $seller = $this->publicSellerService->findSellerById((int) $id);
 
-        if (!$user->isFollowingSeller($seller->id)) {
+        if (! $user->isFollowingSeller($seller->id)) {
             return response()->json([
                 'success' => true,
                 'message' => 'شما این شعبه را دنبال نکرده‌اید.',

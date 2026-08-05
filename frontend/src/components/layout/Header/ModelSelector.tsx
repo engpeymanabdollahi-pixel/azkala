@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { Smartphone, CheckCircle, Edit2 } from 'lucide-react';
+import { CheckCircle, Edit2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { getDeviceTypeIcon, getDeviceTypeLabel } from '@/utils/deviceType';
 import type { ModelData } from './types';
 
 interface ModelSelectorProps {
@@ -16,6 +17,13 @@ export const ModelSelector = memo(({
   onOpenModal,
   onClearSelection
 }: ModelSelectorProps) => {
+  // این مدال دیگر فقط موبایل نیست — لپ‌تاپ و تبلت را هم پشتیبانی می‌کند، پس
+  // برچسب و آیکون باید با نوعِ واقعیِ دستگاه انتخابی هماهنگ باشند، نه اینکه
+  // همه‌جا فرض شود «گوشی».
+  const deviceType = selectedModel?.brand?.type;
+  const deviceLabel = getDeviceTypeLabel(deviceType);
+  const DeviceIcon = getDeviceTypeIcon(deviceType);
+
   if (selectedModel) {
     return (
       <button
@@ -26,7 +34,7 @@ export const ModelSelector = memo(({
             ? 'px-3 py-2 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800'
             : 'px-4 py-2.5 bg-gradient-to-r from-success-50 to-primary-50 dark:from-success-900/20 dark:to-primary-900/20 border-2 border-success-200 dark:border-success-800 hover:border-success-300 dark:hover:border-success-700 hover:shadow-md'
         )}
-        aria-label={`تغییر مدل گوشی از ${selectedModel.name}`}
+        aria-label={`تغییر ${deviceLabel} از ${selectedModel.name}`}
       >
         <div
           className={cn(
@@ -36,16 +44,16 @@ export const ModelSelector = memo(({
         >
           <CheckCircle className={cn('text-white', isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
         </div>
-        
+
         <div className="text-right">
           <p className={cn('text-success-600 dark:text-success-400 font-bold', isScrolled ? 'text-[9px]' : 'text-[10px]')}>
-            گوشی شما:
+            {deviceLabel} شما:
           </p>
           <p className={cn('font-black text-gray-900 dark:text-white truncate', isScrolled ? 'text-[10px] max-w-[80px]' : 'text-xs max-w-[120px]')}>
             {selectedModel.name}
           </p>
         </div>
-        
+
         {!isScrolled && (
           <Edit2 className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
         )}
@@ -62,10 +70,10 @@ export const ModelSelector = memo(({
           ? 'px-3 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white'
           : 'px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:from-primary-600 hover:to-primary-700 hover:shadow-xl hover:-translate-y-0.5'
       )}
-      aria-label="انتخاب مدل گوشی"
+      aria-label="انتخاب دستگاه"
     >
-      <Smartphone className={cn('group-hover:scale-110 transition-transform', isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
-      {!isScrolled && 'انتخاب مدل گوشی'}
+      <DeviceIcon className={cn('group-hover:scale-110 transition-transform', isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
+      {!isScrolled && 'دستگاه خود را انتخاب کنید'}
     </button>
   );
 });

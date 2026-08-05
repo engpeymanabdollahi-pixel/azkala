@@ -404,14 +404,14 @@ export function Header() {
                 <button
                   onClick={() => handleNavigate('/seller-request')}
                   className="group relative px-5 py-2.5 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl text-sm font-black shadow-lg shadow-accent-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-95 flex items-center gap-2 overflow-hidden"
-                  title="شعبه آنلاین کسب‌وکار خود را در ازکالا راه‌اندازی کنید"
+                  title="فروشگاه آنلاین خودت رو در ازکالا بساز و بفروش"
                 >
                   {/* افکت درخشش پس‌زمینه */}
                   <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12" />
-                  
+
                   <Store className="w-4 h-4 relative z-10" />
-                  <span className="relative z-10 hidden sm:block">افتتاح شعبه آنلاین</span>
-                  <span className="relative z-10 sm:hidden">افتتاح شعبه</span>
+                  <span className="relative z-10 hidden sm:block">فروشگاهتو بساز و بفروش</span>
+                  <span className="relative z-10 sm:hidden">فروشگاهتو بساز</span>
                 </button>
               ) : (
                 // حالت ۲: کاربر تأییدشده به عنوان فروشنده است -> ورود به پنل

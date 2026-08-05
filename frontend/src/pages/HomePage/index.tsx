@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Smartphone, ArrowLeft, Package, Clock, Gift, Home, Heart,
+  Smartphone, ArrowLeft, Package, Clock, Gift, Home, Heart, User,
   ArrowUp, Play, Pause, ChevronLeft, ChevronRight, Truck,
   BadgeCheck, Headphones, Sparkles, Zap, Flame, TrendingUp,
   Star, ThumbsUp, CreditCard, Mail, CheckCircle, ShieldCheck, RefreshCcw
@@ -10,6 +10,7 @@ import { useModelStore } from '@/store/modelStore';
 import { useCartStore } from '@/store/cartStore';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
@@ -22,6 +23,7 @@ import { SectionErrorBoundary } from "@/components/ErrorBoundary";
 import { CountdownTimer } from './components/CountdownTimer';
 import { AnimatedCounter } from './components/AnimatedCounter';
 import { ProductCardWithQuickView } from './components/ProductCardWithQuickView';
+import { TopSellersSection } from './components/TopSellersSection';
 
 // Import separated hooks
 import { useCountdown } from './hooks/useCountdown';
@@ -39,7 +41,10 @@ import {
 export function HomePage() {
   const navigate = useNavigate();
   
-  const { selectedModel, openModal, clearModel, setCurrentCategory } = useModelStore();
+  // نام واقعیِ اکشن store، clearSelection است. اینجا با نام clearModel
+  // خوانده می‌شد که در store اصلاً وجود نداشت — یعنی دکمه‌ی «تغییر دستگاه»
+  // در هیرویِ device-aware با کلیک، «clearModel is not a function» می‌داد.
+  const { selectedModel, openModal, clearSelection, setCurrentCategory } = useModelStore();
   const { addItem } = useCartStore();
   
   const { 
@@ -209,7 +214,7 @@ export function HomePage() {
                       مشاهده محصولات سازگار
                       <ArrowLeft className="w-5 h-5 mr-2" />
                     </Button>
-                    <Button size="lg" variant="outline" onClick={clearModel} className="border-white/30 text-white hover:bg-white/10">
+                    <Button size="lg" variant="outline" onClick={clearSelection} className="border-white/30 text-white hover:bg-white/10">
                       تغییر دستگاه
                       <RefreshCcw className="w-4 h-4 mr-2" />
                     </Button>
@@ -251,7 +256,7 @@ export function HomePage() {
                           </Button>
                           <Button size="lg" variant="outline" onClick={openModal} className="border-2 border-white/50 text-white hover:bg-white/10 backdrop-blur-sm transition-all group">
                             <Smartphone className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />
-                            انتخاب مدل گوشی
+                            دستگاه خود را انتخاب کنید
                           </Button>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -409,8 +414,8 @@ export function HomePage() {
                 {discountedProducts.map((product) => {
                   const finalPrice = product.price * (1 - (product.discount_percentage || 0) / 100);
                   const savings = product.price - finalPrice;
-                  const soldPercent = Math.min(90, Math.floor(Math.random() * 60) + 30); // Mock sold percent for visual
-                  
+                  const isLowStock = product.stock > 0 && product.stock <= 5;
+
                   return (
                     <div
                       key={product.id}
@@ -423,9 +428,15 @@ export function HomePage() {
                             {product.discount_percentage}٪
                           </div>
                         )}
-                        <div className="w-full h-full flex items-center justify-center text-7xl group-hover:scale-110 transition-transform duration-500">
-                          📦
-                        </div>
+                        {/* عکس واقعی محصول — قبلاً هر محصولی، بدون توجه به تصویر
+                            واقعی‌اش، همین یک ایموجی ثابت را نشان می‌داد. */}
+                        <SafeImage
+                          src={product.main_image}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          showEmojiOnError
+                          fallbackEmoji="📦"
+                        />
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleQuickAdd(e, product); }}
@@ -435,22 +446,23 @@ export function HomePage() {
                           </button>
                         </div>
                       </div>
-                      
+
                       <div className="p-4">
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 group-hover:text-error-600 transition-colors h-10">
                           {product.name}
                         </h3>
-                        
-                        {/* Progress Bar */}
-                        <div className="mb-3">
-                          <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-                            <span>فروش رفته</span>
-                            <span>{soldPercent}٪</span>
+
+                        {/* موجودی واقعی — نشانگر پیشرفتِ قبلی یک عدد تصادفیِ
+                            جعلی بود (Math.random در هر رندر، حتی برای یک محصول
+                            ثابت)، نه داده‌ی واقعی. */}
+                        {isLowStock && (
+                          <div className="mb-3">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-error-600 dark:text-error-400 bg-error-50 dark:bg-error-900/20 px-2 py-1 rounded-lg">
+                              <Flame className="w-3 h-3" />
+                              تنها {product.stock} عدد باقی مانده
+                            </span>
                           </div>
-                          <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5">
-                            <div className="bg-gradient-to-r from-error-500 to-accent-500 h-1.5 rounded-full transition-all duration-1000" style={{ width: `${soldPercent}%` }} />
-                          </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center justify-between">
                           <div className="flex flex-col">
@@ -526,6 +538,11 @@ export function HomePage() {
             )}
           </div>
         </section>
+      </SectionErrorBoundary>
+
+      {/* 6.5. Top Sellers */}
+      <SectionErrorBoundary sectionName="Top Sellers">
+        <TopSellersSection />
       </SectionErrorBoundary>
 
       {/* 7. Recently Viewed */}
@@ -805,7 +822,7 @@ export function HomePage() {
             <span className="text-[10px] font-bold">علاقه‌مندی</span>
           </button>
           <button onClick={() => navigate('/dashboard/profile')} className="flex flex-col items-center gap-1 px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors">
-            <Home className="w-6 h-6" /> {/* Using Home as placeholder for User, replace with User icon if available */}
+            <User className="w-6 h-6" />
             <span className="text-[10px] font-bold">پروفایل</span>
           </button>
         </div>

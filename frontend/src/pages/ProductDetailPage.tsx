@@ -50,6 +50,7 @@ import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
 import type { Product } from '@/types/models';
 import { cn } from '@/utils/cn';
+import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 import { sellerRatingService } from '@/services/api/sellerRating.service';
 import { useChatStore } from '@/store/chatStore';
@@ -277,6 +278,16 @@ useEffect(() => {
     if (!selectedModel || !product) return true;
     return product.compatible_models?.some((m) => m.id === selectedModel.id) ?? false;
   }, [selectedModel, product]);
+
+  // نام کامل دستگاه انتخابی برای پیام سازگاری — «لپ‌تاپ ایسوس ZenBook 14»،
+  // نه فرضِ همیشگیِ «گوشی». اگر کاربر برای تبلت یا لپ‌تاپش دستگاه انتخاب کرده
+  // باشد، پیام قبلی («سازگار با گوشی شما») گمراه‌کننده بود.
+  const selectedDeviceName = useMemo(() => {
+    if (!selectedModel) return '';
+    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand?.type);
+  }, [selectedModel]);
+
+  const SelectedDeviceIcon = getDeviceTypeIcon(selectedModel?.brand?.type);
 
   const discountPercent = useMemo(() => {
     if (!product) return 0;
@@ -651,10 +662,12 @@ useEffect(() => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={cn('font-black text-sm mb-0.5', isCompatible ? 'text-success-700' : 'text-error-700')}>
-                    {isCompatible ? '✓ کاملاً سازگار با گوشی شما' : '✗ با گوشی شما سازگار نیست'}
+                    {isCompatible
+                      ? `✓ کاملاً سازگار با ${selectedDeviceName}`
+                      : `✗ با ${selectedDeviceName} سازگار نیست`}
                   </p>
                   <p className="text-xs text-gray-600 flex items-center gap-1">
-                    <Smartphone className="w-3 h-3" />
+                    <SelectedDeviceIcon className="w-3 h-3" />
                     مدل: <strong>{selectedModel.name}</strong>
                   </p>
                 </div>

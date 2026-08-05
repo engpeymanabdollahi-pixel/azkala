@@ -31,6 +31,25 @@ class PublicSellerService
         return User::where('id', $id)->where('role', 'seller')->firstOrFail();
     }
 
+    /**
+     * فروشگاه‌های برتر برای صفحه‌ی اصلی.
+     *
+     * products_count، seller_rating و followers_count ستون‌های واقعی و
+     * cache‌شده‌ی جدول users‌اند (نه رابطه یا withCount)، پس این کوئری بدون
+     * جوین اضافه روی چند ردیف اجرا می‌شود. فروشگاه بدون محصول فعال حذف
+     * می‌شود — نمایاندنش در «فروشگاه‌های برتر» فقط به یک ویترین خالی می‌رسد.
+     */
+    public function getTopSellers(int $limit = 8)
+    {
+        return User::where('role', 'seller')
+            ->where('is_active', true)
+            ->where('products_count', '>', 0)
+            ->orderByDesc('seller_rating')
+            ->orderByDesc('followers_count')
+            ->limit($limit)
+            ->get();
+    }
+
     public function getSellerProducts(User $seller, array $filters): LengthAwarePaginator
     {
         // images لازم است چون ProductResource آن را می‌خواند؛ بدون eager load
@@ -48,15 +67,15 @@ class PublicSellerService
             default => $query->latest(),
         };
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where('name', 'like', "%{$filters['search']}%");
         }
 
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('category_id', $filters['category_id']);
         }
 
-        if (!empty($filters['has_discount'])) {
+        if (! empty($filters['has_discount'])) {
             $query->whereNotNull('compare_price')->whereRaw('compare_price > price');
         }
 

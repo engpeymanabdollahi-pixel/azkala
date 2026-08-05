@@ -163,6 +163,10 @@ export function ModelSelectorModal() {
       name: tempBrand.name,
       slug: tempBrand.slug,
       logo: null,
+      // قبلاً اینجا فرستاده نمی‌شد، پس هر جای اپ که پیام سازگاری می‌ساخت فرض
+      // می‌کرد دستگاه همیشه «گوشی» است — با اینکه این مدال از قبل لپ‌تاپ و
+      // تبلت را هم پشتیبانی می‌کند.
+      type: tempBrand.type,
       is_active: true,
       series_count: tempBrand.series.length,
       models_count: 0,
