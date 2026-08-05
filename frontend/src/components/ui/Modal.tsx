@@ -71,21 +71,21 @@ export function Modal({
     >
       <div
         className={cn(
-          'w-full bg-white rounded-2xl shadow-2xl animate-scale-in overflow-hidden',
+          'w-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl animate-scale-in overflow-hidden',
           'max-h-[90vh] flex flex-col',
           sizes[size]
         )}
       >
         {/* هدر مودال */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-gray-50 to-white dark:from-slate-800 dark:to-slate-800">
             {title && (
-              <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{title}</h2>
             )}
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all hover:rotate-90 text-gray-500 hover:text-gray-700 mr-auto"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all hover:rotate-90 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mr-auto"
                 aria-label="بستن"
               >
                 <X className="w-5 h-5" />

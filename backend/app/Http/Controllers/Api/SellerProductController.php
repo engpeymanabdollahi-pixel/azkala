@@ -63,7 +63,13 @@ class SellerProductController extends Controller
             'main_image' => 'nullable|string',
             'gallery' => 'nullable|array',
             'gallery.*' => 'string',
-            
+
+            // specifications ستون واقعی محصول است (fillable و cast:array در
+            // مدل)، ولی اینجا در قوانین اعتبارسنجی نبود — یعنی validate()
+            // بی‌صدا حذفش می‌کرد، پس فرم فروشنده هیچ‌وقت مشخصات فنی وارد‌شده
+            // را ذخیره نمی‌کرد.
+            'specifications' => 'nullable|array',
+
             // ✅ اضافه کردن اعتبارسنجی دستگاه‌های سازگار
             'device_model_ids' => 'nullable|array',
             'device_model_ids.*' => 'exists:device_models,id',
@@ -149,6 +155,9 @@ class SellerProductController extends Controller
             'main_image' => 'nullable|string',
             'gallery' => 'nullable|array',
             'gallery.*' => 'string',
+
+            // همان دلیل store(): specifications قبلاً اینجا هم غایب بود.
+            'specifications' => 'nullable|array',
 
             // ✅ اعتبارسنجی دستگاه‌های سازگار
             'device_model_ids' => 'nullable|array',

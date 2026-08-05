@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
@@ -25,41 +26,41 @@ type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'name_asc' 
 // ==================== Sub-Components (Optimized) ====================
 
 const ProductSkeleton = () => (
-  <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-3">
+  <div className="animate-pulse bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3">
     <div className="flex items-center gap-3">
-      <div className="w-12 h-12 bg-gray-200 rounded-lg" />
+      <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded-lg" />
       <div className="flex-1 space-y-2">
-        <div className="h-3 bg-gray-200 rounded w-3/4" />
-        <div className="h-2 bg-gray-200 rounded w-1/2" />
+        <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-3/4" />
+        <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-1/2" />
       </div>
     </div>
   </div>
 );
 
 const StatCard = ({ icon: Icon, label, value, gradient }: { icon: React.ElementType; label: string; value: number; gradient: string }) => (
-  <div className="bg-white rounded-xl p-3 border border-gray-100 hover:shadow-md transition-all group cursor-pointer hover:scale-[1.02]">
+  <div className="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-100 dark:border-slate-700 hover:shadow-md transition-all group cursor-pointer hover:scale-[1.02]">
     <div className="flex items-center gap-2 mb-2">
       <div className={`w-8 h-8 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <span className="text-xs text-gray-600 font-semibold">{label}</span>
+      <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold">{label}</span>
     </div>
-    <p className="text-lg font-black text-gray-900">{value.toLocaleString('fa-IR')}</p>
+    <p className="text-lg font-black text-gray-900 dark:text-white">{value.toLocaleString('fa-IR')}</p>
   </div>
 );
 
 const MenuItem = ({ icon: Icon, label, color, onClick }: { icon: React.ElementType; label: string; color: 'primary' | 'error' | 'gray'; onClick: () => void }) => {
-  const colorClasses = { 
-    primary: 'hover:bg-primary-50 text-gray-700 hover:text-primary-700', 
-    error: 'hover:bg-error-50 text-error-600', 
-    gray: 'hover:bg-gray-50 text-gray-700' 
+  const colorClasses = {
+    primary: 'hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-700 dark:text-gray-300 hover:text-primary-700 dark:hover:text-primary-400',
+    error: 'hover:bg-error-50 dark:hover:bg-error-900/20 text-error-600 dark:text-error-400',
+    gray: 'hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300',
   };
-  const iconBgClasses = { 
-    primary: 'bg-primary-100 text-primary-600', 
-    error: 'bg-error-100 text-error-600', 
-    gray: 'bg-gray-100 text-gray-600' 
+  const iconBgClasses = {
+    primary: 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
+    error: 'bg-error-100 dark:bg-error-900/30 text-error-600 dark:text-error-400',
+    gray: 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400',
   };
-  
+
   return (
     <button onClick={onClick} className={`w-full text-right px-3 py-2 transition-colors flex items-center gap-2.5 text-xs font-medium ${colorClasses[color]}`}>
       <div className={`w-6 h-6 rounded-md flex items-center justify-center ${iconBgClasses[color]}`}>
@@ -185,13 +186,17 @@ export function SellerProducts() {
 
   const stats = useMemo(() => {
     const active = products.filter((p) => p.is_active && p.stock > 0);
-    const totalRevenue = active.reduce((sum, p) => sum + parseFloat(p.price) * Math.min(p.stock, 10), 0);
+    // ارزش واقعی انبار: قیمت × کل موجودی هر محصول، بدون سقف مصنوعی. نسخه‌ی
+    // قبلی حداکثر ۱۰ عدد از موجودی هر محصول را حساب می‌کرد (Math.min(stock,
+    // 10))، یعنی محصولی با ۵۰۰ عدد موجودی، فقط ۱۰ تایش در «ارزش تقریبی
+    // انبار» دیده می‌شد — عددی که به فروشنده نشان داده می‌شود گمراه‌کننده بود.
+    const inventoryValue = active.reduce((sum, p) => sum + parseFloat(p.price) * p.stock, 0);
     return {
       total: products.length,
       active: active.length,
       outOfStock: products.filter((p) => p.stock === 0).length,
       inactive: products.filter((p) => !p.is_active).length,
-      totalRevenue,
+      inventoryValue,
       lowStock: products.filter((p) => p.stock > 0 && p.stock < 10).length,
     };
   }, [products]);
@@ -274,10 +279,10 @@ export function SellerProducts() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 bg-gray-50/50 min-h-screen space-y-4">
-        <div className="animate-pulse h-8 bg-gray-200 rounded w-64 mb-6" />
+      <div className="p-4 md:p-6 bg-gray-50/50 dark:bg-slate-900 min-h-screen space-y-4">
+        <div className="animate-pulse h-8 bg-gray-200 dark:bg-slate-700 rounded w-64 mb-6" />
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-gray-200 rounded-xl animate-pulse" />)}
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-gray-200 dark:bg-slate-700 rounded-xl animate-pulse" />)}
         </div>
         <div className="space-y-3">{Array.from({ length: 6 }).map((_, i) => <ProductSkeleton key={i} />)}</div>
       </div>
@@ -286,13 +291,13 @@ export function SellerProducts() {
 
   if (error) {
     return (
-      <div className="p-6 min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-sm bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-error-600" />
+      <div className="p-6 min-h-screen flex items-center justify-center bg-gray-50/50 dark:bg-slate-900">
+        <div className="text-center max-w-sm bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
+          <div className="w-16 h-16 bg-error-100 dark:bg-error-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-error-600 dark:text-error-400" />
           </div>
-          <h3 className="text-lg font-black text-gray-900 mb-2">خطا در بارگذاری محصولات</h3>
-          <p className="text-gray-500 text-sm mb-6">مشکلی در ارتباط با سرور رخ داده است.</p>
+          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">خطا در بارگذاری محصولات</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">مشکلی در ارتباط با سرور رخ داده است.</p>
           <div className="flex gap-2 justify-center">
             <Button onClick={() => window.location.reload()} className="gap-2"><RefreshCw className="w-4 h-4" />تلاش مجدد</Button>
             <Button variant="outline" onClick={() => navigate('/seller')}>بازگشت به داشبورد</Button>
@@ -303,16 +308,16 @@ export function SellerProducts() {
   }
 
   return (
-    <div className="p-4 md:p-6 bg-gray-50/50 min-h-screen pb-24">
+    <div className="p-4 md:p-6 bg-gray-50/50 dark:bg-slate-900 min-h-screen pb-24 transition-colors duration-300">
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-            <Package className="w-7 h-7 text-primary-600" />
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <Package className="w-7 h-7 text-primary-600 dark:text-primary-400" />
             مدیریت محصولات
             {isRefetching && <Loader2 className="w-4 h-4 animate-spin text-primary-500" />}
           </h1>
-          <p className="text-sm text-gray-500 mt-1">مدیریت موجودی، قیمت‌گذاری و وضعیت محصولات فروشگاه</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">مدیریت موجودی، قیمت‌گذاری و وضعیت محصولات فروشگاه</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExportCSV} disabled={products.length === 0} className="gap-2">
@@ -337,7 +342,7 @@ export function SellerProducts() {
             </div>
             <span className="text-xs text-white/90 font-semibold">ارزش تقریبی انبار</span>
           </div>
-          <p className="text-lg font-black">{formatPrice(stats.totalRevenue)}</p>
+          <p className="text-lg font-black">{formatPrice(stats.inventoryValue)}</p>
           {stats.lowStock > 0 && (
             <p className="text-[10px] text-white/80 mt-1 flex items-center gap-1">
               <Flame className="w-3 h-3" />{stats.lowStock} محصول کم‌موجود
@@ -347,20 +352,20 @@ export function SellerProducts() {
       </div>
 
       {/* 3. Filters & Toolbar */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 space-y-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm p-4 mb-6 space-y-4">
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               ref={searchInputRef}
               type="text"
               placeholder="جستجو در نام، SKU یا توضیحات... (کلید /)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pr-9 pl-8 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"
+              className="w-full pr-9 pl-8 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setSearchQuery('')} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 dark:text-gray-500">
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
@@ -369,18 +374,18 @@ export function SellerProducts() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="pl-8 pr-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 bg-white cursor-pointer text-sm min-w-[140px]"
+              className="pl-8 pr-3 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 bg-white dark:bg-slate-900 text-gray-900 dark:text-white cursor-pointer text-sm min-w-[140px]"
             >
               <option value="newest">جدیدترین</option>
               <option value="price_asc">ارزان‌ترین</option>
               <option value="price_desc">گران‌ترین</option>
               <option value="stock_asc">کم‌موجودی</option>
             </select>
-            <div className="flex items-center p-1 bg-gray-100 rounded-lg">
-              <button onClick={() => setViewMode('table')} className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            <div className="flex items-center p-1 bg-gray-100 dark:bg-slate-900 rounded-lg">
+              <button onClick={() => setViewMode('table')} className={`p-2 rounded-md transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                 <List className="w-4 h-4" />
               </button>
-              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>
                 <Grid3x3 className="w-4 h-4" />
               </button>
             </div>
@@ -400,12 +405,12 @@ export function SellerProducts() {
                 key={filter.id}
                 onClick={() => setStatusFilter(filter.id as StatusFilter)}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap border ${
-                  isActive ? 'bg-primary-50 border-primary-200 text-primary-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  isActive ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400' : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {filter.label}
-                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-primary-200 text-primary-800' : 'bg-gray-100 text-gray-600'}`}>
+                <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'}`}>
                   {filter.count}
                 </span>
               </button>
@@ -427,93 +432,91 @@ export function SellerProducts() {
           )}
         />
       ) : viewMode === 'table' ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50/80 border-b border-gray-200">
+              <thead className="bg-gray-50/80 dark:bg-slate-900/50 border-b border-gray-200 dark:border-slate-700">
                 <tr>
                   <th className="text-right px-4 py-3 w-12">
-                    <button onClick={toggleSelectAll} className="p-1 rounded hover:bg-gray-200 transition-colors">
+                    <button onClick={toggleSelectAll} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
                       {selectedProducts.size === filteredProducts.length && filteredProducts.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-primary-600" />
+                        <CheckSquare className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                       ) : (
-                        <Square className="w-4 h-4 text-gray-400" />
+                        <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       )}
                     </button>
                   </th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">محصول</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">قیمت</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">موجودی</th>
-                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">وضعیت</th>
-                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-600 uppercase tracking-wider">عملیات</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">محصول</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">قیمت</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">موجودی</th>
+                  <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">وضعیت</th>
+                  <th className="text-center px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">عملیات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
                 {filteredProducts.map((product) => {
                   const isSelected = selectedProducts.has(product.id);
                   return (
-                    <tr key={product.id} className={`transition-colors group ${isSelected ? 'bg-primary-50/40' : 'hover:bg-gray-50/80'}`}>
+                    <tr key={product.id} className={`transition-colors group ${isSelected ? 'bg-primary-50/40 dark:bg-primary-900/10' : 'hover:bg-gray-50/80 dark:hover:bg-slate-700/50'}`}>
                       <td className="px-4 py-3">
-                        <button onClick={() => toggleProductSelection(product.id)} className="p-1 rounded hover:bg-gray-200 transition-colors">
-                          {isSelected ? <CheckSquare className="w-4 h-4 text-primary-600" /> : <Square className="w-4 h-4 text-gray-400" />}
+                        <button onClick={() => toggleProductSelection(product.id)} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
+                          {isSelected ? <CheckSquare className="w-4 h-4 text-primary-600 dark:text-primary-400" /> : <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                         </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
-                            {product.main_image ? (
-                              <img src={product.main_image} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                            ) : <span className="text-xl">📦</span>}
+                          <div className="w-12 h-12 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 dark:border-slate-600">
+                            <SafeImage src={product.main_image} alt={product.name} className="w-full h-full object-cover" loading="lazy" showEmojiOnError fallbackEmoji="📦" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-gray-900 text-sm line-clamp-1 group-hover:text-primary-600 transition-colors">{product.name}</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-sm line-clamp-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{product.name}</p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[10px] text-gray-500 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{product.sku || 'بدون SKU'}</span>
-                              {product.category && <span className="text-[10px] text-gray-500">• {product.category.name}</span>}
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{product.sku || 'بدون SKU'}</span>
+                              {product.category && <span className="text-[10px] text-gray-500 dark:text-gray-400">• {product.category.name}</span>}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-black text-gray-900 text-sm">{formatPrice(parseFloat(product.price))}</p>
+                        <p className="font-black text-gray-900 dark:text-white text-sm">{formatPrice(parseFloat(product.price))}</p>
                         {product.discount_price && parseFloat(product.discount_price) < parseFloat(product.price) && (
-                          <p className="text-[10px] text-gray-400 line-through">{formatPrice(parseFloat(product.discount_price))}</p>
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 line-through">{formatPrice(parseFloat(product.discount_price))}</p>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`font-bold text-sm ${product.stock === 0 ? 'text-error-600' : product.stock < 10 ? 'text-warning-600' : 'text-gray-900'}`}>
+                        <span className={`font-bold text-sm ${product.stock === 0 ? 'text-error-600 dark:text-error-400' : product.stock < 10 ? 'text-warning-600 dark:text-warning-400' : 'text-gray-900 dark:text-white'}`}>
                           {product.stock} عدد
                         </span>
                       </td>
                       <td className="px-4 py-3">{getStatusBadge(product)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-1 relative" ref={showDropdown === product.id ? dropdownRef : undefined}>
-                          <Button variant="ghost" size="xs" onClick={() => setShowQuickView(product)} className="text-gray-500 hover:text-primary-600" title="مشاهده سریع">
+                          <Button variant="ghost" size="xs" onClick={() => setShowQuickView(product)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400" title="مشاهده سریع">
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="xs" onClick={() => handleOpenEditModal(product.id)} className="text-gray-500 hover:text-primary-600" title="ویرایش">
+                          <Button variant="ghost" size="xs" onClick={() => handleOpenEditModal(product.id)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400" title="ویرایش">
                             <Edit className="w-4 h-4" />
                           </Button>
                           {/* ✅ دکمه تاریخچه تغییرات */}
-                          <Button variant="ghost" size="xs" onClick={() => setHistoryProductId(product.id)} className="text-gray-500 hover:text-accent-600" title="تاریخچه تغییرات">
+                          <Button variant="ghost" size="xs" onClick={() => setHistoryProductId(product.id)} className="text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400" title="تاریخچه تغییرات">
                             <History className="w-4 h-4" />
                           </Button>
-                          
+
                           <div className="relative">
-                            <Button variant="ghost" size="xs" onClick={() => setShowDropdown(showDropdown === product.id ? null : product.id)} className="text-gray-500 hover:text-gray-900">
+                            <Button variant="ghost" size="xs" onClick={() => setShowDropdown(showDropdown === product.id ? null : product.id)} className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                             {showDropdown === product.id && (
-                              <div className="absolute left-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                              <div className="absolute left-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-100 dark:border-slate-700 z-30 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                 <MenuItem icon={Eye} label="مشاهده سریع" color="primary" onClick={() => { setShowQuickView(product); setShowDropdown(null); }} />
                                 <MenuItem icon={Edit} label="ویرایش محصول" color="primary" onClick={() => handleOpenEditModal(product.id)} />
                                 <MenuItem icon={ExternalLink} label="مشاهده در سایت" color="primary" onClick={() => { navigate(`/products/${product.slug}`); setShowDropdown(null); }} />
-                                <MenuItem icon={Copy} label="کپی اطلاعات" color="gray" onClick={() => { 
-                                  navigator.clipboard.writeText(`${product.name}\nقیمت: ${product.price} تومان`); 
-                                  toast.success('اطلاعات کپی شد'); 
-                                  setShowDropdown(null); 
+                                <MenuItem icon={Copy} label="کپی اطلاعات" color="gray" onClick={() => {
+                                  navigator.clipboard.writeText(`${product.name}\nقیمت: ${product.price} تومان`);
+                                  toast.success('اطلاعات کپی شد');
+                                  setShowDropdown(null);
                                 }} />
-                                <div className="border-t border-gray-100 my-1" />
+                                <div className="border-t border-gray-100 dark:border-slate-700 my-1" />
                                 <MenuItem icon={Trash2} label="حذف محصول" color="error" onClick={() => { setShowDeleteConfirm(product.id); setShowDropdown(null); }} />
                               </div>
                             )}
@@ -532,18 +535,16 @@ export function SellerProducts() {
           {filteredProducts.map((product) => {
             const isSelected = selectedProducts.has(product.id);
             return (
-              <div key={product.id} className={`group bg-white rounded-xl border-2 transition-all overflow-hidden ${isSelected ? 'border-primary-500 shadow-md ring-2 ring-primary-500/20' : 'border-gray-100 hover:border-primary-200 hover:shadow-lg'}`}>
-                <div className="relative aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {product.main_image ? (
-                    <img src={product.main_image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  ) : <span className="text-5xl">📦</span>}
-                  
-                  <button onClick={() => toggleProductSelection(product.id)} className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm ${isSelected ? 'bg-primary-500 text-white' : 'bg-white/90 backdrop-blur-sm text-gray-600 opacity-0 group-hover:opacity-100'}`}>
+              <div key={product.id} className={`group bg-white dark:bg-slate-800 rounded-xl border-2 transition-all overflow-hidden ${isSelected ? 'border-primary-500 shadow-md ring-2 ring-primary-500/20' : 'border-gray-100 dark:border-slate-700 hover:border-primary-200 dark:hover:border-primary-700 hover:shadow-lg'}`}>
+                <div className="relative aspect-[4/3] bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+                  <SafeImage src={product.main_image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" showEmojiOnError fallbackEmoji="📦" />
+
+                  <button onClick={() => toggleProductSelection(product.id)} className={`absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center transition-all shadow-sm ${isSelected ? 'bg-primary-500 text-white' : 'bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100'}`}>
                     {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
                   </button>
-                  
+
                   <div className="absolute top-3 left-3">{getStatusBadge(product)}</div>
-                  
+
                   {product.discount_price && parseFloat(product.discount_price) < parseFloat(product.price) && (
                     <div className="absolute bottom-3 right-3 bg-error-600 text-white px-2 py-1 rounded-md text-xs font-black shadow-md">
                       {Math.round(((parseFloat(product.price) - parseFloat(product.discount_price)) / parseFloat(product.price)) * 100)}٪ تخفیف
@@ -551,23 +552,23 @@ export function SellerProducts() {
                   )}
 
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2 backdrop-blur-[2px]">
-                    <button onClick={() => setShowQuickView(product)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Eye className="w-4 h-4" /></button>
-                    <button onClick={() => handleOpenEditModal(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Edit className="w-4 h-4" /></button>
-                    <button onClick={() => setHistoryProductId(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-accent-600 hover:text-white transition-all shadow-lg hover:scale-110" title="تاریخچه"><History className="w-4 h-4" /></button>
-                    <button onClick={() => setShowDeleteConfirm(product.id)} className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-error-600 hover:text-white transition-all shadow-lg hover:scale-110"><Trash2 className="w-4 h-4" /></button>
+                    <button onClick={() => setShowQuickView(product)} className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Eye className="w-4 h-4" /></button>
+                    <button onClick={() => handleOpenEditModal(product.id)} className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-lg hover:scale-110"><Edit className="w-4 h-4" /></button>
+                    <button onClick={() => setHistoryProductId(product.id)} className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-accent-600 hover:text-white transition-all shadow-lg hover:scale-110" title="تاریخچه"><History className="w-4 h-4" /></button>
+                    <button onClick={() => setShowDeleteConfirm(product.id)} className="w-10 h-10 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-error-600 hover:text-white transition-all shadow-lg hover:scale-110"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
-                
+
                 <div className="p-4">
-                  <h3 className="font-bold text-gray-900 text-sm line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-primary-600 transition-colors">{product.name}</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2 mb-2 min-h-[2.5rem] group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{product.name}</h3>
                   <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-lg font-black text-primary-700">{formatPrice(parseFloat(product.price))}</span>
+                    <span className="text-lg font-black text-primary-700 dark:text-primary-400">{formatPrice(parseFloat(product.price))}</span>
                     {product.discount_price && parseFloat(product.discount_price) < parseFloat(product.price) && (
-                      <span className="text-xs text-gray-400 line-through">{formatPrice(parseFloat(product.discount_price))}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 line-through">{formatPrice(parseFloat(product.discount_price))}</span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <span className={`text-xs font-bold flex items-center gap-1 ${product.stock === 0 ? 'text-error-600' : product.stock < 10 ? 'text-warning-600' : 'text-gray-600'}`}>
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-700">
+                    <span className={`text-xs font-bold flex items-center gap-1 ${product.stock === 0 ? 'text-error-600 dark:text-error-400' : product.stock < 10 ? 'text-warning-600 dark:text-warning-400' : 'text-gray-600 dark:text-gray-400'}`}>
                       <Package className="w-3.5 h-3.5" />{product.stock} عدد
                     </span>
                     {product.category && <Badge variant="gray" size="sm">{product.category.name}</Badge>}
@@ -603,39 +604,37 @@ export function SellerProducts() {
       {showQuickView && (
         <Modal isOpen={!!showQuickView} onClose={() => setShowQuickView(null)} size="lg" title="مشاهده سریع محصول">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200">
-              {showQuickView.main_image ? (
-                <img src={showQuickView.main_image} alt={showQuickView.name} className="w-full h-full object-cover" />
-              ) : <span className="text-8xl">📦</span>}
+            <div className="aspect-square bg-gray-100 dark:bg-slate-700 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200 dark:border-slate-600">
+              <SafeImage src={showQuickView.main_image} alt={showQuickView.name} className="w-full h-full object-cover" showEmojiOnError fallbackEmoji="📦" />
             </div>
             <div className="space-y-4">
               <div>
-                <h3 className="text-xl font-black text-gray-900 mb-1">{showQuickView.name}</h3>
-                {showQuickView.sku && <p className="text-xs text-gray-500 font-mono bg-gray-100 inline-block px-2 py-1 rounded">SKU: {showQuickView.sku}</p>}
+                <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1">{showQuickView.name}</h3>
+                {showQuickView.sku && <p className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-slate-700 inline-block px-2 py-1 rounded">SKU: {showQuickView.sku}</p>}
               </div>
               <div className="flex items-baseline gap-3">
-                <span className="text-2xl font-black text-primary-700">{formatPrice(parseFloat(showQuickView.price))}</span>
+                <span className="text-2xl font-black text-primary-700 dark:text-primary-400">{formatPrice(parseFloat(showQuickView.price))}</span>
                 {showQuickView.discount_price && parseFloat(showQuickView.discount_price) < parseFloat(showQuickView.price) && (
-                  <span className="text-sm text-gray-400 line-through">{formatPrice(parseFloat(showQuickView.discount_price))}</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{formatPrice(parseFloat(showQuickView.discount_price))}</span>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className={`rounded-lg p-3 border ${showQuickView.stock === 0 ? 'bg-error-50 text-error-700 border-error-200' : showQuickView.stock < 10 ? 'bg-warning-50 text-warning-700 border-warning-200' : 'bg-success-50 text-success-700 border-success-200'}`}>
+                <div className={`rounded-lg p-3 border ${showQuickView.stock === 0 ? 'bg-error-50 dark:bg-error-900/20 text-error-700 dark:text-error-400 border-error-200 dark:border-error-800' : showQuickView.stock < 10 ? 'bg-warning-50 dark:bg-warning-900/20 text-warning-700 dark:text-warning-400 border-warning-200 dark:border-warning-800' : 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-400 border-success-200 dark:border-success-800'}`}>
                   <div className="flex items-center gap-1.5 mb-1"><Package className="w-4 h-4" /><span className="text-xs font-semibold">موجودی</span></div>
                   <p className="text-lg font-black">{showQuickView.stock} عدد</p>
                 </div>
-                <div className="rounded-lg p-3 border bg-gray-50 text-gray-700 border-gray-200">
+                <div className="rounded-lg p-3 border bg-gray-50 dark:bg-slate-900/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-slate-700">
                   <div className="flex items-center gap-1.5 mb-1"><CheckCircle className="w-4 h-4" /><span className="text-xs font-semibold">وضعیت</span></div>
                   <p className="text-lg font-black">{showQuickView.is_active ? 'فعال' : 'غیرفعال'}</p>
                 </div>
               </div>
               {showQuickView.description && (
                 <div>
-                  <h4 className="font-bold text-gray-900 text-sm mb-2">توضیحات</h4>
-                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">{showQuickView.description}</p>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-2">توضیحات</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-4">{showQuickView.description}</p>
                 </div>
               )}
-              <div className="flex gap-3 pt-4 border-t border-gray-100">
+              <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
                 <Button onClick={() => handleOpenEditModal(showQuickView.id)} className="flex-1 gap-2">
                   <Edit className="w-4 h-4" />ویرایش محصول
                 </Button>
@@ -651,11 +650,11 @@ export function SellerProducts() {
       {/* 8. Delete Confirmation Modal */}
       <Modal isOpen={showDeleteConfirm !== null} onClose={() => setShowDeleteConfirm(null)} size="sm" title="حذف محصول">
         <div className="text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-error-600" />
+          <div className="w-16 h-16 bg-error-100 dark:bg-error-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-8 h-8 text-error-600 dark:text-error-400" />
           </div>
-          <h3 className="text-lg font-black text-gray-900 mb-2">آیا از حذف این محصول مطمئن هستید؟</h3>
-          <p className="text-gray-500 text-sm mb-6">این عمل غیرقابل بازگشت است و تمام اطلاعات محصول از سیستم حذف خواهد شد.</p>
+          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">آیا از حذف این محصول مطمئن هستید؟</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">این عمل غیرقابل بازگشت است و تمام اطلاعات محصول از سیستم حذف خواهد شد.</p>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(null)}>انصراف</Button>
             <Button variant="danger" className="flex-1 gap-2" onClick={() => handleDelete(showDeleteConfirm!)} disabled={deleteProductMutation.isPending}>
@@ -669,11 +668,11 @@ export function SellerProducts() {
       {/* 9. Bulk Delete Confirmation */}
       <Modal isOpen={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} size="sm" title="حذف دسته‌ای">
         <div className="text-center">
-          <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-error-600" />
+          <div className="w-16 h-16 bg-error-100 dark:bg-error-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-8 h-8 text-error-600 dark:text-error-400" />
           </div>
-          <h3 className="text-lg font-black text-gray-900 mb-2">حذف {selectedProducts.size} محصول؟</h3>
-          <p className="text-gray-500 text-sm mb-6">این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>
+          <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">حذف {selectedProducts.size} محصول؟</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setShowBulkDeleteConfirm(false)}>انصراف</Button>
             <Button variant="danger" className="flex-1 gap-2" onClick={handleBulkDelete} disabled={deleteProductMutation.isPending}>
