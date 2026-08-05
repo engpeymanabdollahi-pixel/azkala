@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { sellerService } from '@/services/api/seller.service';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { STORAGE_URL } from '@/lib/apiConfig';
 
 // تابع کمکی برای تبدیل مسیر نسبی به مطلق
@@ -50,8 +51,11 @@ export default function SellerSettings() {
         navigate('/seller');
       }
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'خطا در به‌روزرسانی تنظیمات');
+    onError: (error: unknown) => {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || 'خطا در به‌روزرسانی تنظیمات');
     },
   });
 
@@ -101,9 +105,9 @@ export default function SellerSettings() {
             onClick={() => bannerInputRef.current?.click()}
           >
             {bannerPreview ? (
-              <img src={bannerPreview} alt="Banner Preview" className="w-full h-full object-cover" />
+              <SafeImage src={bannerPreview} alt="Banner Preview" className="w-full h-full object-cover" />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
                 <ImageIcon className="w-8 h-8 mb-2" />
                 <span className="text-xs font-medium">برای آپلود بنر کلیک کنید</span>
               </div>
@@ -124,9 +128,9 @@ export default function SellerSettings() {
               onClick={() => avatarInputRef.current?.click()}
             >
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
+                <SafeImage src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
                   <Store className="w-8 h-8 mb-2" />
                 </div>
               )}

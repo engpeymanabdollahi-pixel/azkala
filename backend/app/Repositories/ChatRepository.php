@@ -25,21 +25,32 @@ class ChatRepository
                 'buyer_id'   => $userId,
                 'seller_id'  => $sellerId,
                 'product_id' => $productId,
-                'status'     => 'active',
+                // ستون status اصلاً روی جدول conversations وجود ندارد (فقط
+                // is_active هست، که پیش‌فرضش true است) — 'status' => 'active'
+                // قبلاً اینجا بود ولی چون در $fillable مدل نیست، Eloquent
+                // بی‌صدا نادیده‌اش می‌گرفت.
             ]);
         }
 
         return $conversation->load(['buyer', 'seller', 'product']);
     }
 
+    /**
+     * قبلاً اینجا فقط where('buyer_id', $userId) بود — یعنی وقتی فروشنده‌ای
+     * صندوق چت خودش را باز می‌کرد (GET /chat/conversations)، فقط مکالماتی
+     * برمی‌گشت که خودِ فروشنده در آن‌ها نقش خریدار داشت، نه مکالمات واقعی
+     * مشتریانی که با او چت کرده بودند — یعنی صندوق چت فروشنده تقریباً همیشه
+     * خالی یا غلط بود. Conversation::scopeForUser از قبل در مدل تعریف شده
+     * بود (buyer_id OR seller_id) ولی هیچ‌جا استفاده نمی‌شد.
+     */
     public function getUserConversations(int $userId, string $filter = 'all'): array
     {
-        $query = Conversation::where('buyer_id', $userId)
+        $query = Conversation::forUser($userId)
             ->with(['buyer', 'seller', 'product'])
             ->orderBy('updated_at', 'desc');
 
         if ($filter === 'active') {
-            $query->where('status', 'active');
+            $query->active();
         }
 
         return $query->get()->toArray();
@@ -47,8 +58,10 @@ class ChatRepository
 
     public function getConversation(int $conversationId, int $userId): array
     {
+        // همان باگ getUserConversations — فروشنده هیچ‌وقت نمی‌توانست جزئیات
+        // مکالمه‌ای را که خودش طرف seller آن بود ببیند.
         $conversation = Conversation::where('id', $conversationId)
-            ->where('buyer_id', $userId)
+            ->forUser($userId)
             ->with(['buyer', 'seller', 'product'])
             ->firstOrFail();
 
@@ -93,8 +106,10 @@ class ChatRepository
 
     public function deleteConversation(int $conversationId, int $userId): void
     {
+        // همان باگ بالا — قبلاً فروشنده نمی‌توانست مکالمه‌ای را که خودش
+        // طرف seller آن بود حذف کند.
         Conversation::where('id', $conversationId)
-            ->where('buyer_id', $userId)
+            ->forUser($userId)
             ->delete();
     }
 }

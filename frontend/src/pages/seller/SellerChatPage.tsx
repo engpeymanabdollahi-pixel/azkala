@@ -11,13 +11,12 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
-import { chatService, type ChatConversation, type ChatMessage } from '@/services/api/chat.service';
+import { chatService, type ChatConversation, type ChatMessage, type OnlineStatus } from '@/services/api/chat.service';
 import { quickReplyService, type QuickReply } from '@/services/api/quickReply.service';
 import { chatModerationService } from '@/services/api/chatModeration.service';
 import { chatFaqService, type ChatFaq } from '@/services/api/chatFaq.service';
 import { OnlineIndicator } from '@/components/chat/OnlineIndicator';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
 import { playNotificationSound } from '@/lib/notification';
 
 export function SellerChatPage() {
@@ -39,7 +38,7 @@ export function SellerChatPage() {
   const [reportReason, setReportReason] = useState<'spam' | 'harassment' | 'inappropriate' | 'scam' | 'other'>('spam');
   const [reportDescription, setReportDescription] = useState('');
   const [isReporting, setIsReporting] = useState(false);
-  const [onlineStatuses, setOnlineStatuses] = useState<Record<number, any>>({});
+  const [onlineStatuses, setOnlineStatuses] = useState<Record<number, OnlineStatus>>({});
 const [productSuggestions, setProductSuggestions] = useState<any[]>([]);
 const [showSuggestionsPanel, setShowSuggestionsPanel] = useState(false);
 const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
@@ -49,10 +48,15 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [faqs, setFaqs] = useState<ChatFaq[]>([]);
   const [showFaqForm, setShowFaqForm] = useState(false);
   const [editingFaq, setEditingFaq] = useState<ChatFaq | null>(null);
-  const [faqForm, setFaqForm] = useState({
+  const [faqForm, setFaqForm] = useState<{
+    question_pattern: string;
+    answer: string;
+    category: ChatFaq['category'];
+    priority: number;
+  }>({
     question_pattern: '',
     answer: '',
-    category: 'general' as const,
+    category: 'general',
     priority: 0,
   });
 
@@ -87,11 +91,9 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   const loadMessages = useCallback(async (convId: number) => {
     try {
-      console.log('📥 Loading messages for conversation:', convId);
       const response = await chatService.getMessages(convId);
       const data = response.data?.data || response.data;
       
-      console.log('📬 Messages received:', data?.length || 0);
       
       if (Array.isArray(data)) {
         setMessages(data);
@@ -105,25 +107,18 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   // 🧠 Load Sentiment Stats
   const loadSentimentStats = useCallback(async () => {
     if (!selectedConversation) {
-      console.log('⚠️ No selected conversation');
       return;
     }
     
     setIsLoadingSentiment(true);
     try {
-      console.log('🧠 Loading sentiment stats for conv:', selectedConversation.id);
       const res = await chatService.getSentimentStats(selectedConversation.id);
-      console.log('📊 Sentiment response:', res);
-      
+
       if (res.success && res.data) {
-        console.log('✅ Setting sentiment stats');
         setSentimentStats(res.data);
-      } else {
-        console.warn('⚠️ No data in response');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Error loading sentiment stats:', error);
-      console.error('❌ Response:', error.response?.data);
       toast.error('خطا در بارگذاری آمار احساسات');
     } finally {
       setIsLoadingSentiment(false);
@@ -132,27 +127,29 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   // ==================== Effects ====================
   useEffect(() => {
-    console.log('🚀 SellerChatPage mounted');
     loadConversations();
     loadQuickReplies();
     loadFaqs();
   }, []);
 
-  // 🔄 Polling
+  // 🔄 Polling — قبلاً poll() خودش را با setTimeout(poll, 10000) دوباره
+  // زمان‌بندی می‌کرد ولی تابع cleanup خالی بود (هیچ‌وقت clearTimeout صدا زده
+  // نمی‌شد)؛ یعنی با خروج فروشنده از صفحه‌ی چت، این حلقه برای همیشه در پس‌زمینه
+  // ادامه می‌داد و هر ۱۰ ثانیه به API درخواست می‌زد.
   useEffect(() => {
-    console.log('🔄 Polling started');
-    
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     const poll = async () => {
       await loadConversations();
-      
+
       const currentConvId = selectedConvRef.current;
       if (currentConvId) {
         try {
           const response = await chatService.getMessages(currentConvId);
           const data = response.data?.data || response.data;
-          
+
           if (Array.isArray(data) && data.length !== messagesCountRef.current) {
-            console.log('🆕 New messages detected:', data.length);
             setMessages(data);
             messagesCountRef.current = data.length;
           }
@@ -160,14 +157,17 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
           console.error('❌ Polling messages error:', error);
         }
       }
-      
-      setTimeout(poll, 10000);
+
+      if (!cancelled) {
+        timeoutId = setTimeout(poll, 10000);
+      }
     };
-    
+
     poll();
-    
+
     return () => {
-      console.log('🛑 Polling stopped');
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
@@ -178,7 +178,6 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   // Load sentiment when conversation changes
   useEffect(() => {
     if (selectedConversation) {
-      console.log('🔄 Conversation changed, loading sentiment...');
       loadSentimentStats();
     } else {
       setSentimentStats(null);
@@ -199,8 +198,8 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
       try {
         const res = await chatService.getOnlineStatus(userIds);
         if (res.success) {
-          const statusMap: Record<number, any> = {};
-          res.data.forEach((status: any) => {
+          const statusMap: Record<number, OnlineStatus> = {};
+          res.data.forEach((status: OnlineStatus) => {
             statusMap[status.id] = status;
           });
           setOnlineStatuses(statusMap);
@@ -266,7 +265,6 @@ useEffect(() => {
 
   // ==================== Handlers ====================
   const selectConversation = async (conv: ChatConversation) => {
-    console.log('👆 Selecting conversation:', conv.id);
     selectedConvRef.current = conv.id;
     setSelectedConversation(conv);
     setIsLoading(true);
@@ -493,8 +491,11 @@ useEffect(() => {
       } else {
         toast.error(res.message || 'خطا');
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'خطا');
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || 'خطا');
     }
   };
 
@@ -516,37 +517,37 @@ useEffect(() => {
 
   // ==================== Render ====================
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900/50">
       <div className="container mx-auto px-4 py-6 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/seller/dashboard')}
-              className="p-2 hover:bg-white rounded-lg transition-colors"
+              onClick={() => navigate('/seller')}
+              className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-gray-900">پیام‌ها</h1>
-              <p className="text-sm text-gray-600">مدیریت مکالمات با مشتریان</p>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white">پیام‌ها</h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">مدیریت مکالمات با مشتریان</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg shadow-sm">
               <MessageCircle className="w-5 h-5 text-primary-500" />
               <div>
-                <p className="text-xs text-gray-600">کل مکالمات</p>
-                <p className="font-black text-gray-900">{stats.total}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">کل مکالمات</p>
+                <p className="font-black text-gray-900 dark:text-white">{stats.total}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg shadow-sm">
               <Badge variant="error" size="sm" className="w-6 h-6 flex items-center justify-center">
                 {stats.unread}
               </Badge>
               <div>
-                <p className="text-xs text-gray-600">خوانده نشده</p>
-                <p className="font-black text-gray-900">{stats.unread}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">خوانده نشده</p>
+                <p className="font-black text-gray-900 dark:text-white">{stats.unread}</p>
               </div>
             </div>
           </div>
@@ -555,16 +556,16 @@ useEffect(() => {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversations List */}
-          <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-3 border-b border-gray-100 space-y-2">
+          <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
+            <div className="p-3 border-b border-gray-100 dark:border-slate-700 space-y-2">
               <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="جستجو..."
-                  className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full pr-9 pl-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
               <div className="flex gap-1">
@@ -576,7 +577,7 @@ useEffect(() => {
                       'flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors',
                       filterStatus === status
                         ? 'bg-primary-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                     )}
                   >
                     {status === 'all' ? 'همه' : status === 'unread' ? 'خوانده نشده' : 'خوانده شده'}
@@ -587,7 +588,7 @@ useEffect(() => {
 
             <div className="overflow-y-auto max-h-[600px]">
               {conversations.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">مکالمه‌ای یافت نشد</p>
                 </div>
@@ -600,10 +601,10 @@ useEffect(() => {
                       key={conv.id}
                       onClick={() => selectConversation(conv)}
                       className={cn(
-                        'p-3 border-b border-gray-100 cursor-pointer transition-colors',
+                        'p-3 border-b border-gray-100 dark:border-slate-700 cursor-pointer transition-colors',
                         selectedConversation?.id === conv.id
                           ? 'bg-primary-50 border-r-4 border-r-primary-500'
-                          : 'hover:bg-gray-50'
+                          : 'hover:bg-gray-50 dark:hover:bg-slate-900/50'
                       )}
                     >
                       <div className="flex items-start gap-2">
@@ -612,7 +613,7 @@ useEffect(() => {
                             {otherUser?.name?.charAt(0) || '?'}
                           </div>
                           {otherUserId && onlineStatuses[otherUserId] && (
-                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5">
+                            <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-800 rounded-full p-0.5">
                               <OnlineIndicator 
                                 isOnline={onlineStatuses[otherUserId].is_online}
                                 size="sm"
@@ -622,7 +623,7 @@ useEffect(() => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center mb-0.5">
-                            <p className="font-bold text-sm text-gray-900 truncate">
+                            <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
                               {otherUser?.name || 'کاربر'}
                             </p>
                             {(conv.unread_count || 0) > 0 && (
@@ -636,8 +637,8 @@ useEffect(() => {
                               {conv.product.name}
                             </p>
                           )}
-                          <p className="text-xs text-gray-500 truncate">
-                            {conv.last_message?.content || conv.messages?.[0]?.content || 'شروع مکالمه...'}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {conv.messages?.[0]?.content || 'شروع مکالمه...'}
                           </p>
                         </div>
                       </div>
@@ -649,9 +650,9 @@ useEffect(() => {
           </div>
 
           {/* Chat Area */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[700px]">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden flex flex-col h-[700px]">
             {!selectedConversation ? (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
                 <div className="text-center">
                   <MessageCircle className="w-16 h-16 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">یک مکالمه را انتخاب کنید</p>
@@ -665,14 +666,14 @@ useEffect(() => {
                   const otherUserId = getOtherUserId(selectedConversation);
                   
                   return (
-                    <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
+                    <div className="p-4 border-b border-gray-100 dark:border-slate-700 flex items-center justify-between bg-gradient-to-r from-primary-50 to-white">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div className="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
                             {otherUser?.name?.charAt(0) || '?'}
                           </div>
                           {otherUserId && onlineStatuses[otherUserId] && (
-                            <div className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-0.5">
+                            <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-slate-800 rounded-full p-0.5">
                               <OnlineIndicator 
                                 isOnline={onlineStatuses[otherUserId].is_online}
                                 size="sm"
@@ -681,7 +682,7 @@ useEffect(() => {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-black text-gray-900">
+                          <h3 className="font-black text-gray-900 dark:text-white">
                             {otherUser?.name || 'کاربر'}
                           </h3>
                           {otherUserId && onlineStatuses[otherUserId] && (
@@ -698,17 +699,14 @@ useEffect(() => {
                        {/* 🧠 دکمه آمار احساسات */}
                                     <button
                                   onClick={async () => {
-                                console.log('👆 دکمه احساسات کلیک شد!');
-                                  console.log('🔍 showSentimentPanel:', showSentimentPanel);
     
                           // هر بار که کلیک می‌شود، داده‌ها را دوباره load کن
-                             console.log('🔄 Reloading sentiment stats...');
                              await loadSentimentStats();
     
                            // بعد از load، panel را باز کن
                          setShowSentimentPanel(true);
                                    }}
-                         className="p-2 hover:bg-white rounded-lg transition-colors text-gray-700 hover:text-purple-600"
+                         className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:text-purple-600"
                                    title="آمار احساسات"
                               >
                              <TrendingUp className="w-5 h-5" />
@@ -721,7 +719,7 @@ useEffect(() => {
       loadProductSuggestions();
     }
   }}
-  className="p-2 hover:bg-white rounded-lg transition-colors text-gray-700 hover:text-accent-600"
+  className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:text-accent-600"
   title="پیشنهادات محصول"
 >
   <ShoppingBag className="w-5 h-5" />
@@ -730,7 +728,7 @@ useEffect(() => {
                         {/* 🤖 دکمه FAQ */}
                         <button
                           onClick={() => setShowFaqPanel(true)}
-                          className="p-2 hover:bg-white rounded-lg transition-colors text-gray-700 hover:text-primary-600"
+                          className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:text-primary-600"
                           title="مدیریت ربات FAQ"
                         >
                           <Bot className="w-5 h-5" />
@@ -740,18 +738,18 @@ useEffect(() => {
                         <div className="relative">
                           <button
                             onClick={() => setShowModerationMenu(!showModerationMenu)}
-                            className="p-2 hover:bg-white rounded-lg transition-colors"
+                            className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors"
                           >
                             <MoreVertical className="w-5 h-5" />
                           </button>
                           {showModerationMenu && (
-                            <div className="absolute top-10 left-0 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20 min-w-[180px]">
+                            <div className="absolute top-10 left-0 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 py-1 z-20 min-w-[180px]">
                               <button
                                 onClick={() => {
                                   setShowReportModal(true);
                                   setShowModerationMenu(false);
                                 }}
-                                className="w-full px-3 py-2 text-right text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-end gap-2"
+                                className="w-full px-3 py-2 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-900/50 flex items-center justify-end gap-2"
                               >
                                 <span>گزارش تخلف</span>
                                 <Flag className="w-4 h-4" />
@@ -766,7 +764,7 @@ useEffect(() => {
                                 <span>بلاک کردن</span>
                                 <Ban className="w-4 h-4" />
                               </button>
-                              <div className="border-t border-gray-100 my-1" />
+                              <div className="border-t border-gray-100 dark:border-slate-700 my-1" />
                               <button
                                 onClick={() => {
                                   handleDeleteConversation();
@@ -787,7 +785,7 @@ useEffect(() => {
 
                 {/* Product Info */}
                 {selectedConversation.product && (
-                  <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-3">
+                  <div className="p-3 bg-gray-50 dark:bg-slate-900/50 border-b border-gray-100 dark:border-slate-700 flex items-center gap-3">
                     {selectedConversation.product.main_image && (
                       <img
                         src={selectedConversation.product.main_image}
@@ -796,23 +794,23 @@ useEffect(() => {
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">
+                      <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                         {selectedConversation.product.name}
                       </p>
-                      <p className="text-xs text-gray-500">درباره این محصول</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">درباره این محصول</p>
                     </div>
-                    <Package className="w-5 h-5 text-gray-400" />
+                    <Package className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
                 )}
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-slate-900/50">
                   {isLoading && messages.length === 0 ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
+                    <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
                       <p className="text-sm">اولین پیام را ارسال کنید!</p>
                     </div>
@@ -829,10 +827,10 @@ useEffect(() => {
                             className={cn(
                               'max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm',
                               isSystem
-                                ? 'bg-gradient-to-br from-accent-100 to-primary-100 text-gray-800 border border-accent-200 rounded-br-sm'
+                                ? 'bg-gradient-to-br from-accent-100 to-primary-100 text-gray-800 dark:text-gray-200 border border-accent-200 rounded-br-sm'
                                 : isOwn
                                 ? 'bg-primary-500 text-white rounded-br-sm'
-                                : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
+                                : 'bg-white dark:bg-slate-800 text-gray-900 dark:text-white rounded-bl-sm border border-gray-200 dark:border-slate-700'
                             )}
                           >
                             {isSystem && (
@@ -845,7 +843,7 @@ useEffect(() => {
                             <p className={cn(
                               'text-[10px] mt-1',
                               isSystem ? 'text-accent-600' :
-                              isOwn ? 'text-primary-100' : 'text-gray-400'
+                              isOwn ? 'text-primary-100' : 'text-gray-400 dark:text-gray-500'
                             )}>
                               {new Date(msg.created_at).toLocaleTimeString('fa-IR', {
                                 hour: '2-digit',
@@ -862,14 +860,14 @@ useEffect(() => {
 
                 {/* Quick Replies */}
                 {quickReplies.length > 0 && (
-                  <div className="px-4 py-2 border-t border-gray-100 bg-yellow-50">
+                  <div className="px-4 py-2 border-t border-gray-100 dark:border-slate-700 bg-yellow-50">
                     <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
                       <Zap className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                       {quickReplies.map(reply => (
                         <button
                           key={reply.id}
                           onClick={() => handleUseQuickReply(reply.content)}
-                          className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-semibold text-gray-700 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-all whitespace-nowrap flex-shrink-0 shadow-sm"
+                          className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-full text-xs font-semibold text-gray-700 dark:text-gray-300 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-all whitespace-nowrap flex-shrink-0 shadow-sm"
                           title={reply.content}
                         >
                           {reply.title}
@@ -880,7 +878,7 @@ useEffect(() => {
                 )}
 
                 {/* Input */}
-                <div className="p-4 border-t border-gray-100 bg-white">
+                <div className="p-4 border-t border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800">
                   <div className="flex items-center gap-2">
                     <input
                       ref={inputRef}
@@ -889,7 +887,7 @@ useEffect(() => {
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="پیام خود را بنویسید..."
-                      className="flex-1 px-4 py-3 border border-gray-200 rounded-full text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+                      className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-full text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
                       disabled={isSending}
                       autoComplete="off"
                     />
@@ -900,7 +898,7 @@ useEffect(() => {
                         'w-12 h-12 rounded-full flex items-center justify-center transition-all',
                         messageInput.trim() && !isSending
                           ? 'bg-primary-500 text-white hover:bg-primary-600 shadow-md hover:shadow-lg'
-                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-200 dark:bg-slate-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                       )}
                     >
                       {isSending ? (
@@ -920,7 +918,7 @@ useEffect(() => {
       {/* 🧠 Sentiment Panel */}
       {showSentimentPanel && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-4 border-b bg-gradient-to-r from-purple-500 to-pink-500 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-6 h-6" />
@@ -931,7 +929,7 @@ useEffect(() => {
               </div>
               <button
                 onClick={() => setShowSentimentPanel(false)}
-                className="hover:bg-white/20 p-2 rounded-lg"
+                className="hover:bg-white/20 dark:hover:bg-slate-800/40 p-2 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -941,15 +939,15 @@ useEffect(() => {
               {isLoadingSentiment && (
                 <div className="text-center py-12">
                   <Loader2 className="w-12 h-12 animate-spin text-purple-500 mx-auto mb-3" />
-                  <p className="text-sm text-gray-600">در حال بارگذاری آمار احساسات...</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">در حال بارگذاری آمار احساسات...</p>
                 </div>
               )}
 
               {!isLoadingSentiment && !sentimentStats && (
                 <div className="text-center py-12">
-                  <TrendingUp className="w-16 h-16 mx-auto mb-3 text-gray-300" />
-                  <p className="text-sm font-bold text-gray-600">آمار احساسات موجود نیست</p>
-                  <p className="text-xs text-gray-500 mt-1">پیام‌ها هنوز تحلیل نشده‌اند</p>
+                  <TrendingUp className="w-16 h-16 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-400">آمار احساسات موجود نیست</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">پیام‌ها هنوز تحلیل نشده‌اند</p>
                   <button
                     onClick={loadSentimentStats}
                     className="mt-4 px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600"
@@ -972,13 +970,13 @@ useEffect(() => {
                         {sentimentStats.stats?.positive || 0} پیام
                       </p>
                     </div>
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center">
-                      <Meh className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                      <p className="text-3xl font-black text-gray-700">
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 dark:border-slate-700 rounded-xl p-4 text-center">
+                      <Meh className="w-8 h-8 text-gray-600 dark:text-gray-400 mx-auto mb-2" />
+                      <p className="text-3xl font-black text-gray-700 dark:text-gray-300">
                         {sentimentStats.stats?.neutral_percent || 0}%
                       </p>
-                      <p className="text-xs text-gray-600 font-semibold mt-1">خنثی</p>
-                      <p className="text-[10px] text-gray-500">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mt-1">خنثی</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">
                         {sentimentStats.stats?.neutral || 0} پیام
                       </p>
                     </div>
@@ -999,16 +997,16 @@ useEffect(() => {
                       'rounded-xl p-4 border-2',
                       sentimentStats.stats.overall_sentiment === 'positive' ? 'bg-green-50 border-green-200' :
                       sentimentStats.stats.overall_sentiment === 'negative' ? 'bg-red-50 border-red-200' :
-                      'bg-gray-50 border-gray-200'
+                      'bg-gray-50 dark:bg-slate-900/50 border-gray-200 dark:border-slate-700'
                     )}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-bold text-gray-700 mb-1">احساس کلی مشتری</p>
+                          <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">احساس کلی مشتری</p>
                           <p className={cn(
                             'text-2xl font-black',
                             sentimentStats.stats.overall_sentiment === 'positive' ? 'text-green-700' :
                             sentimentStats.stats.overall_sentiment === 'negative' ? 'text-red-700' :
-                            'text-gray-700'
+                            'text-gray-700 dark:text-gray-300'
                           )}>
                             {sentimentStats.stats.overall_sentiment === 'positive' ? '😊 راضی' :
                              sentimentStats.stats.overall_sentiment === 'negative' ? '😞 ناراضی' :
@@ -1016,8 +1014,8 @@ useEffect(() => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-gray-600">امتیاز</p>
-                          <p className="text-3xl font-black text-gray-900">
+                          <p className="text-xs text-gray-600 dark:text-gray-400">امتیاز</p>
+                          <p className="text-3xl font-black text-gray-900 dark:text-white">
                             {sentimentStats.stats.average_score.toFixed(2)}
                           </p>
                         </div>
@@ -1034,23 +1032,23 @@ useEffect(() => {
       {/* Report Modal */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-red-500 to-red-600 text-white">
               <div className="flex items-center gap-2">
                 <Flag className="w-5 h-5" />
                 <h3 className="font-bold">گزارش تخلف</h3>
               </div>
-              <button onClick={() => setShowReportModal(false)} className="hover:bg-white/20 p-1 rounded">
+              <button onClick={() => setShowReportModal(false)} className="hover:bg-white/20 dark:hover:bg-slate-800/40 p-1 rounded">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">دلیل گزارش</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">دلیل گزارش</label>
                 <select
                   value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value as any)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
+                  onChange={(e) => setReportReason(e.target.value as 'spam' | 'harassment' | 'inappropriate' | 'scam' | 'other')}
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-red-500"
                 >
                   <option value="spam">اسپم و تبلیغات</option>
                   <option value="harassment">آزار و اذیت</option>
@@ -1060,18 +1058,18 @@ useEffect(() => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">توضیحات (اختیاری)</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">توضیحات (اختیاری)</label>
                 <textarea
                   value={reportDescription}
                   onChange={(e) => setReportDescription(e.target.value)}
                   placeholder="توضیحات بیشتر..."
                   rows={4}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500 resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-red-500 resize-none"
                   maxLength={1000}
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowReportModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-50">
+                <button onClick={() => setShowReportModal(false)} className="flex-1 py-2.5 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-900/50">
                   انصراف
                 </button>
                 <button
@@ -1089,7 +1087,7 @@ useEffect(() => {
 {/* 💡 Product Suggestions Panel */}
 {showSuggestionsPanel && (
   <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
       <div className="p-4 border-b bg-gradient-to-r from-accent-500 to-primary-500 text-white flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ShoppingBag className="w-6 h-6" />
@@ -1100,7 +1098,7 @@ useEffect(() => {
         </div>
         <button
           onClick={() => setShowSuggestionsPanel(false)}
-          className="hover:bg-white/20 p-2 rounded-lg"
+          className="hover:bg-white/20 dark:hover:bg-slate-800/40 p-2 rounded-lg"
         >
           <X className="w-5 h-5" />
         </button>
@@ -1110,15 +1108,15 @@ useEffect(() => {
         {isLoadingSuggestions && (
           <div className="text-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-accent-500 mx-auto mb-3" />
-            <p className="text-sm text-gray-600">در حال بارگذاری پیشنهادات...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">در حال بارگذاری پیشنهادات...</p>
           </div>
         )}
 
         {!isLoadingSuggestions && productSuggestions.length === 0 && (
           <div className="text-center py-12">
-            <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-gray-300" />
-            <p className="text-sm font-bold text-gray-600">پیشنهادی یافت نشد</p>
-            <p className="text-xs text-gray-500 mt-1">محصولی برای پیشنهاد وجود ندارد</p>
+            <ShoppingBag className="w-16 h-16 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+            <p className="text-sm font-bold text-gray-600 dark:text-gray-400">پیشنهادی یافت نشد</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">محصولی برای پیشنهاد وجود ندارد</p>
           </div>
         )}
 
@@ -1127,7 +1125,7 @@ useEffect(() => {
             {productSuggestions.map((product) => (
               <div
                 key={product.id}
-                className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-4 hover:border-accent-300 transition-all"
+                className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 dark:border-slate-700 rounded-xl p-4 hover:border-accent-300 transition-all"
               >
                 <div className="flex gap-3">
                   {product.main_image && (
@@ -1138,7 +1136,7 @@ useEffect(() => {
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 mb-1 truncate">
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1 truncate">
                       {product.name}
                     </h3>
                   <div className="flex items-center gap-2 mb-2">
@@ -1149,12 +1147,12 @@ useEffect(() => {
     }
   </span>
   {product.discount_price && (
-    <span className="text-xs text-gray-500 line-through">
+    <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
       {Number(product.price || 0).toLocaleString('fa-IR')}
     </span>
   )}
 </div>
-                   <div className="flex items-center gap-3 text-xs text-gray-600 mb-2">
+                   <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400 mb-2">
   <span className="flex items-center gap-1">
     ⭐ {Number(product.rating || 0).toFixed(1)}
   </span>
@@ -1166,7 +1164,7 @@ useEffect(() => {
   <span className="text-[10px] px-2 py-0.5 bg-accent-100 text-accent-700 rounded-full font-semibold">
     {product.reason}
   </span>
-  <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+  <span className="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400 rounded-full">
     امتیاز: {(Number(product.score || 0) * 100).toFixed(0)}%
   </span>
 </div>
@@ -1191,7 +1189,7 @@ useEffect(() => {
       {/* 🤖 FAQ Panel */}
       {showFaqPanel && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-4 border-b bg-gradient-to-r from-primary-500 to-accent-500 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bot className="w-6 h-6" />
@@ -1200,7 +1198,7 @@ useEffect(() => {
                   <p className="text-xs text-white/80">پاسخ خودکار به سوالات متداول مشتریان</p>
                 </div>
               </div>
-              <button onClick={() => setShowFaqPanel(false)} className="hover:bg-white/20 p-2 rounded-lg">
+              <button onClick={() => setShowFaqPanel(false)} className="hover:bg-white/20 dark:hover:bg-slate-800/40 p-2 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1229,41 +1227,41 @@ useEffect(() => {
 
               {showFaqForm && (
                 <div className="bg-gradient-to-br from-primary-50 to-accent-50 border-2 border-primary-200 rounded-xl p-4 space-y-3">
-                  <h3 className="font-black text-gray-900 flex items-center gap-2">
+                  <h3 className="font-black text-gray-900 dark:text-white flex items-center gap-2">
                     <Bot className="w-5 h-5 text-primary-600" />
                     {editingFaq ? 'ویرایش FAQ' : 'FAQ جدید'}
                   </h3>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                       الگوی سوال (Regex)
-                      <span className="text-gray-500 font-normal mr-1">- کلمات با | جدا شوند</span>
+                      <span className="text-gray-500 dark:text-gray-400 font-normal mr-1">- کلمات با | جدا شوند</span>
                     </label>
                     <input
                       type="text"
                       value={faqForm.question_pattern}
                       onChange={(e) => setFaqForm({ ...faqForm, question_pattern: e.target.value })}
                       placeholder="مثال: قیمت|چند|هزینه"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                       dir="ltr"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">پاسخ خودکار</label>
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">پاسخ خودکار</label>
                     <textarea
                       value={faqForm.answer}
                       onChange={(e) => setFaqForm({ ...faqForm, answer: e.target.value })}
                       placeholder="پاسخ ربات..."
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">دسته‌بندی</label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">دسته‌بندی</label>
                       <select
                         value={faqForm.category}
-                        onChange={(e) => setFaqForm({ ...faqForm, category: e.target.value as any })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        onChange={(e) => setFaqForm({ ...faqForm, category: e.target.value as ChatFaq['category'] })}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm"
                       >
                         <option value="general">عمومی</option>
                         <option value="shipping">ارسال</option>
@@ -1272,14 +1270,14 @@ useEffect(() => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">اولویت (0-100)</label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">اولویت (0-100)</label>
                       <input
                         type="number"
                         value={faqForm.priority}
                         onChange={(e) => setFaqForm({ ...faqForm, priority: parseInt(e.target.value) || 0 })}
                         min="0"
                         max="100"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm"
                       />
                     </div>
                   </div>
@@ -1289,7 +1287,7 @@ useEffect(() => {
                         setShowFaqForm(false);
                         setEditingFaq(null);
                       }}
-                      className="flex-1 py-2 border border-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-50"
+                      className="flex-1 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-900/50"
                     >
                       انصراف
                     </button>
@@ -1304,7 +1302,7 @@ useEffect(() => {
               )}
 
               {faqs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                   <Bot className="w-16 h-16 mx-auto mb-3 opacity-30" />
                   <p className="font-bold">هنوز FAQ ای نساخته‌اید</p>
                 </div>
@@ -1314,8 +1312,8 @@ useEffect(() => {
                     <div
                       key={faq.id}
                       className={cn(
-                        'bg-white border rounded-xl p-3 transition-all',
-                        faq.is_active ? 'border-gray-200' : 'border-gray-100 opacity-60'
+                        'bg-white dark:bg-slate-800 border rounded-xl p-3 transition-all',
+                        faq.is_active ? 'border-gray-200 dark:border-slate-700' : 'border-gray-100 dark:border-slate-700 opacity-60'
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -1326,20 +1324,20 @@ useEffect(() => {
                                faq.category === 'shipping' ? 'ارسال' :
                                faq.category === 'payment' ? 'پرداخت' : 'محصول'}
                             </Badge>
-                            <span className="text-[10px] text-gray-500">اولویت: {faq.priority}</span>
-                            <span className="text-[10px] text-gray-500">استفاده: {faq.usage_count}x</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">اولویت: {faq.priority}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">استفاده: {faq.usage_count}x</span>
                           </div>
                           <p className="text-xs font-mono text-primary-600 bg-primary-50 px-2 py-1 rounded mb-1" dir="ltr">
                             /{faq.question_pattern}/
                           </p>
-                          <p className="text-sm text-gray-700">{faq.answer}</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{faq.answer}</p>
                         </div>
                         <div className="flex flex-col gap-1">
                           <button
                             onClick={() => handleToggleFaq(faq)}
                             className={cn(
                               'p-1.5 rounded-lg transition-colors',
-                              faq.is_active ? 'text-success-600 hover:bg-success-50' : 'text-gray-400 hover:bg-gray-50'
+                              faq.is_active ? 'text-success-600 hover:bg-success-50' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-slate-900/50'
                             )}
                           >
                             {faq.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
