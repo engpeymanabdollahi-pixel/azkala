@@ -48,12 +48,12 @@ class OrderPolicyTest extends TestCase
             'shipping' => 35000,
             'discount' => 0,
             'total' => 144000,
-            'shipping_address' => json_encode([
+            'shipping_address' => [
                 'full_name' => 'Customer One',
                 'phone' => '09123456789',
                 'address' => 'Tehran, Street 1',
-                'postal_code' => '1234567890'
-            ]),
+                'postal_code' => '1234567890',
+            ],
         ]);
         OrderItem::create([
             'order_id' => $this->order1->id,
@@ -74,12 +74,12 @@ class OrderPolicyTest extends TestCase
             'shipping' => 35000,
             'discount' => 0,
             'total' => 253000,
-            'shipping_address' => json_encode([
+            'shipping_address' => [
                 'full_name' => 'Customer Two',
                 'phone' => '09123456788',
                 'address' => 'Tehran, Street 2',
-                'postal_code' => '0987654321'
-            ]),
+                'postal_code' => '0987654321',
+            ],
         ]);
         OrderItem::create([
             'order_id' => $this->order2->id,

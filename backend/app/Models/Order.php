@@ -35,6 +35,11 @@ class Order extends Model
     'shipping' => 'decimal:4',
     'discount' => 'decimal:4',
     'total' => 'decimal:4',
+    // ستون واقعی JSON است، ولی بدون این cast، هر خواننده‌ی مدل (کنترلر
+    // فروشنده، پاسخ خام API) رشته‌ی JSON خام را می‌گرفت نه یک آرایه —
+    // AdminOrderService از قبل مجبور بود دستی is_string()/json_decode کند،
+    // چون همین‌جا cast نبود.
+    'shipping_address' => 'array',
 ];
 
     // ==================== Relationships ====================

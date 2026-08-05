@@ -85,7 +85,9 @@ class OrderService
                 'payment_status' => 'pending',
                 'payment_method' => $dto->payment_method,
                 'notes' => $dto->note,
-                'shipping_address' => json_encode($addressData), // ✅ تبدیل آرایه به JSON
+                // Order::$casts['shipping_address'] = 'array' خودش انکود می‌کند؛
+                // انکود دستی دیگر اینجا لازم نیست (قبلاً باعث دو-بار-انکود می‌شد).
+                'shipping_address' => $addressData,
             ];
 
             $order = $this->orderRepository->createOrderWithItems($orderData, $validatedItems);

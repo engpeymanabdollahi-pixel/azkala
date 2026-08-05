@@ -16,11 +16,26 @@ export interface SellerOrderItem {
   };
 }
 
+// شکل واقعیِ ستون JSON شده shipping_address — از OrderService::createOrder
+// (که آدرس را از مدل Address می‌سازد). با cast آرایه‌ای Order مدل، بک‌اند
+// این را به‌صورت آبجکت واقعی برمی‌گرداند، نه رشته‌ی JSON خام.
+export interface SellerOrderShippingAddress {
+  id?: number;
+  full_name?: string;
+  phone?: string;
+  province?: string;
+  city?: string;
+  address?: string;
+  postal_code?: string;
+}
+
 export interface SellerOrder {
   id: number;
   order_number: string;
   user_id: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'preparing' | 'ready_for_shipment';
+  // enum واقعی ستون orders.status؛ preparing/ready_for_shipment هیچ‌وقت در
+  // دیتابیس وجود نداشتند (نگاه کنید به src/utils/orderStatus.ts).
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
   payment_method: string;
   subtotal: number;
@@ -29,13 +44,16 @@ export interface SellerOrder {
   discount: number;
   total: number;
   seller_total?: number; // مبلغ سهم فروشنده
-  shipping_address: any;
+  shipping_address: SellerOrderShippingAddress | string | null;
   tracking_number?: string | null;
   courier_name?: string | null;
   notes?: string | null;
   items?: SellerOrderItem[];
   items_count?: number;
   customer_name?: string;
+  // SellerOrderController::show() این را با 'user:id,name,phone' eager-load
+  // می‌کند — ایمیل هیچ‌وقت برنمی‌گردد، پس اینجا هم نیامده.
+  user?: { id: number; name: string; phone?: string | null };
   created_at: string;
   updated_at: string;
   shipped_at?: string | null;
@@ -52,7 +70,7 @@ export interface PaginatedResponse<T> {
     from: number | null;
     last_page: number;
     last_page_url: string;
-    links: any[];
+    links: { url: string | null; label: string; active: boolean }[];
     next_page_url: string | null;
     path: string;
     per_page: number;
