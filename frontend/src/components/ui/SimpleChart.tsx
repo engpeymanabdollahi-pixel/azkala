@@ -34,7 +34,7 @@ export function SimpleChart({
     return (
       <div
         className={cn(
-          'flex flex-col items-center justify-center text-gray-400',
+          'flex flex-col items-center justify-center text-gray-400 dark:text-gray-500',
           className
         )}
         style={{ height }}
@@ -94,7 +94,7 @@ export function SimpleChart({
                 y1={y}
                 x2={viewBoxWidth - paddingRight}
                 y2={y}
-                stroke="#e5e7eb"
+                className="stroke-gray-200 dark:stroke-slate-700"
                 strokeWidth="1"
                 strokeDasharray="4,4"
               />
@@ -128,7 +128,7 @@ export function SimpleChart({
                     textAnchor="middle"
                     fontSize="14"
                     fontWeight="600"
-                    className="fill-gray-700 transition-opacity"
+                    className="fill-gray-700 dark:fill-gray-300 transition-opacity"
                   >
                     {item.value.toLocaleString('fa-IR')}
                   </text>
@@ -140,7 +140,7 @@ export function SimpleChart({
                   y={height - 15}
                   textAnchor="middle"
                   fontSize="14"
-                  className="fill-gray-500"
+                  className="fill-gray-500 dark:fill-gray-400"
                 >
                   {item.label}
                 </text>
@@ -185,7 +185,7 @@ export function SimpleChart({
               y1={y}
               x2={viewBoxWidth - paddingRight}
               y2={y}
-              stroke="#e5e7eb"
+              className="stroke-gray-200 dark:stroke-slate-700"
               strokeWidth="1"
               strokeDasharray="4,4"
             />
@@ -220,10 +220,9 @@ export function SimpleChart({
               cx={point.x}
               cy={point.y}
               r="5"
-              fill="#ffffff"
               stroke={point.color || '#3b82f6'}
               strokeWidth="2"
-              className="transition-all duration-200 group-hover:r-7"
+              className="fill-white dark:fill-slate-800 transition-all duration-200 group-hover:r-7"
             />
 
             {/* مقدار عددی بالای نقطه */}
@@ -234,7 +233,7 @@ export function SimpleChart({
                 textAnchor="middle"
                 fontSize="14"
                 fontWeight="600"
-                className="fill-gray-700"
+                className="fill-gray-700 dark:fill-gray-300"
               >
                 {point.value.toLocaleString('fa-IR')}
               </text>
@@ -246,7 +245,7 @@ export function SimpleChart({
               y={height - 15}
               textAnchor="middle"
               fontSize="14"
-              className="fill-gray-500"
+              className="fill-gray-500 dark:fill-gray-400"
             >
               {point.label}
             </text>
