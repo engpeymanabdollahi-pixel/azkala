@@ -27,6 +27,12 @@ export interface SearchCategory {
 
 export interface Notification {
   id: number;
+  // ✅ قبلاً این فیلد در تایپ نبود و useNotifications هم آن را در نگاشت
+  // پاسخ API حذف می‌کرد؛ چون NotificationsDropdown با notification: any
+  // تایپ شده بود، هدایتِ کلیک روی نوتیفیکیشن «تایید درخواست فروشندگی» به
+  // /seller-request بی‌سروصدا هیچ‌وقت اجرا نمی‌شد و TypeScript هم خطایی
+  // نمی‌داد (چون any هر پراپرتی‌ای را قبول می‌کند).
+  type: string;
   title: string;
   message: string;
   time: string;

@@ -11,7 +11,11 @@ interface NotificationsDropdownProps {
   onClose: () => void;
 }
 
-const NotificationItem = memo(({ notification, onMarkAsRead }: { notification: any; onMarkAsRead: (id: number) => void }) => {
+// ✅ قبلاً notification: any بود — یعنی وقتی useNotifications فیلد type را
+// در نگاشت خروجی حذف می‌کرد، TypeScript هیچ خطایی نمی‌داد و notification.type
+// در handleClick زیر همیشه بی‌سروصدا undefined بود. با تایپ درست Notification
+// این‌جور مغایرت‌ها در زمان کامپایل مشخص می‌شوند، نه در سکوت زمان اجرا.
+const NotificationItem = memo(({ notification, onMarkAsRead }: { notification: Notification; onMarkAsRead: (id: number) => void }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {

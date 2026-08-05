@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { Bell, Settings, CheckCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -5,8 +6,19 @@ import { cn } from '@/utils/cn';
 import { useNotifications } from '@/components/layout/Header/hooks/useNotifications'; // مسیر را در صورت نیاز اصلاح کنید
 
 export function NotificationsSection() {
+  const navigate = useNavigate();
   // ✅ دریافت داده‌های واقعی از هوک
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+
+  // ✅ همان رفتار دراپ‌داون اعلان‌های هدر: کلیک روی نوتیفیکیشن تایید
+  // درخواست فروشندگی، کاربر را به صفحه‌ی تکمیل مدارک هدایت می‌کند — قبلاً
+  // این صفحه فقط خوانده‌شده علامت می‌زد و type را اصلاً بررسی نمی‌کرد.
+  const handleNotificationClick = (id: number, type: string) => {
+    markAsRead(id);
+    if (type.includes('seller_request')) {
+      navigate('/seller-request');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -74,7 +86,7 @@ export function NotificationsSection() {
             {notifications.map((notif) => (
               <button
                 key={notif.id}
-                onClick={() => markAsRead(notif.id)}
+                onClick={() => handleNotificationClick(notif.id, notif.type)}
                 className={cn(
                   'w-full p-4 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors flex items-start gap-3 text-right group focus:outline-none focus:bg-gray-50 dark:focus:bg-slate-700',
                   !notif.read && 'bg-primary-50/30 dark:bg-primary-900/10'

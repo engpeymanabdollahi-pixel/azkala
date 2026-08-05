@@ -1,6 +1,6 @@
 import {
   Home, Package, Store, Flame, Heart, MessageCircle,
-  User, Phone, Info, Shield, HelpCircle
+  User, Phone, Info, Shield, HelpCircle, Bell
 } from 'lucide-react';
 import type { NavItem, MobileMenuItem, SecondaryMenuItem } from './types';
 
@@ -33,6 +33,11 @@ export const MOBILE_MENU_ITEMS: MobileMenuItem[] = [
   { id: 'flash-sale', label: 'تخفیف‌های ویژه', path: '/products?discount=true', icon: Flame, color: 'from-error-500 to-error-600' },
   { id: 'orders', label: 'سفارشات من', path: '/dashboard/orders', icon: Package, color: 'from-warning-500 to-warning-600' },
   { id: 'wishlist', label: 'علاقه‌مندی‌ها', path: '/dashboard/wishlist', icon: Heart, color: 'from-error-500 to-error-600' },
+  // ✅ قبلاً هیچ راهی برای دیدن اعلان‌ها در موبایل نبود: NotificationsDropdown
+  // خودِ هدر با کلاس hidden sm:block کاملاً از موبایل مخفی است، و این لیست
+  // هم آیتمی برای اعلان‌ها نداشت — کاربر موبایل عملاً به لیست اعلان‌هایش
+  // دسترسی نداشت مگر با آدرس‌دهی مستقیم.
+  { id: 'notifications', label: 'اعلان‌ها', path: '/dashboard/notifications', icon: Bell, color: 'from-primary-500 to-primary-600' },
   { id: 'tickets', label: 'تیکت‌های من', path: '/dashboard/tickets', icon: MessageCircle, color: 'from-orange-500 to-red-500' },
 ];
 

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import type { ComponentType } from 'react';
-import { Bell, Package, Truck, CreditCard, UserCheck, AlertCircle } from 'lucide-react';
+import { Bell, Package, Truck, CreditCard, UserCheck } from 'lucide-react';
 import type { UseNotificationsReturn } from '../types';
 import apiClient from '@/services/api/client';
 
@@ -17,14 +17,21 @@ interface NotificationApiItem {
 import { useAuthStore } from '@/store/authStore';
 
 // نگاشت آیکون‌ها بر اساس نوع نوتیفیکیشن
+// ✅ در کل بک‌اند، تنها جایی که واقعاً رکورد notifications ساخته می‌شود
+// AdminUserController::initialApproveRequest/finalApproveRequest است، با
+// type دقیقاً برابر seller_request_initial_approved / seller_request_final_approved
+// (نه seller_approved/seller_rejected که اینجا قبلاً نوشته شده بود و هیچ‌وقت
+// از سمت بک‌اند ارسال نمی‌شد — پس همیشه به آیکون پیش‌فرض Bell می‌افتاد).
+// order_placed/order_shipped/order_delivered/payment هنوز در بک‌اند پیاده
+// نشده‌اند؛ اینجا نگه داشته شده‌اند تا اگر در آینده اضافه شدند، آیکون آماده باشد.
 const getNotificationIcon = (type: string) => {
   const iconMap: Record<string, { icon: ComponentType<{ className?: string }>; color: string }> = {
     order_placed: { icon: Package, color: 'from-primary-500 to-primary-600' },
     order_shipped: { icon: Truck, color: 'from-blue-500 to-blue-600' },
     order_delivered: { icon: Package, color: 'from-success-500 to-success-600' },
     payment: { icon: CreditCard, color: 'from-accent-500 to-accent-600' },
-    seller_approved: { icon: UserCheck, color: 'from-green-500 to-green-600' },
-    seller_rejected: { icon: AlertCircle, color: 'from-error-500 to-error-600' },
+    seller_request_initial_approved: { icon: UserCheck, color: 'from-green-500 to-green-600' },
+    seller_request_final_approved: { icon: UserCheck, color: 'from-success-500 to-success-600' },
     default: { icon: Bell, color: 'from-gray-500 to-gray-600' },
   };
   return iconMap[type] || iconMap.default;
@@ -76,6 +83,11 @@ export function useNotifications(): UseNotificationsReturn {
     const Icon = iconData.icon;
     return {
       id: n.id,
+      // ✅ قبلاً type اینجا حذف می‌شد (فقط برای انتخاب آیکون استفاده و دور
+      // ریخته می‌شد)، پس هیچ کامپوننتی نمی‌توانست بر اساس نوع نوتیفیکیشن
+      // (مثلاً seller_request_initial_approved) کاری مثل هدایت به صفحه‌ی
+      // مربوطه انجام دهد.
+      type: n.type,
       title: n.title,
       message: n.message,
       time: getRelativeTime(n.created_at),

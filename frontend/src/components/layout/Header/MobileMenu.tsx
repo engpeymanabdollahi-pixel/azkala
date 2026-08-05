@@ -5,6 +5,7 @@ import { cn } from '@/utils/cn';
 import { Badge } from '@/components/ui/Badge';
 import { MOBILE_MENU_ITEMS, SECONDARY_MENU_ITEMS } from './constants';
 import { useCategories } from '@/hooks/useCategories';
+import { useNotifications } from './hooks/useNotifications';
 import { isPathActive } from './utils';
 import type { UserData } from './types';
 
@@ -34,6 +35,11 @@ export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogo
   
   // دریافت دسته‌بندی‌های داینامیک از دیتابیس
   const { data: categories } = useCategories();
+
+  // ✅ برای نشان دادن تعداد اعلان‌های خوانده‌نشده روی آیتم «اعلان‌ها» —
+  // چون NotificationsDropdown خودِ هدر در موبایل اصلاً رندر نمی‌شود، این
+  // تنها جایی است که کاربر موبایل این عدد را می‌بیند.
+  const { unreadCount } = useNotifications();
 
   const handleNavigate = (path: string) => {
     onClose();
@@ -180,6 +186,11 @@ export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogo
                       )} />
                     </div>
                     <span className="font-semibold flex-1 text-right">{item.label}</span>
+                    {item.id === 'notifications' && unreadCount > 0 && (
+                      <span className="min-w-[20px] h-5 px-1.5 flex items-center justify-center bg-gradient-to-br from-accent-500 to-accent-600 text-white text-[11px] font-black rounded-full shadow-sm">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
                     <ChevronLeft className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </button>
                 );
