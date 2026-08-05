@@ -4,6 +4,10 @@ import {
   AlertCircle, CheckCircle, XCircle, X, Grid3x3, List,
   DollarSign, Loader2, Download, CheckSquare, Square,
   RefreshCw, Flame, ArrowUpDown, Copy, ExternalLink,
+  Filter, TrendingUp, TrendingDown, Minus, ChevronDown, Star,
+  Zap, Shield, Clock, BarChart3, Layers, Tag, Smartphone,
+  Maximize2, Minimize2, SlidersHorizontal, RotateCcw, Save,
+  FileText, MessageSquare, Phone, Printer, Heart, Compare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,62 +15,418 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import type { Product } from '@/types/models';
+import type { Product, Category, Brand } from '@/types/models';
 import toast from 'react-hot-toast';
 import { useSellerProducts, useDeleteProduct } from '@/hooks/api/useSellerProducts';
 import { ProductFormModal } from './ProductFormModal'; 
 import { ProductHistoryModal } from './ProductHistoryModal';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
+// ==================== Utility Functions ====================
+function cnMerge(...classes: (string | undefined | null | false)[]) {
+  return twMerge(clsx(classes));
+}
+
+// ==================== Types & Interfaces ====================
 type ViewMode = 'grid' | 'table';
-type StatusFilter = 'all' | 'active' | 'inactive' | 'out_of_stock';
-type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc' | 'stock_asc';
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc' | 'stock_asc' | 'views_desc' | 'discount_desc';
 
-// ==================== Sub-Components (Optimized) ====================
+interface FilterState {
+  categories?: number[];
+  brands?: number[];
+  priceRange?: [number, number];
+  stockStatus?: ('in_stock' | 'low_stock' | 'out_of_stock')[];
+  isActive?: boolean;
+}
 
-const ProductSkeleton = () => (
-  <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-3">
-    <div className="flex items-center gap-3">
-      <div className="w-12 h-12 bg-gray-200 rounded-lg" />
-      <div className="flex-1 space-y-2">
-        <div className="h-3 bg-gray-200 rounded w-3/4" />
-        <div className="h-2 bg-gray-200 rounded w-1/2" />
+interface StatCardData {
+  id: string;
+  label: string;
+  value: number;
+  icon: React.ElementType;
+  gradient: string;
+  trend?: number;
+  filterKey?: keyof FilterState;
+  filterValue?: any;
+}
+
+interface SortOptionData {
+  value: SortOption;
+  label: string;
+  icon: React.ElementType;
+}
+
+// ==================== Sub-Components ====================
+
+// 1. Animated CountUp Component
+const CountUp = ({ value, duration = 500 }: { value: number; duration?: number }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    let startTime: number;
+    let animationFrame: number;
+    const startValue = displayValue;
+    
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      setDisplayValue(Math.floor(startValue + (value - startValue) * easeOutQuart));
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [value, duration]);
+  
+  return <span>{displayValue.toLocaleString('fa-IR')}</span>;
+};
+
+// 2. Enhanced StatCard with Click Filter & Trend
+const StatCard = ({ stat, onClick, isActive }: { stat: StatCardData; onClick?: () => void; isActive?: boolean }) => {
+  const Icon = stat.icon;
+  
+  return (
+    <motion.div
+      whileHover={{ scale: 1.03, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={cnMerge(
+        "relative overflow-hidden rounded-2xl p-4 cursor-pointer transition-all duration-300 border",
+        isActive 
+          ? "bg-gradient-to-br from-primary-50 to-primary-100 border-primary-300 shadow-lg shadow-primary-500/20 ring-2 ring-primary-500/30" 
+          : "bg-white/80 backdrop-blur-sm border-gray-200 hover:shadow-xl hover:border-primary-200"
+      )}
+    >
+      {/* Background Gradient Overlay */}
+      <div className={cnMerge("absolute inset-0 opacity-10 bg-gradient-to-br", stat.gradient)} />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-3">
+          <div className={cnMerge(
+            "w-10 h-10 rounded-xl flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110",
+            stat.gradient
+          )}>
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+          {stat.trend !== undefined && (
+            <div className={cnMerge(
+              "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold",
+              stat.trend > 0 ? "bg-success-100 text-success-700" : stat.trend < 0 ? "bg-error-100 text-error-700" : "bg-gray-100 text-gray-600"
+            )}>
+              {stat.trend > 0 ? <TrendingUp className="w-3 h-3" /> : stat.trend < 0 ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              {Math.abs(stat.trend)}٪
+            </div>
+          )}
+        </div>
+        
+        <p className="text-xs text-gray-600 font-semibold mb-1">{stat.label}</p>
+        <p className="text-2xl font-black text-gray-900">
+          <CountUp value={stat.value} />
+        </p>
+        
+        {/* Tooltip on Hover */}
+        <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Badge variant="primary" size="sm">کلیک برای فیلتر</Badge>
+        </div>
       </div>
-    </div>
-  </div>
-);
+    </motion.div>
+  );
+};
 
-const StatCard = ({ icon: Icon, label, value, gradient }: { icon: React.ElementType; label: string; value: number; gradient: string }) => (
-  <div className="bg-white rounded-xl p-3 border border-gray-100 hover:shadow-md transition-all group cursor-pointer hover:scale-[1.02]">
-    <div className="flex items-center gap-2 mb-2">
-      <div className={`w-8 h-8 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform`}>
-        <Icon className="w-4 h-4 text-white" />
-      </div>
-      <span className="text-xs text-gray-600 font-semibold">{label}</span>
-    </div>
-    <p className="text-lg font-black text-gray-900">{value.toLocaleString('fa-IR')}</p>
-  </div>
-);
-
-const MenuItem = ({ icon: Icon, label, color, onClick }: { icon: React.ElementType; label: string; color: 'primary' | 'error' | 'gray'; onClick: () => void }) => {
-  const colorClasses = { 
-    primary: 'hover:bg-primary-50 text-gray-700 hover:text-primary-700', 
-    error: 'hover:bg-error-50 text-error-600', 
-    gray: 'hover:bg-gray-50 text-gray-700' 
+// 3. Price Range Slider Component
+const PriceRangeSlider = ({ 
+  min, 
+  max, 
+  value, 
+  onChange 
+}: { 
+  min: number; 
+  max: number; 
+  value: [number, number]; 
+  onChange: (val: [number, number]) => void;
+}) => {
+  const [localMin, localMax] = value;
+  
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMin = Math.min(Number(e.target.value), localMax - 1000);
+    onChange([newMin, localMax]);
   };
-  const iconBgClasses = { 
-    primary: 'bg-primary-100 text-primary-600', 
-    error: 'bg-error-100 text-error-600', 
-    gray: 'bg-gray-100 text-gray-600' 
+  
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMax = Math.max(Number(e.target.value), localMin + 1000);
+    onChange([localMin, newMax]);
   };
   
   return (
-    <button onClick={onClick} className={`w-full text-right px-3 py-2 transition-colors flex items-center gap-2.5 text-xs font-medium ${colorClasses[color]}`}>
-      <div className={`w-6 h-6 rounded-md flex items-center justify-center ${iconBgClasses[color]}`}>
-        <Icon className="w-3.5 h-3.5" />
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold text-gray-700">{formatPrice(localMin)}</span>
+        <span className="font-semibold text-gray-700">{formatPrice(localMax)}</span>
       </div>
-      {label}
-    </button>
+      <div className="relative h-2">
+        <div className="absolute inset-0 bg-gray-200 rounded-full" />
+        <div 
+          className="absolute h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full"
+          style={{ 
+            left: `${((localMin - min) / (max - min)) * 100}%`, 
+            right: `${100 - ((localMax - min) / (max - min)) * 100}%` 
+          }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={localMin}
+          onChange={handleMinChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: 10 }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={localMax}
+          onChange={handleMaxChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          style={{ zIndex: 10 }}
+        />
+        <div 
+          className="absolute w-4 h-4 bg-white border-2 border-primary-500 rounded-full shadow-lg cursor-grab active:cursor-grabbing"
+          style={{ left: `calc(${((localMin - min) / (max - min)) * 100}% - 8px)` }}
+        />
+        <div 
+          className="absolute w-4 h-4 bg-white border-2 border-primary-500 rounded-full shadow-lg cursor-grab active:cursor-grabbing"
+          style={{ left: `calc(${((localMax - min) / (max - min)) * 100}% - 8px)` }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// 4. Advanced Filter Panel (Sidebar)
+const AdvancedFilterPanel = ({
+  filters,
+  setFilters,
+  categories,
+  brands,
+  onReset,
+  onClose,
+}: {
+  filters: FilterState;
+  setFilters: (f: FilterState) => void;
+  categories?: Category[];
+  brands?: Brand[];
+  onReset: () => void;
+  onClose?: () => void;
+}) => {
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.categories?.length) count += filters.categories.length;
+    if (filters.brands?.length) count += filters.brands.length;
+    if (filters.priceRange) count += 1;
+    if (filters.stockStatus?.length) count += filters.stockStatus.length;
+    if (filters.isActive !== undefined) count += 1;
+    return count;
+  }, [filters]);
+  
+  const stockOptions = [
+    { id: 'in_stock', label: 'موجود', icon: CheckCircle, color: 'success' },
+    { id: 'low_stock', label: 'کم‌موجود', icon: Flame, color: 'warning' },
+    { id: 'out_of_stock', label: 'ناموجود', icon: AlertCircle, color: 'error' },
+  ] as const;
+  
+  return (
+    <motion.div
+      initial={{ x: 300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 300, opacity: 0 }}
+      className="fixed inset-y-0 left-0 w-80 bg-white shadow-2xl z-50 overflow-y-auto md:relative md:w-72 md:shadow-none md:z-auto"
+    >
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+            <SlidersHorizontal className="w-5 h-5 text-primary-600" />
+            فیلترهای پیشرفته
+          </h3>
+          {onClose && (
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 md:hidden">
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        
+        {/* Active Filters Count */}
+        {activeFilterCount > 0 && (
+          <div className="flex items-center justify-between">
+            <Badge variant="primary" size="sm">{activeFilterCount} فیلتر فعال</Badge>
+            <button onClick={onReset} className="text-xs text-primary-600 hover:text-primary-700 font-semibold flex items-center gap-1">
+              <RotateCcw className="w-3 h-3" />
+              ریست
+            </button>
+          </div>
+        )}
+        
+        {/* Categories Filter */}
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <Layers className="w-4 h-4" />
+            دسته‌بندی‌ها
+          </label>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {categories?.map((cat) => (
+              <label key={cat.id} className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.categories?.includes(cat.id)}
+                  onChange={(e) => {
+                    const newCats = e.target.checked
+                      ? [...(filters.categories || []), cat.id]
+                      : (filters.categories || []).filter((id) => id !== cat.id);
+                    setFilters({ ...filters, categories: newCats });
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-600 group-hover:text-gray-900">{cat.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        {/* Brands Filter */}
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <Tag className="w-4 h-4" />
+            برندها
+          </label>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {brands?.map((brand) => (
+              <label key={brand.id} className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={filters.brands?.includes(brand.id)}
+                  onChange={(e) => {
+                    const newBrands = e.target.checked
+                      ? [...(filters.brands || []), brand.id]
+                      : (filters.brands || []).filter((id) => id !== brand.id);
+                    setFilters({ ...filters, brands: newBrands });
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-600 group-hover:text-gray-900">{brand.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        
+        {/* Price Range */}
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            محدوده قیمت
+          </label>
+          <PriceRangeSlider
+            min={0}
+            max={100000000}
+            value={filters.priceRange || [0, 100000000]}
+            onChange={(priceRange) => setFilters({ ...filters, priceRange })}
+          />
+        </div>
+        
+        {/* Stock Status */}
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <Package className="w-4 h-4" />
+            وضعیت موجودی
+          </label>
+          <div className="space-y-2">
+            {stockOptions.map((option) => {
+              const Icon = option.icon;
+              const isSelected = filters.stockStatus?.includes(option.id);
+              return (
+                <label
+                  key={option.id}
+                  className={cnMerge(
+                    "flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                    isSelected
+                      ? option.color === 'success' ? "bg-success-50 border-success-300" : option.color === 'warning' ? "bg-warning-50 border-warning-300" : "bg-error-50 border-error-300"
+                      : "bg-white border-gray-200 hover:border-gray-300"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={(e) => {
+                      const newStatus = e.target.checked
+                        ? [...(filters.stockStatus || []), option.id]
+                        : (filters.stockStatus || []).filter((s) => s !== option.id);
+                      setFilters({ ...filters, stockStatus: newStatus });
+                    }}
+                    className="sr-only"
+                  />
+                  <Icon className={cnMerge(
+                    "w-5 h-5",
+                    option.color === 'success' ? "text-success-600" : option.color === 'warning' ? "text-warning-600" : "text-error-600"
+                  )} />
+                  <span className="text-sm font-semibold text-gray-700">{option.label}</span>
+                  {isSelected && <CheckCircle className="w-4 h-4 mr-auto text-primary-600" />}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Active/Inactive Toggle */}
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            وضعیت انتشار
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilters({ ...filters, isActive: true })}
+              className={cnMerge(
+                "flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2",
+                filters.isActive === true
+                  ? "bg-success-50 border-success-300 text-success-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              )}
+            >
+              فعال
+            </button>
+            <button
+              onClick={() => setFilters({ ...filters, isActive: false })}
+              className={cnMerge(
+                "flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2",
+                filters.isActive === false
+                  ? "bg-error-50 border-error-300 text-error-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              )}
+            >
+              غیرفعال
+            </button>
+            <button
+              onClick={() => setFilters({ ...filters, isActive: undefined })}
+              className={cnMerge(
+                "flex-1 py-2.5 rounded-xl text-sm font-bold transition-all border-2",
+                filters.isActive === undefined
+                  ? "bg-primary-50 border-primary-300 text-primary-700"
+                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+              )}
+            >
+              همه
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

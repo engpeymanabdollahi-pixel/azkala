@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   X, ChevronRight, Smartphone, Search, Check, ArrowLeft, 
-  Sparkles, TrendingUp, Award, Zap, Loader2, Laptop, Tablet 
+  Sparkles, TrendingUp, Award, Zap, Loader2, Laptop, Tablet,
+  Watch, Headphones, ChevronLeft, Star, Flame, Gift
 } from 'lucide-react';
 import { useModelStore } from '@/store/modelStore';
 import { Modal } from '@/components/ui/Modal';
@@ -18,11 +19,13 @@ interface HierarchyBrand {
   slug: string;
   type: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
   series: HierarchySeries[];
+  logo?: string | null;
 }
 
 interface HierarchySeries {
   id: number;
   name: string;
+  image?: string | null;
   models: HierarchyModel[];
 }
 
@@ -30,8 +33,27 @@ interface HierarchyModel {
   id: number;
   name: string;
   slug: string;
+  image?: string | null;
   release_year?: number;
 }
+
+interface DeviceType {
+  value: string;
+  label: string;
+  icon: any;
+  gradient: string;
+  description: string;
+}
+
+const DEVICE_TYPES: DeviceType[] = [
+  { value: 'mobile', label: 'موبایل', icon: Smartphone, gradient: 'from-blue-500 to-cyan-500', description: 'گوشی‌های هوشمند' },
+  { value: 'tablet', label: 'تبلت', icon: Tablet, gradient: 'from-purple-500 to-pink-500', description: 'تبلت‌ها' },
+  { value: 'laptop', label: 'لپ‌تاپ', icon: Laptop, gradient: 'from-slate-500 to-gray-500', description: 'لپ‌تاپ و مک‌بوک' },
+  { value: 'watch', label: 'ساعت', icon: Watch, gradient: 'from-amber-500 to-orange-500', description: 'ساعت هوشمند' },
+  { value: 'audio', label: 'صدا', icon: Headphones, gradient: 'from-emerald-500 to-teal-500', description: 'هدفون و هندزفری' },
+];
+
+const POPULAR_BRANDS = ['apple', 'samsung', 'xiaomi', 'huawei'];
 
 export function ModelSelectorModal() {
   const { 
@@ -114,7 +136,7 @@ export function ModelSelectorModal() {
 
   const popularBrands = useMemo(() => {
     return [...filteredHierarchy]
-      .sort((a, b) => b.series.length - a.series.length)
+      .filter(b => POPULAR_BRANDS.includes(b.slug))
       .slice(0, 4);
   }, [filteredHierarchy]);
 
@@ -159,7 +181,7 @@ export function ModelSelectorModal() {
       id: tempBrand.id,
       name: tempBrand.name,
       slug: tempBrand.slug,
-      logo: null,
+      logo: tempBrand.logo || null,
       is_active: true,
       series_count: tempBrand.series.length,
       models_count: 0,
@@ -172,7 +194,7 @@ export function ModelSelectorModal() {
       brand_id: tempBrand.id,
       name: tempSeries.name,
       slug: '',
-      image: null,
+      image: tempSeries.image || null,
       models_count: tempSeries.models.length,
       brand: brandForStore,
       created_at: '',
@@ -185,7 +207,7 @@ export function ModelSelectorModal() {
       brand_id: tempBrand.id,
       name: model.name,
       slug: model.slug,
-      image: null,
+      image: model.image || null,
       release_year: model.release_year,
       is_active: true,
       compatible_products_count: 0,
@@ -244,7 +266,7 @@ export function ModelSelectorModal() {
   }, [isModalOpen, closeModal]);
 
   const stepTitle = useMemo(() => ({
-    brand: 'انتخاب برند',
+    brand: 'دستگاه خود را انتخاب کنید',
     series: tempBrand?.name || '',
     model: tempSeries?.name || '',
   }), [tempBrand?.name, tempSeries?.name]);
@@ -252,234 +274,278 @@ export function ModelSelectorModal() {
   const currentStepIndex = step === 'brand' ? 0 : step === 'series' ? 1 : 2;
 
   return (
-    <Modal isOpen={isModalOpen} onClose={closeModal} size="lg" showCloseButton={false}>
-      {/* Header - کوچک‌تر */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          {step !== 'brand' ? (
-            <button
-              onClick={handleBack}
-              className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg transition-all hover:scale-110 text-white flex-shrink-0 shadow-md flex items-center justify-center"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-              <Smartphone className="w-4 h-4 text-white" />
-            </div>
-          )}
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5 flex-wrap">
-              <button onClick={handleReset} className={cn('hover:text-primary-600 transition-colors', step === 'brand' && 'text-primary-600 font-bold')}>
-                برند
-              </button>
-              {(step === 'series' || step === 'model') && (
-                <>
-                  <ChevronRight className="w-2.5 h-2.5 text-gray-400" />
-                  <span className={cn('truncate', step === 'series' ? 'text-primary-600 font-bold' : 'text-gray-700')}>
-                    {tempBrand?.name}
-                  </span>
-                </>
-              )}
-              {step === 'model' && (
-                <>
-                  <ChevronRight className="w-2.5 h-2.5 text-gray-400" />
-                  <span className="text-primary-600 font-bold truncate">{tempSeries?.name}</span>
-                </>
-              )}
-            </div>
-            <h2 className="text-sm font-black text-gray-900 truncate">{stepTitle[step]}</h2>
-          </div>
+    <Modal isOpen={isModalOpen} onClose={closeModal} size="xl" showCloseButton={false}>
+      {/* Hero Header با طراحی نئومورفیسم */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-accent-700 p-6 text-white">
+        {/* Pattern Background */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:24px_24px]" />
+        </div>
+        
+        {/* Floating 3D Device Icons */}
+        <div className="absolute top-4 left-4 w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center animate-float-slow hidden lg:flex">
+          <Smartphone className="w-8 h-8 text-white/80" />
+        </div>
+        <div className="absolute bottom-4 right-4 w-12 h-12 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center animate-float-delayed hidden lg:flex">
+          <Tablet className="w-6 h-6 text-white/80" />
         </div>
 
-        <button onClick={closeModal} className="w-9 h-9 bg-white hover:bg-error-50 border border-gray-200 hover:border-error-300 rounded-lg transition-all text-gray-500 hover:text-error-500 flex-shrink-0 flex items-center justify-center">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Progress Steps - کوچک‌تر */}
-      <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-        {(['brand', 'series', 'model'] as Step[]).map((s, idx) => {
-          const isCompleted = idx < currentStepIndex;
-          const isCurrent = idx === currentStepIndex;
-          const labels = { brand: 'برند', series: 'سری', model: 'مدل' };
-          const icons = { brand: Award, series: Smartphone, model: Sparkles };
-          const Icon = icons[s];
-
-          return (
-            <div key={s} className="flex items-center gap-1 flex-1">
-              <div className={cn(
-                'w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all',
-                isCurrent && 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-md scale-110',
-                isCompleted && 'bg-gradient-to-br from-success-500 to-success-600 text-white',
-                !isCurrent && !isCompleted && 'bg-gray-200 text-gray-500'
-              )}>
-                {isCompleted ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3 h-3" />}
-              </div>
-              <span className={cn('text-[10px] font-bold hidden sm:block', isCurrent ? 'text-primary-600' : isCompleted ? 'text-success-600' : 'text-gray-400')}>
-                {labels[s]}
-              </span>
-              {idx < 2 && <div className={cn('flex-1 h-0.5 rounded-full mx-1', isCompleted ? 'bg-success-500' : 'bg-gray-200')} />}
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-4">
+            <button 
+              onClick={closeModal}
+              className="w-10 h-10 bg-white/20 backdrop-blur-md hover:bg-white/30 rounded-xl transition-all flex items-center justify-center"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-xl font-black mb-1">دستگاه خود را انتخاب کنید</h2>
+              <p className="text-primary-100 text-sm">برای مشاهده لوازم جانبی سازگار</p>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Main Content - کوچک‌تر */}
-      <div className="p-3 overflow-y-auto" style={{ maxHeight: '45vh' }}>
-        {error && (
-          <div className="mb-3 bg-error-50 border border-error-200 rounded-lg p-3">
-            <p className="text-error-700 text-xs mb-1">{error}</p>
-            <button onClick={loadHierarchy} className="text-error-600 text-[10px] font-bold hover:underline">تلاش مجدد</button>
           </div>
-        )}
 
-        <div className="mb-3 sticky top-0 bg-white pb-2 z-10">
+          {/* Smart Search Bar */}
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-primary-300" />
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="جستجو..."
+              placeholder="مثلاً: iPhone 15 Pro Max، Galaxy S24 Ultra..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all text-xs"
+              className="w-full pr-12 pl-4 py-3.5 bg-white/95 backdrop-blur-md border-0 rounded-2xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-xl text-base font-medium"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 text-gray-400">
-                <X className="w-3 h-3" />
+              <button 
+                onClick={() => setSearchTerm('')} 
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-500" />
               </button>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Device Type Selector */}
+      <div className="px-4 pt-4 pb-2 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <button
+            onClick={() => setSelectedDeviceType('all')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border-2",
+              selectedDeviceType === 'all'
+                ? "bg-gradient-to-r from-primary-500 to-accent-500 text-white border-transparent shadow-lg shadow-primary-500/30 scale-105"
+                : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300"
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            همه دستگاه‌ها
+          </button>
+          {DEVICE_TYPES.map((type) => {
+            const Icon = type.icon;
+            const isActive = selectedDeviceType === type.value;
+            return (
+              <button
+                key={type.value}
+                onClick={() => setSelectedDeviceType(type.value)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border-2",
+                  isActive
+                    ? `bg-gradient-to-r ${type.gradient} text-white border-transparent shadow-lg scale-105`
+                    : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {type.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="p-4 overflow-y-auto" style={{ maxHeight: '55vh' }}>
+        {error && (
+          <div className="mb-4 bg-error-50 border border-error-200 rounded-xl p-4">
+            <p className="text-error-700 text-sm mb-2">{error}</p>
+            <button onClick={loadHierarchy} className="text-error-600 text-xs font-bold hover:underline">تلاش مجدد</button>
+          </div>
+        )}
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-            <p className="text-gray-500 text-xs mt-2">در حال بارگذاری...</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+              <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
+            </div>
+            <p className="text-gray-500 text-sm font-medium">در حال بارگذاری دستگاه‌ها...</p>
           </div>
         ) : (
           <>
             {/* Step: Brand */}
             {step === 'brand' && (
               <div className="animate-fade-in">
-                {/* انتخاب نوع دستگاه - کوچک‌تر */}
-                <div className="mb-3">
-                  <p className="text-[11px] font-bold text-gray-700 mb-2">نوع دستگاه:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { value: 'all', label: 'همه', icon: Sparkles },
-                      { value: 'mobile', label: 'موبایل', icon: Smartphone },
-                      { value: 'laptop', label: 'لپ‌تاپ', icon: Laptop },
-                      { value: 'tablet', label: 'تبلت', icon: Tablet },
-                    ].map((type) => {
-                      const Icon = type.icon;
-                      const isActive = selectedDeviceType === type.value;
-                      return (
-                        <button
-                          key={type.value}
-                          onClick={() => setSelectedDeviceType(type.value)}
-                          className={cn(
-                            "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
-                            isActive
-                              ? "bg-primary-500 text-white border-primary-500 shadow-sm"
-                              : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300"
-                          )}
-                        >
-                          <Icon className="w-3 h-3" />
-                          {type.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* برندهای پرطرفدار - کوچک‌تر */}
+                {/* Popular Brands */}
                 {!searchTerm && popularBrands.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex items-center gap-1 mb-2">
-                      <TrendingUp className="w-3 h-3 text-primary-500" />
-                      <h3 className="text-[11px] font-black text-gray-700">پرطرفدارها</h3>
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Flame className="w-5 h-5 text-orange-500" />
+                      <h3 className="text-sm font-black text-gray-900">برندهای پرطرفدار</h3>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {popularBrands.map((brand) => (
-                        <button key={`popular-${brand.id}`} onClick={() => handleSelectBrand(brand)} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50/50 transition-all text-[11px] font-semibold">
-                          <Smartphone className="w-3 h-3 text-primary-500" />
-                          <span>{brand.name}</span>
+                        <button 
+                          key={`popular-${brand.id}`} 
+                          onClick={() => handleSelectBrand(brand)} 
+                          className="group p-4 bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100 rounded-2xl transition-all hover:border-primary-400 hover:shadow-lg hover:shadow-primary-500/10 hover:-translate-y-1"
+                        >
+                          <div className="w-14 h-14 mx-auto mb-2 bg-gradient-to-br from-primary-100 to-accent-100 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                            <Smartphone className="w-7 h-7 text-primary-600" />
+                          </div>
+                          <span className="font-bold text-sm block text-gray-800 truncate">{brand.name}</span>
+                          <span className="text-xs text-gray-400">{brand.series.length} سری محصول</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
                 
-                {/* لیست برندها - کوچک‌تر */}
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                  {filteredBrands.length > 0 ? (
-                    filteredBrands.map((brand) => (
-                      <button key={brand.id} onClick={() => handleSelectBrand(brand)} className="group p-2 bg-white border border-gray-200 rounded-lg transition-all text-center hover:border-primary-500 hover:shadow-md">
-                        <div className="w-10 h-10 mx-auto mb-1 flex items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100 rounded-lg group-hover:scale-110 transition-transform">
-                          <Smartphone className="w-5 h-5 text-primary-600" />
+                {/* All Brands Grid */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-black text-gray-900">
+                      {searchTerm ? 'نتایج جستجو' : 'همه برندها'}
+                    </h3>
+                    <span className="text-xs text-gray-500">{filteredBrands.length} برند</span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {filteredBrands.length > 0 ? (
+                      filteredBrands.map((brand) => (
+                        <button 
+                          key={brand.id} 
+                          onClick={() => handleSelectBrand(brand)} 
+                          className="group p-3 bg-white border-2 border-gray-100 rounded-2xl transition-all hover:border-primary-400 hover:shadow-lg hover:shadow-primary-500/10 hover:-translate-y-0.5"
+                        >
+                          <div className="w-12 h-12 mx-auto mb-2 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            {brand.logo ? (
+                              <img src={brand.logo} alt={brand.name} className="w-8 h-8 object-contain" />
+                            ) : (
+                              <Smartphone className="w-6 h-6 text-primary-500" />
+                            )}
+                          </div>
+                          <span className="font-bold text-xs block text-gray-800 truncate">{brand.name}</span>
+                          <span className="text-[10px] text-gray-400">{brand.series.length} سری</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-12">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Search className="w-8 h-8 text-gray-400" />
                         </div>
-                        <span className="font-bold text-[11px] block text-gray-800 truncate">{brand.name}</span>
-                        <span className="text-[9px] text-gray-400">{brand.series.length} سری</span>
+                        <p className="font-bold text-gray-900 text-sm mb-1">برندی یافت نشد</p>
+                        <p className="text-xs text-gray-500">لطفاً واژه دیگری را جستجو کنید</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Series */}
+            {step === 'series' && (
+              <div className="animate-fade-in">
+                <div className="flex items-center gap-2 mb-4">
+                  <button
+                    onClick={() => { setStep('brand'); setTempBrand(null); }}
+                    className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900">{tempBrand?.name}</h3>
+                    <p className="text-xs text-gray-500">{currentSeries.length} سری محصول</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {filteredSeries.length > 0 ? (
+                    filteredSeries.map((s) => (
+                      <button 
+                        key={s.id} 
+                        onClick={() => handleSelectSeries(s)} 
+                        className="flex items-center gap-3 p-3 bg-white border-2 border-gray-100 rounded-2xl transition-all group hover:border-primary-400 hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-accent-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-md">
+                          {s.image ? (
+                            <img src={s.image} alt={s.name} className="w-10 h-10 object-cover rounded-lg" />
+                          ) : (
+                            <Smartphone className="w-7 h-7 text-primary-600" />
+                          )}
+                        </div>
+                        <div className="text-right flex-1 min-w-0">
+                          <span className="font-bold text-sm text-gray-900 block truncate">{s.name}</span>
+                          <span className="text-xs text-gray-400">{s.models.length} مدل</span>
+                        </div>
                       </button>
                     ))
                   ) : (
-                    <div className="col-span-full text-center py-8">
-                      <p className="font-bold text-gray-900 text-xs mb-1">برندی یافت نشد</p>
-                      <p className="text-[10px] text-gray-500">برندی در این دسته‌بندی وجود ندارد</p>
+                    <div className="col-span-full text-center py-12">
+                      <p className="font-bold text-gray-900 text-sm mb-1">سری‌ای یافت نشد</p>
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Step: Series - کوچک‌تر */}
-            {step === 'series' && (
-              <div className="grid grid-cols-2 gap-2 animate-fade-in">
-                {filteredSeries.length > 0 ? (
-                  filteredSeries.map((s) => (
-                    <button key={s.id} onClick={() => handleSelectSeries(s)} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg transition-all group hover:border-primary-500 hover:shadow-md">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-accent-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        <Smartphone className="w-5 h-5 text-primary-600" />
-                      </div>
-                      <div className="text-right flex-1 min-w-0">
-                        <span className="font-bold text-[11px] text-gray-900 block truncate">{s.name}</span>
-                        <span className="text-[9px] text-gray-400">{s.models.length} مدل</span>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-8">
-                    <p className="font-bold text-gray-900 text-xs mb-1">سری‌ای یافت نشد</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Step: Model - کوچک‌تر */}
+            {/* Step: Model */}
             {step === 'model' && (
-              <div className="grid grid-cols-2 gap-2 animate-fade-in">
-                {filteredModels.length > 0 ? (
-                  filteredModels.map((model) => (
-                    <button key={model.id} onClick={() => handleSelectModel(model)} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg transition-all hover:border-success-500 hover:shadow-md group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-success-100 to-primary-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        <Smartphone className="w-5 h-5 text-success-600" />
-                      </div>
-                      <div className="text-right flex-1 min-w-0">
-                        <span className="font-bold text-[11px] text-gray-900 block truncate">{model.name}</span>
-                        {model.release_year && (
-                          <span className="text-[9px] text-gray-400">{model.release_year}</span>
-                        )}
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-8">
-                    <p className="font-bold text-gray-900 text-xs mb-1">مدلی یافت نشد</p>
+              <div className="animate-fade-in">
+                <div className="flex items-center gap-2 mb-4">
+                  <button
+                    onClick={() => { setStep('series'); setTempSeries(null); }}
+                    className="w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex items-center justify-center"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div>
+                    <h3 className="text-sm font-black text-gray-900">{tempSeries?.name}</h3>
+                    <p className="text-xs text-gray-500">{currentModels.length} مدل</p>
                   </div>
-                )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {filteredModels.length > 0 ? (
+                    filteredModels.map((model) => (
+                      <button 
+                        key={model.id} 
+                        onClick={() => handleSelectModel(model)} 
+                        className="group p-3 bg-white border-2 border-gray-100 rounded-2xl transition-all hover:border-success-400 hover:shadow-lg hover:shadow-success-500/10 hover:-translate-y-0.5"
+                      >
+                        <div className="w-full aspect-square mb-2 bg-gradient-to-br from-success-50 to-emerald-50 rounded-xl flex items-center justify-center overflow-hidden">
+                          {model.image ? (
+                            <img src={model.image} alt={model.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform" />
+                          ) : (
+                            <div className="w-16 h-16 bg-gradient-to-br from-success-100 to-emerald-100 rounded-xl flex items-center justify-center">
+                              <Smartphone className="w-8 h-8 text-success-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-sm text-gray-900 block truncate">{model.name}</span>
+                          {model.release_year && (
+                            <span className="text-xs text-gray-400">{model.release_year}</span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-center gap-1 text-success-600 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Check className="w-3 h-3" />
+                          انتخاب
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-12">
+                      <p className="font-bold text-gray-900 text-sm mb-1">مدلی یافت نشد</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </>

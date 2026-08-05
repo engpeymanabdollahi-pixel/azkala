@@ -1,50 +1,72 @@
+```
 # Dependencies
 node_modules/
-vendor/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Build outputs
-frontend/dist/
-frontend/build/
-
-# Environment files
+# Environment variables
 .env
 .env.local
-.env.*.local
-backend/.env
+.env.*
+!.env.example
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
+# Build outputs
+dist/
+build/
+coverage/
+.nyc_output/
+.next/
+.nuxt/
 
 # Logs
 *.log
 npm-debug.log*
-backend/storage/logs/*.log
+yarn-debug.log*
+yarn-error.log*
 
-# Cache
-.phpunit.result.cache
-.phpunit.cache
-backend/bootstrap/cache/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
+# OS generated files
+.DS_Store
+Thumbs.db
 
-# Testing
-coverage/
-.nyc_output/
-backend/coverage/
-
-# Temporary files
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
 *.tmp
-*.temp
 
-# Laragon specific
-laragon/
+# Python (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/modules/
+.DS_Store
+.hg
+.hgignore
+.hgcheck
+.hgsigs
+.hgtags
+.hgsub
+.hgsubstate
+.hgtpl
+.hgwebdir.json
+mercurial.ini
+last_message
+.cvsignore
+```
