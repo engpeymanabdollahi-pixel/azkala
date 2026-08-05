@@ -27,6 +27,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ProductSeeder::class,
             AddMissingProductsSeeder::class,
+            // seller_id این محصولات null است — یعنی «تمپلیت»اند، نه فروشیِ کسی.
+            // GET /products/templates دقیقاً همین ردیف‌ها را برمی‌گرداند تا
+            // فروشنده‌ی تازه‌وارد به‌جای شروع از صفر، یکی را کپی کند.
+            ComprehensiveProductTemplateSeeder::class,
             CouponSeeder::class,
         ]);
 
