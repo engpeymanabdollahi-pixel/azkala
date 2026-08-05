@@ -23,8 +23,9 @@ class DatabaseSeeder extends Seeder
             DeviceHierarchySeeder::class, // ✅ این خط مشکل خالی بودن لیست گوشی‌ها را حل می‌کند
         ]);
 
-        // ۳. سپس محصولات و کوپن‌ها
+        // ۳. سپس محصولات جامع و کوپن‌ها
         $this->call([
+            MasterProductSeeder::class,   // ✅ Seeder جدید با محصولات واقعی و مشخصات فنی
             ProductSeeder::class,
             AddMissingProductsSeeder::class,
             CouponSeeder::class,
