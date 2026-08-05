@@ -24,6 +24,15 @@ export interface DeviceModel {
   brand_id: number;
 }
 
+// ✅ شکل واقعی پاسخ DeviceController::getHierarchy — قبلاً این تایپ اصلاً
+// تعریف نشده بود (خطای «Cannot find name» در tsc، فقط چون npm run build
+// از esbuild استفاده می‌کند نه tsc کامل، از چشم build عادی دور مانده بود).
+export interface DeviceModelWithBrand {
+  id: number;
+  name: string;
+  brand?: { name: string };
+}
+
 export const deviceService = {
   getBrands: async (): Promise<DeviceBrand[]> => {
     const response = await apiClient.get('/devices/brands');

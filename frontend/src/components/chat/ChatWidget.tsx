@@ -6,6 +6,7 @@ import {
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
 import { chatService, type OnlineStatus } from '@/services/api/chat.service';
 import { quickReplyService, type QuickReply } from '@/services/api/quickReply.service';
