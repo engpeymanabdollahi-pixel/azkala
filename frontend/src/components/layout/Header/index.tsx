@@ -1,20 +1,16 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query'; // ✅ این خط را اضافه کنید
 import { useNavigate, useLocation } from 'react-router-dom';
+// ✅ قبلاً ۲۹ آیکون اضافه (بدون هیچ استفاده‌ای در JSX این فایل) اینجا ایمپورت
+// می‌شد — فقط حجم باندل را زیاد می‌کرد. لیست زیر فقط آیکون‌های واقعاً استفاده‌شده است.
 import {
-  ShoppingCart, Search, User, Menu, X, Smartphone,
-  ChevronDown, LogOut, Package, Heart, Bell, Home,
-  Store, Phone, Info, Shield, Truck, Sparkles,
-  TrendingUp, Flame, Tag, Gift, Headphones, Watch,
-  Laptop, Gamepad2, CheckCircle, Star, ArrowLeft,
-  ChevronLeft, Percent, Zap, Award, Clock, MapPin,
-  Mail, Settings, HelpCircle, Bookmark, Moon, Sun,
-  Mic, MicOff, MessageCircle, ArrowUp, Globe
+  ShoppingCart, User, Menu, X, Smartphone,
+  Store, Phone, Shield, Truck, Sparkles,
+  TrendingUp, Gift, Moon, Sun, Heart,
 } from 'lucide-react';
 import { useModelStore, useCartStore, useAuthStore, useUIStore } from '@/store';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useChatStore } from '@/store/chatStore';
-import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { useAuthModalStore } from '@/store/authModalStore';
 import apiClient from '@/services/api/client'; // ✅ این خط را اضافه کنید
@@ -36,6 +32,7 @@ import { useClickOutside } from './hooks/useClickOutside';
 
 // Constants
 import { NAV_ITEMS } from './constants';
+import { isPathActive } from './utils';
 
 
 // ==================== تابع کمکی تبدیل آدرس عکس ====================
@@ -86,17 +83,25 @@ export function Header() {
     }, [])
   );
 
-  // Close menus on route change
-  useState(() => {
-    setShowUserMenu(false);
-    setShowNotifications(false);
-    setShowMegaMenu(false);
-  });
-
   // Computed values
   const itemsCount = getItemCount();
   const wishlistCount = wishlistItems.length;
   const currentPage = location.pathname;
+  const currentSearch = location.search;
+
+  // ✅ بستن منوها هنگام تغییر مسیر — قبلاً با useState(() => {...}) نوشته شده
+  // بود که فقط یک‌بار در mount اجرا می‌شود، نه با هر تغییر مسیر (برخلاف
+  // کامنتش). یعنی مثلاً با کلیک روی محصول از داخل MegaMenu، خودِ مگامنو باز
+  // می‌ماند. useEffect با وابستگی به آدرس واقعی، درست روی هر ناوبری اجرا
+  // می‌شود — چه از دکمه‌های خودِ هدر بیاید چه از جای دیگری در صفحه (مثل لینک
+  // داخل UserMenu یا دکمه بازگشت مرورگر).
+  useEffect(() => {
+    setShowUserMenu(false);
+    setShowNotifications(false);
+    setShowMegaMenu(false);
+    setShowQuickAccess(false);
+    closeMobileMenu();
+  }, [currentPage, currentSearch, closeMobileMenu]);
 
       // دریافت تنظیمات سایت (لوگو و ...) از مسیر عمومی
   const { data: settingsData } = useQuery({
@@ -106,7 +111,8 @@ export function Header() {
         // ✅ استفاده از مسیر عمومی که نیاز به لاگین ندارد
         const res = await apiClient.get('/site-settings');
         return res.data.data;
-      } catch (e) {
+      } catch (error) {
+        console.error('Error fetching site settings:', error);
         return null;
       }
     },
@@ -123,6 +129,9 @@ export function Header() {
     closeMobileMenu();
     setShowMegaMenu(false);
     setShowUserMenu(false);
+    // ✅ قبلاً اینجا بسته نمی‌شد، پس اگر کاربر با اعلان‌های باز روی یک آیتم
+    // ناوبری کلیک می‌کرد، دراپ‌داون اعلان‌ها روی صفحه‌ی جدید هم باز می‌ماند.
+    setShowNotifications(false);
   }, [navigate, closeMobileMenu]);
 
   const handleLogout = useCallback(() => {
@@ -132,11 +141,10 @@ export function Header() {
     navigate('/');
   }, [logout, closeMobileMenu, navigate]);
 
-  const isActive = useCallback((path: string) => {
-    if (path === '/') return currentPage === '/';
-    if (path.includes('?')) return currentPage.startsWith(path.split('?')[0]);
-    return currentPage.startsWith(path);
-  }, [currentPage]);
+  const isActive = useCallback(
+    (path: string) => isPathActive(currentPage, currentSearch, path),
+    [currentPage, currentSearch]
+  );
 
   const handleQuickAccessChat = useCallback(() => {
     toggleChat();

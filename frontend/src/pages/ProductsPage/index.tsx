@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'; // ✅ اضافه شد
 import { Smartphone, Package, BadgeCheck, X, Tag } from 'lucide-react';
@@ -95,6 +95,43 @@ export function ProductsPage() {
     setSortBy,
     resetFilters,
   } = useProductFilters(products);
+
+  // ✅ اعمال پارامترهای search/category/discount/new که هدر (SearchBar،
+  // MegaMenu، NAV_ITEMS «تخفیف‌های ویژه») در URL می‌سازد — قبلاً هیچ صفحه‌ای
+  // این پارامترها را نمی‌خواند (فقط brand_id خوانده می‌شد)، پس جستجوی سراسری
+  // و لینک‌های مگامنو/تخفیف در عمل هیچ اثری روی نتایج نداشتند: کاربر به این
+  // صفحه هدایت می‌شد ولی نتایج فیلتر/جستجو نمی‌شدند.
+  // «new» معادل واقعی در دیتابیس ندارد (فیلد is_new‌ای در Product نیست)،
+  // پس به‌جای ساختن یک فیلتر ساختگی، صادقانه روی مرتب‌سازی «جدیدترین‌ها»
+  // (created_at نزولی) که از قبل واقعی و موجود است نگاشت می‌شود.
+  // با یک رشته‌ی «آخرین‌اعمال‌شده» فقط وقتی این ۴ پارامتر واقعاً عوض شوند
+  // اعمال می‌شود — نه با هر تغییر دیگری در searchParams (مثل حذف فیلتر برند)،
+  // تا فیلترهایی که کاربر خودش دستی تغییر داده پاک نشوند.
+  const lastAppliedHeaderParams = useRef<string | null>(null);
+  useEffect(() => {
+    const search = searchParams.get('search');
+    const category = searchParams.get('category');
+    const discount = searchParams.get('discount');
+    const isNew = searchParams.get('new');
+
+    if (!search && !category && !discount && !isNew) return;
+    // اگر پارامتر دسته‌بندی هست ولی دسته‌بندی‌ها هنوز از سرور نیامده، صبر کن
+    // تا در رندر بعدی (وقتی categories پر شد) دوباره تلاش شود؛ وگرنه این
+    // تلاش به‌عنوان «اعمال‌شده» علامت می‌خورد و دیگر هیچ‌وقت واقعاً اجرا نمی‌شود.
+    if (category && categories.length === 0) return;
+
+    const signature = `${search ?? ''}|${category ?? ''}|${discount ?? ''}|${isNew ?? ''}`;
+    if (signature === lastAppliedHeaderParams.current) return;
+    lastAppliedHeaderParams.current = signature;
+
+    if (search) setSearchQuery(search);
+    if (category) {
+      const match = categories.find((c) => c.slug === category);
+      if (match) setSelectedCategory(match.id);
+    }
+    if (discount === 'true') setOnlyDiscounted(true);
+    if (isNew === 'true') setSortBy('newest');
+  }, [searchParams, categories, setSearchQuery, setSelectedCategory, setOnlyDiscounted, setSortBy]);
 
   useEffect(() => {
     if (selectedModel && !selectedDeviceIds.includes(selectedModel.id)) {

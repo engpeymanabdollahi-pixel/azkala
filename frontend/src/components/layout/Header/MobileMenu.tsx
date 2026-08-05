@@ -5,6 +5,7 @@ import { cn } from '@/utils/cn';
 import { Badge } from '@/components/ui/Badge';
 import { MOBILE_MENU_ITEMS, SECONDARY_MENU_ITEMS } from './constants';
 import { useCategories } from '@/hooks/useCategories';
+import { isPathActive } from './utils';
 import type { UserData } from './types';
 
 interface MobileMenuProps {
@@ -39,11 +40,10 @@ export const MobileMenu = memo(({ isOpen, onClose, user, isAuthenticated, onLogo
     navigate(path);
   };
 
-  const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    if (path.includes('?')) return location.pathname.startsWith(path.split('?')[0]);
-    return location.pathname.startsWith(path);
-  };
+  // ✅ قبلاً نسخه‌ی جداگانه‌ای از همین منطق اینجا بود (با همان باگ نادیده
+  // گرفتن مقدار واقعی کوئری‌استرینگ) — حالا از پیاده‌سازی مشترک استفاده
+  // می‌شود تا هر فیکس آینده مجبور نباشد دوبار انجام شود.
+  const isActive = (path: string) => isPathActive(location.pathname, location.search, path);
 
   if (!isOpen) return null;
 
