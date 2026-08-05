@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { 
-  X, ChevronRight, Smartphone, Search, Check, ArrowLeft, 
-  Sparkles, TrendingUp, Award, Zap, Loader2, Laptop, Tablet 
+import {
+  X, ChevronRight, Smartphone, Search, Check,
+  Sparkles, TrendingUp, Award, Loader2, Laptop, Tablet
 } from 'lucide-react';
 import { useModelStore } from '@/store/modelStore';
 import { Modal } from '@/components/ui/Modal';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { deviceService } from '@/services/api/device.service';
 import type { Brand, PhoneSeries, PhoneModel } from '@/types/models';
 import { cn } from '@/utils/cn';
@@ -30,41 +31,42 @@ interface HierarchyModel {
   id: number;
   name: string;
   slug: string;
+  image?: string | null;
   release_year?: number;
 }
 
 export function ModelSelectorModal() {
-  const { 
-    isModalOpen, 
-    closeModal, 
-    selectedBrand, 
-    selectedSeries, 
-    setSelectedBrand, 
-    setSelectedSeries, 
-    setSelectedModel, 
-    clearSelection 
+  const {
+    isModalOpen,
+    closeModal,
+    selectedBrand,
+    selectedSeries,
+    setSelectedBrand,
+    setSelectedSeries,
+    setSelectedModel,
+    clearSelection
   } = useModelStore();
-  
+
   const [step, setStep] = useState<Step>('brand');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<string>('all');
   const [tempBrand, setTempBrand] = useState<HierarchyBrand | null>(null);
   const [tempSeries, setTempSeries] = useState<HierarchySeries | null>(null);
-  
+
   const [hierarchy, setHierarchy] = useState<HierarchyBrand[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isModalOpen) {
       loadHierarchy();
-      
+
       if (selectedSeries && selectedBrand) {
         const brand = hierarchy.find(b => b.id === selectedBrand.id);
         const series = brand?.series.find(s => s.id === selectedSeries.id);
-        
+
         if (brand && series) {
           setTempBrand(brand);
           setTempSeries(series);
@@ -79,11 +81,12 @@ export function ModelSelectorModal() {
       } else {
         setStep('brand');
       }
-      
+
       setSearchTerm('');
       setSelectedDeviceType('all');
       setTimeout(() => searchInputRef.current?.focus(), 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModalOpen]);
 
   const loadHierarchy = async () => {
@@ -185,7 +188,9 @@ export function ModelSelectorModal() {
       brand_id: tempBrand.id,
       name: model.name,
       slug: model.slug,
-      image: null,
+      // قبلاً همیشه null بود، با اینکه device_models.image ستون واقعی و
+      // پرشده‌ای است — کنترلر حالا آن را می‌فرستد، اینجا هم واقعاً ذخیره می‌شود.
+      image: model.image || null,
       release_year: model.release_year,
       is_active: true,
       compatible_products_count: 0,
@@ -254,12 +259,14 @@ export function ModelSelectorModal() {
   return (
     <Modal isOpen={isModalOpen} onClose={closeModal} size="lg" showCloseButton={false}>
       {/* Header - کوچک‌تر */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-white">
+      <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-gray-800">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {step !== 'brand' ? (
             <button
               onClick={handleBack}
-              className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg transition-all hover:scale-110 text-white flex-shrink-0 shadow-md flex items-center justify-center"
+              className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg transition-all hover:scale-110 text-white flex-shrink-0 shadow-md flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+              type="button"
+              aria-label="بازگشت"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -270,36 +277,45 @@ export function ModelSelectorModal() {
           )}
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5 flex-wrap">
-              <button onClick={handleReset} className={cn('hover:text-primary-600 transition-colors', step === 'brand' && 'text-primary-600 font-bold')}>
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 mb-0.5 flex-wrap">
+              <button
+                onClick={handleReset}
+                className={cn('hover:text-primary-600 dark:hover:text-primary-400 transition-colors', step === 'brand' && 'text-primary-600 dark:text-primary-400 font-bold')}
+                type="button"
+              >
                 برند
               </button>
               {(step === 'series' || step === 'model') && (
                 <>
-                  <ChevronRight className="w-2.5 h-2.5 text-gray-400" />
-                  <span className={cn('truncate', step === 'series' ? 'text-primary-600 font-bold' : 'text-gray-700')}>
+                  <ChevronRight className="w-2.5 h-2.5 text-gray-400 dark:text-gray-600" />
+                  <span className={cn('truncate', step === 'series' ? 'text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-700 dark:text-gray-300')}>
                     {tempBrand?.name}
                   </span>
                 </>
               )}
               {step === 'model' && (
                 <>
-                  <ChevronRight className="w-2.5 h-2.5 text-gray-400" />
-                  <span className="text-primary-600 font-bold truncate">{tempSeries?.name}</span>
+                  <ChevronRight className="w-2.5 h-2.5 text-gray-400 dark:text-gray-600" />
+                  <span className="text-primary-600 dark:text-primary-400 font-bold truncate">{tempSeries?.name}</span>
                 </>
               )}
             </div>
-            <h2 className="text-sm font-black text-gray-900 truncate">{stepTitle[step]}</h2>
+            <h2 className="text-sm font-black text-gray-900 dark:text-gray-100 truncate">{stepTitle[step]}</h2>
           </div>
         </div>
 
-        <button onClick={closeModal} className="w-9 h-9 bg-white hover:bg-error-50 border border-gray-200 hover:border-error-300 rounded-lg transition-all text-gray-500 hover:text-error-500 flex-shrink-0 flex items-center justify-center">
+        <button
+          onClick={closeModal}
+          className="w-9 h-9 bg-white dark:bg-gray-800 hover:bg-error-50 dark:hover:bg-error-900/20 border border-gray-200 dark:border-gray-600 hover:border-error-300 dark:hover:border-error-700 rounded-lg transition-all text-gray-500 dark:text-gray-400 hover:text-error-500 flex-shrink-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          type="button"
+          aria-label="بستن"
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Progress Steps - کوچک‌تر */}
-      <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+      <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
         {(['brand', 'series', 'model'] as Step[]).map((s, idx) => {
           const isCompleted = idx < currentStepIndex;
           const isCurrent = idx === currentStepIndex;
@@ -313,41 +329,41 @@ export function ModelSelectorModal() {
                 'w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold transition-all',
                 isCurrent && 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-md scale-110',
                 isCompleted && 'bg-gradient-to-br from-success-500 to-success-600 text-white',
-                !isCurrent && !isCompleted && 'bg-gray-200 text-gray-500'
+                !isCurrent && !isCompleted && 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
               )}>
                 {isCompleted ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3 h-3" />}
               </div>
-              <span className={cn('text-[10px] font-bold hidden sm:block', isCurrent ? 'text-primary-600' : isCompleted ? 'text-success-600' : 'text-gray-400')}>
+              <span className={cn('text-[10px] font-bold hidden sm:block', isCurrent ? 'text-primary-600 dark:text-primary-400' : isCompleted ? 'text-success-600 dark:text-success-400' : 'text-gray-400 dark:text-gray-500')}>
                 {labels[s]}
               </span>
-              {idx < 2 && <div className={cn('flex-1 h-0.5 rounded-full mx-1', isCompleted ? 'bg-success-500' : 'bg-gray-200')} />}
+              {idx < 2 && <div className={cn('flex-1 h-0.5 rounded-full mx-1', isCompleted ? 'bg-success-500' : 'bg-gray-200 dark:bg-gray-700')} />}
             </div>
           );
         })}
       </div>
 
       {/* Main Content - کوچک‌تر */}
-      <div className="p-3 overflow-y-auto" style={{ maxHeight: '45vh' }}>
+      <div className="p-3 overflow-y-auto bg-white dark:bg-gray-800" style={{ maxHeight: '45vh' }}>
         {error && (
-          <div className="mb-3 bg-error-50 border border-error-200 rounded-lg p-3">
-            <p className="text-error-700 text-xs mb-1">{error}</p>
-            <button onClick={loadHierarchy} className="text-error-600 text-[10px] font-bold hover:underline">تلاش مجدد</button>
+          <div className="mb-3 bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-lg p-3">
+            <p className="text-error-700 dark:text-error-400 text-xs mb-1">{error}</p>
+            <button onClick={loadHierarchy} className="text-error-600 dark:text-error-400 text-[10px] font-bold hover:underline" type="button">تلاش مجدد</button>
           </div>
         )}
 
-        <div className="mb-3 sticky top-0 bg-white pb-2 z-10">
+        <div className="mb-3 sticky top-0 bg-white dark:bg-gray-800 pb-2 z-10">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
               placeholder="جستجو..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all text-xs"
+              className="w-full pr-10 pl-10 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/40 transition-all text-xs"
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setSearchTerm('')} className="absolute left-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500" type="button" aria-label="پاک کردن جستجو">
                 <X className="w-3 h-3" />
               </button>
             )}
@@ -357,7 +373,7 @@ export function ModelSelectorModal() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-8">
             <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-            <p className="text-gray-500 text-xs mt-2">در حال بارگذاری...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-2">در حال بارگذاری...</p>
           </div>
         ) : (
           <>
@@ -366,7 +382,7 @@ export function ModelSelectorModal() {
               <div className="animate-fade-in">
                 {/* انتخاب نوع دستگاه - کوچک‌تر */}
                 <div className="mb-3">
-                  <p className="text-[11px] font-bold text-gray-700 mb-2">نوع دستگاه:</p>
+                  <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-2">نوع دستگاه:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {[
                       { value: 'all', label: 'همه', icon: Sparkles },
@@ -382,10 +398,12 @@ export function ModelSelectorModal() {
                           onClick={() => setSelectedDeviceType(type.value)}
                           className={cn(
                             "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
                             isActive
                               ? "bg-primary-500 text-white border-primary-500 shadow-sm"
-                              : "bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300"
+                              : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600"
                           )}
+                          type="button"
                         >
                           <Icon className="w-3 h-3" />
                           {type.label}
@@ -399,36 +417,46 @@ export function ModelSelectorModal() {
                 {!searchTerm && popularBrands.length > 0 && (
                   <div className="mb-3">
                     <div className="flex items-center gap-1 mb-2">
-                      <TrendingUp className="w-3 h-3 text-primary-500" />
-                      <h3 className="text-[11px] font-black text-gray-700">پرطرفدارها</h3>
+                      <TrendingUp className="w-3 h-3 text-primary-500 dark:text-primary-400" />
+                      <h3 className="text-[11px] font-black text-gray-700 dark:text-gray-300">پرطرفدارها</h3>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {popularBrands.map((brand) => (
-                        <button key={`popular-${brand.id}`} onClick={() => handleSelectBrand(brand)} className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 bg-white hover:border-primary-300 hover:bg-primary-50/50 transition-all text-[11px] font-semibold">
-                          <Smartphone className="w-3 h-3 text-primary-500" />
+                        <button
+                          key={`popular-${brand.id}`}
+                          onClick={() => handleSelectBrand(brand)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50/50 dark:hover:bg-primary-900/20 transition-all text-[11px] font-semibold text-gray-700 dark:text-gray-200"
+                          type="button"
+                        >
+                          <Smartphone className="w-3 h-3 text-primary-500 dark:text-primary-400" />
                           <span>{brand.name}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
-                
+
                 {/* لیست برندها - کوچک‌تر */}
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {filteredBrands.length > 0 ? (
                     filteredBrands.map((brand) => (
-                      <button key={brand.id} onClick={() => handleSelectBrand(brand)} className="group p-2 bg-white border border-gray-200 rounded-lg transition-all text-center hover:border-primary-500 hover:shadow-md">
-                        <div className="w-10 h-10 mx-auto mb-1 flex items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100 rounded-lg group-hover:scale-110 transition-transform">
-                          <Smartphone className="w-5 h-5 text-primary-600" />
+                      <button
+                        key={brand.id}
+                        onClick={() => handleSelectBrand(brand)}
+                        className="group p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg transition-all text-center hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                        type="button"
+                      >
+                        <div className="w-10 h-10 mx-auto mb-1 flex items-center justify-center bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-900/40 dark:to-accent-900/40 rounded-lg group-hover:scale-110 transition-transform">
+                          <Smartphone className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                         </div>
-                        <span className="font-bold text-[11px] block text-gray-800 truncate">{brand.name}</span>
-                        <span className="text-[9px] text-gray-400">{brand.series.length} سری</span>
+                        <span className="font-bold text-[11px] block text-gray-800 dark:text-gray-100 truncate">{brand.name}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500">{brand.series.length} سری</span>
                       </button>
                     ))
                   ) : (
                     <div className="col-span-full text-center py-8">
-                      <p className="font-bold text-gray-900 text-xs mb-1">برندی یافت نشد</p>
-                      <p className="text-[10px] text-gray-500">برندی در این دسته‌بندی وجود ندارد</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100 text-xs mb-1">برندی یافت نشد</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">برندی در این دسته‌بندی وجود ندارد</p>
                     </div>
                   )}
                 </div>
@@ -440,19 +468,24 @@ export function ModelSelectorModal() {
               <div className="grid grid-cols-2 gap-2 animate-fade-in">
                 {filteredSeries.length > 0 ? (
                   filteredSeries.map((s) => (
-                    <button key={s.id} onClick={() => handleSelectSeries(s)} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg transition-all group hover:border-primary-500 hover:shadow-md">
-                      <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-accent-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        <Smartphone className="w-5 h-5 text-primary-600" />
+                    <button
+                      key={s.id}
+                      onClick={() => handleSelectSeries(s)}
+                      className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg transition-all group hover:border-primary-500 dark:hover:border-primary-500 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                      type="button"
+                    >
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-900/40 dark:to-accent-900/40 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <Smartphone className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                       </div>
                       <div className="text-right flex-1 min-w-0">
-                        <span className="font-bold text-[11px] text-gray-900 block truncate">{s.name}</span>
-                        <span className="text-[9px] text-gray-400">{s.models.length} مدل</span>
+                        <span className="font-bold text-[11px] text-gray-900 dark:text-gray-100 block truncate">{s.name}</span>
+                        <span className="text-[9px] text-gray-400 dark:text-gray-500">{s.models.length} مدل</span>
                       </div>
                     </button>
                   ))
                 ) : (
                   <div className="col-span-full text-center py-8">
-                    <p className="font-bold text-gray-900 text-xs mb-1">سری‌ای یافت نشد</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100 text-xs mb-1">سری‌ای یافت نشد</p>
                   </div>
                 )}
               </div>
@@ -463,21 +496,39 @@ export function ModelSelectorModal() {
               <div className="grid grid-cols-2 gap-2 animate-fade-in">
                 {filteredModels.length > 0 ? (
                   filteredModels.map((model) => (
-                    <button key={model.id} onClick={() => handleSelectModel(model)} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-lg transition-all hover:border-success-500 hover:shadow-md group">
-                      <div className="w-10 h-10 bg-gradient-to-br from-success-100 to-primary-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        <Smartphone className="w-5 h-5 text-success-600" />
+                    <button
+                      key={model.id}
+                      onClick={() => handleSelectModel(model)}
+                      className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg transition-all hover:border-success-500 dark:hover:border-success-500 hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500"
+                      type="button"
+                    >
+                      {/* عکس واقعی مدل — device_models.image ستون واقعی است، قبلاً
+                          اصلاً از سرور خواسته نمی‌شد و اینجا همیشه آیکون عمومی
+                          دیده می‌شد. */}
+                      <div className="w-10 h-10 bg-gradient-to-br from-success-100 to-primary-100 dark:from-success-900/40 dark:to-primary-900/40 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-110 transition-transform">
+                        {model.image ? (
+                          <SafeImage
+                            src={model.image}
+                            alt={model.name}
+                            className="w-full h-full object-cover"
+                            showEmojiOnError
+                            fallbackEmoji="📱"
+                          />
+                        ) : (
+                          <Smartphone className="w-5 h-5 text-success-600 dark:text-success-400" />
+                        )}
                       </div>
                       <div className="text-right flex-1 min-w-0">
-                        <span className="font-bold text-[11px] text-gray-900 block truncate">{model.name}</span>
+                        <span className="font-bold text-[11px] text-gray-900 dark:text-gray-100 block truncate">{model.name}</span>
                         {model.release_year && (
-                          <span className="text-[9px] text-gray-400">{model.release_year}</span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500">{model.release_year}</span>
                         )}
                       </div>
                     </button>
                   ))
                 ) : (
                   <div className="col-span-full text-center py-8">
-                    <p className="font-bold text-gray-900 text-xs mb-1">مدلی یافت نشد</p>
+                    <p className="font-bold text-gray-900 dark:text-gray-100 text-xs mb-1">مدلی یافت نشد</p>
                   </div>
                 )}
               </div>

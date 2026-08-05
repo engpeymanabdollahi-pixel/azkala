@@ -203,10 +203,14 @@ class DeviceController extends Controller
         ]);
     }
 
-             public function getHeaderHierarchy()
+    public function getHeaderHierarchy()
     {
-        $brands = \App\Models\DeviceBrand::with('series.models:id,name,series_id')
-            ->select('id', 'name', 'slug', 'type') // ✅ اضافه شدن 'type'
+        // slug و release_year و image ستون‌های واقعی device_models‌اند و توسط
+        // سیدر واقعاً پر می‌شوند، ولی این پاسخ فقط id و name می‌فرستاد. نتیجه:
+        // فرانت‌اند مدال هدر برای هر مدل عکس عمومی می‌ساخت و فیلد slug مدل
+        // انتخابی همیشه undefined بود، با اینکه هر دو داده در دیتابیس بودند.
+        $brands = \App\Models\DeviceBrand::with('series.models:id,name,slug,image,release_year,series_id')
+            ->select('id', 'name', 'slug', 'type')
             ->where('is_active', true)
             ->get()
             ->map(function ($brand) {
@@ -214,14 +218,17 @@ class DeviceController extends Controller
                     'id' => $brand->id,
                     'name' => $brand->name,
                     'slug' => $brand->slug,
-                    'type' => $brand->type, // ✅ ارسال type به فرانت‌اند
+                    'type' => $brand->type,
                     'series' => $brand->series->map(function ($series) {
                         return [
                             'id' => $series->id,
                             'name' => $series->name,
-                            'models' => $series->models->map(fn($m) => [
+                            'models' => $series->models->map(fn ($m) => [
                                 'id' => $m->id,
                                 'name' => $m->name,
+                                'slug' => $m->slug,
+                                'image' => $m->image,
+                                'release_year' => $m->release_year,
                             ]),
                         ];
                     }),

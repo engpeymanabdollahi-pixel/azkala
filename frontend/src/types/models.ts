@@ -49,7 +49,9 @@ export interface Brand {
   id: number;
   name: string;
   slug: string;
-  logo: string;
+  // برندهایی که کاربر از مدال هدر انتخاب می‌کند لوگو ندارند — device_brands
+  // اصلاً چنین ستونی ندارد. اجباری‌بودنِ قبلی همیشه با null نقض می‌شد.
+  logo: string | null;
   is_active: boolean;
   series_count?: number;
   models_count?: number;
@@ -63,7 +65,7 @@ export interface PhoneSeries {
   name: string;
   slug: string;
   description?: string;
-  image?: string;
+  image?: string | null;
   models_count?: number;
   brand?: Brand;
   created_at: string;
@@ -76,8 +78,10 @@ export interface PhoneModel {
   brand_id: number;
   name: string;
   slug: string;
-  image: string;
-  release_year: number;
+  // هر دو ستون واقعی و در device_models قابل‌نال‌اند؛ اجباری‌بودن این دو
+  // فیلد اینجا با مقدار واقعیِ API سازگار نبود.
+  image: string | null;
+  release_year?: number | null;
   is_active: boolean;
   specs?: PhoneSpecs;
   compatible_products_count?: number;
