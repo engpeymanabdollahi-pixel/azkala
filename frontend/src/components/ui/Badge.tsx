@@ -17,12 +17,12 @@ export function Badge({
   icon 
 }: BadgeProps) {
   const variants = {
-    primary: 'bg-primary-100 text-primary-700 border-primary-200',
-    accent: 'bg-accent-100 text-accent-700 border-accent-200',
-    success: 'bg-success-50 text-success-700 border-success-200',
-    warning: 'bg-warning-50 text-warning-600 border-warning-200',
-    error: 'bg-error-50 text-error-700 border-error-200',
-    gray: 'bg-gray-100 text-gray-700 border-gray-200',
+    primary: 'bg-primary-100 text-primary-700 border-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800',
+    accent: 'bg-accent-100 text-accent-700 border-accent-200 dark:bg-accent-900/30 dark:text-accent-300 dark:border-accent-800',
+    success: 'bg-success-50 text-success-700 border-success-200 dark:bg-success-900/30 dark:text-success-300 dark:border-success-800',
+    warning: 'bg-warning-50 text-warning-600 border-warning-200 dark:bg-warning-900/30 dark:text-warning-300 dark:border-warning-800',
+    error: 'bg-error-50 text-error-700 border-error-200 dark:bg-error-900/30 dark:text-error-300 dark:border-error-800',
+    gray: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600',
   };
 
   const sizes = {

@@ -167,8 +167,12 @@ class ProductController extends Controller
      */
     public function getTemplates(Request $request)
     {
+        // deviceModels لازم است چون فرانت‌اند «دستگاه‌های سازگار» را از همین
+        // پاسخ می‌خواند؛ بدون eager load، N+1 روی هر تمپلیت می‌زد و چون رابطه
+        // اصلاً لود نمی‌شد، همیشه خالی برمی‌گشت — سازگاری هیچ‌وقت دیده نمی‌شد
+        // با اینکه در دیتابیس واقعاً ثبت است.
         $query = \App\Models\Product::whereNull('seller_id')
-            ->with(['category:id,name', 'brand:id,name']);
+            ->with(['category:id,name', 'brand:id,name', 'deviceModels:id,name']);
 
         if ($request->has('search')) {
             $search = $request->search;
