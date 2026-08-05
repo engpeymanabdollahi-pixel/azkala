@@ -1,50 +1,46 @@
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.dll
+*.so
+*.a
+*.exe
+*.out
+
 # Dependencies
 node_modules/
-vendor/
-
-# Build outputs
-frontend/dist/
-frontend/build/
-
-# Environment files
+venv/
+.venv/
 .env
 .env.local
-.env.*.local
-backend/.env
+.env.*
 
-# IDE
-.vscode/
-.idea/
+# Logs and temp files
+*.log
+*.tmp
 *.swp
 *.swo
-*~
 
-# OS
+# Editors
+.vscode/
+.idea/
+
+# System files
 .DS_Store
 Thumbs.db
-desktop.ini
 
-# Logs
-*.log
-npm-debug.log*
-backend/storage/logs/*.log
-
-# Cache
-.phpunit.result.cache
-.phpunit.cache
-backend/bootstrap/cache/*
-backend/storage/framework/cache/*
-backend/storage/framework/sessions/*
-backend/storage/framework/views/*
-
-# Testing
+# Coverage
 coverage/
-.nyc_output/
-backend/coverage/
+htmlcov/
+.coverage
 
-# Temporary files
-*.tmp
-*.temp
-
-# Laragon specific
-laragon/
+# Build directories
+dist/
+build/
+target/
+.gradle/
+.mypy_cache/
+.pytest_cache/
