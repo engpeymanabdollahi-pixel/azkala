@@ -14,8 +14,13 @@ class UserDevice extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * ✅ ستون phone_model_id حالا واقعاً به device_models اشاره می‌کند
+     * (نه به phone_models خالی و بلااستفاده) — همان جدولی که
+     * Product::deviceModels() هم به آن وصل است.
+     */
     public function phoneModel(): BelongsTo
     {
-        return $this->belongsTo(PhoneModel::class);
+        return $this->belongsTo(DeviceModel::class, 'phone_model_id');
     }
 }

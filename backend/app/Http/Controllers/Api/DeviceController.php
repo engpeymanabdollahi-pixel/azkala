@@ -10,20 +10,33 @@ class DeviceController extends Controller
 {
     /**
      * لیست همه برندها - نسخه Ultra-Safe با raw query
+     *
+     * ✅ اصلاح حیاتی: قبلاً از جدول‌های brands/phone_series می‌خواند —
+     * جدول‌هایی که هیچ seeder ای هیچ‌وقت پرشان نمی‌کند (فقط device_brands/
+     * device_series/device_models توسط DeviceHierarchySeeder پر می‌شوند).
+     * نتیجه: این endpoint همیشه آرایه‌ی خالی برمی‌گرداند و کل ویزارد
+     * «افزودن دستگاه» در داشبورد کاربر (DevicesSection.tsx) برای هر کاربر
+     * واقعی همیشه یک لیست خالی از برندها نشان می‌داد — عملاً غیرقابل‌استفاده.
+     * device_brands/device_series/device_models همان جدول‌هایی هستند که
+     * Product::deviceModels() هم واقعاً به آن‌ها وصل است (رابطه‌ی
+     * device_model_product)، پس با این اصلاح «دستگاه‌های من» به همان
+     * سیستم سازگاریِ واقعیِ محصولات وصل می‌شود.
      */
     public function brands()
     {
         try {
-            // Raw query بدون هیچ وابستگی به Model
-            $brands = DB::table('brands')
-                ->select('brands.id', 'brands.name', 'brands.slug')
-                ->where('brands.is_active', true)
-                ->whereNull('brands.deleted_at') // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
-                ->leftJoin('phone_series', 'brands.id', '=', 'phone_series.brand_id')
-                ->selectRaw('COUNT(phone_series.id) as series_count')
-                ->groupBy('brands.id', 'brands.name', 'brands.slug')
-                ->havingRaw('COUNT(phone_series.id) > 0')
-                ->orderBy('brands.name')
+            $brands = DB::table('device_brands')
+                ->select('device_brands.id', 'device_brands.name', 'device_brands.slug')
+                ->where('device_brands.is_active', true)
+                ->whereNull('device_brands.deleted_at') // کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
+                ->leftJoin('device_series', function ($join) {
+                    $join->on('device_brands.id', '=', 'device_series.brand_id')
+                        ->whereNull('device_series.deleted_at');
+                })
+                ->selectRaw('COUNT(device_series.id) as series_count')
+                ->groupBy('device_brands.id', 'device_brands.name', 'device_brands.slug')
+                ->havingRaw('COUNT(device_series.id) > 0')
+                ->orderBy('device_brands.name')
                 ->get()
                 ->map(function ($brand) {
                     return [
@@ -41,7 +54,7 @@ class DeviceController extends Controller
         } catch (\Exception $e) {
             Log::error('DeviceController@brands ERROR: ' . $e->getMessage());
             Log::error('File: ' . $e->getFile() . ':' . $e->getLine());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا: ' . $e->getMessage(),
@@ -55,21 +68,25 @@ class DeviceController extends Controller
     public function series($brandId)
     {
         try {
-            $series = DB::table('phone_series')
-                ->select('phone_series.id', 'phone_series.name', 'phone_series.slug', 'phone_series.image')
-                ->where('phone_series.brand_id', $brandId)
-                ->where('phone_series.is_active', true)
-                ->leftJoin('phone_models', 'phone_series.id', '=', 'phone_models.series_id')
-                ->selectRaw('COUNT(phone_models.id) as models_count')
-                ->groupBy('phone_series.id', 'phone_series.name', 'phone_series.slug', 'phone_series.image')
-                ->orderBy('phone_series.name')
+            $series = DB::table('device_series')
+                ->select('device_series.id', 'device_series.name', 'device_series.slug')
+                ->where('device_series.brand_id', $brandId)
+                ->whereNull('device_series.deleted_at')
+                ->leftJoin('device_models', function ($join) {
+                    $join->on('device_series.id', '=', 'device_models.series_id')
+                        ->whereNull('device_models.deleted_at');
+                })
+                ->selectRaw('COUNT(device_models.id) as models_count')
+                ->groupBy('device_series.id', 'device_series.name', 'device_series.slug')
+                ->orderBy('device_series.name')
                 ->get()
                 ->map(function ($s) {
                     return [
                         'id' => (int) $s->id,
                         'name' => $s->name,
                         'slug' => $s->slug,
-                        'image' => $s->image,
+                        // device_series ستون image ندارد (فقط device_models دارد)
+                        'image' => null,
                         'models_count' => (int) $s->models_count,
                     ];
                 });
@@ -93,9 +110,9 @@ class DeviceController extends Controller
     public function models($seriesId)
     {
         try {
-            $models = DB::table('phone_models')
+            $models = DB::table('device_models')
                 ->where('series_id', $seriesId)
-                ->where('is_active', true)
+                ->whereNull('deleted_at')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'image', 'release_year'])
                 ->map(function ($m) {
@@ -127,19 +144,27 @@ class DeviceController extends Controller
     public function model($modelId)
     {
         try {
-            $model = DB::table('phone_models')
-                ->where('phone_models.id', $modelId)
-                ->join('brands', function ($join) {
-                    $join->on('phone_models.brand_id', '=', 'brands.id')
-                        ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
+            // device_models برخلاف phone_models برند را مستقیم ندارد — فقط
+            // series_id دارد؛ برند از طریق device_series به دست می‌آید.
+            // screen_size/weight هم ستون‌های واقعی این جدول نیستند.
+            $model = DB::table('device_models')
+                ->where('device_models.id', $modelId)
+                ->whereNull('device_models.deleted_at')
+                ->join('device_series', function ($join) {
+                    $join->on('device_models.series_id', '=', 'device_series.id')
+                        ->whereNull('device_series.deleted_at');
                 })
-                ->leftJoin('phone_series', 'phone_models.series_id', '=', 'phone_series.id')
+                ->join('device_brands', function ($join) {
+                    $join->on('device_series.brand_id', '=', 'device_brands.id')
+                        ->whereNull('device_brands.deleted_at');
+                })
                 ->select(
-                    'phone_models.*',
-                    'brands.name as brand_name',
-                    'brands.slug as brand_slug',
-                    'phone_series.name as series_name',
-                    'phone_series.slug as series_slug'
+                    'device_models.*',
+                    'device_brands.id as brand_id',
+                    'device_brands.name as brand_name',
+                    'device_brands.slug as brand_slug',
+                    'device_series.name as series_name',
+                    'device_series.slug as series_slug'
                 )
                 ->first();
 
@@ -158,8 +183,6 @@ class DeviceController extends Controller
                     'slug' => $model->slug,
                     'image' => $model->image,
                     'release_year' => $model->release_year,
-                    'screen_size' => $model->screen_size,
-                    'weight' => $model->weight,
                     'brand' => [
                         'id' => (int) $model->brand_id,
                         'name' => $model->brand_name,

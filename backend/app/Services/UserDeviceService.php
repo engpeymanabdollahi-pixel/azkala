@@ -9,10 +9,12 @@ class UserDeviceService
 {
     public function getUserDevices(int $userId): Collection
     {
-        return UserDevice::with('phoneModel.brand', 'phoneModel.series')
+        $devices = UserDevice::with('phoneModel.series.brand')
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
+
+        return $devices->each(fn (UserDevice $device) => $this->flattenBrand($device));
     }
 
     public function addDevice(int $userId, int $phoneModelId, ?string $nickname): UserDevice
@@ -25,7 +27,9 @@ class UserDeviceService
             ['nickname' => $nickname]
         );
 
-        return $device->load('phoneModel.brand', 'phoneModel.series');
+        $device->load('phoneModel.series.brand');
+
+        return $this->flattenBrand($device);
     }
 
     public function deleteDevice(int $deviceId, int $userId): void
@@ -35,5 +39,22 @@ class UserDeviceService
             ->firstOrFail();
 
         $device->delete();
+    }
+
+    /**
+     * ✅ DeviceModel برخلاف PhoneModel قدیمی، brand را مستقیم ندارد — فقط
+     * از طریق series به آن می‌رسد (device_models -> device_series ->
+     * device_brands). فرانت‌اند همیشه انتظار phone_model.brand را مستقیم
+     * (هم‌ردیف با series) داشته، نه تودرتوی phone_model.series.brand —
+     * این متد همان شکل قدیمی و پایدار پاسخ را حفظ می‌کند.
+     */
+    private function flattenBrand(UserDevice $device): UserDevice
+    {
+        $series = $device->phoneModel?->series;
+        if ($series) {
+            $device->phoneModel->setRelation('brand', $series->brand);
+        }
+
+        return $device;
     }
 }

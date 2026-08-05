@@ -34,8 +34,10 @@ class UserDeviceController extends Controller
 
     public function store(Request $request)
     {
+        // ✅ ستون واقعاً به device_models اشاره می‌کند (نه phone_models
+        // خالی) — رجوع کنید به مهاجرت repoint_user_devices_to_device_models.
         $request->validate([
-            'phone_model_id' => 'required|exists:phone_models,id',
+            'phone_model_id' => 'required|exists:device_models,id',
             'nickname' => 'nullable|string|max:255',
         ]);
 

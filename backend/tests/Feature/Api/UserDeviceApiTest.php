@@ -2,13 +2,21 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\Brand;
-use App\Models\PhoneModel;
+use App\Models\DeviceBrand;
+use App\Models\DeviceModel;
+use App\Models\DeviceSeries;
 use App\Models\User;
 use App\Models\UserDevice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * ✅ این تست قبلاً PhoneModel::create(...) می‌ساخت و آی‌دی همان مدل قدیمی و
+ * بلااستفاده را به‌عنوان phone_model_id ارسال می‌کرد. user_devices.phone_model_id
+ * حالا واقعاً به device_models اشاره می‌کند (رجوع کنید به مهاجرت
+ * repoint_user_devices_to_device_models و UserDeviceRealDataTest) — پس اینجا
+ * هم باید از DeviceModel واقعی استفاده شود، نه PhoneModel قدیمی.
+ */
 class UserDeviceApiTest extends TestCase
 {
     use RefreshDatabase;
@@ -17,7 +25,7 @@ class UserDeviceApiTest extends TestCase
 
     protected User $otherUser;
 
-    protected PhoneModel $phoneModel;
+    protected DeviceModel $phoneModel;
 
     protected function setUp(): void
     {
@@ -25,12 +33,12 @@ class UserDeviceApiTest extends TestCase
         $this->user = User::factory()->create();
         $this->otherUser = User::factory()->create();
 
-        $brand = Brand::factory()->create();
-        $this->phoneModel = PhoneModel::create([
-            'brand_id' => $brand->id,
+        $brand = DeviceBrand::factory()->create();
+        $series = DeviceSeries::factory()->create(['brand_id' => $brand->id]);
+        $this->phoneModel = DeviceModel::factory()->create([
+            'series_id' => $series->id,
             'name' => 'Galaxy S24',
             'slug' => 'galaxy-s24',
-            'is_active' => true,
         ]);
     }
 
