@@ -1,4 +1,5 @@
 import apiClient from './client';
+import type { Role } from '@/types/models';
 
 export interface UpdateProfileRequest {
   name?: string;
@@ -10,12 +11,14 @@ export interface ProfileResponse {
   success: boolean;
   message: string;
   data: {
+    // ✅ role قبلاً string خام بود، ناسازگار با Role ('customer'|'seller'|'admin')
+    // که Partial<User> در authStore.updateUser انتظار دارد.
     user: {
       id: number;
       name: string;
       email: string;
       phone: string;
-      role: string;
+      role: Role;
     };
   };
 }

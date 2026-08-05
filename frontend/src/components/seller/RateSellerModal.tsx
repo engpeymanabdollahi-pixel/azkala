@@ -61,8 +61,11 @@ export function RateSellerModal({
         setCommunication(0);
         setComment('');
       }, 1200);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'خطا در ثبت امتیاز');
+    } catch (error) {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || 'خطا در ثبت امتیاز');
     } finally {
       setIsSubmitting(false);
     }
@@ -74,20 +77,20 @@ export function RateSellerModal({
   if (showSuccess) {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-3xl max-w-sm w-full p-8 text-center animate-bounce-in">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full p-8 text-center animate-bounce-in">
           <div className="relative inline-block mb-4">
             <div className="absolute inset-0 bg-success-500 rounded-full blur-2xl opacity-30 animate-pulse" />
             <div className="relative w-20 h-20 bg-gradient-to-br from-success-500 to-success-600 rounded-full flex items-center justify-center mx-auto shadow-2xl">
               <CheckCircle className="w-12 h-12 text-white" />
             </div>
           </div>
-          <h3 className="text-2xl font-black text-gray-900 mb-2">ممنون از نظر شما!</h3>
+          <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2">ممنون از نظر شما!</h3>
           <div className="flex items-center justify-center gap-1 mb-3">
             {[1,2,3,4,5].map(i => (
               <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
             ))}
           </div>
-          <p className="text-gray-600 text-sm">امتیاز شما با موفقیت ثبت شد</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">امتیاز شما با موفقیت ثبت شد</p>
         </div>
       </div>
     );
@@ -95,7 +98,7 @@ export function RateSellerModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden">
         {/* Header فشرده */}
         <div className="bg-gradient-to-r from-primary-600 via-accent-600 to-warning-500 p-4 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
@@ -109,8 +112,8 @@ export function RateSellerModal({
                 <p className="text-xs text-white/80 mt-0.5">تجربه خرید خود را به اشتراک بگذارید</p>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 hover:bg-white/20 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
@@ -122,24 +125,24 @@ export function RateSellerModal({
         <div className="p-5 space-y-4">
           {/* Progress Bar */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
+            <div className="flex-1 h-2 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div
                 className="h-full bg-gradient-to-r from-primary-500 via-accent-500 to-warning-500 transition-all duration-500"
                 style={{ width: `${(totalRated / 3) * 100}%` }}
               />
             </div>
-            <span className="text-xs font-bold text-gray-600 whitespace-nowrap">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 whitespace-nowrap">
               {totalRated} از 3
             </span>
           </div>
 
           {/* Average Rating Display */}
           {totalRated > 0 && (
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-2xl p-3 flex items-center justify-center gap-3">
+            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-2xl p-3 flex items-center justify-center gap-3">
               <Star className="w-8 h-8 fill-yellow-400 text-yellow-400 drop-shadow-lg" />
               <div>
-                <p className="text-3xl font-black text-gray-900 leading-none">{averageRating}</p>
-                <p className="text-[10px] text-gray-600 mt-0.5">میانگین امتیاز شما</p>
+                <p className="text-3xl font-black text-gray-900 dark:text-gray-100 leading-none">{averageRating}</p>
+                <p className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">میانگین امتیاز شما</p>
               </div>
             </div>
           )}
@@ -171,7 +174,7 @@ export function RateSellerModal({
               placeholder="نظر شما (اختیاری)..."
               rows={2}
               maxLength={500}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 resize-none text-sm"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary-500 resize-none text-sm"
             />
           </div>
 
@@ -214,8 +217,8 @@ function StarRating({
   const [hoverValue, setHoverValue] = useState(0);
   
   return (
-    <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-2.5 hover:bg-yellow-50/50 transition-colors">
-      <span className="text-xs font-bold text-gray-700 w-24 flex-shrink-0">{label}</span>
+    <div className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 rounded-xl p-2.5 hover:bg-yellow-50/50 dark:hover:bg-yellow-900/10 transition-colors">
+      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-24 flex-shrink-0">{label}</span>
       <div className="flex gap-0.5 flex-1 justify-center">
         {Array.from({ length: 5 }).map((_, i) => {
           const starValue = i + 1;
@@ -235,7 +238,7 @@ function StarRating({
                   'w-7 h-7 transition-all',
                   isFilled
                     ? 'fill-yellow-400 text-yellow-500 drop-shadow-[0_0_6px_rgba(250,204,21,0.6)]'
-                    : 'text-gray-300 hover:text-yellow-200'
+                    : 'text-gray-300 dark:text-slate-600 hover:text-yellow-200 dark:hover:text-yellow-300'
                 )}
                 strokeWidth={isFilled ? 0 : 2}
               />
