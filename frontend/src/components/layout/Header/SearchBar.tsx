@@ -1,5 +1,5 @@
 import { memo, useRef } from 'react';
-import { Search, X, Mic, MicOff, Clock, TrendingUp, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Search, X, Mic, MicOff, Clock, TrendingUp, ArrowLeft, ChevronDown, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { useSearch, POPULAR_SUGGESTIONS } from './hooks/useSearch';
 import { useVoiceSearch } from './hooks/useVoiceSearch';
@@ -26,7 +26,8 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
     performSearch,
     handleSearchKeyDown,
     handleSuggestionClick,
-    clearSearch
+    clearSearch,
+    clearSearchHistory
   } = useSearch();
 
   const { isListening, isSupported, toggleVoiceSearch } = useVoiceSearch(setSearchQuery);
@@ -154,6 +155,47 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
                           <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
                         </div>
                         <span className="flex-1 text-right">{suggestion}</span>
+                        <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* ✅ جستجوهای اخیر شما — قبلاً searchHistory از localStorage
+                  محاسبه می‌شد ولی هیچ‌جا نمایش داده نمی‌شد؛ smartSuggestions
+                  (نسخه‌ی فیلترشده‌اش) هم فقط وقتی کاربر چیزی تایپ کرده باشد
+                  پر می‌شود، پس با فوکوس روی جستجوی خالی، تاریخچه‌ی واقعی
+                  کاربر هیچ‌وقت دیده نمی‌شد. */}
+              {searchQuery.length === 0 && searchHistory.length > 0 && (
+                <>
+                  <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-primary-500" />
+                      جستجوهای اخیر شما
+                    </p>
+                    <button
+                      onClick={clearSearchHistory}
+                      className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400 transition-colors focus:outline-none"
+                      aria-label="پاک کردن تاریخچه جستجو"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      پاک کردن
+                    </button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto">
+                    {searchHistory.slice(0, 5).map((item) => (
+                      <button
+                        key={item.query}
+                        onClick={() => handleSuggestionClick(item.query)}
+                        className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-3 group focus:outline-none focus:bg-primary-50 dark:focus:bg-primary-900/20"
+                        role="option"
+                        aria-selected={false}
+                      >
+                        <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+                        </div>
+                        <span className="flex-1 text-right">{item.query}</span>
                         <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
                       </button>
                     ))}

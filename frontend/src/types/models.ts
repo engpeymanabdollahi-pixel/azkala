@@ -122,6 +122,10 @@ export interface Category {
   name: string;
   slug: string;
   icon?: string;
+  // ✅ ستون واقعی categories.image که CategoryResource برمی‌گرداند، ولی
+  // تایپ اینجا نداشت — MegaMenu.tsx و MobileMenu.tsx از قبل category.image
+  // را می‌خواندند و tsc همیشه روی همین دو خطا می‌داد.
+  image?: string | null;
   type: CategoryType;
   is_active: boolean;
   requires_model_selection?: boolean;

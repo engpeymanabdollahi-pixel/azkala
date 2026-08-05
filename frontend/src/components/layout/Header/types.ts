@@ -108,6 +108,7 @@ export interface UseSearchReturn {
   handleSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   handleSuggestionClick: (suggestion: string) => void;
   clearSearch: () => void;
+  clearSearchHistory: () => void;
 }
 
 export interface UseVoiceSearchReturn {

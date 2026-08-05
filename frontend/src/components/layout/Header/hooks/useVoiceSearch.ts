@@ -1,10 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { UseVoiceSearchReturn } from '../types';
 
+// ✅ قبلاً recognitionRef/رویدادها با any تایپ شده بودند — چون lib.dom.ts
+// استاندارد TypeScript این Web API آزمایشی را ندارد. به‌جای any، فقط همان
+// بخشی از سطح API که واقعاً استفاده می‌شود اینجا تعریف شده است.
+interface SpeechRecognitionResultLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionEventLike {
+  results: { [index: number]: { [index: number]: SpeechRecognitionResultLike } };
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+interface SpeechRecognitionConstructorLike {
+  new (): SpeechRecognitionLike;
+}
+
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructorLike;
+  webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+}
+
 export function useVoiceSearch(onResult: (transcript: string) => void): UseVoiceSearchReturn {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const onResultRef = useRef(onResult);
 
   // Keep onResult ref updated to avoid stale closure
@@ -15,8 +47,9 @@ export function useVoiceSearch(onResult: (transcript: string) => void): UseVoice
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+    const win = window as WindowWithSpeechRecognition;
+    const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
       setIsSupported(false);
       return;
@@ -29,7 +62,7 @@ export function useVoiceSearch(onResult: (transcript: string) => void): UseVoice
     recognition.interimResults = false;
     recognition.lang = 'fa-IR';
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
       const transcript = event.results[0][0].transcript;
       setIsListening(false);
       onResultRef.current(transcript);
@@ -50,7 +83,7 @@ export function useVoiceSearch(onResult: (transcript: string) => void): UseVoice
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
-        } catch (e) {
+        } catch {
           // Ignore errors during cleanup
         }
       }
@@ -70,7 +103,7 @@ export function useVoiceSearch(onResult: (transcript: string) => void): UseVoice
       try {
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (e) {
+      } catch {
         setIsListening(false);
       }
     }

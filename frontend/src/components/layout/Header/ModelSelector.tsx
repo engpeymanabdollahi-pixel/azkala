@@ -8,14 +8,16 @@ interface ModelSelectorProps {
   selectedModel: ModelData | null;
   isScrolled: boolean;
   onOpenModal: () => void;
-  onClearSelection?: () => void;
 }
 
+// ✅ قبلاً onClearSelection?: () => void اینجا تعریف و دریافت می‌شد ولی نه
+// در بدنه‌ی این کامپوننت استفاده می‌شد و نه هیچ‌جای دیگری آن را پاس
+// می‌داد — چون خودِ ModelSelectorModal با clearSelection از useModelStore
+// از قبل امکان تغییر/پاک‌کردن انتخاب را می‌دهد، این یک پراپ کاملاً مرده بود.
 export const ModelSelector = memo(({
   selectedModel,
   isScrolled,
   onOpenModal,
-  onClearSelection
 }: ModelSelectorProps) => {
   // این مدال دیگر فقط موبایل نیست — لپ‌تاپ و تبلت را هم پشتیبانی می‌کند، پس
   // برچسب و آیکون باید با نوعِ واقعیِ دستگاه انتخابی هماهنگ باشند، نه اینکه

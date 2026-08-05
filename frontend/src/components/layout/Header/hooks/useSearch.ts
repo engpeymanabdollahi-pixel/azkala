@@ -100,6 +100,16 @@ export function useSearch(): UseSearchReturn {
     setSearchQuery('');
   }, []);
 
+  // ✅ قبلاً searchHistory محاسبه و در localStorage ذخیره می‌شد ولی هیچ
+  // کامپوننتی آن را واقعاً نمایش نمی‌داد (فقط نسخه‌ی فیلترشده‌اش،
+  // smartSuggestions، که فقط وقتی کاربر چیزی تایپ کرده باشد پر می‌شود) —
+  // یعنی کاربر با فوکوس روی جستجوی خالی هیچ‌وقت تاریخچه‌ی واقعی خودش را
+  // نمی‌دید. حالا که SearchBar آن را نمایش می‌دهد، یک راه برای پاک کردنش
+  // هم لازم است.
+  const clearSearchHistory = useCallback(() => {
+    setSearchHistory([]);
+  }, []);
+
   return {
     searchQuery,
     setSearchQuery,
@@ -113,7 +123,8 @@ export function useSearch(): UseSearchReturn {
     performSearch,
     handleSearchKeyDown,
     handleSuggestionClick,
-    clearSearch
+    clearSearch,
+    clearSearchHistory
   };
 }
 
