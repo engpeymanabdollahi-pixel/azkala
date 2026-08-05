@@ -7,14 +7,20 @@ interface BadgeProps {
   children: React.ReactNode;
   className?: string;
   icon?: React.ReactNode;
+  // ✅ چند جای فرانت‌اند (مثل FilterTags.tsx) از قبل Badge را به‌عنوان یک
+  // چیپ قابل‌کلیک با onClick استفاده می‌کردند، ولی این prop اصلاً در تایپ
+  // تعریف نشده و به هیچ‌جا پاس داده نمی‌شد — پس کلیک روی آن چیپ‌ها
+  // (مثلاً برای حذف یک فیلتر فعال) هیچ اثری نداشت.
+  onClick?: () => void;
 }
 
-export function Badge({ 
-  variant = 'primary', 
-  size = 'md', 
-  children, 
+export function Badge({
+  variant = 'primary',
+  size = 'md',
+  children,
   className,
-  icon 
+  icon,
+  onClick,
 }: BadgeProps) {
   const variants = {
     primary: 'bg-primary-100 text-primary-700 border-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:border-primary-800',
@@ -39,6 +45,19 @@ export function Badge({
         sizes[size],
         className
       )}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       {icon && <span className="flex-shrink-0">{icon}</span>}
       {children}

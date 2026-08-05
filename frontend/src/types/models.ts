@@ -173,7 +173,14 @@ export interface Seller {
   products_count?: number;
   orders_count?: number;
   user?: User;
-  
+  // ✅ ProductResource@toArray از قبل این سه فیلد را در آبجکت seller هر
+  // محصول برمی‌گرداند (avatar، seller_verified_at→is_verified،
+  // total_sales) ولی در تایپ Seller تعریف نشده بودند — فرانت‌اند مجبور
+  // می‌شد safeProduct را as any کست کند تا این خطاهای کامپایل را دور بزند.
+  avatar?: string | null;
+  is_verified?: boolean;
+  total_sales?: number;
+
   // ✅ اضافه شده برای مارکت‌پلیس
   bank_info?: SellerBankInfo;
   policies?: SellerPolicies;
@@ -218,12 +225,22 @@ export interface Product {
   meta_description?: string;
   seller?: Seller;
   category?: Category;
+  // ✅ ProductController@show/index از قبل رابطه‌ی brand را eager-load
+  // می‌کرد (ProductResource آن را واقعاً برمی‌گرداند) ولی این فیلد در تایپ
+  // Product هیچ‌وقت تعریف نشده بود — هرجا فرانت‌اند سعی می‌کرد
+  // product.brand?.name را بخواند، تایپ‌اسکریپت خطا می‌داد یا کسی مجبور
+  // می‌شد از any استفاده کند.
+  brand?: Brand;
   compatible_models?: PhoneModel[];
   rating?: number;
   reviews_count?: number;
   discount_percentage?: number;
   views_count?: number;
   sales_count?: number;
+  // ✅ ستون واقعی products.is_bestseller و ProductResource آن را برمی‌گرداند
+  // ولی قبلاً در تایپ Product تعریف نشده بود؛ فرانت‌اند مجبور بود با
+  // (product as any).is_bestseller بخواندش.
+  is_bestseller?: boolean;
   
   // ✅ اضافه شده برای مارکت‌پلیس پیشرفته
   weight_gram?: number;

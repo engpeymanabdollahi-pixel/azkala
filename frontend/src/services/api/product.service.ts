@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Product } from '@/types/models';
+import type { Product, PhoneModel } from '@/types/models';
 
 export interface ProductFilters {
   category_id?: number;
@@ -74,12 +74,16 @@ export const productService = {
   /**
    * دریافت محصول بر اساس slug
    */
-  async getProductBySlug(slug: string): Promise<{ 
-    success: boolean; 
-    data: { 
-      product: Product; 
+  async getProductBySlug(slug: string): Promise<{
+    success: boolean;
+    data: {
+      product: Product;
       related_products: Product[];
-    } 
+      // ✅ ProductService::getProductBySlug واقعاً این کلید را در ریشه‌ی
+      // پاسخ برمی‌گرداند (نه داخل product) — تایپ قبلی نداشتنش باعث می‌شد
+      // مصرف‌کننده مجبور شود با as any این خطا را دور بزند.
+      compatible_models?: PhoneModel[];
+    }
   }> {
     const response = await apiClient.get(`/products/slug/${slug}`);
     return response.data;

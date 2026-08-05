@@ -1,16 +1,13 @@
 import apiClient from './client';
+// ✅ این فایل قبلاً یک اینترفیس Category جدا و ناقص (بدون type، is_active و...)
+// تعریف می‌کرد که هم‌نام ولی ساختاراً ناسازگار با Category واقعیِ
+// @/types/models بود — همان تایپی که بقیه‌ی ProductsPage (FilterSidebar،
+// Toolbar، FilterTags، MobileFilterDrawer) استفاده می‌کنند. همین دوگانگی
+// باعث خطای کامپایل هنگام تایپ کردن نتیجه‌ی categoryService.getAll() به
+// عنوان Category[] واقعی می‌شد.
+import type { Category } from '@/types/models';
 
-export interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  icon?: string;
-  image?: string;
-  description?: string;
-  parent_id?: number;
-  children?: Category[];
-  products_count?: number;
-}
+export type { Category };
 
 export const categoryService = {
   async getAll(): Promise<{ success: boolean; data: Category[] }> {

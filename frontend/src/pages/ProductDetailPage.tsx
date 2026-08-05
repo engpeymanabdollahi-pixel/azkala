@@ -52,7 +52,6 @@ import type { Product } from '@/types/models';
 import { cn } from '@/utils/cn';
 import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
-import { sellerRatingService } from '@/services/api/sellerRating.service';
 import { useChatStore } from '@/store/chatStore';
 
 type TabType = 'description' | 'specifications' | 'compatibility' | 'reviews';
@@ -147,28 +146,13 @@ export function ProductDetailPage() {
           compare_price: Number(productData.compare_price) || 0,
           
           // ✅ اصلاح حیاتی: نگاشت صریح compatible_models از ریشه پاسخ به داخل آبجکت محصول
-          compatible_models: rawData?.compatible_models || productData?.compatible_models || [],
-          
-          // ✅ اطمینان از وجود deviceModels (اگر بک‌اند آن را هم فرستاده باشد)
-          deviceModels: rawData?.deviceModels || productData?.deviceModels || [],
+          // (این فیلد واقعاً در ریشه‌ی پاسخ ProductService::getProductBySlug است،
+          // نه داخل خودِ product — به همین دلیل باید صریح map شود)
+          compatible_models: rawData?.compatible_models || [],
         };
 
-
-  // ✅ تزریق داینامیک متا تگ‌ها به محض لود شدن داده‌های محصول
-  if (productData) {
-    <DynamicMeta 
-      title={productData.name}
-      description={productData.short_description || productData.description?.substring(0, 150) || `خرید ${productData.name} با بهترین قیمت از ازکالا`}
-      image={productData.main_image || '/images/placeholder.png'}
-      url={`https://azkala.com/products/${productData.slug}`} // دامنه را با دامنه واقعی خود جایگزین کنید
-      type="product"
-    />
-  }
-
-  // ... (ادامه کدهای return و JSX)
-
         if (isMounted) {
-          setProduct(safeProduct as any);
+          setProduct(safeProduct as Product);
 
           // لود محصولات مرتبط (اگر در پاسخ API وجود داشته باشد)
           if (rawData.related_products && Array.isArray(rawData.related_products)) {
@@ -176,18 +160,20 @@ export function ProductDetailPage() {
           }
         }
 
-      } catch (err: any) {
+      } catch (err) {
         if (!isMounted) return;
 
+        const errorObj = err as { name?: string; code?: string; message?: string; response?: { data?: { message?: string } } };
+
         // 🛡️ نادیده گرفتن خطای CanceledError ناشی از React 18 Strict Mode
-        if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED' || err.message === 'canceled') {
+        if (errorObj.name === 'CanceledError' || errorObj.code === 'ERR_CANCELED' || errorObj.message === 'canceled') {
           console.log('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
           return; // خارج شدن از تابع بدون تنظیم state خطا
         }
 
         console.error('❌ خطا واقعی در دریافت محصول:', err);
         if (isMounted) {
-          setError(err.response?.data?.message || err.message || 'خطا در بارگذاری محصول');
+          setError(errorObj.response?.data?.message || errorObj.message || 'خطا در بارگذاری محصول');
         }
       } finally {
         if (isMounted) {
@@ -203,21 +189,6 @@ export function ProductDetailPage() {
       isMounted = false;
     };
   }, [slug]);
-  
-  // بعد از useEffect loadProduct (حدود خط ۱۲۰)
-useEffect(() => {
-  if (product) {
-    console.log('🔍 Product Detail Debug:', {
-      productName: product.name,
-      productId: product.id,
-      sellerData: product.seller,
-      sellerId: product.seller?.id,
-      sellerName: product.seller?.shop_name,
-      sellerRating: product.seller?.rating,
-      hasSeller: !!product.seller,
-    });
-  }
-}, [product]);
 
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
     queryKey: ['product-reviews', product?.id, reviewsPage],
@@ -249,8 +220,11 @@ useEffect(() => {
       setReviewForm({ rating: 0, title: '', comment: '' });
       setReviewCategory('general');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'خطا در ثبت نظر');
+    onError: (error: unknown) => {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || 'خطا در ثبت نظر');
     },
   });
 
@@ -475,9 +449,21 @@ useEffect(() => {
 
   // ==================== Main Render ====================
   return (
-    <div className="bg-gray-50 min-h-screen pb-10">
+    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-10">
+      {/* ✅ فیکس واقعی: قبلاً این تگ به‌عنوان یک عبارت JSX سرگردان داخل
+          useEffect (بعد از fetch) نوشته می‌شد — نه return می‌شد و نه هیچ‌جا
+          رندر — پس هیچ‌وقت اجرا نمی‌شد و تگ‌های متای هر محصول (title،
+          description، og:image واقعی) هیچ‌وقت روی صفحه اعمال نمی‌شدند. */}
+      <DynamicMeta
+        title={product.name}
+        description={product.short_description || product.description?.substring(0, 150) || `خرید ${product.name} با بهترین قیمت از ازکالا`}
+        image={product.main_image || '/images/placeholder.png'}
+        url={`https://azkala.com/products/${product.slug}`}
+        type="product"
+      />
+
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-        
+
         {/* 🔧 Breadcrumb - Compact */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-500 mb-3 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
           <Link to="/" className="hover:text-primary-600 flex items-center gap-0.5">
@@ -606,7 +592,7 @@ useEffect(() => {
                     پیشنهاد ویژه
                   </Badge>
                 )}
-                {(product as any).is_bestseller && (
+                {product.is_bestseller && (
                   <Badge variant="accent" className="text-[10px]">
                     <Crown className="w-3 h-3 ml-0.5" />
                     پرفروش
@@ -695,74 +681,81 @@ useEffect(() => {
             </div>
 
                   {/* 🔧 Seller Info - Enhanced */}
-          {product.seller && (
-            <div className="bg-gradient-to-br from-white to-gray-50 border-2 border-primary-200 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
+          {/* ✅ product.seller قبلاً مستقیم داخل چند closure (onClick) دوباره
+              خوانده می‌شد؛ چون TypeScript نمی‌تواند narrowing یک ملک روی یک
+              متغیر captured را در مرزهای closure تضمین کند، این چند خط با
+              (product as any) کست دور زده می‌شدند. اینجا با یک const محلی
+              seller، هم تایپ درست است و هم نیازی به هیچ any/! نیست. */}
+          {product.seller && (() => {
+            const seller = product.seller;
+            return (
+            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
               <div className="flex items-start gap-3 mb-3">
                 {/* آواتار فروشنده (قابل کلیک) */}
-                <button 
-                  onClick={() => navigate(`/seller/${product.seller.slug}`)}
+                <button
+                  onClick={() => navigate(`/seller/${seller.slug}`)}
                   className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden hover:scale-105 transition-transform group"
                 >
-                  {product.seller.avatar ? (
-                    <img 
-                      src={product.seller.avatar} 
-                      alt={product.seller.shop_name}
+                  {seller.avatar ? (
+                    <img
+                      src={seller.avatar}
+                      alt={seller.shop_name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
                     <Store className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
                   )}
                 </button>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     {/* ✅ نام فروشنده حالا قابل کلیک است و به صفحه شعبه هدایت می‌شود */}
                     <button
-                      onClick={() => navigate(`/seller/${product.seller.slug}`)}
-                      className="font-black text-gray-900 text-base truncate hover:text-primary-600 transition-colors flex items-center gap-1 group text-right"
+                      onClick={() => navigate(`/seller/${seller.slug}`)}
+                      className="font-black text-gray-900 dark:text-gray-100 text-base truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1 group text-right"
                     >
-                      {product.seller.shop_name}
-                      <ChevronLeft className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-600" />
+                      {seller.shop_name}
+                      <ChevronLeft className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-600 dark:text-primary-400" />
                     </button>
-                    
-                    {product.seller.is_verified && (
+
+                    {seller.is_verified && (
                       <Badge variant="success" size="sm" className="text-[10px]">
                         <BadgeCheck className="w-3 h-3 ml-0.5" />
                         تأیید شده
                       </Badge>
                     )}
                   </div>
-                  
+
                   {/* آمار فروشنده */}
                   <div className="grid grid-cols-3 gap-2 mt-2">
-                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
                         <Star className="w-3.5 h-3.5 text-warning-400 fill-warning-400" />
-                        <span className="font-black text-gray-900 text-sm">
-                          {product.seller.rating.toFixed(1)}
+                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                          {(seller.rating ?? 0).toFixed(1)}
                         </span>
                       </div>
-                      <p className="text-[10px] text-gray-500">امتیاز</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">امتیاز</p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <Package className="w-3.5 h-3.5 text-primary-500" />
-                        <span className="font-black text-gray-900 text-sm">
-                          {product.seller.products_count}
+                        <Package className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" />
+                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                          {seller.products_count ?? 0}
                         </span>
                       </div>
-                      <p className="text-[10px] text-gray-500">محصول</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">محصول</p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-2 border border-gray-100 text-center">
+
+                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <ShoppingBag className="w-3.5 h-3.5 text-success-500" />
-                        <span className="font-black text-gray-900 text-sm">
-                          {product.seller.total_sales}
+                        <ShoppingBag className="w-3.5 h-3.5 text-success-500 dark:text-success-400" />
+                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                          {seller.total_sales ?? 0}
                         </span>
                       </div>
-                      <p className="text-[10px] text-gray-500">فروش</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">فروش</p>
                     </div>
                   </div>
                 </div>
@@ -779,15 +772,15 @@ useEffect(() => {
         // کاربر از صفحه‌ی محصول بیرون نمی‌رود و دکمه را دوباره نمی‌زند.
         openAuthModal({
           reason: 'برای گفتگو با فروشنده وارد شوید.',
-          onSuccess: () => void startConversation(product.seller!.id, product.id),
+          onSuccess: () => void startConversation(seller.id, product.id),
         });
         return;
       }
       try {
-        await startConversation(product.seller.id, product.id);
+        await startConversation(seller.id, product.id);
         openChat();
         toast.success('چت با فروشنده باز شد', { icon: '💬' });
-      } catch (error) {
+      } catch {
         toast.error('خطا در شروع چت');
       }
     }}
@@ -802,20 +795,21 @@ useEffect(() => {
     size="sm"
     variant="outline"
     onClick={() => {
-      if (product.seller?.slug) {
-        navigate(`/seller/${product.seller.slug}`);
+      if (seller.slug) {
+        navigate(`/seller/${seller.slug}`);
       } else {
         toast.error('صفحه فروشگاه این فروشنده هنوز راه‌اندازی نشده است');
       }
     }}
-    className="font-bold gap-1.5 hover:bg-primary-50 hover:text-primary-700 hover:border-primary-200 transition-all"
+    className="font-bold gap-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all"
   >
     <Store className="w-4 h-4" />
     مشاهده شعبه
   </Button>
 </div>
             </div>
-          )}
+            );
+          })()}
 
             {/* 🔧 Quantity & Actions - Compact */}
             <div className="bg-white border border-gray-100 rounded-xl p-3 space-y-2.5">

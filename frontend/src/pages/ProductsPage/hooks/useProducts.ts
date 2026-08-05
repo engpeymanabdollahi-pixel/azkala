@@ -9,6 +9,10 @@ interface UseProductsOptions {
   filterMode: FilterMode;
   selectedModelId?: number;
   selectedDeviceIds: number[];
+  // ✅ فیلتر برند (از BrandsPage با ?brand_id=... می‌آید) — بک‌اند از قبل
+  // این فیلتر را در ProductFilterDTO/ProductRepository پشتیبانی می‌کرد ولی
+  // هیچ صفحه‌ای در فرانت‌اند آن را واقعاً صدا نمی‌زد.
+  brandId?: number;
 }
 
 interface UseProductsResult {
@@ -28,8 +32,9 @@ export function useProducts({
   filterMode,
   selectedModelId,
   selectedDeviceIds,
+  brandId,
 }: UseProductsOptions): UseProductsResult {
-  const queryKey = ['products', filterMode, selectedModelId, selectedDeviceIds];
+  const queryKey = ['products', filterMode, selectedModelId, selectedDeviceIds, brandId];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
@@ -41,7 +46,10 @@ export function useProducts({
       } else if (filterMode === 'my-devices' && selectedDeviceIds.length > 0) {
         response = await productService.getCompatibleProductsMulti(selectedDeviceIds);
       } else {
-        response = await productService.getProducts({ per_page: PRODUCTS_PER_PAGE });
+        response = await productService.getProducts({
+          per_page: PRODUCTS_PER_PAGE,
+          ...(brandId ? { brand_id: brandId } : {}),
+        });
       }
 
       if (response.success) {

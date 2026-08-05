@@ -115,8 +115,8 @@ export function ProductGrid({
       </div>
 
       <div className="mt-4 text-center">
-        <p className="text-xs text-gray-500">
-          نمایش <span className="font-bold text-gray-900">{products.length}</span> محصول
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          نمایش <span className="font-bold text-gray-900 dark:text-gray-100">{products.length}</span> محصول
         </p>
       </div>
     </>

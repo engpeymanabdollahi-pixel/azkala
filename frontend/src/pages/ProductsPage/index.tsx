@@ -1,15 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'; // ✅ اضافه شد
-import { Smartphone, Package, BadgeCheck } from 'lucide-react';
+import { Smartphone, Package, BadgeCheck, X, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';
 import { categoryService } from '@/services/api/category.service'; // ✅ اضافه شد
 import { cn } from '@/utils/cn';
-import type { Product } from '@/types/models';
+import type { Product, Category } from '@/types/models';
 import type { FilterMode, LayoutMode } from './types';
 import { DEFAULT_LAYOUT_MODE, SKELETON_COUNT, DEFAULT_PRICE_RANGE } from './constants';
 
@@ -27,17 +26,29 @@ import { ProductGrid } from './components/ProductGrid';
 
 export function ProductsPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { selectedModel } = useModelStore();
   const { isAuthenticated } = useAuthStore();
 
+  // ✅ فیلتر برند از طریق URL (مثلاً از BrandsPage: /products?brand_id=3)
+  // قبلاً هیچ صفحه‌ای این پارامتر را نمی‌خواند، پس کلیک روی یک برند در
+  // BrandsPage هیچ اثری روی لیست محصولات نداشت.
+  const brandId = useMemo(() => {
+    const raw = searchParams.get('brand_id');
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }, [searchParams]);
+
   // ✅ دریافت دسته‌بندی‌های واقعی از دیتابیس
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['all-categories'],
     queryFn: async () => {
       try {
-        // اگر نام متد در category.service.ts شما getCategories است، آن را تغییر دهید
-        const res = await categoryService.getAll(); 
-        return res.data?.data || res.data || [];
+        // ✅ categoryService.getAll() از قبل پاسخ را یک بار باز می‌کند و
+        // {success, data: Category[]} برمی‌گرداند — res.data?.data اینجا
+        // همیشه undefined بود (تودرتوی اضافه‌ی اشتباه).
+        const res = await categoryService.getAll();
+        return res.data || [];
       } catch (error) {
         console.error('Error fetching categories:', error);
         return [];
@@ -61,7 +72,16 @@ export function ProductsPage() {
     filterMode,
     selectedModelId: selectedModel?.id,
     selectedDeviceIds,
+    brandId,
   });
+
+  const brandName = brandId ? products[0]?.brand?.name : undefined;
+
+  const clearBrandFilter = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('brand_id');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
   const {
     filters,
     filteredProducts,
@@ -109,10 +129,10 @@ export function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-gray-50 dark:bg-slate-900 min-h-screen">
         <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-          <div className="h-12 bg-white rounded-xl mb-3 animate-pulse" />
-          <div className="h-10 bg-white rounded-xl mb-3 animate-pulse" />
+          <div className="h-12 bg-white dark:bg-slate-800 rounded-xl mb-3 animate-pulse" />
+          <div className="h-10 bg-white dark:bg-slate-800 rounded-xl mb-3 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
               <ProductCardSkeleton key={i} />
@@ -124,11 +144,11 @@ export function ProductsPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 dark:bg-slate-900 min-h-screen">
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
-        
+
         {/* دکمه‌های فیلتر اصلی */}
-        <div className="bg-white rounded-xl border border-gray-100 p-2 mb-3 shadow-sm sticky top-20 z-30">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-2 mb-3 shadow-sm sticky top-20 z-30">
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => handleFilterModeChange('all')}
@@ -136,7 +156,7 @@ export function ProductsPage() {
                 'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
                 filterMode === 'all'
                   ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
               )}
             >
               <Package className="w-3.5 h-3.5" />
@@ -150,13 +170,13 @@ export function ProductsPage() {
                   'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
                   filterMode === 'my-devices'
                     ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 )}
               >
                 <Smartphone className="w-3.5 h-3.5" />
                 دستگاه‌های من
                 {selectedDeviceIds.length > 0 && filterMode === 'my-devices' && (
-                  <Badge variant="primary" className="bg-white/20 text-white text-[10px] px-1.5 py-0">
+                  <Badge variant="primary" className="bg-white/20 dark:bg-slate-900/40 text-white text-[10px] px-1.5 py-0">
                     {selectedDeviceIds.length}
                   </Badge>
                 )}
@@ -170,7 +190,7 @@ export function ProductsPage() {
                   'px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
                   filterMode === 'header-device'
                     ? 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600'
                 )}
               >
                 <BadgeCheck className="w-3.5 h-3.5" />
@@ -179,6 +199,24 @@ export function ProductsPage() {
             )}
           </div>
         </div>
+
+        {/* فیلتر فعال برند (وقتی از BrandsPage آمده باشد) */}
+        {brandId && (
+          <div className="flex items-center gap-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl px-3 py-2 mb-3 text-xs font-bold text-primary-700 dark:text-primary-300">
+            <Tag className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              فیلتر بر اساس برند{brandName ? `: ${brandName}` : ''}
+              {!isLoading && ` (${products.length} محصول)`}
+            </span>
+            <button
+              onClick={clearBrandFilter}
+              className="mr-auto p-1 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-800/40 transition-colors"
+              aria-label="حذف فیلتر برند"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {filterMode === 'my-devices' && (
           <DeviceSelector
