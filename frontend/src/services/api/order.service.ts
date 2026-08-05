@@ -59,17 +59,35 @@ export interface OrdersResponse {
 
 export interface CreateOrderRequest {
   shipping_address: ShippingAddress;
-  payment_method: 'online' | 'card_to_card' | 'wallet';
+  // ✅ 'card_to_card' حذف شد: نه در checkoutFormSchema (zod) گزینه‌ای برایش
+  // است، نه بک‌اند آن را قبول می‌کند (OrderController::store اعتبارسنجی
+  // می‌کند: 'payment_method' => 'required|string|in:online,wallet').
+  payment_method: 'online' | 'wallet';
   notes?: string;
+}
+
+// ✅ پاسخ واقعی OrderController::store یک آبجکت مسطح است (نه {order, order_number})
+// — دقیقاً همان شکلی که OrderSuccessPage از location.state می‌خواند.
+export interface CreateOrderResult {
+  order_number: string;
+  total: number;
+  items_count: number;
+  payment_method: string;
+  shipping_address: ShippingAddress;
+  created_at: string;
+  // ✅ بک‌اند این را برمی‌گرداند ولی به /api/payment/initiate/{id} اشاره
+  // می‌کند — مسیری که اصلاً در routes/api.php ثبت نشده (هیچ PaymentController
+  // ای وجود ندارد). یعنی گزینه‌ی «پرداخت آنلاین» هیچ‌وقت کاربر را به درگاه
+  // واقعی نمی‌فرستد؛ سفارش با payment_status: pending می‌ماند. این یک شکاف
+  // واقعی و قابل‌توجه در کسب‌وکار است، نه چیزی که بشود اینجا بی‌سروصدا
+  // اختراع کرد — نیاز به تصمیم محصولی (کدام درگاه، اعتبارنامه‌ها) دارد.
+  payment_url?: string;
 }
 
 export interface CreateOrderResponse {
   success: boolean;
   message: string;
-  data: {
-    order: Order;
-    order_number: string;
-  };
+  data: CreateOrderResult;
 }
 
 export const orderService = {

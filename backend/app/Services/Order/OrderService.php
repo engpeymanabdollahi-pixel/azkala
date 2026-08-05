@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\DTOs\Order\CreateOrderDTO;
 use App\Events\Order\OrderCreated;
+use App\Exceptions\OutOfStockException;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\User;
@@ -102,6 +103,68 @@ class OrderService
         });
     }
 
+    /**
+     * ✅ ساخت سفارش از سبد خرید فعلی کاربر — مسیر واقعیِ چک‌اوت.
+     *
+     * OrderController::store() از قبل دقیقاً به همین امضا (کاربر، سبد،
+     * آرایه‌ی خام shipping_address، روش پرداخت) وابسته بود و این متد را
+     * صدا می‌زد، ولی این متد اصلاً وجود نداشت — یعنی هر تلاش واقعی برای
+     * ثبت سفارش با یک خطای PHP «Call to undefined method» (که چون
+     * \Error است نه \Exception، حتی توسط catch (\Exception $e) هم در
+     * کنترلر گرفته نمی‌شد) کرش می‌کرد. متد createOrder()/CreateOrderDTO
+     * که در همین فایل بود، یک مسیر جداگانه و کاملاً بلااستفاده بود
+     * (بر پایه‌ی address_id، نه آرایه‌ی خام آدرس که فرم چک‌اوت واقعاً
+     * می‌فرستد) — هیچ کنترلری صداش نمی‌زد.
+     */
+    public function createOrderFromCart(User $user, Cart $cart, array $shippingAddress, string $paymentMethod): Model
+    {
+        $cart->loadMissing('items');
+
+        if ($cart->items->isEmpty()) {
+            throw new OutOfStockException('سبد خرید شما خالی است.');
+        }
+
+        $items = $cart->items->map(fn ($item) => [
+            'product_id' => $item->product_id,
+            'quantity' => $item->quantity,
+        ])->all();
+
+        return DB::transaction(function () use ($user, $cart, $items, $shippingAddress, $paymentMethod) {
+            $validatedItems = $this->validateAndPrepareItems($items);
+            $totals = $this->calculateTotals($validatedItems);
+            $orderNumber = $this->generateOrderNumber();
+
+            $orderData = [
+                'user_id' => $user->id,
+                'order_number' => $orderNumber,
+                'subtotal' => $totals['subtotal'],
+                'discount' => $totals['discount'],
+                'shipping' => $totals['shipping_cost'],
+                'tax' => $totals['tax'],
+                'total' => $totals['total'],
+                'status' => 'pending',
+                'payment_status' => 'pending',
+                'payment_method' => $paymentMethod,
+                // Order::$casts['shipping_address'] = 'array' خودش انکود می‌کند.
+                'shipping_address' => $shippingAddress,
+            ];
+
+            $order = $this->orderRepository->createOrderWithItems($orderData, $validatedItems);
+            $this->updateProductStock($validatedItems);
+
+            // ✅ فقط آیتم‌های همین سبد پاک شوند، نه clearUserCart() که یک
+            // کوئری جدای Cart::where('user_id', ...) می‌زند — ما همین الان
+            // خودِ سبد را در دست داریم.
+            $cart->items()->delete();
+
+            Log::info("Order created: {$orderNumber} for user {$user->id}");
+
+            OrderCreated::dispatch($order);
+
+            return $order;
+        });
+    }
+
     public function cancelOrder(int $orderId, int $userId): bool
     {
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
@@ -146,7 +209,12 @@ class OrderService
                 throw new \Exception("محصول {$product->name} دیگر فعال نیست", 400);
             }
             if ($product->stock < $item['quantity']) {
-                throw new \Exception("موجودی {$product->name} کافی نیست. موجودی فعلی: {$product->stock}", 400);
+                // ✅ قبلاً \Exception عمومی بود، پس در OrderController::store()
+                // به catch (OutOfStockException) نمی‌رسید و کاربر به‌جای پیام
+                // دقیق «موجودی کافی نیست»، خطای عمومی ۵۰۰ می‌دید.
+                throw new OutOfStockException(
+                    "موجودی {$product->name} کافی نیست. موجودی فعلی: {$product->stock}"
+                );
             }
 
             // ✅ محاسبه total با در نظر گرفتن تخفیف

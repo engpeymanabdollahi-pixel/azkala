@@ -2,6 +2,14 @@ import { useState, useCallback } from 'react';
 import { orderService, CreateOrderRequest, OrdersResponse } from '@/services/api/order.service';
 import { toast } from 'react-hot-toast';
 
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && 'response' in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) return response.data.message;
+  }
+  return fallback;
+}
+
 export function useOrder() {
   const [orders, setOrders] = useState<OrdersResponse['data'] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,8 +24,8 @@ export function useOrder() {
       if (response.success) {
         setOrders(response.data);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'خطا در دریافت لیست سفارشات';
+    } catch (err) {
+      const msg = extractErrorMessage(err, 'خطا در دریافت لیست سفارشات');
       setError(msg);
       toast.error(msg);
     } finally {
@@ -34,8 +42,8 @@ export function useOrder() {
         toast.success(response.message || 'سفارش شما با موفقیت ثبت شد');
         return response.data; // شامل order_number و payment_url می‌شود
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'خطا در ثبت سفارش';
+    } catch (err) {
+      const msg = extractErrorMessage(err, 'خطا در ثبت سفارش');
       toast.error(msg);
       throw err; // خطا را پرتاب می‌کنیم تا کامپوننت بتواند ریدایرکت یا منطق خاص خود را اجرا کند
     } finally {
@@ -51,8 +59,8 @@ export function useOrder() {
         toast.success('سفارش با موفقیت لغو شد');
         await fetchOrders(); // به‌روزرسانی لیست سفارشات
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'خطا در لغو سفارش';
+    } catch (err) {
+      const msg = extractErrorMessage(err, 'خطا در لغو سفارش');
       toast.error(msg);
     }
   };
