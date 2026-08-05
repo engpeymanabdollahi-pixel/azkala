@@ -4,9 +4,9 @@
  * ویژگی‌های اصلی:
  * - طراحی مدرن با Glassmorphism و Hover Effects پیشرفته
  * - فیلتر پیشرفته با ذخیره در LocalStorage
+ * - فیلتر بر اساس نوع دستگاه سازگار (گوشی/لپ‌تاپ/تبلت)
  * - مشاهده سریع محصول (Quick View)
  * - مرتب‌سازی چندگانه
- * - Breadcrumb برای ناوبری
  * - Toast Notifications سفارشی
  * - Keyboard Shortcuts
  * - Responsive کامل برای موبایل، تبلت و دسکتاپ
@@ -18,8 +18,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Package, Search, Filter, SlidersHorizontal, ChevronRight, Home,
-  X, Zap, Mail,
+  Package, Search, Filter, SlidersHorizontal,
+  X, Zap, Mail, LayoutGrid,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -28,12 +28,23 @@ import apiClient from '@/services/api/client';
 import { categoryService } from '@/services/api/category.service';
 import { brandService } from '@/services/api/brand.service';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { TemplateCard, type ProductTemplate } from './components/TemplateCard';
 import { QuickViewModal } from './components/QuickViewModal';
 import { FilterPanel, type FilterState, type FilterOption } from './components/FilterPanel';
 import { SortDropdown, type SortOption } from './components/SortDropdown';
 import { cn } from '@/utils/cn';
+import { getDeviceTypeIcon, getDeviceTypeLabel, type DeviceType } from '@/utils/deviceType';
+
+// نوع دستگاهِ سازگار برای فیلتر کتابخانه محصولات — دسته‌بندی‌های واقعی
+// فروشگاه (قاب، شارژر، هدفون و...) لوازم جانبی‌اند نه خودِ دستگاه، پس تفکیک
+// «گوشی / لپ‌تاپ / تبلت» را باید از روی دستگاه‌های سازگارِ هر محصول ساخت.
+const DEVICE_TYPE_FILTERS: { value: DeviceType | 'all'; label: string }[] = [
+  { value: 'all', label: 'همه دستگاه‌ها' },
+  { value: 'mobile', label: getDeviceTypeLabel('mobile') },
+  { value: 'laptop', label: getDeviceTypeLabel('laptop') },
+  { value: 'tablet', label: getDeviceTypeLabel('tablet') },
+];
 
 const FILTERS_STORAGE_KEY = 'productTemplatesFilters';
 const DEFAULT_FILTERS: FilterState = {
@@ -68,27 +79,6 @@ function loadInitialFilters(): FilterState {
   }
 }
 
-// کامپوننت Breadcrumb برای ناوبری بهتر
-function Breadcrumb() {
-  return (
-    <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-6" aria-label="Breadcrumb">
-      <Link to="/seller/dashboard" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1">
-        <Home className="w-4 h-4" />
-        <span>داشبورد</span>
-      </Link>
-      <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-      <Link to="/seller/products" className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-        محصولات من
-      </Link>
-      <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-600" />
-      <span className="text-gray-900 dark:text-gray-100 font-bold flex items-center gap-1">
-        <Package className="w-4 h-4" />
-        کتابخانه محصولات آماده
-      </span>
-    </nav>
-  );
-}
-
 // کامپوننت Skeleton Loading برای کارت محصول
 function TemplateCardSkeleton() {
   return (
@@ -119,6 +109,9 @@ export default function ProductTemplates() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [favorites, setFavorites] = useState<number[]>([]);
+  // نوع دستگاه سازگار (گوشی/لپ‌تاپ/تبلت) — سمت سرور فیلتر می‌شود چون
+  // دستگاه‌های سازگارِ هر تمپلیت در همان پاسخِ لیست کامل نمی‌آید.
+  const [deviceType, setDeviceType] = useState<DeviceType | 'all'>('all');
 
   // فیلترها — از localStorage همان لحظه‌ی اول خوانده می‌شوند (بالا توضیح داده شد)
   const [filters, setFilters] = useState<FilterState>(loadInitialFilters);
@@ -180,7 +173,7 @@ export default function ProductTemplates() {
 
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search]);
+  }, [filters.search, deviceType]);
 
   const loadTemplates = async () => {
     try {
@@ -189,6 +182,7 @@ export default function ProductTemplates() {
         params: {
           search: filters.search,
           per_page: 50,
+          device_type: deviceType === 'all' ? undefined : deviceType,
         },
       });
       setTemplates(res.data?.data?.data || []);
@@ -307,9 +301,9 @@ export default function ProductTemplates() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary-50/30 to-accent-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
-      {/* Breadcrumb */}
-      <Breadcrumb />
-
+      {/* هدر اختصاصیِ صفحه (Breadcrumb تکراری) حذف شد — SellerLayout همین حالا
+          هدر و منوی کناری واقعی را نشان می‌دهد؛ ناوبری «داشبورد > محصولات من»
+          دوباره‌کاری بود و با «مسیر جاری» sidebar هم‌خوانی نداشت. */}
       {/* Header با آمار */}
       <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
         <div>
@@ -337,6 +331,33 @@ export default function ProductTemplates() {
             فیلترها
           </Button>
         </div>
+      </div>
+
+      {/* دسته‌بندی بر اساس نوع دستگاه — لوازم جانبی (قاب، شارژر، هدفون...)
+          خودشان دسته‌ی «گوشی/لپ‌تاپ/تبلت» ندارند، پس این تفکیک از روی
+          دستگاه‌های سازگارِ هر محصول ساخته می‌شود، نه از دسته‌بندی محصول. */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {DEVICE_TYPE_FILTERS.map((item) => {
+          const Icon = item.value === 'all' ? LayoutGrid : getDeviceTypeIcon(item.value as DeviceType);
+          const isActive = deviceType === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              onClick={() => setDeviceType(item.value)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+                isActive
+                  ? 'bg-gradient-to-l from-primary-500 to-accent-500 border-transparent text-white shadow-md shadow-primary-500/30'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-primary-300 dark:hover:border-primary-600'
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* نوار ابزار: جستجو + فیلتر + مرتب‌سازی */}
@@ -442,20 +463,20 @@ export default function ProductTemplates() {
           ) : filteredAndSortedTemplates.length === 0 ? (
             <EmptyState
               icon={filters.search ? <Search className="w-12 h-12" /> : <Package className="w-12 h-12" />}
-              title={filters.search ? 'محصولی یافت نشد' : 'محصول آماده‌ای یافت نشد'}
+              title={filters.search || deviceType !== 'all' ? 'محصولی یافت نشد' : 'محصول آماده‌ای یافت نشد'}
               description={
-                filters.search
-                  ? 'جستجوی خود را تغییر دهید یا فیلترها را حذف کنید'
+                filters.search || deviceType !== 'all'
+                  ? 'جستجو یا نوع دستگاه انتخابی را تغییر دهید یا فیلترها را حذف کنید'
                   : 'هنوز محصول آماده‌ای در سیستم ثبت نشده است'
               }
               action={
                 <div className="flex gap-3 flex-wrap justify-center">
-                  {filters.search && (
-                    <Button onClick={resetFilters} variant="primary">
+                  {(filters.search || deviceType !== 'all') && (
+                    <Button onClick={() => { resetFilters(); setDeviceType('all'); }} variant="primary">
                       حذف فیلترها
                     </Button>
                   )}
-                  {!filters.search && (
+                  {!filters.search && deviceType === 'all' && (
                     <Button
                       variant="outline"
                       leftIcon={<Mail className="w-4 h-4" />}

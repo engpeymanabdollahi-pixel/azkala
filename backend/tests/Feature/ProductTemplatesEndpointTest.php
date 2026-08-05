@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
+use App\Models\DeviceSeries;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,5 +93,42 @@ class ProductTemplatesEndpointTest extends TestCase
         $ids = collect($response->json('data.data'))->pluck('id');
         $this->assertTrue($ids->contains($template->id));
         $this->assertCount(1, $ids);
+    }
+
+    /**
+     * ?device_type=mobile|laptop|tablet — کتابخانه‌ی محصولات فقط دسته‌بندی‌های
+     * لوازم جانبی دارد (قاب، شارژر، هدفون...)، نه خودِ دستگاه؛ تنها راه واقعی
+     * برای «فقط لوازم گوشی» دیدن، فیلتر روی نوعِ برندِ دستگاه‌های سازگارِ هر
+     * تمپلیت است (device_models -> series -> device_brands.type).
+     */
+    public function test_device_type_filter_keeps_only_templates_compatible_with_that_device_type(): void
+    {
+        $mobileBrand = DeviceBrand::factory()->create(['type' => 'mobile']);
+        $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
+
+        $laptopBrand = DeviceBrand::factory()->create(['type' => 'laptop']);
+        $laptopModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $laptopBrand->id])]);
+
+        $mobileTemplate = $this->makeTemplate([$mobileModel->id]);
+        $laptopTemplate = $this->makeTemplate([$laptopModel->id]);
+
+        $response = $this->getJson('/api/v1/products/templates?device_type=mobile')->assertOk();
+        $ids = collect($response->json('data.data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($mobileTemplate->id));
+        $this->assertFalse($ids->contains($laptopTemplate->id));
+    }
+
+    public function test_device_type_filter_is_ignored_when_value_is_not_a_known_device_type(): void
+    {
+        $mobileBrand = DeviceBrand::factory()->create(['type' => 'mobile']);
+        $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
+        $template = $this->makeTemplate([$mobileModel->id]);
+
+        // مقدار ناشناخته نباید کوئری را با یک where که هیچ‌وقت true نمی‌شود بشکند
+        $response = $this->getJson('/api/v1/products/templates?device_type=not-a-real-type')->assertOk();
+        $ids = collect($response->json('data.data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($template->id));
     }
 }

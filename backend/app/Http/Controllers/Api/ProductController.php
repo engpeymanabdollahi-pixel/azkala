@@ -187,6 +187,18 @@ class ProductController extends Controller
             });
         }
 
+        // نوع دستگاه سازگار (mobile/laptop/tablet) — دسته‌بندی‌های واقعی
+        // فروشگاه (قاب، شارژر، هدفون و ...) لوازم جانبی‌اند، نه خودِ دستگاه؛
+        // تنها راه واقعی برای «فقط لوازم گوشی» یا «فقط لوازم لپ‌تاپ» دیدن،
+        // فیلتر بر اساس نوعِ برندِ دستگاه‌های سازگارِ هر تمپلیت است
+        // (device_models -> series -> device_brands.type).
+        if ($request->filled('device_type') && in_array($request->device_type, ['mobile', 'laptop', 'tablet'], true)) {
+            $deviceType = $request->device_type;
+            $query->whereHas('deviceModels.series.brand', function ($q) use ($deviceType) {
+                $q->where('type', $deviceType);
+            });
+        }
+
         $templates = $query->paginate($request->per_page ?? 50);
 
         return response()->json([

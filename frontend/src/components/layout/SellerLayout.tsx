@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Menu, X, LayoutDashboard, Package, ShoppingBag, CreditCard, LogOut, Store,
   ArrowLeft, ChevronDown, Bell, User, HelpCircle, Search, Command,
-  Home, Star, TrendingUp, CheckCircle2, Eye, Shield, ExternalLink,
+  Home, Star, TrendingUp, CheckCircle2, Eye, ExternalLink,
   PanelLeftClose, PanelLeftOpen, MessageSquare, Settings, Sparkles,
   Moon, Sun,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
+import { useDarkMode } from '@/components/layout/Header/hooks/useDarkMode';
+import { useSellerDashboardStats } from '@/hooks/api/useSellerDashboardStats';
+import { useSellerUnreadMessages } from '@/hooks/api/useSellerUnreadMessages';
 
 // ==================== Avatar Component ====================
 const Avatar = ({ name, size = 'md' }: { name?: string; size?: 'sm' | 'md' | 'lg' }) => {
@@ -32,23 +34,15 @@ const Avatar = ({ name, size = 'md' }: { name?: string; size?: 'sm' | 'md' | 'lg
   );
 };
 
-// ==================== Progress Bar Component ====================
-const HealthBar = ({ value }: { value: number }) => {
-  const getColor = (v: number) => {
-    if (v >= 90) return 'from-success-500 to-success-600';
-    if (v >= 70) return 'from-warning-500 to-warning-600';
-    return 'from-error-500 to-error-600';
-  };
-
-  return (
-    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-      <div
-        className={cn('h-full bg-gradient-to-r rounded-full transition-all duration-1000', getColor(value))}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  );
-};
+// میانبرهای جستجوی سراسری — لیست ثابت صفحات پنل فروشنده
+const SEARCH_SHORTCUTS = [
+  { icon: Package, label: 'محصولات', desc: 'مشاهده همه محصولات', path: '/seller/products', keywords: ['محصول', 'محصولات', 'کالا', 'products'] },
+  { icon: ShoppingBag, label: 'سفارشات', desc: 'مدیریت سفارشات', path: '/seller/orders', keywords: ['سفارش', 'سفارشات', 'orders'] },
+  { icon: CreditCard, label: 'تسویه حساب', desc: 'مدیریت پرداخت‌ها', path: '/seller/payouts', keywords: ['تسویه', 'پرداخت', 'حساب', 'payout'] },
+  { icon: LayoutDashboard, label: 'داشبورد', desc: 'بازگشت به داشبورد', path: '/seller', keywords: ['داشبورد', 'خانه', 'dashboard'] },
+  { icon: MessageSquare, label: 'پیام‌ها', desc: 'گفتگو با مشتریان', path: '/seller/chat', keywords: ['پیام', 'چت', 'گفتگو', 'chat', 'message'] },
+  { icon: Settings, label: 'تنظیمات', desc: 'تنظیمات فروشگاه', path: '/seller/settings', keywords: ['تنظیمات', 'settings'] },
+];
 
 // ==================== Main Component ====================
 export function SellerLayout() {
@@ -57,32 +51,30 @@ export function SellerLayout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  
-  // Dark Mode
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
-    setIsDarkMode(savedDarkMode);
-    if (savedDarkMode) {
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', String(newDarkMode));
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+  // همان هوکِ هدر سایت اصلی — قبلاً این کامپوننت پیاده‌سازی جداگانه‌ای برای
+  // دارک‌مود داشت که همان کلید localStorage را دستی می‌خواند و می‌نوشت.
+  // کلید یکی بود پس ناسازگاری واقعی ایجاد نمی‌کرد، ولی دو پیاده‌سازی از یک
+  // قابلیت، یکی‌شان زودتر یا دیرتر از دیگری واگرا می‌شد.
+  const { isDarkMode, toggleDarkMode } = useDarkMode();
 
   const { user, seller, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // آمار واقعی از /seller/dashboard/stats — همان queryKey صفحه‌ی داشبورد،
+  // پس دو درخواست شبکه‌ی جدا نمی‌زنند.
+  const { data: stats } = useSellerDashboardStats();
+  const { data: unreadMessagesCount = 0 } = useSellerUnreadMessages();
+
+  const filteredShortcuts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return SEARCH_SHORTCUTS;
+    return SEARCH_SHORTCUTS.filter(
+      (item) => item.label.toLowerCase().includes(q) || item.keywords.some((k) => k.toLowerCase().includes(q))
+    );
+  }, [searchQuery]);
 
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -108,6 +100,7 @@ export function SellerLayout() {
     setNotificationsOpen(false);
     setSidebarOpen(false);
     setSearchOpen(false);
+    setSearchQuery('');
   }, [location.pathname]);
 
   // Keyboard shortcuts
@@ -118,6 +111,7 @@ export function SellerLayout() {
         setNotificationsOpen(false);
         setSidebarOpen(false);
         setSearchOpen(false);
+        setSearchQuery('');
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -129,31 +123,30 @@ export function SellerLayout() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const pendingOrdersCount = 12;
-  const newMessagesCount = 5;
-  const pendingPayoutsCount = 2;
+  // قبلاً همه‌ی این‌ها عدد ثابت بودند (۱۲، ۵، ۲، ۳۵۰۰۰۰۰، ۸) — هر فروشنده‌ای،
+  // فارغ از فروش واقعی‌اش، همین اعداد را می‌دید. سفارش در انتظار الان از
+  // /seller/dashboard/stats می‌آید. برای «تسویه حساب» هیچ endpoint شمارشی
+  // وجود ندارد (ویژگی هنوز ساخته نشده)، پس بج آن حذف شد نه اینکه جعل شود.
+  const pendingOrdersCount = stats?.pending_orders ?? 0;
 
-    const menuItems = [
-    { path: '/seller', label: 'داشبورد', icon: LayoutDashboard, end: true, color: 'from-primary-500 to-primary-600', badge: null },
-    { path: '/seller/products', label: 'محصولات من', icon: Package, color: 'from-accent-500 to-accent-600', badge: null },
-    
-    // ✅ آیتم جدید: کتابخانه محصولات آماده
-    { 
-      path: '/seller/products/templates', 
-      label: 'کتابخانه محصولات', 
-      icon: Sparkles, 
-      color: 'from-purple-500 to-purple-600', 
-      badge: 'جدید' // یک بج کوچک برای جلب توجه
+  const menuItems = [
+    { path: '/seller', label: 'داشبورد', icon: LayoutDashboard, end: true, color: 'from-primary-500 to-primary-600', badge: null as number | string | null },
+    { path: '/seller/products', label: 'محصولات من', icon: Package, color: 'from-accent-500 to-accent-600', badge: null as number | string | null },
+    {
+      path: '/seller/products/templates',
+      label: 'کتابخانه محصولات',
+      icon: Sparkles,
+      color: 'from-purple-500 to-purple-600',
+      badge: 'جدید' as number | string | null,
     },
-    
-    { path: '/seller/orders', label: 'سفارشات', icon: ShoppingBag, color: 'from-success-500 to-success-600', badge: pendingOrdersCount },
-    { path: '/seller/payouts', label: 'تسویه حساب', icon: CreditCard, color: 'from-warning-500 to-warning-600', badge: pendingPayoutsCount },
-    { 
-      path: '/seller/settings', 
-      label: 'تنظیمات فروشگاه', 
-      icon: Settings, 
-      color: 'from-gray-500 to-gray-600', 
-      badge: null 
+    { path: '/seller/orders', label: 'سفارشات', icon: ShoppingBag, color: 'from-success-500 to-success-600', badge: pendingOrdersCount || null },
+    { path: '/seller/payouts', label: 'تسویه حساب', icon: CreditCard, color: 'from-warning-500 to-warning-600', badge: null as number | string | null },
+    {
+      path: '/seller/settings',
+      label: 'تنظیمات فروشگاه',
+      icon: Settings,
+      color: 'from-gray-500 to-gray-600',
+      badge: null as number | string | null,
     },
   ];
 
@@ -166,10 +159,9 @@ export function SellerLayout() {
   const shopName = seller?.shop_name || user?.name || 'فروشگاه من';
   const userName = user?.name || 'فروشنده';
   const userEmail = user?.email || '';
-  const shopRating = seller?.rating?.toFixed(1) || '4.8';
-  const healthScore = seller?.health_score || 98;
-  const todaySales = 3500000;
-  const todayOrders = 8;
+  // بدون مقدار جعلیِ پیش‌فرض «۴.۸» — فروشنده‌ی تازه‌وارد بدون هیچ نظری نباید
+  // امتیاز جعلی ببیند.
+  const shopRating = seller?.rating ? seller.rating.toFixed(1) : null;
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
@@ -267,38 +259,43 @@ export function SellerLayout() {
               <Avatar name={shopName} size="sm" />
               <div className={cn('flex-1 min-w-0', sidebarCollapsed && 'md:hidden')}>
                 <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{shopName}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <Star className="w-3 h-3 text-warning-500 fill-warning-500" />
-                  <span className="text-[10px] text-gray-600 dark:text-gray-400 font-semibold">{shopRating}</span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500">•</span>
-                  <span className="text-[10px] text-gray-500 dark:text-gray-400">{healthScore}٪</span>
-                </div>
-                <div className="mt-1">
-                  <HealthBar value={healthScore} />
-                </div>
+                {/* بدون امتیاز واقعی، این ردیف اصلاً رندر نمی‌شود — قبلاً همیشه
+                    «۴.۸ • ۹۸٪» نشان می‌داد، حتی برای فروشگاهی بدون هیچ نظر. */}
+                {shopRating && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Star className="w-3 h-3 text-warning-500 fill-warning-500" />
+                    <span className="text-[10px] text-gray-600 dark:text-gray-400 font-semibold">{shopRating}</span>
+                    {seller?.reviews_count ? (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">({seller.reviews_count})</span>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats — قبلاً «فروش امروز» بود که چنین آماری اصلاً از سرور
+              وجود ندارد؛ به‌جایش دو رقم واقعیِ در دسترس نشان داده می‌شود. */}
           {!sidebarCollapsed && (
             <div className="px-3 pt-3 pb-1">
               <div className="grid grid-cols-2 gap-1.5">
                 <div className="bg-gradient-to-br from-success-50 to-white dark:from-success-900/20 dark:to-slate-800 border border-success-100 dark:border-success-800/30 rounded-lg p-2">
                   <div className="flex items-center gap-1 mb-0.5">
                     <TrendingUp className="w-3 h-3 text-success-600 dark:text-success-400" />
-                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">فروش امروز</span>
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">درآمد کل</span>
                   </div>
                   <p className="font-black text-gray-900 dark:text-white text-xs truncate">
-                    {(todaySales / 1000000).toFixed(1)}M
+                    {stats ? `${(stats.total_revenue / 1_000_000).toFixed(1)}M` : '—'}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 border border-primary-100 dark:border-primary-800/30 rounded-lg p-2">
                   <div className="flex items-center gap-1 mb-0.5">
                     <ShoppingBag className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">سفارشات</span>
+                    <span className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">سفارش در انتظار</span>
                   </div>
-                  <p className="font-black text-gray-900 dark:text-white text-xs">{todayOrders} عدد</p>
+                  <p className="font-black text-gray-900 dark:text-white text-xs">
+                    {stats ? `${stats.pending_orders} عدد` : '—'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -530,7 +527,12 @@ export function SellerLayout() {
                 <Search className="w-5 h-5 text-gray-700 dark:text-gray-300" />
               </button>
 
-              {/* Notifications */}
+              {/* Notifications — قبلاً همیشه همین چهار اعلان جعلی («سفارش
+                  AZK-12345 ثبت شد») برای هر فروشنده‌ای نشان داده می‌شد، بدون
+                  توجه به وقایع واقعی. تا زمانی که یک جدول/endpoint واقعی برای
+                  اعلان‌ها ساخته شود، اینجا فقط دو رقم واقعی‌ای که همین حالا
+                  در دسترس‌اند نشان داده می‌شوند: پیام نخوانده و سفارش در
+                  انتظار. */}
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
@@ -539,58 +541,53 @@ export function SellerLayout() {
                   aria-expanded={notificationsOpen}
                 >
                   <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
-                  {newMessagesCount > 0 && (
+                  {unreadMessagesCount > 0 && (
                     <span className="absolute top-1 right-1 min-w-[16px] h-[16px] bg-error-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 animate-pulse shadow-lg ring-2 ring-white dark:ring-slate-800">
-                      {newMessagesCount}
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
                     </span>
                   )}
                 </button>
 
                 {notificationsOpen && (
                   <div className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 overflow-hidden animate-slide-down">
-                    <div className="p-3 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-l from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
+                    <div className="p-3 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-l from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800">
                       <h3 className="font-black text-gray-900 dark:text-white text-sm flex items-center gap-2">
                         <Bell className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                        اعلان‌ها
+                        وضعیت فروشگاه
                       </h3>
-                      <Badge variant="error" size="sm">{newMessagesCount} جدید</Badge>
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {[
-                        { id: 1, title: 'سفارش جدید', message: 'سفارش #AZK-12345 ثبت شد', time: '۵ دقیقه پیش', icon: ShoppingBag, color: 'primary' },
-                        { id: 2, title: 'تسویه حساب', message: 'مبلغ ۱,۲۵۰,۰۰۰ تومان واریز شد', time: '۱ ساعت پیش', icon: CreditCard, color: 'success' },
-                        { id: 3, title: 'نظر جدید', message: 'مشتری به محصول شما امتیاز ۵ داد', time: '۳ ساعت پیش', icon: Star, color: 'warning' },
-                        { id: 4, title: 'پیام جدید', message: 'مشتری درباره سفارش سوال پرسید', time: '۵ ساعت پیش', icon: MessageSquare, color: 'primary' },
-                      ].map((notif) => {
-                        const Icon = notif.icon;
-                        return (
-                          <button
-                            key={notif.id}
-                            className="w-full p-3 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors border-b border-gray-50 dark:border-slate-700 text-right flex items-start gap-2"
-                          >
-                            <div className={cn(
-                              'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm',
-                              notif.color === 'primary' && 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400',
-                              notif.color === 'success' && 'bg-success-100 dark:bg-success-900/30 text-success-600 dark:text-success-400',
-                              notif.color === 'warning' && 'bg-warning-100 dark:bg-warning-900/30 text-warning-600 dark:text-warning-400'
-                            )}>
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm text-gray-900 dark:text-white">{notif.title}</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>
-                              <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{notif.time}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
+                    <div className="p-2">
+                      <button
+                        onClick={() => { setNotificationsOpen(false); navigate('/seller/chat'); }}
+                        className="w-full p-2.5 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors text-right flex items-center gap-2.5"
+                      >
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400">
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white">پیام‌های نخوانده</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {unreadMessagesCount > 0 ? `${unreadMessagesCount} پیام در انتظار پاسخ` : 'همه پیام‌ها خوانده شده'}
+                          </p>
+                        </div>
+                        <ArrowLeft className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                      </button>
+                      <button
+                        onClick={() => { setNotificationsOpen(false); navigate('/seller/orders'); }}
+                        className="w-full p-2.5 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors text-right flex items-center gap-2.5"
+                      >
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-success-100 dark:bg-success-900/30 text-success-600 dark:text-success-400">
+                          <ShoppingBag className="w-4 h-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white">سفارش‌های در انتظار</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {pendingOrdersCount > 0 ? `${pendingOrdersCount} سفارش نیاز به رسیدگی دارد` : 'سفارش در انتظاری نیست'}
+                          </p>
+                        </div>
+                        <ArrowLeft className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setNotificationsOpen(false)}
-                      className="w-full p-2.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 font-bold transition-colors border-t border-gray-100 dark:border-slate-700"
-                    >
-                      مشاهده همه اعلان‌ها
-                    </button>
                   </div>
                 )}
               </div>
@@ -631,10 +628,12 @@ export function SellerLayout() {
                           <p className="font-black text-gray-900 dark:text-white text-sm truncate">{shopName}</p>
                           <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{userEmail}</p>
                           <div className="flex items-center gap-1 mt-1">
-                            <div className="flex items-center gap-0.5 bg-warning-50 dark:bg-warning-900/30 px-1.5 py-0.5 rounded">
-                              <Star className="w-3 h-3 text-warning-500 fill-warning-500" />
-                              <span className="text-[10px] font-bold text-warning-700 dark:text-warning-400">{shopRating}</span>
-                            </div>
+                            {shopRating && (
+                              <div className="flex items-center gap-0.5 bg-warning-50 dark:bg-warning-900/30 px-1.5 py-0.5 rounded">
+                                <Star className="w-3 h-3 text-warning-500 fill-warning-500" />
+                                <span className="text-[10px] font-bold text-warning-700 dark:text-warning-400">{shopRating}</span>
+                              </div>
+                            )}
                             <Badge variant="success" size="sm" className="text-[10px] py-0">
                               <CheckCircle2 className="w-2.5 h-2.5" />
                               فعال
@@ -705,14 +704,12 @@ export function SellerLayout() {
                 <ShoppingBag className="w-3 h-3 text-primary-600 dark:text-primary-400" />
                 <span>{pendingOrdersCount} سفارش در انتظار</span>
               </div>
-              <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                <TrendingUp className="w-3 h-3 text-success-600 dark:text-success-400" />
-                <span>فروش امروز: {new Intl.NumberFormat('fa-IR').format(todaySales)} تومان</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
-              <Shield className="w-3 h-3 text-primary-600 dark:text-primary-400" />
-              <span>سلامت فروشگاه: {healthScore}٪</span>
+              {stats && (
+                <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                  <TrendingUp className="w-3 h-3 text-success-600 dark:text-success-400" />
+                  <span>محصولات فعال: {stats.active_products} از {stats.total_products}</span>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -738,31 +735,40 @@ export function SellerLayout() {
               <input
                 ref={searchInputRef}
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && filteredShortcuts.length > 0) {
+                    navigate(filteredShortcuts[0].path);
+                    setSearchOpen(false);
+                    setSearchQuery('');
+                  }
+                }}
                 placeholder="جستجو در محصولات، سفارشات، کاربران..."
                 className="flex-1 bg-transparent outline-none text-base text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 autoFocus
               />
               <button
-                onClick={() => setSearchOpen(false)}
+                onClick={() => { setSearchOpen(false); setSearchQuery(''); }}
                 className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
               >
                 <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
             <div className="p-4">
-              <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">پیشنهادات</p>
+              <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-2">
+                {searchQuery ? 'نتایج' : 'پیشنهادات'}
+              </p>
               <div className="space-y-1">
-                {[
-                  { icon: Package, label: 'محصولات', desc: 'مشاهده همه محصولات', path: '/seller/products' },
-                  { icon: ShoppingBag, label: 'سفارشات', desc: 'مدیریت سفارشات', path: '/seller/orders' },
-                  { icon: CreditCard, label: 'تسویه حساب', desc: 'مدیریت پرداخت‌ها', path: '/seller/payouts' },
-                  { icon: LayoutDashboard, label: 'داشبورد', desc: 'بازگشت به داشبورد', path: '/seller' },
-                ].map((item, idx) => {
+                {filteredShortcuts.length === 0 && (
+                  <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">موردی یافت نشد</p>
+                )}
+                {filteredShortcuts.map((item, idx) => {
                   const Icon = item.icon;
                   return (
                     <button
                       key={idx}
-                      onClick={() => { navigate(item.path); setSearchOpen(false); }}
+                      onClick={() => { navigate(item.path); setSearchOpen(false); setSearchQuery(''); }}
                       className="w-full flex items-center gap-3 p-2.5 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors text-right"
                     >
                       <div className="w-9 h-9 bg-gray-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
