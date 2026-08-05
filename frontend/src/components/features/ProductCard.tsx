@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, ShieldCheck, Zap } from 'lucide-react';
 import { useModelStore, useCartStore } from '@/store';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { Button } from '@/components/ui/Button';
@@ -129,7 +129,9 @@ export const ProductCard = memo(({
         {/* Content Section */}
         <div className="flex-1 p-3 flex flex-col gap-1.5">
           {selectedModel && isCompatible && (
-            <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold">
+            // شکل قرصی هم‌شکل با حالت گرید — قبلاً اینجا فقط متن ساده بود، در
+            // حالی که همین نشان در نمای گرید پس‌زمینه‌ی رنگی دارد.
+            <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold bg-success-50 dark:bg-success-900/20 px-2.5 py-1 rounded-lg w-fit">
               <CheckCircle className="w-3.5 h-3.5" />
               <span>سازگار با {selectedModel.name}</span>
             </div>
@@ -145,6 +147,27 @@ export const ProductCard = memo(({
               <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
               {product.seller.shop_name}
             </p>
+          )}
+          {/* امتیاز — در نمای گرید بود، در نمای لیستی از قلم افتاده بود */}
+          {product.rating && product.rating > 0 && (
+            <div className="flex items-center gap-1.5">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      'w-3.5 h-3.5',
+                      star <= Math.round(product.rating!)
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300 dark:text-gray-600'
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                ({product.reviews_count})
+              </span>
+            </div>
           )}
           <div className="flex items-center justify-between mt-auto">
             <div className="flex flex-col">
@@ -232,7 +255,7 @@ export const ProductCard = memo(({
         {/* Low Stock Badge - Top Left */}
         {isLowStock && (
           <div className="absolute top-2 left-2 animate-pulse-soft">
-            <Badge variant="warning" className="shadow-lg text-xs">
+            <Badge variant="warning" className="shadow-lg text-xs" icon={<Zap className="w-3 h-3" />}>
               فقط {product.stock} عدد
             </Badge>
           </div>
