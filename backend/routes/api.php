@@ -136,9 +136,13 @@ Route::prefix('v1')->group(function () {
     Route::get('/site-settings', function () {
         try {
             $keys = [
-                'site_name', 'site_logo', 'site_favicon', 
+                'site_name', 'site_logo', 'site_favicon',
                 'support_phone', 'support_email', 'address', 'working_hours',
-                'instagram_url', 'telegram_url', 'twitter_url', 'about_text'
+                'instagram_url', 'telegram_url', 'twitter_url', 'about_text',
+                // ✅ کد اینماد/ساماندهی — فوتر فقط وقتی این‌ها واقعاً تنظیم
+                // شده باشند نماد اعتماد نمایش می‌دهد (نه یک نماد ثابت و
+                // بدون‌کد که ادعای غیرقابل‌استعلام محسوب می‌شود).
+                'enamad_code', 'samandehi_code',
             ];
             
             $settings = \App\Models\Setting::whereIn('key', $keys)->get();

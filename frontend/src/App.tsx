@@ -173,9 +173,27 @@ export default function App() {
   const hideLayout = isPrivateSellerRoute || isAuthPage || isAdminRoute;
 
   // اسکرول به بالای صفحه هنگام تغییر مسیر
+  // ✅ قبلاً فقط به location.pathname وابسته بود و همیشه scrollTo({top:0})
+  // می‌زد — یعنی لینک‌های لنگر (#hash)، مثل «حریم خصوصی» در فوتر که قرار
+  // است مستقیم به یک بخش داخل /terms برود، همیشه بی‌اثر می‌شدند: چون هیچ‌جای
+  // اپ رفتار native مرورگر برای اسکرول به #id را در SPA بازسازی نمی‌کرد و
+  // این افکت هم هر بار زور می‌زد به بالای صفحه برگردد.
   useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.slice(1);
+      // یک تیک صبر می‌کنیم تا محتوای صفحه‌ی جدید (lazy-loaded) رندر شود.
+      const timer = setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [location.pathname]);
+  }, [location.pathname, location.hash]);
 
   // تأیید نشست، یک بار در هر بار بالا آمدن اپ.
   //

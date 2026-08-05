@@ -28,11 +28,16 @@ export function Footer({ className }: FooterProps) {
       navigate(target);
     } else {
       // در غیر این صورت، id صفحه است
+      // ✅ قبلاً categories: '/categories' هم اینجا بود، ولی چنین روتی در
+      // App.tsx اصلاً وجود ندارد — کلیک روی «دسته‌بندی‌ها» با catch-all
+      // (path="*") بی‌صدا به صفحه اصلی ریدایرکت می‌شد. چون هیچ صفحه‌ی
+      // مستقل «همه دسته‌بندی‌ها»یی در سایت نیست (فقط منوی کشویی هدر)،
+      // خودِ لینک از QUICK_LINKS حذف شد به‌جای اینکه به یک مقصد نادرست
+      // وصل بماند.
       const routeMap: Record<string, string> = {
         home: '/',
         products: '/products',
         brands: '/brands',
-        categories: '/categories',
         orders: '/dashboard/orders',
         wishlist: '/dashboard/wishlist',
         help: '/help',
@@ -77,25 +82,31 @@ export function Footer({ className }: FooterProps) {
               © {COPYRIGHT_YEAR} <span className="text-primary-400 font-semibold">ازکالا</span> - تمام حقوق محفوظ است
             </p>
             <div className="flex items-center gap-6 text-xs text-gray-500">
-              <button 
-                onClick={() => handleNavigate('/terms')}
+              {/* ✅ قبلاً هر دو دکمه («حریم خصوصی» و «قوانین و مقررات») به
+                  همان /terms می‌رفتند و فرقی نمی‌گذاشتند؛ حالا «حریم
+                  خصوصی» مستقیم به بخش مربوطه در همان صفحه لنگر می‌اندازد
+                  (/terms#privacy). */}
+              <button
+                onClick={() => handleNavigate('/terms#privacy')}
                 className="hover:text-primary-400 transition-colors"
               >
                 حریم خصوصی
               </button>
               <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
-              <button 
+              <button
                 onClick={() => handleNavigate('/terms')}
                 className="hover:text-primary-400 transition-colors"
               >
                 قوانین و مقررات
               </button>
               <span className="w-1 h-1 bg-gray-700 rounded-full"></span>
-              <button 
+              {/* ✅ قبلاً «نقشه سایت» بود ولی مقصدش /help است، نه یک نقشه‌ی
+                  واقعی سایت — برچسب با مقصد واقعی‌اش هماهنگ شد. */}
+              <button
                 onClick={() => handleNavigate('/help')}
                 className="hover:text-primary-400 transition-colors"
               >
-                نقشه سایت
+                راهنمای سایت
               </button>
             </div>
           </div>
