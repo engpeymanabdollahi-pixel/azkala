@@ -121,6 +121,41 @@ class PublicSellerController extends Controller
     }
 
     /**
+     * ⭐ نظرات واقعی خریداران درباره‌ی این شعبه (از seller_ratings)
+     * GET /api/v1/sellers/{slug}/reviews
+     */
+    public function reviews(Request $request, $slug)
+    {
+        $seller = $this->publicSellerService->findActiveSellerBySlug($slug);
+
+        if (! $seller) {
+            return response()->json(['success' => false, 'message' => 'فروشنده یافت نشد'], 404);
+        }
+
+        $perPage = min((int) $request->input('per_page', 10), 30);
+        $ratings = $this->publicSellerService->getSellerReviews($seller, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $ratings->getCollection()->map(fn ($r) => [
+                'id' => $r->id,
+                'user_name' => $r->user->name ?? 'کاربر ازکالا',
+                'product_quality' => (int) $r->product_quality,
+                'shipping_speed' => (int) $r->shipping_speed,
+                'communication' => (int) $r->communication,
+                'overall_rating' => (float) $r->overall_rating,
+                'comment' => $r->comment,
+                'created_at' => $r->created_at?->toISOString(),
+            ]),
+            'meta' => [
+                'current_page' => $ratings->currentPage(),
+                'last_page' => $ratings->lastPage(),
+                'total' => $ratings->total(),
+            ],
+        ]);
+    }
+
+    /**
      * ❤️ دنبال کردن شعبه آنلاین (RESTful)
      * POST /api/v1/sellers/{id}/follow
      */

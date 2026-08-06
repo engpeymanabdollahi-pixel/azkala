@@ -10,12 +10,36 @@ use Illuminate\Support\Facades\DB;
 
 class PublicSellerService
 {
+    /**
+     * ✅ قبلاً PublicSellerResource::reviews_count/orders_count همیشه ۰
+     * هاردکد بود («برای جلوگیری از خطای کوئری» طبق کامنت خودش) — یعنی
+     * صفحه‌ی عمومی فروشگاه امتیاز ستاره‌ای واقعی را کنار «۰ نظر» ثابت نشان
+     * می‌داد، حتی وقتی seller_ratings واقعی وجود داشت. اینجا (فقط برای
+     * واکشیِ تک‌فروشنده، نه لیست‌های top/followed که ریسک N+1 دارند) این
+     * دو مقدار واقعی محاسبه و به‌عنوان attribute اضافه به مدل چسبانده
+     * می‌شوند تا PublicSellerResource بدون کوئری اضافه بخواندشان.
+     */
     public function findActiveSellerBySlug(string $slug): ?User
     {
-        return User::where('slug', $slug)
+        $seller = User::where('slug', $slug)
             ->where('role', 'seller')
             ->where('is_active', true)
             ->first();
+
+        if ($seller) {
+            $this->attachRealCounts($seller);
+        }
+
+        return $seller;
+    }
+
+    private function attachRealCounts(User $seller): void
+    {
+        $seller->setAttribute('reviews_count', $seller->sellerRatings()->count());
+        $seller->setAttribute(
+            'orders_count',
+            $seller->orderItems()->distinct('order_id')->count('order_id')
+        );
     }
 
     public function findActiveSellerById(int $id): User
@@ -82,6 +106,20 @@ class PublicSellerService
         $perPage = min((int) ($filters['per_page'] ?? 20), 50);
 
         return $query->paginate($perPage);
+    }
+
+    /**
+     * ✅ داده‌ی واقعی برای تب «نظرات» که قبلاً کاملاً placeholder «به‌زودی»
+     * بود — seller_ratings دقیقاً همین داده را دارد (تفکیک کیفیت محصول/
+     * سرعت ارسال/ارتباط + متن نظر) و به سفارش واقعی وصل است، ولی هیچ‌جای
+     * فرانت‌اند تا امروز آن را نمی‌خواند.
+     */
+    public function getSellerReviews(User $seller, int $perPage = 10): LengthAwarePaginator
+    {
+        return \App\Models\SellerRating::where('seller_id', $seller->id)
+            ->with('user:id,name,avatar')
+            ->latest()
+            ->paginate($perPage);
     }
 
     public function followSeller(User $user, User $seller): void

@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\SellerRating;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -166,6 +169,77 @@ class PublicSellerApiTest extends TestCase
             ->assertJsonPath('is_following', false);
 
         $this->assertSame(0, (int) $this->seller->fresh()->followers_count);
+    }
+
+    /**
+     * ✅ باگ اصلی: PublicSellerResource::reviews_count/orders_count قبلاً
+     * همیشه ۰ هاردکد بود، حتی وقتی seller_ratings/order_items واقعی وجود
+     * داشت — امتیاز ستاره‌ای واقعی همیشه کنار «۰ نظر» ثابت نشان داده می‌شد.
+     */
+    public function test_seller_profile_returns_real_reviews_and_orders_count(): void
+    {
+        $order1 = Order::factory()->create(['user_id' => $this->customer->id]);
+        $order2 = Order::factory()->create(['user_id' => $this->customer->id]);
+
+        // دو آیتم از یک سفارش (نباید orders_count را دوبار بشمارد) + یک
+        // آیتم از سفارش دیگر → orders_count واقعی باید ۲ باشد، نه تعداد ردیف‌ها.
+        OrderItem::factory()->create(['order_id' => $order1->id, 'seller_id' => $this->seller->id]);
+        OrderItem::factory()->create(['order_id' => $order1->id, 'seller_id' => $this->seller->id]);
+        OrderItem::factory()->create(['order_id' => $order2->id, 'seller_id' => $this->seller->id]);
+
+        SellerRating::factory()->count(3)->create(['seller_id' => $this->seller->id]);
+
+        $response = $this->getJson('/api/v1/sellers/my-shop');
+
+        $response->assertOk()
+            ->assertJsonPath('data.reviews_count', 3)
+            ->assertJsonPath('data.orders_count', 2);
+    }
+
+    public function test_seller_profile_does_not_expose_a_fake_health_score(): void
+    {
+        // ✅ health_score قبلاً همیشه ۱۰۰ هاردکد بود برای هر فروشنده‌ای، بدون
+        // هیچ منبع داده‌ی واقعی — حذف شد تا این ادعای یکسان و بی‌معنی دیگر
+        // در پاسخ عمومی API ظاهر نشود.
+        $response = $this->getJson('/api/v1/sellers/my-shop');
+
+        $response->assertOk();
+        $this->assertArrayNotHasKey('health_score', $response->json('data'));
+    }
+
+    public function test_seller_reviews_endpoint_returns_real_ratings_newest_first(): void
+    {
+        $reviewer = User::factory()->create(['name' => 'رضا محمدی']);
+
+        $old = SellerRating::factory()->create([
+            'seller_id' => $this->seller->id,
+            'user_id' => $reviewer->id,
+            'comment' => 'نظر قدیمی',
+            'created_at' => now()->subDays(5),
+        ]);
+        $new = SellerRating::factory()->create([
+            'seller_id' => $this->seller->id,
+            'user_id' => $reviewer->id,
+            'comment' => 'نظر جدید',
+            'created_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/v1/sellers/my-shop/reviews');
+
+        $response->assertOk()->assertJsonPath('meta.total', 2);
+        $this->assertSame('نظر جدید', $response->json('data.0.comment'));
+        $this->assertSame('رضا محمدی', $response->json('data.0.user_name'));
+    }
+
+    public function test_seller_reviews_endpoint_only_returns_this_sellers_reviews(): void
+    {
+        $otherSeller = User::factory()->create(['role' => 'seller', 'is_active' => true, 'slug' => 'other-shop-2']);
+        SellerRating::factory()->create(['seller_id' => $otherSeller->id]);
+        SellerRating::factory()->create(['seller_id' => $this->seller->id]);
+
+        $response = $this->getJson('/api/v1/sellers/my-shop/reviews');
+
+        $response->assertOk()->assertJsonCount(1, 'data');
     }
 
     public function test_followed_sellers_list_is_scoped_to_the_current_user(): void

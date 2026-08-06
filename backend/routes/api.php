@@ -93,6 +93,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/top', [\App\Http\Controllers\Api\PublicSellerController::class, 'top'])->name('top');
         Route::get('/{slug}', [\App\Http\Controllers\Api\PublicSellerController::class, 'show'])->name('show');
         Route::get('/{slug}/products', [\App\Http\Controllers\Api\PublicSellerController::class, 'products'])->name('products');
+        // ✅ اضافه شد — تب «نظرات» صفحه‌ی عمومی فروشگاه قبلاً کاملاً placeholder
+        // بود؛ seller_ratings واقعی وجود دارد ولی هیچ روتی آن را expose نمی‌کرد.
+        Route::get('/{slug}/reviews', [\App\Http\Controllers\Api\PublicSellerController::class, 'reviews'])->name('reviews');
     });
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');

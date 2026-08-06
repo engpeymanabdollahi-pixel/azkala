@@ -26,7 +26,9 @@ interface PublicSeller {
   banner: string | null;
   description: string | null;
   status: string;
-  health_score: number;
+  // ✅ health_score قبلاً اینجا بود ولی بک‌اند همیشه ۱۰۰ هاردکد می‌فرستاد
+  // (بدون هیچ منبع داده‌ی واقعی) و اصلاً در JSX این صفحه هم رندر نمی‌شد —
+  // هم فیلد و هم مصرف‌کننده‌ی مرده حذف شدند.
   rating: number;
   reviews_count: number;
   products_count: number;

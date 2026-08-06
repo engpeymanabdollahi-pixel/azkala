@@ -85,6 +85,14 @@ public function sellerRatings()
     return $this->hasMany(SellerRating::class, 'seller_id');
 }
 
+// ✅ اضافه شد — برای شمارش واقعیِ سفارشاتی که آیتم‌هایی از این فروشنده
+// دارند (همان الگویی که SellerService::getSellerOrdersStats با
+// OrderItem::where('seller_id', ...) پیاده‌سازی کرده، اینجا هم لازم بود).
+public function orderItems()
+{
+    return $this->hasMany(OrderItem::class, 'seller_id');
+}
+
 public function givenSellerRatings()
 {
     return $this->hasMany(SellerRating::class, 'user_id');
