@@ -17,10 +17,18 @@ import { profileService } from '@/services/api/profile.service';
 import { couponService } from '@/services/api/coupon.service';
 import apiClient from '@/services/api/client';
 
+// ✅ قبلاً status فقط 'pending' | 'approved' | 'rejected' بود، ولی مقادیر
+// واقعی pending_initial/pending_documents/pending_final/approved/rejected
+// هستند (رجوع به SellerRequestPage.tsx). چون هیچ حالت واقعیِ «در انتظار»
+// دقیقاً 'pending' نمی‌شود، کارت وضعیت پایین‌تر برای هر سه مرحله‌ی واقعیِ
+// در جریان، توضیح و برچسبِ کاملاً خالی نشان می‌داد.
 interface SellerRequestStatus {
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending_initial' | 'pending_documents' | 'pending_final' | 'approved' | 'rejected';
   rejection_reason?: string;
 }
+
+const isSellerRequestPending = (status: SellerRequestStatus['status']) =>
+  status === 'pending_initial' || status === 'pending_documents' || status === 'pending_final';
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && 'response' in err) {
@@ -237,7 +245,9 @@ export function ProfileSection() {
                   وضعیت درخواست فروشندگی
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {sellerRequestData.status === 'pending' && 'درخواست شما در صف بررسی ادمین قرار دارد.'}
+                  {sellerRequestData.status === 'pending_initial' && 'درخواست شما در صف بررسی اولیه ادمین قرار دارد.'}
+                  {sellerRequestData.status === 'pending_documents' && 'تأیید اولیه انجام شد. برای ادامه به صفحه‌ی درخواست فروشندگی بروید و مدارک خود را بارگذاری کنید.'}
+                  {sellerRequestData.status === 'pending_final' && 'مدارک شما دریافت شد و در حال بررسی نهایی است.'}
                   {sellerRequestData.status === 'approved' && 'تبریک! درخواست شما تأیید شده است. اکنون می‌توانید محصولات خود را ثبت کنید.'}
                   {sellerRequestData.status === 'rejected' && `درخواست شما رد شده است. دلیل: ${sellerRequestData.rejection_reason || 'عدم احراز شرایط'}`}
                 </p>
@@ -246,9 +256,9 @@ export function ProfileSection() {
 
             <Badge
               variant={sellerRequestData.status === 'approved' ? 'success' : sellerRequestData.status === 'rejected' ? 'error' : 'primary'}
-              className={sellerRequestData.status === 'pending' ? 'animate-pulse' : ''}
+              className={isSellerRequestPending(sellerRequestData.status) ? 'animate-pulse' : ''}
             >
-              {sellerRequestData.status === 'pending' && 'در حال بررسی'}
+              {isSellerRequestPending(sellerRequestData.status) && 'در حال بررسی'}
               {sellerRequestData.status === 'approved' && 'تأیید شده'}
               {sellerRequestData.status === 'rejected' && 'رد شده'}
             </Badge>

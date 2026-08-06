@@ -85,6 +85,11 @@ class SellerRequestController extends Controller
             'status' => $request->status,
             'proposed_shop_name' => $request->shop_name,
             'bank_account' => $request->bank_account, // اگر پر باشد یعنی مرحله ۲ هم رد شده
+            // ✅ اضافه شد — بدون این، SellerRequestPage.tsx/ProfileSection.tsx
+            // برای درخواست رد‌شده دلیل رد را می‌خواستند نشان دهند ولی
+            // requestData?.rejection_reason همیشه undefined بود چون بک‌اند
+            // اصلاً آن را برنمی‌گرداند، با اینکه واقعاً در دیتابیس ذخیره شده.
+            'rejection_reason' => $request->rejection_reason,
         ]);
     }
 

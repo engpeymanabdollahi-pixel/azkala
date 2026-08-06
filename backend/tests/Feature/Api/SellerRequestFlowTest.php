@@ -17,6 +17,22 @@ class SellerRequestFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_get_status_includes_rejection_reason(): void
+    {
+        // ✅ باگ اصلی: getStatus() فیلد rejection_reason را برنمی‌گرداند بود،
+        // با اینکه واقعاً در دیتابیس ذخیره است — کاربرِ ردشده هیچ‌وقت دلیل
+        // رد را در SellerRequestPage.tsx/ProfileSection.tsx نمی‌دید.
+        $user = User::factory()->create();
+        SellerRequest::factory()->rejected()->create([
+            'user_id' => $user->id,
+            'rejection_reason' => 'مدارک ناقص بود',
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/user/seller-request-status');
+
+        $response->assertOk()->assertJsonPath('rejection_reason', 'مدارک ناقص بود');
+    }
+
     public function test_store_prevents_duplicate_request_at_every_real_pending_status(): void
     {
         // ✅ باگ اصلی: findActiveRequest قبلاً whereIn('status', ['pending', 'approved'])
