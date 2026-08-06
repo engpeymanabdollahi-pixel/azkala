@@ -40,23 +40,18 @@ const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'));
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminReviewsPage'));
-const AdminBrandsPage = lazy(() => import('@/pages/admin/AdminBrandsPage'));
+// ✅ AdminBrandsPage و AdminCategoriesPage هم همین باگ را داشتند — فقط از
+// طریق ایمپورت مستقیمِ خودِ AdminCatalogPage به‌عنوان تب رندر می‌شوند.
 const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage'));
 const AdminDeviceBrandsPage = lazy(() => import('@/pages/admin/AdminDeviceBrandsPage'));
 const AdminDeviceSeriesPage = lazy(() => import('@/pages/admin/AdminDeviceSeriesPage'));
 const AdminCommunicationPage = lazy(() => import('@/pages/admin/AdminCommunicationPage'));
 const AdminCouponsPage = lazy(() => import('@/pages/admin/AdminCouponsPage'));
-const AdminCategoriesPage = lazy(() => import('@/pages/admin/AdminCategoriesPage'));
 const AdminSettingsPage = lazy(() => import('@/pages/admin/AdminSettingsPage'));
 const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
-const AdminChatReportsPage = lazy(() => import('@/pages/admin/AdminChatReportsPage'));
-const AdminChatMonitorPage = lazy(() => import('@/pages/admin/AdminChatMonitorPage'));
-const AdminSentimentDashboard = lazy(() => import('@/pages/admin/AdminSentimentDashboard'));
-const AdminBlocksPage = lazy(() => import('@/pages/admin/AdminBlocksPage'));
-const AdminFaqManagementPage = lazy(() => import('@/pages/admin/AdminFaqManagementPage'));
-const AdminMessageTemplatesPage = lazy(() => import('@/pages/admin/AdminMessageTemplatesPage'));
-const AdminSupportTicketsPage = lazy(() => import('@/pages/admin/AdminSupportTicketsPage'));
-const AdminSuggestionManagementPage = lazy(() => import('@/pages/admin/AdminSuggestionManagementPage'));
+// ✅ قبلاً اینجا برای هرکدام از این ۸ زیرصفحه یک lazy() جدا هم تعریف شده بود
+// که هیچ‌جای این فایل در یک <Route> استفاده نمی‌شد (همه‌شان از طریق ایمپورت
+// مستقیمِ خودِ AdminCommunicationPage رندر می‌شوند) — کد کاملاً مرده بود.
 const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage'));
 const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
 

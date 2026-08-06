@@ -529,7 +529,6 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::prefix('monitor')->name('monitor.')->group(function () {
                     Route::get('/', [ChatMonitorController::class, 'index'])->name('index');
                     Route::get('/stats', [ChatMonitorController::class, 'stats'])->name('stats');
-                    Route::get('/critical', [ChatMonitorController::class, 'critical'])->name('critical');
                     Route::get('/{chat}', [ChatMonitorController::class, 'show'])->name('show');
                     Route::post('/{chat}/intervene', [ChatMonitorController::class, 'intervene'])->name('intervene');
                     Route::post('/{chat}/close', [ChatMonitorController::class, 'close'])->name('close');

@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChatReport;
-use App\Models\User;
 use App\Models\Conversation;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ReportController extends Controller
 {
@@ -56,7 +57,8 @@ class ReportController extends Controller
                 'data' => $reports,
             ]);
         } catch (\Exception $e) {
-            Log::error('Admin\ReportController@index: ' . $e->getMessage());
+            Log::error('Admin\ReportController@index: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت گزارش‌ها',
@@ -86,7 +88,8 @@ class ReportController extends Controller
                 'data' => $report,
             ]);
         } catch (\Exception $e) {
-            Log::error('Admin\ReportController@show: ' . $e->getMessage());
+            Log::error('Admin\ReportController@show: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'گزارش یافت نشد',
@@ -113,10 +116,11 @@ class ReportController extends Controller
                 'message' => 'گزارش بروزرسانی شد',
                 'data' => $report,
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('Admin\ReportController@update: ' . $e->getMessage());
+            Log::error('Admin\ReportController@update: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در بروزرسانی گزارش',
@@ -140,8 +144,17 @@ class ReportController extends Controller
 
             switch ($validated['action']) {
                 case 'warn':
-                    // ارسال هشدار به کاربر (می‌توانیم ایمیل یا نوتیفیکیشن بفرستیم)
-                    Log::info("هشدار به کاربر #{$reportedUser->id} ارسال شد");
+                    // ✅ قبلاً «ارسال هشدار» فقط در لاگ سرور ثبت می‌شد و
+                    // کاربر گزارش‌شده هیچ‌وقت واقعاً هشداری دریافت نمی‌کرد —
+                    // دکمه در پنل ادمین کاری جز به‌روزرسانی یادداشت داخلی
+                    // انجام نمی‌داد. حالا نوتیفیکیشن واقعی ثبت می‌شود (دقیقاً
+                    // با همان الگوی Notification::create در AdminUserService).
+                    Notification::create([
+                        'user_id' => $reportedUser->id,
+                        'type' => 'chat_conduct_warning',
+                        'title' => 'هشدار رعایت قوانین گفتگو',
+                        'message' => $validated['reason'] ?? 'رفتار شما در چت با یکی از کاربران گزارش شده و مغایر با قوانین استفاده از پیام‌رسان ازکالا تشخیص داده شده است. لطفاً قوانین را رعایت کنید؛ در صورت تکرار، دسترسی شما محدود خواهد شد.',
+                    ]);
                     $report->update([
                         'status' => 'reviewed',
                         'admin_notes' => $validated['reason'] ?? 'هشدار ارسال شد',
@@ -183,10 +196,11 @@ class ReportController extends Controller
                 'message' => 'اقدام با موفقیت انجام شد',
                 'data' => $report->fresh(),
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('Admin\ReportController@action: ' . $e->getMessage());
+            Log::error('Admin\ReportController@action: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در انجام اقدام',
@@ -232,7 +246,8 @@ class ReportController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Admin\ReportController@stats: ' . $e->getMessage());
+            Log::error('Admin\ReportController@stats: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت آمار',

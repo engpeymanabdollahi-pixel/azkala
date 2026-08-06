@@ -3,12 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Conversation;
 use App\Models\SupportTicket;
 use App\Models\TicketMessage;
-use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class SupportTicketController extends Controller
 {
@@ -66,11 +67,11 @@ class SupportTicketController extends Controller
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('ticket_number', 'like', "%{$search}%")
-                      ->orWhere('subject', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhereHas('user', function ($q) use ($search) {
-                          $q->where('name', 'like', "%{$search}%");
-                      });
+                        ->orWhere('subject', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($q) use ($search) {
+                            $q->where('name', 'like', "%{$search}%");
+                        });
                 });
             }
 
@@ -103,7 +104,8 @@ class SupportTicketController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@index: ' . $e->getMessage());
+            Log::error('SupportTicketController@index: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت تیکت‌ها',
@@ -121,8 +123,12 @@ class SupportTicketController extends Controller
                 'user:id,name,email,avatar,phone',
                 'assignedUser:id,name,avatar',
                 'conversation:id,buyer_id,seller_id,product_id',
+                // ✅ role اضافه شد — قبلاً فرانت‌اند برای تشخیص «پیام ادمین»
+                // به فیلد ناموجود is_admin تکیه می‌کرد (که هرگز در پاسخ API
+                // وجود نداشت)، پس همهٔ پیام‌ها (چه از پشتیبانی، چه از کاربر)
+                // یکسان (به‌عنوان پیام کاربر) نمایش داده می‌شدند.
                 'messages' => function ($q) {
-                    $q->with('user:id,name,avatar')->orderBy('created_at');
+                    $q->with('user:id,name,avatar,role')->orderBy('created_at');
                 },
             ])->findOrFail($id);
 
@@ -131,7 +137,8 @@ class SupportTicketController extends Controller
                 'data' => $ticket,
             ]);
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@show: ' . $e->getMessage());
+            Log::error('SupportTicketController@show: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'تیکت یافت نشد',
@@ -170,10 +177,11 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت با موفقیت ایجاد شد',
                 'data' => $ticket,
             ], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@store: ' . $e->getMessage());
+            Log::error('SupportTicketController@store: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در ایجاد تیکت',
@@ -224,10 +232,11 @@ class SupportTicketController extends Controller
                 'message' => 'مکالمه با موفقیت به تیکت تبدیل شد',
                 'data' => $ticket,
             ], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@convertFromConversation: ' . $e->getMessage());
+            Log::error('SupportTicketController@convertFromConversation: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در تبدیل مکالمه',
@@ -258,8 +267,7 @@ class SupportTicketController extends Controller
             // اگر وضعیت به closed تغییر کرد
             elseif (isset($validated['status']) && $validated['status'] === 'closed') {
                 $ticket->close();
-            }
-            else {
+            } else {
                 $ticket->update($validated);
             }
 
@@ -268,10 +276,11 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت بروزرسانی شد',
                 'data' => $ticket,
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@update: ' . $e->getMessage());
+            Log::error('SupportTicketController@update: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در بروزرسانی',
@@ -297,10 +306,11 @@ class SupportTicketController extends Controller
                 'message' => 'تیکت اختصاص داده شد',
                 'data' => $ticket,
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@assign: ' . $e->getMessage());
+            Log::error('SupportTicketController@assign: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در اختصاص',
@@ -358,12 +368,13 @@ class SupportTicketController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'پیام ارسال شد',
-                'data' => $message->load('user:id,name,avatar'),
+                'data' => $message->load('user:id,name,avatar,role'),
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@sendMessage: ' . $e->getMessage());
+            Log::error('SupportTicketController@sendMessage: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در ارسال پیام',
@@ -405,7 +416,8 @@ class SupportTicketController extends Controller
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
-            Log::error('SupportTicketController@stats: ' . $e->getMessage());
+            Log::error('SupportTicketController@stats: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت آمار',
@@ -424,7 +436,7 @@ class SupportTicketController extends Controller
                 ->withCount([
                     'assignedTickets as tickets_count' => function ($q) {
                         $q->where('status', '!=', 'closed');
-                    }
+                    },
                 ])
                 ->get();
 

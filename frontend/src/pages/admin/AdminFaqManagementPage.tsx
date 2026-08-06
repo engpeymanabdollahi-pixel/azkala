@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Bot, Search, Filter, Loader2, X, Plus, Edit2, Trash2,
   ToggleLeft, ToggleRight, TrendingUp, AlertCircle,
-  ChevronLeft, ChevronRight, Tag, Zap,
+  ChevronLeft, ChevronRight, Zap, Shield,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -12,12 +12,14 @@ import toast from 'react-hot-toast';
 
 // ==================== Types ====================
 
+type FaqCategory = 'general' | 'shipping' | 'payment' | 'product' | 'returns';
+
 interface Faq {
   id: number;
   seller_id: number | null;
   question_pattern: string;
   answer: string;
-  category: 'general' | 'shipping' | 'payment' | 'product' | 'returns';
+  category: FaqCategory;
   priority: number;
   is_active: boolean;
   usage_count: number;
@@ -75,10 +77,15 @@ export function AdminFaqManagementPage() {
   // Modal
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingFaq, setEditingFaq] = useState<Faq | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    question_pattern: string;
+    answer: string;
+    category: FaqCategory;
+    priority: number;
+  }>({
     question_pattern: '',
     answer: '',
-    category: 'general' as const,
+    category: 'general',
     priority: 0,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -122,6 +129,7 @@ export function AdminFaqManagementPage() {
   useEffect(() => {
     loadFaqs();
     loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, categoryFilter, statusFilter, typeFilter]);
 
   // ==================== Handlers ====================
@@ -224,13 +232,13 @@ export function AdminFaqManagementPage() {
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      general: 'bg-gray-100 text-gray-700',
-      shipping: 'bg-blue-100 text-blue-700',
-      payment: 'bg-green-100 text-green-700',
-      product: 'bg-purple-100 text-purple-700',
-      returns: 'bg-orange-100 text-orange-700',
+      general: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+      shipping: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+      payment: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      product: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+      returns: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
     };
-    return colors[category] || 'bg-gray-100 text-gray-700';
+    return colors[category] || colors.general;
   };
 
   // ==================== Render ====================
@@ -243,8 +251,8 @@ export function AdminFaqManagementPage() {
             <Bot className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-gray-900">مدیریت FAQ سراسری</h1>
-            <p className="text-sm text-gray-500 mt-1">کنترل پاسخ‌های خودکار همه فروشندگان</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">مدیریت FAQ سراسری</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">کنترل پاسخ‌های خودکار همه فروشندگان</p>
           </div>
         </div>
         <Button
@@ -259,64 +267,64 @@ export function AdminFaqManagementPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-accent-50 rounded-xl flex items-center justify-center">
-                <Bot className="w-5 h-5 text-accent-600" />
+              <div className="w-10 h-10 bg-accent-50 dark:bg-accent-900/30 rounded-xl flex items-center justify-center">
+                <Bot className="w-5 h-5 text-accent-600 dark:text-accent-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-gray-900">{stats.total.toLocaleString('fa-IR')}</p>
-            <p className="text-xs text-gray-500 mt-1">کل FAQ ها</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{stats.total.toLocaleString('fa-IR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">کل FAQ ها</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
-                <ToggleRight className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                <ToggleRight className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-green-600">{stats.active.toLocaleString('fa-IR')}</p>
-            <p className="text-xs text-gray-500 mt-1">فعال</p>
+            <p className="text-2xl font-black text-green-600 dark:text-green-400">{stats.active.toLocaleString('fa-IR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">فعال</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
-                <ToggleLeft className="w-5 h-5 text-gray-600" />
+              <div className="w-10 h-10 bg-gray-50 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                <ToggleLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-gray-600">{stats.inactive.toLocaleString('fa-IR')}</p>
-            <p className="text-xs text-gray-500 mt-1">غیرفعال</p>
+            <p className="text-2xl font-black text-gray-600 dark:text-gray-300">{stats.inactive.toLocaleString('fa-IR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">غیرفعال</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
-                <Shield className="w-5 h-5 text-primary-600" />
+              <div className="w-10 h-10 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
+                <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-primary-600">{stats.system.toLocaleString('fa-IR')}</p>
-            <p className="text-xs text-gray-500 mt-1">سیستمی</p>
+            <p className="text-2xl font-black text-primary-600 dark:text-primary-400">{stats.system.toLocaleString('fa-IR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">سیستمی</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-warning-50 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-warning-600" />
+              <div className="w-10 h-10 bg-warning-50 dark:bg-warning-900/30 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-warning-600 dark:text-warning-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-warning-600">{stats.total_usage.toLocaleString('fa-IR')}</p>
-            <p className="text-xs text-gray-500 mt-1">کل استفاده</p>
+            <p className="text-2xl font-black text-warning-600 dark:text-warning-400">{stats.total_usage.toLocaleString('fa-IR')}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">کل استفاده</p>
           </div>
 
-          <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <div className="w-10 h-10 bg-error-50 rounded-xl flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-error-600" />
+              <div className="w-10 h-10 bg-error-50 dark:bg-error-900/30 rounded-xl flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-error-600 dark:text-error-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-error-600">{stats.unused.length}</p>
-            <p className="text-xs text-gray-500 mt-1">بدون استفاده</p>
+            <p className="text-2xl font-black text-error-600 dark:text-error-400">{stats.unused.length}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">بدون استفاده</p>
           </div>
         </div>
       )}
@@ -325,21 +333,21 @@ export function AdminFaqManagementPage() {
       {stats && (stats.most_used.length > 0 || stats.unused.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Most Used */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="font-black text-gray-900 mb-3 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-success-600" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+            <h3 className="font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-success-600 dark:text-success-400" />
               پراستفاده‌ترین FAQ ها
             </h3>
             <div className="space-y-2">
               {stats.most_used.slice(0, 5).map((faq, i) => (
-                <div key={faq.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div key={faq.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/60 rounded-lg">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="w-6 h-6 bg-success-100 text-success-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <span className="w-6 h-6 bg-success-100 dark:bg-success-900/40 text-success-700 dark:text-success-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {i + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-gray-900 truncate">{faq.question_pattern}</p>
-                      <p className="text-[10px] text-gray-500">{faq.seller_name}</p>
+                      <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{faq.question_pattern}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{faq.seller_name}</p>
                     </div>
                   </div>
                   <Badge variant="success" size="sm">{faq.usage_count}x</Badge>
@@ -349,21 +357,21 @@ export function AdminFaqManagementPage() {
           </div>
 
           {/* Unused */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="font-black text-gray-900 mb-3 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-error-600" />
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+            <h3 className="font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-error-600 dark:text-error-400" />
               FAQ های بدون استفاده
             </h3>
             <div className="space-y-2">
               {stats.unused.slice(0, 5).map((faq, i) => (
-                <div key={faq.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div key={faq.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900/60 rounded-lg">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="w-6 h-6 bg-error-100 text-error-700 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <span className="w-6 h-6 bg-error-100 dark:bg-error-900/40 text-error-700 dark:text-error-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {i + 1}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-gray-900 truncate">{faq.question_pattern}</p>
-                      <p className="text-[10px] text-gray-500">{faq.seller_name} - {faq.created_at}</p>
+                      <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{faq.question_pattern}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">{faq.seller_name} - {faq.created_at}</p>
                     </div>
                   </div>
                   <Badge variant="error" size="sm">0x</Badge>
@@ -375,17 +383,17 @@ export function AdminFaqManagementPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="relative md:col-span-2">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="جستجو در الگو یا پاسخ..."
-              className="w-full pr-10 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+              className="w-full pr-10 pl-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500"
             />
           </div>
           <select
@@ -394,7 +402,7 @@ export function AdminFaqManagementPage() {
               setCategoryFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500"
           >
             <option value="all">همه دسته‌بندی‌ها</option>
             <option value="general">عمومی</option>
@@ -409,11 +417,25 @@ export function AdminFaqManagementPage() {
               setStatusFilter(e.target.value);
               setCurrentPage(1);
             }}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500"
           >
             <option value="all">همه وضعیت‌ها</option>
             <option value="active">فعال</option>
             <option value="inactive">غیرفعال</option>
+          </select>
+          {/* ✅ قبلاً typeFilter در بکند فیلتر می‌شد ولی هیچ کنترلی برای
+              تغییرش وجود نداشت — همیشه مقدار پیش‌فرض 'all' ارسال می‌شد. */}
+          <select
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500"
+          >
+            <option value="all">همه انواع</option>
+            <option value="system">سیستمی</option>
+            <option value="seller">فروشنده</option>
           </select>
           <Button onClick={handleSearch} className="w-full">
             <Filter className="w-4 h-4" />
@@ -423,21 +445,21 @@ export function AdminFaqManagementPage() {
       </div>
 
       {/* FAQ List */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
           </div>
         ) : faqs.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <Bot className="w-16 h-16 mx-auto mb-3 opacity-30" />
             <p className="font-bold">FAQ ای یافت نشد</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {faqs.map((faq) => (
               <div key={faq.id} className={cn(
-                'p-4 hover:bg-gray-50 transition-colors',
+                'p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors',
                 !faq.is_active && 'opacity-60'
               )}>
                 <div className="flex items-start justify-between gap-3">
@@ -458,31 +480,31 @@ export function AdminFaqManagementPage() {
                           سیستمی
                         </Badge>
                       )}
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <Zap className="w-3 h-3" />
                         {faq.usage_count} استفاده
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         اولویت: {faq.priority}
                       </span>
                     </div>
 
                     <div className="mb-2">
-                      <p className="text-xs text-gray-500 mb-1">الگوی سوال:</p>
-                      <p className="text-sm font-mono bg-gray-100 px-2 py-1 rounded text-gray-800" dir="ltr">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">الگوی سوال:</p>
+                      <p className="text-sm font-mono bg-gray-100 dark:bg-gray-900/60 px-2 py-1 rounded text-gray-800 dark:text-gray-200" dir="ltr">
                         /{faq.question_pattern}/
                       </p>
                     </div>
 
                     <div className="mb-2">
-                      <p className="text-xs text-gray-500 mb-1">پاسخ:</p>
-                      <p className="text-sm text-gray-700 bg-gray-50 px-2 py-1 rounded">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">پاسخ:</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/60 px-2 py-1 rounded">
                         {faq.answer}
                       </p>
                     </div>
 
                     {faq.seller && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         فروشنده: <span className="font-bold">{faq.seller.name}</span>
                         {faq.seller.shop_name && ` (${faq.seller.shop_name})`}
                       </p>
@@ -494,9 +516,9 @@ export function AdminFaqManagementPage() {
                       onClick={() => handleToggle(faq.id)}
                       className={cn(
                         'p-1.5 rounded-lg transition-colors',
-                        faq.is_active 
-                          ? 'text-success-600 hover:bg-success-50' 
-                          : 'text-gray-400 hover:bg-gray-50'
+                        faq.is_active
+                          ? 'text-success-600 dark:text-success-400 hover:bg-success-50 dark:hover:bg-success-900/20'
+                          : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'
                       )}
                       title={faq.is_active ? 'غیرفعال کردن' : 'فعال کردن'}
                     >
@@ -504,14 +526,14 @@ export function AdminFaqManagementPage() {
                     </button>
                     <button
                       onClick={() => handleEdit(faq)}
-                      className="text-primary-600 hover:bg-primary-50 p-1.5 rounded-lg"
+                      className="text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 p-1.5 rounded-lg"
                       title="ویرایش"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(faq.id)}
-                      className="text-error-600 hover:bg-error-50 p-1.5 rounded-lg"
+                      className="text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-900/20 p-1.5 rounded-lg"
                       title="حذف"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -525,7 +547,7 @@ export function AdminFaqManagementPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="p-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="p-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
@@ -536,7 +558,7 @@ export function AdminFaqManagementPage() {
               <ChevronRight className="w-4 h-4" />
               قبلی
             </Button>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-gray-600 dark:text-gray-300">
               صفحه {currentPage} از {totalPages}
             </span>
             <Button
@@ -556,8 +578,8 @@ export function AdminFaqManagementPage() {
       {/* Form Modal */}
       {showFormModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl">
-            <div className="p-4 border-b bg-gradient-to-r from-accent-500 to-accent-600 text-white flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl">
+            <div className="p-4 border-b dark:border-gray-700 bg-gradient-to-r from-accent-500 to-accent-600 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bot className="w-6 h-6" />
                 <h2 className="font-black text-lg">
@@ -573,36 +595,36 @@ export function AdminFaqManagementPage() {
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
                   الگوی سوال (Regex)
-                  <span className="text-gray-500 font-normal mr-1">- کلمات با | جدا شوند</span>
+                  <span className="text-gray-500 dark:text-gray-400 font-normal mr-1">- کلمات با | جدا شوند</span>
                 </label>
                 <input
                   type="text"
                   value={formData.question_pattern}
                   onChange={(e) => setFormData({ ...formData, question_pattern: e.target.value })}
                   placeholder="مثال: قیمت|چند|هزینه"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-accent-500"
                   dir="ltr"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">پاسخ خودکار</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">پاسخ خودکار</label>
                 <textarea
                   value={formData.answer}
                   onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
                   placeholder="پاسخ ربات..."
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-accent-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-accent-500 resize-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">دسته‌بندی</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">دسته‌بندی</label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value as FaqCategory })}
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   >
                     <option value="general">عمومی</option>
                     <option value="shipping">ارسال</option>
@@ -612,14 +634,14 @@ export function AdminFaqManagementPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">اولویت (0-100)</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">اولویت (0-100)</label>
                   <input
                     type="number"
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
                     min="0"
                     max="100"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -645,16 +667,6 @@ export function AdminFaqManagementPage() {
         </div>
       )}
     </div>
-  );
-}
-
-// ==================== Sub Components ====================
-
-function Shield(props: any) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
   );
 }
 export default AdminFaqManagementPage;

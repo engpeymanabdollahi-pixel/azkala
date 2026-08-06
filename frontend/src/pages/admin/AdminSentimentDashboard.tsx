@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, TrendingDown, Meh, AlertTriangle, 
-  Loader2, ChevronLeft, ArrowUp, ArrowDown, Minus,
-  BarChart3, PieChart, Users, ShieldCheck
+  TrendingUp, TrendingDown, Meh, AlertTriangle,
+  Loader2, ArrowUp, ArrowDown, Minus,
+  BarChart3, PieChart, Users, ShieldCheck, type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -51,7 +50,6 @@ interface Alert {
 // ==================== Main Component ====================
 
 export function AdminSentimentDashboard() {
-  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [topSellers, setTopSellers] = useState<TopSeller[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -98,8 +96,8 @@ export function AdminSentimentDashboard() {
             <BarChart3 className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-gray-900">تحلیل احساسات</h1>
-            <p className="text-sm text-gray-500 mt-1">بررسی رضایت مشتریان و عملکرد فروشندگان</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">تحلیل احساسات</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">بررسی رضایت مشتریان و عملکرد فروشندگان</p>
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => loadAllData()} className="gap-1.5">
@@ -111,31 +109,31 @@ export function AdminSentimentDashboard() {
       {/* Summary Cards */}
       {dashboardData && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard 
-            label="تحلیل شده" 
-            value={dashboardData.total_analyzed.toLocaleString('fa-IR')} 
-            icon={PieChart} 
-            color="gray" 
+          <SummaryCard
+            label="تحلیل شده"
+            value={dashboardData.total_analyzed.toLocaleString('fa-IR')}
+            icon={PieChart}
+            color="gray"
           />
-          <SummaryCard 
-            label="مثبت" 
-            value={`${dashboardData.positive_percent}%`} 
-            icon={TrendingUp} 
-            color="success" 
+          <SummaryCard
+            label="مثبت"
+            value={`${dashboardData.positive_percent}%`}
+            icon={TrendingUp}
+            color="success"
             badge={`${dashboardData.positive.toLocaleString('fa-IR')} پیام`}
           />
-          <SummaryCard 
-            label="خنثی" 
-            value={`${dashboardData.neutral_percent}%`} 
-            icon={Meh} 
-            color="warning" 
+          <SummaryCard
+            label="خنثی"
+            value={`${dashboardData.neutral_percent}%`}
+            icon={Meh}
+            color="warning"
             badge={`${dashboardData.neutral.toLocaleString('fa-IR')} پیام`}
           />
-          <SummaryCard 
-            label="منفی" 
-            value={`${dashboardData.negative_percent}%`} 
-            icon={TrendingDown} 
-            color="error" 
+          <SummaryCard
+            label="منفی"
+            value={`${dashboardData.negative_percent}%`}
+            icon={TrendingDown}
+            color="error"
             badge={`${dashboardData.negative.toLocaleString('fa-IR')} پیام`}
           />
         </div>
@@ -144,9 +142,9 @@ export function AdminSentimentDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Trend Chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary-600" />
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h3 className="font-black text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             روند ۳۰ روز اخیر
           </h3>
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -154,8 +152,8 @@ export function AdminSentimentDashboard() {
               const total = day.positive + day.neutral + day.negative;
               return (
                 <div key={i} className="flex items-center gap-3 text-sm">
-                  <span className="w-16 text-xs text-gray-500 font-bold">{day.date}</span>
-                  <div className="flex-1 flex h-3 rounded-full overflow-hidden bg-gray-100">
+                  <span className="w-16 text-xs text-gray-500 dark:text-gray-400 font-bold">{day.date}</span>
+                  <div className="flex-1 flex h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
                     {total > 0 ? (
                       <>
                         <div style={{ width: `${(day.positive / total) * 100}%` }} className="bg-green-500 transition-all" />
@@ -163,44 +161,44 @@ export function AdminSentimentDashboard() {
                         <div style={{ width: `${(day.negative / total) * 100}%` }} className="bg-red-500 transition-all" />
                       </>
                     ) : (
-                      <div className="w-full bg-gray-100" />
+                      <div className="w-full bg-gray-100 dark:bg-gray-700" />
                     )}
                   </div>
-                  <span className="w-12 text-xs text-gray-600 text-right">{total.toLocaleString('fa-IR')}</span>
+                  <span className="w-12 text-xs text-gray-600 dark:text-gray-300 text-right">{total.toLocaleString('fa-IR')}</span>
                 </div>
               );
             })}
           </div>
-          <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500" /><span className="text-xs text-gray-600">مثبت</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400" /><span className="text-xs text-gray-600">خنثی</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500" /><span className="text-xs text-gray-600">منفی</span></div>
+          <div className="flex items-center justify-center gap-6 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500" /><span className="text-xs text-gray-600 dark:text-gray-400">مثبت</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gray-400" /><span className="text-xs text-gray-600 dark:text-gray-400">خنثی</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-500" /><span className="text-xs text-gray-600 dark:text-gray-400">منفی</span></div>
           </div>
         </div>
 
         {/* Alerts Panel */}
-        <div className="bg-white rounded-xl border border-red-100 shadow-sm p-5 border-l-4 border-l-red-500">
-          <h3 className="font-black text-gray-900 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-100 dark:border-red-900/40 shadow-sm p-5 border-l-4 border-l-red-500">
+          <h3 className="font-black text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
             هشدارهای بحرانی
           </h3>
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
             {alerts.length > 0 ? (
               alerts.map((alert) => (
-                <div key={alert.id} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div key={alert.id} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-bold text-gray-700">{alert.buyer_name} ↔ {alert.seller_name}</span>
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{alert.buyer_name} ↔ {alert.seller_name}</span>
                     <Badge variant="error" size="sm">{alert.avg_score.toFixed(2)}</Badge>
                   </div>
-                  <p className="text-[10px] text-gray-600">محصول: {alert.product_name}</p>
-                  <p className="text-[10px] text-gray-500 mt-1">{alert.created_at}</p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400">محصول: {alert.product_name}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">{alert.created_at}</p>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-500 text-sm">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                 <ShieldCheck className="w-10 h-10 mx-auto mb-2 text-green-500" />
                 <p>هیچ هشدار بحرانی وجود ندارد</p>
-                <p className="text-xs text-gray-400 mt-1">همه مکالمات در وضعیت عادی هستند</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">همه مکالمات در وضعیت عادی هستند</p>
               </div>
             )}
           </div>
@@ -208,40 +206,40 @@ export function AdminSentimentDashboard() {
       </div>
 
       {/* Top Sellers Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="font-black text-gray-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-accent-600" />
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Users className="w-5 h-5 text-accent-600 dark:text-accent-400" />
             رتبه‌بندی فروشندگان بر اساس رضایت مشتری
           </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600">رتبه</th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600">فروشنده</th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600">مکالمات</th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600">امتیاز احساسات</th>
-                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600">وضعیت</th>
+              <tr className="bg-gray-50 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700">
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300">رتبه</th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300">فروشنده</th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300">مکالمات</th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300">امتیاز احساسات</th>
+                <th className="text-right px-4 py-3 text-xs font-bold text-gray-600 dark:text-gray-300">وضعیت</th>
               </tr>
             </thead>
             <tbody>
               {topSellers.map((seller, index) => {
-                const sentimentIcon = seller.sentiment === 'positive' ? <ArrowUp className="w-4 h-4 text-green-600" /> :
-                                     seller.sentiment === 'negative' ? <ArrowDown className="w-4 h-4 text-red-600" /> :
-                                     <Minus className="w-4 h-4 text-gray-500" />;
-                const sentimentColor = seller.sentiment === 'positive' ? 'text-green-700 bg-green-100' :
-                                      seller.sentiment === 'negative' ? 'text-red-700 bg-red-100' :
-                                      'text-gray-700 bg-gray-100';
-                const rankColor = index < 3 
-                  ? index === 0 ? 'from-yellow-400 to-amber-500' 
-                  : index === 1 ? 'from-gray-400 to-gray-500' 
+                const sentimentIcon = seller.sentiment === 'positive' ? <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" /> :
+                                     seller.sentiment === 'negative' ? <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" /> :
+                                     <Minus className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
+                const sentimentColor = seller.sentiment === 'positive' ? 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30' :
+                                      seller.sentiment === 'negative' ? 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30' :
+                                      'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700';
+                const rankColor = index < 3
+                  ? index === 0 ? 'from-yellow-400 to-amber-500'
+                  : index === 1 ? 'from-gray-400 to-gray-500'
                   : 'from-amber-600 to-amber-700'
-                  : 'from-gray-200 to-gray-300';
+                  : 'from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700';
 
                 return (
-                  <tr key={seller.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                  <tr key={seller.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50/50 dark:hover:bg-gray-700/30">
                     <td className="px-4 py-3">
                       <div className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white bg-gradient-to-br',
@@ -252,16 +250,16 @@ export function AdminSentimentDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 text-xs font-bold">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-400 text-xs font-bold">
                           {seller.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-gray-900">{seller.name}</p>
-                          {seller.shop_name && <p className="text-[10px] text-gray-500">{seller.shop_name}</p>}
+                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{seller.name}</p>
+                          {seller.shop_name && <p className="text-[10px] text-gray-500 dark:text-gray-400">{seller.shop_name}</p>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-bold text-gray-700">{seller.conversations_count}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-300">{seller.conversations_count}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         {sentimentIcon}
@@ -271,8 +269,8 @@ export function AdminSentimentDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge 
-                        variant={seller.sentiment === 'positive' ? 'success' : seller.sentiment === 'negative' ? 'error' : 'gray'} 
+                      <Badge
+                        variant={seller.sentiment === 'positive' ? 'success' : seller.sentiment === 'negative' ? 'error' : 'gray'}
                         size="sm"
                       >
                         {seller.sentiment === 'positive' ? '😊 راضی' : seller.sentiment === 'negative' ? '😞 ناراضی' : '😐 خنثی'}
@@ -294,29 +292,29 @@ export function AdminSentimentDashboard() {
 function SummaryCard({ label, value, icon: Icon, color, badge }: {
   label: string;
   value: string;
-  icon: any;
+  icon: LucideIcon;
   color: 'success' | 'warning' | 'error' | 'gray';
   badge?: string;
 }) {
   const colors = {
-    success: 'text-green-600 bg-green-50',
-    warning: 'text-amber-600 bg-amber-50',
-    error: 'text-red-600 bg-red-50',
-    gray: 'text-gray-600 bg-gray-50',
+    success: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30',
+    warning: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30',
+    error: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30',
+    gray: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700',
   };
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center justify-between">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
       <div className="flex items-center gap-3">
         <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', colors[color])}>
           <Icon className="w-5 h-5" />
         </div>
         <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-2xl font-black text-gray-900">{value}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+          <p className="text-2xl font-black text-gray-900 dark:text-gray-100">{value}</p>
         </div>
       </div>
-      {badge && <span className="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{badge}</span>}
+      {badge && <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">{badge}</span>}
     </div>
   );
 }

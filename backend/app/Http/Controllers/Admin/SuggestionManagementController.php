@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ProductSuggestion;
-use App\Models\Product;
-use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class SuggestionManagementController extends Controller
 {
@@ -25,11 +24,11 @@ class SuggestionManagementController extends Controller
             $manualSuggestions = ProductSuggestion::where('source', 'manual')->count();
 
             // محاسبه نرخ‌ها
-            $clickRate = $totalSuggestions > 0 
-                ? round(($clickedSuggestions / $totalSuggestions) * 100, 1) 
+            $clickRate = $totalSuggestions > 0
+                ? round(($clickedSuggestions / $totalSuggestions) * 100, 1)
                 : 0;
-            $conversionRate = $clickedSuggestions > 0 
-                ? round(($purchasedSuggestions / $clickedSuggestions) * 100, 1) 
+            $conversionRate = $clickedSuggestions > 0
+                ? round(($purchasedSuggestions / $clickedSuggestions) * 100, 1)
                 : 0;
 
             // درآمد از پیشنهادات (مجموع قیمت محصولات خریداری شده)
@@ -49,7 +48,7 @@ class SuggestionManagementController extends Controller
                     ->where('is_clicked', true)->count();
                 $purchased = ProductSuggestion::whereDate('created_at', $date)
                     ->where('is_purchased', true)->count();
-                
+
                 $trend[] = [
                     'date' => now()->subDays($i)->locale('fa')->isoFormat('D MMM'),
                     'total' => $count,
@@ -74,7 +73,8 @@ class SuggestionManagementController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@stats: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@stats: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت آمار',
@@ -137,7 +137,8 @@ class SuggestionManagementController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@index: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@index: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت لیست پیشنهادات',
@@ -162,11 +163,11 @@ class SuggestionManagementController extends Controller
                 ->limit(10)
                 ->get()
                 ->map(function ($item) {
-                    $conversionRate = $item->total_clicked > 0 
-                        ? round(($item->total_purchased / $item->total_clicked) * 100, 1) 
+                    $conversionRate = $item->total_clicked > 0
+                        ? round(($item->total_purchased / $item->total_clicked) * 100, 1)
                         : 0;
-                    $clickRate = $item->total_suggestions > 0 
-                        ? round(($item->total_clicked / $item->total_suggestions) * 100, 1) 
+                    $clickRate = $item->total_suggestions > 0
+                        ? round(($item->total_clicked / $item->total_suggestions) * 100, 1)
                         : 0;
 
                     return [
@@ -186,7 +187,8 @@ class SuggestionManagementController extends Controller
                 'data' => $topProducts,
             ]);
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@topPerformers: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@topPerformers: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا',
@@ -217,8 +219,8 @@ class SuggestionManagementController extends Controller
                         'total_suggestions' => $item->total_suggestions,
                         'total_clicked' => $item->total_clicked,
                         'total_purchased' => $item->total_purchased,
-                        'success_rate' => $item->total_suggestions > 0 
-                            ? round(($item->total_purchased / $item->total_suggestions) * 100, 1) 
+                        'success_rate' => $item->total_suggestions > 0
+                            ? round(($item->total_purchased / $item->total_suggestions) * 100, 1)
                             : 0,
                     ];
                 });
@@ -228,7 +230,8 @@ class SuggestionManagementController extends Controller
                 'data' => $topSellers,
             ]);
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@topSellers: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@topSellers: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا',
@@ -242,9 +245,12 @@ class SuggestionManagementController extends Controller
     public function getSettings()
     {
         try {
-            // این تنظیمات را می‌توانیم در جدول settings ذخیره کنیم
-            // برای الان از مقادیر پیش‌فرض استفاده می‌کنیم
-            $settings = [
+            // ✅ قبلاً این متد همیشه همین مقادیر پیش‌فرض ثابت را برمی‌گرداند و
+            // هیچ‌وقت از جدول settings نمی‌خواند — یعنی با اینکه updateSettings()
+            // مقادیر را با کلید suggestion_{key} واقعاً ذخیره می‌کرد، ادمین بعد
+            // از رفرش صفحه همیشه همان تنظیمات پیش‌فرض اولیه را می‌دید و تصور
+            // می‌کرد ذخیره کار نکرده است.
+            $defaults = [
                 'max_suggestions_per_conversation' => 5,
                 'min_relevance_score' => 0.5,
                 'prioritize_same_category' => true,
@@ -254,12 +260,38 @@ class SuggestionManagementController extends Controller
                 'manual_suggest_enabled' => true,
             ];
 
+            $booleanKeys = [
+                'prioritize_same_category',
+                'prioritize_top_selling',
+                'prioritize_new_products',
+                'auto_suggest_enabled',
+                'manual_suggest_enabled',
+            ];
+
+            $settings = [];
+            foreach ($defaults as $key => $default) {
+                $stored = Setting::where('key', "suggestion_{$key}")->value('value');
+
+                if ($stored === null) {
+                    $settings[$key] = $default;
+                } elseif (in_array($key, $booleanKeys, true)) {
+                    $settings[$key] = filter_var($stored, FILTER_VALIDATE_BOOLEAN);
+                } elseif ($key === 'max_suggestions_per_conversation') {
+                    $settings[$key] = (int) $stored;
+                } elseif ($key === 'min_relevance_score') {
+                    $settings[$key] = (float) $stored;
+                } else {
+                    $settings[$key] = $stored;
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $settings,
             ]);
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@getSettings: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@getSettings: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا',
@@ -285,7 +317,7 @@ class SuggestionManagementController extends Controller
 
             // ذخیره در جدول settings
             foreach ($validated as $key => $value) {
-                \App\Models\Setting::updateOrCreate(
+                Setting::updateOrCreate(
                     ['key' => "suggestion_{$key}"],
                     ['value' => is_bool($value) ? ($value ? '1' : '0') : (string) $value]
                 );
@@ -295,10 +327,11 @@ class SuggestionManagementController extends Controller
                 'success' => true,
                 'message' => 'تنظیمات بروزرسانی شد',
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('SuggestionManagementController@updateSettings: ' . $e->getMessage());
+            Log::error('SuggestionManagementController@updateSettings: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا',

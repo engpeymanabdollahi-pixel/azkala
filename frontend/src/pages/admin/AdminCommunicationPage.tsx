@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageCircle, Ticket, Smile, HelpCircle, FileText, Lightbulb } from 'lucide-react';
+import { MessageCircle, Ticket, Smile, HelpCircle, FileText, Lightbulb, Flag, Ban } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { AdminChatMonitorPage } from './AdminChatMonitorPage';
 import AdminSupportTicketsPage from './AdminSupportTicketsPage';
@@ -7,98 +7,130 @@ import { AdminSentimentDashboard } from './AdminSentimentDashboard';
 import { AdminFaqManagementPage } from './AdminFaqManagementPage';
 import { AdminMessageTemplatesPage } from './AdminMessageTemplatesPage';
 import { AdminSuggestionManagementPage } from './AdminSuggestionManagementPage';
+import { AdminChatReportsPage } from './AdminChatReportsPage';
+import { AdminBlocksPage } from './AdminBlocksPage';
 
-type TabType = 'chat' | 'tickets' | 'sentiment' | 'faq' | 'templates' | 'suggestions';
+type TabType = 'chat' | 'tickets' | 'sentiment' | 'faq' | 'templates' | 'suggestions' | 'reports' | 'blocks';
+type TabColor = 'primary' | 'warning' | 'accent' | 'success' | 'gray' | 'error';
 
 export function AdminCommunicationPage() {
   const [activeTab, setActiveTab] = useState<TabType>('chat');
 
-  const tabs = [
+  // ✅ AdminChatReportsPage و AdminBlocksPage قبلاً در App.tsx لود می‌شدند و
+  // حتی روت‌های قدیمی‌شان (/admin/chat/reports و /admin/chat/blocks) به این
+  // هاب ریدایرکت می‌شدند، اما هیچ تبی برای نمایش‌شان اینجا وجود نداشت —
+  // یعنی دو صفحهٔ کامل «گزارش‌های تخلف چت» و «بلاک کاربران» برای ادمین
+  // کاملاً غیرقابل‌دسترس بودند.
+  const tabs: { id: TabType; label: string; icon: typeof MessageCircle; color: TabColor; description: string }[] = [
     {
-      id: 'chat' as TabType,
-      label: 'ع†طھ ط²ظ†ط¯ظ‡',
+      id: 'chat',
+      label: 'چت زنده',
       icon: MessageCircle,
       color: 'primary',
-      description: 'ظ…ط§ظ†غŒطھظˆط±غŒظ†ع¯ ظˆ ظ…ط¯غŒط±غŒطھ ع†طھâ€Œظ‡ط§',
+      description: 'مانیتورینگ و مدیریت چت‌ها',
     },
     {
-      id: 'tickets' as TabType,
-      label: 'طھغŒع©طھâ€Œظ‡ط§',
+      id: 'reports',
+      label: 'گزارش‌های تخلف',
+      icon: Flag,
+      color: 'error',
+      description: 'بررسی و رسیدگی به گزارش‌های تخلف در چت',
+    },
+    {
+      id: 'blocks',
+      label: 'بلاک کاربران',
+      icon: Ban,
+      color: 'gray',
+      description: 'مدیریت کاربران بلاک‌شده در چت',
+    },
+    {
+      id: 'tickets',
+      label: 'تیکت‌ها',
       icon: Ticket,
       color: 'warning',
-      description: 'ظ…ط¯غŒط±غŒطھ طھغŒع©طھâ€Œظ‡ط§غŒ ظ¾ط´طھغŒط¨ط§ظ†غŒ',
+      description: 'مدیریت تیکت‌های پشتیبانی',
     },
     {
-      id: 'sentiment' as TabType,
-      label: 'طھط­ظ„غŒظ„ ط§ط­ط³ط§ط³ط§طھ',
+      id: 'sentiment',
+      label: 'تحلیل احساسات',
       icon: Smile,
       color: 'accent',
-      description: 'ط¯ط§ط´ط¨ظˆط±ط¯ ط§ط­ط³ط§ط³ط§طھ ع©ط§ط±ط¨ط±ط§ظ†',
+      description: 'داشبورد احساسات کاربران',
     },
     {
-      id: 'faq' as TabType,
+      id: 'faq',
       label: 'FAQ',
       icon: HelpCircle,
       color: 'success',
-      description: 'ظ…ط¯غŒط±غŒطھ ط³ظˆط§ظ„ط§طھ ظ…طھط¯ط§ظˆظ„',
+      description: 'مدیریت سوالات متداول',
     },
     {
-      id: 'templates' as TabType,
-      label: 'ظ‚ط§ظ„ط¨â€Œظ‡ط§غŒ ظ¾غŒط§ظ…',
+      id: 'templates',
+      label: 'قالب‌های پیام',
       icon: FileText,
       color: 'gray',
-      description: 'ظ…ط¯غŒط±غŒطھ ظ‚ط§ظ„ط¨â€Œظ‡ط§غŒ ظ¾ط§ط³ط® ط³ط±غŒط¹',
+      description: 'مدیریت قالب‌های پاسخ سریع',
     },
     {
-      id: 'suggestions' as TabType,
-      label: 'ظ¾غŒط´ظ†ظ‡ط§ط¯ط§طھ',
+      id: 'suggestions',
+      label: 'پیشنهادات',
       icon: Lightbulb,
       color: 'warning',
-      description: 'ظ…ط¯غŒط±غŒطھ ظ¾غŒط´ظ†ظ‡ط§ط¯ط§طھ ظ‡ظˆط´ظ…ظ†ط¯',
+      description: 'مدیریت پیشنهادات هوشمند',
     },
   ];
 
   const activeTabData = tabs.find(tab => tab.id === activeTab);
+
+  const colorTextClasses: Record<TabColor, string> = {
+    primary: 'text-primary-600 dark:text-primary-400',
+    warning: 'text-warning-600 dark:text-warning-400',
+    accent: 'text-accent-600 dark:text-accent-400',
+    success: 'text-success-600 dark:text-success-400',
+    gray: 'text-gray-600 dark:text-gray-400',
+    error: 'text-error-600 dark:text-error-400',
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
-            ظ…ط¯غŒط±غŒطھ ط§ط±طھط¨ط§ط·ط§طھ
+            مدیریت ارتباطات
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            ظ…ط¯غŒط±غŒطھ ع†طھطŒ طھغŒع©طھâ€Œظ‡ط§ ظˆ ط§ط¨ط²ط§ط±ظ‡ط§غŒ ط§ط±طھط¨ط§ط·غŒ
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            مدیریت چت، تیکت‌ها و ابزارهای ارتباطی
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-2">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
-            const colorClasses = {
-              primary: isActive ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30' : 'text-gray-600 hover:bg-primary-50',
-              warning: isActive ? 'bg-gradient-to-r from-warning-500 to-warning-600 text-white shadow-md shadow-warning-500/30' : 'text-gray-600 hover:bg-warning-50',
-              accent: isActive ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md shadow-accent-500/30' : 'text-gray-600 hover:bg-accent-50',
-              success: isActive ? 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-md shadow-success-500/30' : 'text-gray-600 hover:bg-success-50',
-              gray: isActive ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md shadow-gray-500/30' : 'text-gray-600 hover:bg-gray-50',
+
+            const colorClasses: Record<TabColor, string> = {
+              primary: isActive ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20',
+              warning: isActive ? 'bg-gradient-to-r from-warning-500 to-warning-600 text-white shadow-md shadow-warning-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-warning-50 dark:hover:bg-warning-900/20',
+              accent: isActive ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md shadow-accent-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-accent-50 dark:hover:bg-accent-900/20',
+              success: isActive ? 'bg-gradient-to-r from-success-500 to-success-600 text-white shadow-md shadow-success-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-success-50 dark:hover:bg-success-900/20',
+              gray: isActive ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-md shadow-gray-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50',
+              error: isActive ? 'bg-gradient-to-r from-error-500 to-error-600 text-white shadow-md shadow-error-500/30' : 'text-gray-600 dark:text-gray-300 hover:bg-error-50 dark:hover:bg-error-900/20',
             };
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   'flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg text-xs font-bold transition-all',
-                  colorClasses[tab.color as keyof typeof colorClasses]
+                  colorClasses[tab.color]
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -111,21 +143,14 @@ export function AdminCommunicationPage() {
 
       {/* Tab Description */}
       {activeTabData && (
-        <div className="bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-4 border border-primary-100">
+        <div className="bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl p-4 border border-primary-100 dark:border-primary-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-              <activeTabData.icon className={cn(
-                'w-5 h-5',
-                activeTabData.color === 'primary' && 'text-primary-600',
-                activeTabData.color === 'warning' && 'text-warning-600',
-                activeTabData.color === 'accent' && 'text-accent-600',
-                activeTabData.color === 'success' && 'text-success-600',
-                activeTabData.color === 'gray' && 'text-gray-600',
-              )} />
+            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-sm">
+              <activeTabData.icon className={cn('w-5 h-5', colorTextClasses[activeTabData.color])} />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900">{activeTabData.label}</h3>
-              <p className="text-sm text-gray-600">{activeTabData.description}</p>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100">{activeTabData.label}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{activeTabData.description}</p>
             </div>
           </div>
         </div>
@@ -134,6 +159,8 @@ export function AdminCommunicationPage() {
       {/* Content */}
       <div className="min-h-[600px]">
         {activeTab === 'chat' && <AdminChatMonitorPage />}
+        {activeTab === 'reports' && <AdminChatReportsPage />}
+        {activeTab === 'blocks' && <AdminBlocksPage />}
         {activeTab === 'tickets' && <AdminSupportTicketsPage />}
         {activeTab === 'sentiment' && <AdminSentimentDashboard />}
         {activeTab === 'faq' && <AdminFaqManagementPage />}

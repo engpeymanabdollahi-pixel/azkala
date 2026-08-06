@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
+use App\Repositories\AdminDashboardRepository;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ChatMonitorController extends Controller
 {
+    public function __construct(protected AdminDashboardRepository $dashboardRepository) {}
+
     /**
      * لیست مکالمات با فیلترهای پیشرفته
      */
@@ -94,15 +99,15 @@ class ChatMonitorController extends Controller
                     ->with('sender:id,name')
                     ->orderByDesc('created_at')
                     ->first();
-                
+
                 $conv->last_message = $lastMessage;
-                
+
                 // وضعیت آنلاین کاربران
-                $conv->buyer_online = $conv->buyer && $conv->buyer->last_seen_at && 
-                                     \Carbon\Carbon::parse($conv->buyer->last_seen_at)->gte(now()->subMinutes(5));
-                $conv->seller_online = $conv->seller && $conv->seller->last_seen_at && 
-                                      \Carbon\Carbon::parse($conv->seller->last_seen_at)->gte(now()->subMinutes(5));
-                
+                $conv->buyer_online = $conv->buyer && $conv->buyer->last_seen_at &&
+                                     Carbon::parse($conv->buyer->last_seen_at)->gte(now()->subMinutes(5));
+                $conv->seller_online = $conv->seller && $conv->seller->last_seen_at &&
+                                      Carbon::parse($conv->seller->last_seen_at)->gte(now()->subMinutes(5));
+
                 return $conv;
             });
 
@@ -119,7 +124,8 @@ class ChatMonitorController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('ChatMonitorController@index: ' . $e->getMessage());
+            Log::error('ChatMonitorController@index: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت مکالمات',
@@ -163,7 +169,8 @@ class ChatMonitorController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('ChatMonitorController@show: ' . $e->getMessage());
+            Log::error('ChatMonitorController@show: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'مکالمه یافت نشد',
@@ -199,10 +206,11 @@ class ChatMonitorController extends Controller
                 'message' => 'پیام با موفقیت ارسال شد',
                 'data' => $message->load('sender:id,name,avatar'),
             ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('ChatMonitorController@intervene: ' . $e->getMessage());
+            Log::error('ChatMonitorController@intervene: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در ارسال پیام',
@@ -232,7 +240,8 @@ class ChatMonitorController extends Controller
                 'message' => 'مکالمه بسته شد',
             ]);
         } catch (\Exception $e) {
-            Log::error('ChatMonitorController@close: ' . $e->getMessage());
+            Log::error('ChatMonitorController@close: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در بستن مکالمه',
@@ -251,12 +260,32 @@ class ChatMonitorController extends Controller
             $totalMessages = Message::count();
             $messagesToday = Message::whereDate('created_at', today())->count();
 
-            // میانگین زمان پاسخ (ساده‌سازی شده)
-            $avgResponseTime = 5; // دقیقه
+            // ✅ قبلاً میانگین زمان پاسخ همیشه عدد ثابت ۵ دقیقه بود (دقیقاً
+            // همان باگی که در AdminDashboardService هم بود و آنجا رفع شد) —
+            // همان محاسبهٔ واقعی از AdminDashboardRepository استفاده می‌شود.
+            $avgResponseTime = $this->dashboardRepository->getAverageResponseMinutes();
 
-            // نرخ تبدیل
-            $conversionRate = $totalConversations > 0 
-                ? round(($totalConversations / max(1, $totalMessages)) * 100, 1) 
+            // ✅ قبلاً «نرخ تبدیل» از فرمول بی‌معنیِ (کل مکالمات / کل پیام‌ها)
+            // محاسبه می‌شد که هیچ ارتباطی با تبدیل واقعی نداشت. اینجا واقعاً
+            // درصد مکالماتی که به خرید همان محصول از همان فروشنده منجر شده‌اند
+            // محاسبه می‌شود.
+            $conversationsWithProduct = Conversation::whereNotNull('product_id')->count();
+            $convertedConversations = $conversationsWithProduct > 0
+                ? DB::table('conversations')
+                    ->whereNotNull('conversations.product_id')
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('orders')
+                            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                            ->whereColumn('orders.user_id', 'conversations.buyer_id')
+                            ->whereColumn('order_items.product_id', 'conversations.product_id')
+                            ->whereColumn('order_items.seller_id', 'conversations.seller_id')
+                            ->whereColumn('orders.created_at', '>=', 'conversations.created_at');
+                    })
+                    ->count()
+                : 0;
+            $conversionRate = $conversationsWithProduct > 0
+                ? round(($convertedConversations / $conversationsWithProduct) * 100, 1)
                 : 0;
 
             // آمار روزانه (۷ روز اخیر)
@@ -300,7 +329,8 @@ class ChatMonitorController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('ChatMonitorController@stats: ' . $e->getMessage());
+            Log::error('ChatMonitorController@stats: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت آمار',
@@ -308,35 +338,11 @@ class ChatMonitorController extends Controller
         }
     }
 
-    /**
-     * مکالمات بحرانی (نیاز به مداخله)
-     */
-    public function critical(Request $request)
-    {
-        try {
-            // مکالمات با احساسات منفی بالا
-            $criticalConversations = Conversation::with([
-                'buyer:id,name',
-                'seller:id,name,shop_name',
-            ])
-            ->whereHas('messages.sentiment', function ($q) {
-                $q->where('sentiment', 'negative')
-                  ->where('score', '<', -0.5);
-            })
-            ->where('is_active', true)
-            ->limit(10)
-            ->get();
-
-            return response()->json([
-                'success' => true,
-                'data' => $criticalConversations,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('ChatMonitorController@critical: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'خطا در دریافت مکالمات بحرانی',
-            ], 500);
-        }
-    }
+    // ✅ متد critical() که اینجا بود حذف شد: به رابطهٔ ناموجود
+    // Message::sentiment() ارجاع می‌داد (هیچ‌وقت روی مدل Message تعریف
+    // نشده بود) و هرگز فراخوانی نمی‌شد — یعنی اگر هم صدا زده می‌شد بلافاصله
+    // با خطای ۵۰۰ (BadMethodCallException) کرش می‌کرد. همین قابلیت
+    // «مکالمات با احساس منفی» به‌درستی و با کوئری واقعی در
+    // SentimentDashboardController::alerts() پیاده‌سازی شده و از طریق تب
+    // «تحلیل احساسات» در دسترس ادمین است.
 }
