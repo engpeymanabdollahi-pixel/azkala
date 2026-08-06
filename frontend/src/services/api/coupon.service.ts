@@ -1,4 +1,5 @@
 import apiClient from './client';
+import { type AxiosError } from 'axios';
 
 // ==================== Types ====================
 
@@ -7,9 +8,14 @@ export interface Coupon {
   code: string;
   type: 'percentage' | 'fixed';
   value: number;
-  min_order_amount?: number;
+  // ✅ min_order_amount در دیتابیس default(0) و NOT NULL است — همیشه واقعاً
+  // برمی‌گردد، بنابراین اختیاری علامت‌گذاری کردنش نادرست بود.
+  min_order_amount: number;
   max_discount?: number;
   description?: string;
+  // ✅ start_date قبلاً از تایپ جا افتاده بود در حالی که در بکند وجود دارد
+  // و صفحه‌ی مدیریت کوپن‌ها از آن استفاده می‌کند.
+  start_date?: string;
   end_date?: string;
   usage_limit?: number;
   usage_limit_per_user?: number;
@@ -44,10 +50,11 @@ export const couponService = {
         code: code.toUpperCase().trim(),
       });
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
       return {
         success: false,
-        message: error.response?.data?.message || 'خطا در اعتبارسنجی کد تخفیف',
+        message: axiosError.response?.data?.message || 'خطا در اعتبارسنجی کد تخفیف',
       };
     }
   },
@@ -62,9 +69,22 @@ export const couponService = {
 
   /**
    * 🆕 دریافت همه کوپن‌ها (Admin)
+   * ✅ قبلاً پاسخ فقط شامل همان یک صفحهٔ کوپن‌ها بود و هیچ آمار واقعی‌ای
+   * روی کل دیتابیس وجود نداشت. search/is_active/type هم اکنون واقعاً
+   * در بکند فیلتر می‌شوند، نه فقط روی صفحهٔ فعلی در سمت کلاینت.
    */
-  async getAllCoupons(page: number = 1): Promise<{ success: boolean; data: any }> {
-    const response = await apiClient.get(`/admin/coupons?page=${page}`);
+  async getAllCoupons(
+    page: number = 1,
+    filters: { search?: string; is_active?: boolean; type?: 'percentage' | 'fixed' } = {}
+  ): Promise<{
+    success: boolean;
+    data: {
+      coupons: Coupon[];
+      pagination: { current_page: number; last_page: number; total: number; per_page: number };
+      stats: { total: number; active: number; percentage: number; fixed: number; total_usage: number };
+    };
+  }> {
+    const response = await apiClient.get('/admin/coupons', { params: { page, ...filters } });
     return response.data;
   },
 

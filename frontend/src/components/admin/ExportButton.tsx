@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 interface ExportButtonProps {
   type: 'orders' | 'users' | 'products' | 'chat' | 'reports' | 'summary';
   label?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, string | number | boolean | undefined>;
   className?: string;
 }
 
@@ -98,29 +98,29 @@ export function ExportButton({ type, label, filters = {}, className }: ExportBut
             className="fixed inset-0 z-40" 
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
             {(type === 'summary' ? (
               <button
                 onClick={() => handleExport('pdf')}
-                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm"
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
               >
-                <FileText className="w-4 h-4 text-red-600" />
+                <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
                 دانلود PDF
               </button>
             ) : (
               <>
                 <button
                   onClick={() => handleExport('excel')}
-                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm"
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                  <FileSpreadsheet className="w-4 h-4 text-green-600 dark:text-green-400" />
                   دانلود Excel
                 </button>
                 <button
                   onClick={() => handleExport('pdf')}
-                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 text-sm border-t border-gray-100"
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 border-t border-gray-100 dark:border-gray-700"
                 >
-                  <FileText className="w-4 h-4 text-red-600" />
+                  <FileText className="w-4 h-4 text-red-600 dark:text-red-400" />
                   دانلود PDF
                 </button>
               </>

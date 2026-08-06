@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Package, Search, Edit2, Trash2, Eye, EyeOff,
@@ -72,7 +72,7 @@ export function AdminProductsPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-products', filters],
     queryFn: () => adminProductService.getProducts(filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const products = data?.data?.products || [];
@@ -516,9 +516,9 @@ export function AdminProductsPage() {
                         <div className="flex items-center gap-1">
                           <Star className={cn(
                             'w-3.5 h-3.5',
-                            product.rating > 0 ? 'text-warning-400 fill-warning-400' : 'text-gray-300 dark:text-gray-600'
+                            (product.rating ?? 0) > 0 ? 'text-warning-400 fill-warning-400' : 'text-gray-300 dark:text-gray-600'
                           )} />
-                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                             {product.rating?.toFixed(1) || '0'}
                           </span>
                           <span className="text-[10px] text-gray-400 dark:text-gray-500">

@@ -14,53 +14,56 @@ class AdminReviewRepository
     {
         $query = Review::with([
             'user:id,name,email,avatar',
-            'product:id,name,slug,main_image'
+            'product:id,name,slug,main_image',
         ]);
 
         // Search filter
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('comment', 'LIKE', "%{$search}%")
-                  ->orWhereHas('user', function($uq) use ($search) {
-                      $uq->where('name', 'LIKE', "%{$search}%");
-                  })
-                  ->orWhereHas('product', function($pq) use ($search) {
-                      $pq->where('name', 'LIKE', "%{$search}%");
-                  });
+                    ->orWhere('comment', 'LIKE', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'LIKE', "%{$search}%");
+                    })
+                    ->orWhereHas('product', function ($pq) use ($search) {
+                        $pq->where('name', 'LIKE', "%{$search}%");
+                    });
             });
         }
 
         // Status filter
-        if (!empty($filters['status'])) {
+        if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
         // Rating filter
-        if (!empty($filters['rating'])) {
+        if (! empty($filters['rating'])) {
             $query->where('rating', $filters['rating']);
         }
 
         // Product filter
-        if (!empty($filters['product_id'])) {
+        if (! empty($filters['product_id'])) {
             $query->where('product_id', $filters['product_id']);
         }
 
         // Verified filter
-        if (isset($filters['is_verified'])) {
-            $query->where('is_verified', $filters['is_verified']);
+        // ✅ قبلاً مقدار خام فیلتر (که از URLSearchParams همیشه رشته می‌آید،
+        // مثل "true"/"false") مستقیم با ستون boolean مقایسه می‌شد؛ اینجا هم
+        // مثل فیلتر مشابه در CouponService با filter_var درست بولین می‌شود.
+        if (isset($filters['is_verified']) && $filters['is_verified'] !== null && $filters['is_verified'] !== '') {
+            $query->where('is_verified', filter_var($filters['is_verified'], FILTER_VALIDATE_BOOLEAN));
         }
 
         // Sorting
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
         $allowedSorts = ['created_at', 'rating', 'helpful_count'];
-        
-        if (!in_array($sortBy, $allowedSorts)) {
+
+        if (! in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
         }
-        
+
         $query->orderBy($sortBy, $sortOrder);
 
         return $query->paginate($perPage);
@@ -88,6 +91,7 @@ class AdminReviewRepository
     public function update(Review $review, array $data): Review
     {
         $review->update($data);
+
         return $review;
     }
 
@@ -123,16 +127,19 @@ class AdminReviewRepository
         switch ($action) {
             case 'approve':
                 Review::whereIn('id', $ids)->update(['status' => 'approved']);
+
                 return count($ids);
-                
+
             case 'reject':
                 Review::whereIn('id', $ids)->update(['status' => 'rejected']);
+
                 return count($ids);
-                
+
             case 'delete':
                 Review::whereIn('id', $ids)->delete();
+
                 return count($ids);
-                
+
             default:
                 return 0;
         }

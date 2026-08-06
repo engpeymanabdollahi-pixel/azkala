@@ -8,6 +8,7 @@ use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CouponController extends Controller
 {
@@ -17,7 +18,7 @@ class CouponController extends Controller
     public function validateCoupon(Request $request)
     {
         $result = $this->couponService->validateCoupon($request->input('code', ''), Auth::id());
-        
+
         // استخراج status برای پاسخ HTTP و حذف آن از بدنه JSON
         $status = $result['status'] ?? 200;
         unset($result['status']);
@@ -30,11 +31,32 @@ class CouponController extends Controller
         return response()->json($this->couponService->getMyCoupons());
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        // ✅ قبلاً هیچ فیلتری پاس داده نمی‌شد — با اضافه‌شدن صفحه‌بندی واقعی
+        // در فرانت‌اند، جستجو/فیلتر سمت کلاینت فقط روی همان یک صفحهٔ
+        // بارگذاری‌شده اعمال می‌شد، نه کل کدهای تخفیف.
+        $filters = [
+            'search' => $request->get('search'),
+            'is_active' => $request->get('is_active'),
+            'type' => $request->get('type'),
+        ];
+
+        $coupons = $this->couponService->getAllCoupons($filters, (int) $request->get('per_page', 20));
+
         return response()->json([
-            'success' => true, 
-            'data' => $this->couponService->getAllCoupons()
+            'success' => true,
+            'data' => [
+                'coupons' => $coupons->items(),
+                'pagination' => [
+                    'current_page' => $coupons->currentPage(),
+                    'last_page' => $coupons->lastPage(),
+                    'per_page' => $coupons->perPage(),
+                    'total' => $coupons->total(),
+                ],
+                // ✅ آمار واقعی روی کل دیتابیس، نه فقط صفحهٔ فعلی.
+                'stats' => $this->couponService->getStats(),
+            ],
         ]);
     }
 
@@ -55,11 +77,13 @@ class CouponController extends Controller
 
         try {
             $coupon = $this->couponService->createCoupon($validated, Auth::id());
+
             return response()->json(['success' => true, 'message' => 'ایجاد شد', 'data' => $coupon], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('Coupon store error: ' . $e->getMessage());
+            Log::error('Coupon store error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'خطا در ایجاد کوپن'], 500);
         }
     }
@@ -67,15 +91,16 @@ class CouponController extends Controller
     public function show($id)
     {
         $coupon = Coupon::findOrFail($id);
+
         return response()->json(['success' => true, 'data' => $coupon]);
     }
 
     public function update(Request $request, $id)
     {
         $coupon = Coupon::findOrFail($id);
-        
+
         $validated = $request->validate([
-            'code' => 'sometimes|string|max:50|unique:coupons,code,' . $id,
+            'code' => 'sometimes|string|max:50|unique:coupons,code,'.$id,
             'type' => 'sometimes|in:percentage,fixed',
             'value' => 'sometimes|numeric|min:0',
             'min_order_amount' => 'nullable|numeric|min:0',
@@ -90,8 +115,9 @@ class CouponController extends Controller
 
         try {
             $updated = $this->couponService->updateCoupon($coupon, $validated);
+
             return response()->json(['success' => true, 'message' => 'به‌روزرسانی شد', 'data' => $updated]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطا در به‌روزرسانی'], 500);
@@ -103,6 +129,7 @@ class CouponController extends Controller
         $coupon = Coupon::findOrFail($id);
         try {
             $this->couponService->deleteCoupon($coupon);
+
             return response()->json(['success' => true, 'message' => 'حذف شد']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'خطا در حذف'], 500);

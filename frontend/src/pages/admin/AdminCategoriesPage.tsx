@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   DndContext,
   closestCenter,
@@ -123,7 +123,7 @@ export function AdminCategoriesPage() {
   const { data: listData, isLoading: listLoading } = useQuery({
     queryKey: ['admin-categories-list', filters],
     queryFn: () => adminCategoryService.getCategories(filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     enabled: viewMode === 'list',
   });
 

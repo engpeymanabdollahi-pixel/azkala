@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   Users, User, Search, Eye, Shield, ShieldAlert,
   X, Package, DollarSign, Calendar,
@@ -105,7 +105,7 @@ export function AdminUsersPage() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-users', filters],
     queryFn: () => adminUserService.getUsers(filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const { data: requestsData, isLoading: requestsLoading } = useQuery({

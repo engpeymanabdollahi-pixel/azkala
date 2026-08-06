@@ -4,6 +4,7 @@ namespace Tests\Unit\Services;
 
 use App\Models\Coupon;
 use App\Models\User;
+use App\Services\CouponService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -14,10 +15,13 @@ class CouponServiceTest extends TestCase
 
     protected User $user;
 
+    protected CouponService $couponService;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->user = User::factory()->create();
+        $this->couponService = app(CouponService::class);
     }
 
     public function test_coupon_is_valid_when_all_conditions_are_met(): void
@@ -196,12 +200,81 @@ class CouponServiceTest extends TestCase
 
         $coupon->refresh();
         $this->assertEquals(1, $coupon->used_count);
-        
+
         $this->assertDatabaseHas('coupon_user', [
             'coupon_id' => $coupon->id,
             'user_id' => $this->user->id,
             'order_id' => 99,
             'discount_amount' => 10000,
         ]);
+    }
+
+    /**
+     * ✅ قبلاً getAllCoupons() هیچ فیلتری را پشتیبانی نمی‌کرد و همیشه کل
+     * کدهای تخفیف را برمی‌گرداند — فیلتر جستجو/وضعیت/نوع فقط سمت کلاینت
+     * و فقط روی همان یک صفحهٔ بارگذاری‌شده اعمال می‌شد.
+     */
+    public function test_get_all_coupons_filters_by_search(): void
+    {
+        Coupon::create(['code' => 'SUMMER2026', 'type' => 'fixed', 'value' => 1000]);
+        Coupon::create(['code' => 'WINTERSALE', 'type' => 'fixed', 'value' => 1000]);
+
+        $result = $this->couponService->getAllCoupons(['search' => 'SUMMER']);
+
+        $this->assertEquals(1, $result->total());
+        $this->assertEquals('SUMMER2026', $result->items()[0]->code);
+    }
+
+    public function test_get_all_coupons_filters_by_active_status(): void
+    {
+        Coupon::create(['code' => 'ACTIVE1', 'type' => 'fixed', 'value' => 1000, 'is_active' => true]);
+        Coupon::create(['code' => 'INACTIVE1', 'type' => 'fixed', 'value' => 1000, 'is_active' => false]);
+
+        $result = $this->couponService->getAllCoupons(['is_active' => true]);
+
+        $this->assertEquals(1, $result->total());
+        $this->assertEquals('ACTIVE1', $result->items()[0]->code);
+    }
+
+    public function test_get_all_coupons_filters_by_type(): void
+    {
+        Coupon::create(['code' => 'PERC1', 'type' => 'percentage', 'value' => 10]);
+        Coupon::create(['code' => 'FIX1', 'type' => 'fixed', 'value' => 1000]);
+
+        $result = $this->couponService->getAllCoupons(['type' => 'percentage']);
+
+        $this->assertEquals(1, $result->total());
+        $this->assertEquals('PERC1', $result->items()[0]->code);
+    }
+
+    public function test_get_all_coupons_paginates_results(): void
+    {
+        Coupon::factory()->count(25)->create();
+
+        $result = $this->couponService->getAllCoupons([], 10);
+
+        $this->assertEquals(25, $result->total());
+        $this->assertEquals(3, $result->lastPage());
+        $this->assertCount(10, $result->items());
+    }
+
+    /**
+     * ✅ قبلاً آماری در بکند وجود نداشت — کارت‌های آمار پنل ادمین از روی
+     * همان یک صفحهٔ بارگذاری‌شده محاسبه می‌شدند که برای فروشگاه‌های با
+     * بیش از ۲۰ کد تخفیف، اعداد را به‌اشتباه کمتر از واقعی نشان می‌داد.
+     */
+    public function test_get_stats_reflects_the_whole_database(): void
+    {
+        Coupon::create(['code' => 'S1', 'type' => 'percentage', 'value' => 10, 'is_active' => true, 'used_count' => 3]);
+        Coupon::create(['code' => 'S2', 'type' => 'fixed', 'value' => 1000, 'is_active' => false, 'used_count' => 2]);
+        Coupon::create(['code' => 'S3', 'type' => 'percentage', 'value' => 5, 'is_active' => true, 'used_count' => 1]);
+
+        $stats = $this->couponService->getStats();
+
+        $this->assertEquals(3, $stats['total']);
+        $this->assertEquals(2, $stats['active']);
+        $this->assertEquals(2, $stats['percentage']);
+        $this->assertEquals(1, $stats['fixed']);
+        $this->assertEquals(6, $stats['total_usage']);
     }
 }

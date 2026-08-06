@@ -60,7 +60,12 @@ class AdminOrderController extends Controller
         $this->authorize('updateStatus', $order);
 
         $validated = $request->validate([
-            'status' => 'required|in:pending,processing,shipped,delivered,cancelled',
+            // ✅ 'returned' اضافه شد — قبلاً در فرانت‌اند (فیلتر و مودال تغییر
+            // وضعیت) کاملاً پیاده‌سازی شده بود اما چون اینجا مجاز نبود، انتخاب
+            // «مرجوعی» همیشه با خطای اعتبارسنجی ۴۲۲ شکست می‌خورد.
+            'status' => 'required|in:pending,processing,shipped,delivered,cancelled,returned',
+            'tracking_number' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $updatedOrder = $this->orderService->updateStatus($order->id, $validated);
@@ -98,7 +103,7 @@ class AdminOrderController extends Controller
     public function stats()
     {
         $data = $this->orderService->getStats();
-        
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 }

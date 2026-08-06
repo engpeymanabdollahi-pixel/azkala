@@ -3,7 +3,6 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Order;
-use App\Models\User;
 use App\Repositories\AdminOrderRepository;
 use App\Services\Admin\AdminOrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,12 +13,13 @@ class AdminOrderServiceTest extends TestCase
     use RefreshDatabase;
 
     protected AdminOrderService $service;
+
     protected AdminOrderRepository $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new AdminOrderRepository();
+        $this->repository = new AdminOrderRepository;
         $this->service = new AdminOrderService($this->repository);
     }
 
@@ -71,7 +71,7 @@ class AdminOrderServiceTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('order', $result);
-        
+
         // ✅ اصلاح: order ممکن است array یا object باشد
         $orderData = $result['order'];
         if (is_array($orderData)) {
@@ -119,6 +119,20 @@ class AdminOrderServiceTest extends TestCase
         $updated = $this->service->updateStatus($order->id, ['status' => 'cancelled']);
 
         $this->assertEquals('cancelled', $updated->status);
+    }
+
+    /**
+     * ✅ قبلاً ستون status در دیتابیس فقط pending/processing/shipped/
+     * delivered/cancelled را می‌پذیرفت و 'returned' اصلاً مجاز نبود.
+     */
+    public function test_can_update_order_status_to_returned(): void
+    {
+        $order = Order::factory()->create(['status' => 'delivered']);
+
+        $updated = $this->service->updateStatus($order->id, ['status' => 'returned']);
+
+        $this->assertEquals('returned', $updated->status);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'returned']);
     }
 
     // ==================== updatePaymentStatus Tests ====================

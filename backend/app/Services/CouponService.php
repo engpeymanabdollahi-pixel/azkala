@@ -2,22 +2,21 @@
 
 namespace App\Services;
 
-use App\Models\Coupon;
 use App\Models\Cart;
-use Illuminate\Support\Facades\Log;
+use App\Models\Coupon;
 
 class CouponService
 {
     public function validateCoupon(string $code, int $userId): array
     {
         $code = strtoupper(trim($code));
-        
+
         if (empty($code)) {
             return ['success' => false, 'message' => 'کد تخفیف الزامی است', 'status' => 422];
         }
 
         $coupon = Coupon::where('code', $code)->first();
-        if (!$coupon) {
+        if (! $coupon) {
             return ['success' => false, 'message' => 'کد تخفیف نامعتبر است', 'status' => 404];
         }
 
@@ -35,7 +34,7 @@ class CouponService
 
         $validation = $coupon->isValidFor($userId, $subtotal, $productIds);
 
-        if (!$validation['valid']) {
+        if (! $validation['valid']) {
             return ['success' => false, 'message' => $validation['message'], 'status' => 400];
         }
 
@@ -55,7 +54,7 @@ class CouponService
                 ],
                 'discount_amount' => (float) $discountAmount,
                 'message' => 'کد تخفیف با موفقیت اعمال شد',
-            ]
+            ],
         ];
     }
 
@@ -69,9 +68,45 @@ class CouponService
         return ['success' => true, 'data' => $coupons];
     }
 
-    public function getAllCoupons(int $perPage = 20)
+    /**
+     * ✅ قبلاً هیچ فیلتری پشتیبانی نمی‌شد؛ فیلتر جستجو/وضعیت/نوع در پنل
+     * ادمین فقط روی همان یک صفحهٔ بارگذاری‌شده در سمت کلاینت اعمال
+     * می‌شد، نه کل کدهای تخفیف.
+     */
+    public function getAllCoupons(array $filters = [], int $perPage = 20)
     {
-        return Coupon::orderByDesc('created_at')->paginate($perPage);
+        $query = Coupon::query();
+
+        if (! empty($filters['search'])) {
+            $query->where('code', 'like', '%'.$filters['search'].'%');
+        }
+
+        if (isset($filters['is_active']) && $filters['is_active'] !== null && $filters['is_active'] !== '') {
+            $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (! empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        return $query->orderByDesc('created_at')->paginate($perPage);
+    }
+
+    /**
+     * ✅ قبلاً آماری در بکند وجود نداشت — کارت‌های آمار پنل ادمین
+     * (کل/فعال/درصدی/مبلغ‌ثابت/کل استفاده) از خودِ همان یک صفحهٔ ۲۰تایی
+     * محاسبه می‌شدند؛ یعنی برای فروشگاهی با بیش از ۲۰ کد تخفیف، این
+     * اعداد کاملاً نادرست (کمتر از واقعی) بودند.
+     */
+    public function getStats(): array
+    {
+        return [
+            'total' => Coupon::count(),
+            'active' => Coupon::where('is_active', true)->count(),
+            'percentage' => Coupon::where('type', 'percentage')->count(),
+            'fixed' => Coupon::where('type', 'fixed')->count(),
+            'total_usage' => (int) Coupon::sum('used_count'),
+        ];
     }
 
     public function createCoupon(array $data, int $createdBy): Coupon
@@ -79,13 +114,14 @@ class CouponService
         $data['code'] = strtoupper(trim($data['code']));
         $data['created_by'] = $createdBy;
         $data['applicable_to'] = $data['applicable_to'] ?? 'all';
-        
+
         return Coupon::create($data);
     }
 
     public function updateCoupon(Coupon $coupon, array $data): Coupon
     {
         $coupon->update($data);
+
         return $coupon;
     }
 
