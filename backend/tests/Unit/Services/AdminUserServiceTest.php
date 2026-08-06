@@ -194,8 +194,13 @@ class AdminUserServiceTest extends TestCase
         $this->assertIsIterable($result);
     }
 
-    // ==================== approveSellerRequest Tests ====================
-    // ✅ اصلاح کامل: حذف seller_status و استفاده از $this->service
+    // ==================== approveSeller/rejectSeller (مسیر مستقیم، بدون SellerRequest) ====================
+    // ✅ approveSellerRequest()/rejectSellerRequest() قدیمی که این بخش قبلاً
+    // به نامشان اشاره می‌کرد از سرویس حذف شدند (کد مرده، هیچ‌جای فرانت‌اند
+    // صدا نمی‌زد) — این دو تست همان‌طور که واقعاً هست approveSeller/rejectSeller
+    // را با یک نام تست کمی گمراه‌کننده پوشش می‌دهند؛ پوشش initialApproveRequest/
+    // finalApproveRequest/rejectSellerRequest (جریان واقعی) در
+    // AdminUserServiceSellerRequestApprovalTest جدید است.
 
     public function test_can_approve_seller_request(): void
     {

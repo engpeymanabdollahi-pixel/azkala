@@ -295,12 +295,43 @@ public function cart()
         return 'slug'; // اجازه می‌دهد روت‌ها با slug به جای ID کار کنند
     }
 
+    /**
+     * ✅ ستون slug روی users یک قید unique واقعی دارد (مایگریشن
+     * add_slug_to_users_table)، ولی قبلاً هیچ منطق برخوردی برای اسلاگ
+     * تکراری وجود نداشت — دو فروشنده با نام فروشگاه یکسان (یا حتی
+     * نام‌های متفاوتی که Str::slug یک خروجی یکسان می‌دهد) باعث خطای
+     * دیتابیس «UNIQUE constraint failed» می‌شدند. همان الگوی افزودن
+     * پسوند عددی که در Services/Seller/SellerService برای اسلاگ محصول
+     * استفاده می‌شود، اینجا هم به‌صورت یک متد قابل استفاده‌ی مشترک درآمد
+     * (هم از boot() پایین، هم از AdminUserService::finalApproveRequest
+     * وقتی فروشنده یک shop_alias دلخواه انتخاب کرده باشد).
+     */
+    public static function generateUniqueSlug(string $base, ?int $excludeId = null): string
+    {
+        $baseSlug = \Illuminate\Support\Str::slug($base) ?: 'shop-' . ($excludeId ?? uniqid());
+        $slug = $baseSlug;
+        $count = 1;
+        while (static::where('slug', $slug)->where('id', '!=', $excludeId ?? 0)->exists()) {
+            $slug = $baseSlug . '-' . $count;
+            $count++;
+        }
+        return $slug;
+    }
+
     protected static function boot()
     {
         parent::boot();
         static::saving(function ($user) {
-            if ($user->isDirty('shop_name') && !$user->slug) {
-                $user->slug = \Illuminate\Support\Str::slug($user->shop_name);
+            // ✅ isDirty('shop_name') در لحظه‌ی create() برای هر مقداری —
+            // حتی null صریح — true است (رکورد تازه، همه‌چیز «dirty» است).
+            // بدون شرط !empty($user->shop_name)، هر کاربر عادی/pending_seller
+            // که با shop_name خالی ساخته می‌شد بلافاصله یک اسلاگ بی‌معنی
+            // مثل «shop-» می‌گرفت — و چون از این به بعد slug دیگر خالی
+            // نبود، وقتی بعداً finalApproveRequest واقعاً shop_name را پر
+            // می‌کرد، این شرط (چون slug دیگر خالی نیست) دوباره اجرا نمی‌شد
+            // و اسلاگ همیشه «shop-» بی‌معنی می‌ماند.
+            if ($user->isDirty('shop_name') && !empty($user->shop_name) && !$user->slug) {
+                $user->slug = static::generateUniqueSlug($user->shop_name, $user->id);
             }
         });
     }

@@ -88,43 +88,15 @@ class SellerRequestController extends Controller
         ]);
     }
 
-    /**
-     * مرحله ۲: تکمیل اطلاعات پس از تأیید ادمین
-     */
-    public function complete(Request $request, SellerRequest $sellerRequest)
-    {
-        // امنیت: اطمینان از اینکه کاربر فقط درخواست خودش را تکمیل می‌کند
-        if ($sellerRequest->user_id !== auth()->id()) {
-            return response()->json(['success' => false, 'message' => 'دسترسی غیرمجاز'], 403);
-        }
-
-        if ($sellerRequest->status !== 'approved') {
-            return response()->json(['success' => false, 'message' => 'درخواست شما هنوز توسط ادمین تأیید نشده است.'], 400);
-        }
-
-        $validated = $request->validate([
-            'shop_name' => 'required|string|max:255',
-            'shop_alias' => 'nullable|string|regex:/^[a-z0-9-]*$/|max:50',
-            'bank_name' => 'required|string|max:100',
-            'bank_account' => 'required|string|min:10',
-            'accept_terms' => 'accepted',
-        ]);
-
-        try {
-            $this->sellerRequestService->completeRequest($sellerRequest, $request->user(), $validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تبریک! شعبه آنلاین شما با موفقیت افتتاح و فعال شد.',
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'خطای اعتبارسنجی', 'errors' => $e->errors()], 422);
-        } catch (\Exception $e) {
-            Log::error('SellerRequest Complete Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'خطای سرور در تکمیل اطلاعات.'], 500);
-        }
-    }
+    // ✅ complete() (مرحله‌ی «تکمیل اطلاعات پس از تایید ادمین») اینجا بود،
+    // مربوط به یک نسخه‌ی قدیمی‌تر و ساده‌تر (۲مرحله‌ای) از این قابلیت که با
+    // جریان فعلی ۴مرحله‌ای (initial-approve → upload-documents → final-approve)
+    // جایگزین شده. هیچ‌جای SellerRequestPage.tsx این endpoint را صدا
+    // نمی‌زد — تا وقتی هم صدا زده می‌شد، shop_alias/bank_name را می‌گرفت ولی
+    // چون این ستون‌ها اصلاً روی seller_requests نبودند (پیش از مایگریشن
+    // add_bank_name_and_shop_alias)، بی‌صدا گم می‌شدند. finalApproveRequest
+    // الان همان کار (کپی shop_name/bank_name/bank_account/اسلاگ به User) را
+    // در نقطه‌ی درست از جریان واقعی انجام می‌دهد.
 
     /**
      * مرحله ۳: آپلود مدارک توسط فروشنده
@@ -146,10 +118,14 @@ class SellerRequestController extends Controller
             }
 
             // ۳. اعتبارسنجی (حجم تا ۵ مگابایت افزایش یافت برای جلوگیری از خطاهای پنهان)
+            // ✅ bank_name و shop_alias اضافه شدند — قبلاً هیچ‌جای جریان
+            // فعلی این دو را از فروشنده نمی‌پرسید.
             $validated = $request->validate([
                 'id_card_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
                 'business_license_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
                 'bank_account' => 'required|string|min:10',
+                'bank_name' => 'nullable|string|max:100',
+                'shop_alias' => 'nullable|string|regex:/^[a-z0-9-]*$/|max:50',
             ]);
 
             // ۴. ذخیره‌سازی فایل‌ها و به‌روزرسانی دیتابیس

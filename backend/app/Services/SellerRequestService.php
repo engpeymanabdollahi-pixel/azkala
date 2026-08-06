@@ -7,10 +7,15 @@ use App\Models\User;
 
 class SellerRequestService
 {
+    // ✅ قبلاً whereIn('status', ['pending', 'approved']) بود — 'pending'
+    // مقداری است که هیچ درخواست واقعی‌ای هرگز نمی‌گیرد (وضعیت‌های واقعی
+    // pending_initial/pending_documents/pending_final/approved/rejected
+    // هستند)، پس این محافظِ «جلوگیری از ثبت درخواست تکراری» عملاً برای
+    // ۳ حالت از ۴ حالتِ «در انتظار» کار نمی‌کرد.
     public function findActiveRequest(int $userId): ?SellerRequest
     {
         return SellerRequest::where('user_id', $userId)
-            ->whereIn('status', ['pending', 'approved'])
+            ->whereIn('status', ['pending_initial', 'pending_documents', 'pending_final', 'approved'])
             ->first();
     }
 
@@ -38,22 +43,15 @@ class SellerRequestService
         ]);
     }
 
-    public function completeRequest(SellerRequest $sellerRequest, User $user, array $data): void
-    {
-        $sellerRequest->update([
-            'shop_name' => $data['shop_name'],
-            'shop_alias' => $data['shop_alias'] ?? null,
-            'bank_name' => $data['bank_name'],
-            'bank_account' => $data['bank_account'],
-        ]);
-
-        $user->update(['role' => 'seller']);
-    }
-
     public function uploadDocuments(SellerRequest $sellerRequest, array $validated, ?\Illuminate\Http\UploadedFile $idCardImage, ?\Illuminate\Http\UploadedFile $businessLicenseImage): void
     {
         $data = [
             'bank_account' => $validated['bank_account'],
+            // ✅ bank_name و shop_alias اضافه شدند — قبلاً هیچ‌جای جریان
+            // فعلی این دو را از کاربر نمی‌پرسید (فقط endpoint متروک
+            // complete() این‌ها را می‌خواست، که هیچ‌وقت صدا زده نمی‌شد).
+            'bank_name' => $validated['bank_name'] ?? null,
+            'shop_alias' => $validated['shop_alias'] ?? null,
             'status' => 'pending_final',
         ];
 

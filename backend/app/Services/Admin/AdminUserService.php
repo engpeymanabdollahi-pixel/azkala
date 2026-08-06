@@ -5,7 +5,6 @@ namespace App\Services\Admin;
 use App\Models\User;
 use App\Models\SellerRequest;
 use App\Repositories\AdminUserRepository;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -144,37 +143,27 @@ class AdminUserService
         }
     }
 
-    /**
-     * تأیید درخواست فروشندگی و تغییر نقش کاربر
-     */
-    public function approveSellerRequest(int $requestId, int $adminId): void
-    {
-        $sellerRequest = SellerRequest::findOrFail($requestId);
-
-        if ($sellerRequest->status !== 'pending') {
-            throw new Exception('این درخواست قبلاً بررسی شده است.');
-        }
-
-        DB::transaction(function () use ($sellerRequest, $adminId) {
-            $sellerRequest->update([
-                'status' => 'approved',
-                'reviewed_by' => $adminId,
-                'reviewed_at' => now(),
-            ]);
-
-            // تغییر نقش کاربر به فروشنده
-            $sellerRequest->user()->update(['role' => 'seller']);
-        });
-    }
+    // ✅ approveSellerRequest() (تک‌مرحله‌ای، وضعیت 'pending' که هیچ رکورد
+    // واقعی‌ای هرگز آن مقدار را نداشت) اینجا بود، ولی هیچ‌جای فرانت‌اند آن
+    // را صدا نمی‌زد (نه دکمه‌ای، نه mutation ای) — با initialApproveRequest/
+    // finalApproveRequest زیر جایگزین شده. حذف شد تا با نامی تقریباً یکسان
+    // با متدهای واقعی، توسعه‌دهنده‌ی بعدی را گمراه نکند.
 
     /**
-     * رد درخواست فروشندگی
+     * رد درخواست فروشندگی — در هر سه مرحله‌ی «در انتظار» قابل رد است.
+     * ✅ قبلاً status !== 'pending' چک می‌شد؛ چون هیچ درخواست واقعی‌ای
+     * هیچ‌وقت دقیقاً 'pending' نمی‌شود (مقادیر واقعی pending_initial/
+     * pending_documents/pending_final/approved/rejected هستند)، این شرط
+     * همیشه true بود — یعنی دکمه‌ی «رد درخواست» در پنل ادمین برای هر
+     * درخواستی، در هر وضعیتی، همیشه با «این درخواست قبلاً بررسی شده است»
+     * شکست می‌خورد. این دقیقاً همان دکمه‌ای است که SellerRequestDetailModal
+     * صدا می‌زند.
      */
     public function rejectSellerRequest(int $requestId, int $adminId, string $reason): void
     {
         $sellerRequest = SellerRequest::findOrFail($requestId);
 
-        if ($sellerRequest->status !== 'pending') {
+        if (!in_array($sellerRequest->status, ['pending_initial', 'pending_documents', 'pending_final'], true)) {
             throw new Exception('این درخواست قبلاً بررسی شده است.');
         }
 
@@ -184,6 +173,100 @@ class AdminUserService
                 'rejection_reason' => $reason,
                 'reviewed_by' => $adminId,
                 'reviewed_at' => now(),
+            ]);
+        });
+    }
+
+    /**
+     * مرحله ۲ (از دید ادمین): تایید اولیه و اطلاع‌رسانی برای تکمیل مدارک.
+     * ✅ قبلاً منطق این متد مستقیم در AdminUserController بود، برخلاف الگوی
+     * بقیه‌ی این کنترلر که همه‌چیز را به Service می‌سپارد.
+     */
+    public function initialApproveRequest(int $requestId): void
+    {
+        $sellerRequest = SellerRequest::findOrFail($requestId);
+
+        if ($sellerRequest->status !== 'pending_initial') {
+            throw new Exception('این درخواست در وضعیت مناسبی برای تایید اولیه نیست.');
+        }
+
+        DB::transaction(function () use ($sellerRequest) {
+            $sellerRequest->update([
+                'status' => 'pending_documents',
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            \App\Models\Notification::create([
+                'user_id' => $sellerRequest->user_id,
+                'type' => 'seller_request_initial_approved',
+                'title' => 'تایید اولیه درخواست فروشندگی',
+                'message' => 'درخواست اولیه شما تایید شد. لطفاً برای تکمیل مدارک (تصویر کارت ملی و جواز کسب) و افتتاح نهایی شعبه، به پنل فروشندگی مراجعه کنید.',
+            ]);
+        });
+    }
+
+    /**
+     * مرحله ۴ (از دید ادمین): تایید نهایی پس از آپلود مدارک — نقش کاربر به
+     * seller تغییر می‌کند و برای اولین بار اطلاعات واقعی شعبه (نام، اسلاگ،
+     * اطلاعات بانکی، کد ملی) از SellerRequest به User منتقل می‌شود.
+     *
+     * ✅ قبل از این فیکس، این متد فقط role کاربر را seller می‌کرد — shop_name/
+     * bank_name/bank_account هرگز کپی نمی‌شدند. یعنی فروشنده‌ای که کل مسیر
+     * ۴ مرحله‌ای را با موفقیت طی می‌کرد، در عمل با role=seller ولی
+     * shop_name/slug/bank_account خالی به پنل فروشندگی می‌رسید — صفحه‌ی
+     * عمومی /seller/:slug و اطلاعات تسویه‌حساب او همیشه خالی می‌ماندند.
+     * slug به‌صورت خودکار و امن در برابر تکراری‌شدن، در رویداد saving مدل
+     * User ساخته می‌شود (رجوع به User::boot()).
+     */
+    public function finalApproveRequest(int $requestId): void
+    {
+        $sellerRequest = SellerRequest::findOrFail($requestId);
+
+        if ($sellerRequest->status !== 'pending_final') {
+            throw new Exception('این درخواست هنوز مدارک آن تکمیل نشده است.');
+        }
+
+        DB::transaction(function () use ($sellerRequest) {
+            $sellerRequest->update([
+                'status' => 'approved',
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+            ]);
+
+            $user = $sellerRequest->user;
+
+            $attributes = array_filter([
+                'role' => 'seller',
+                'shop_name' => $sellerRequest->shop_name,
+                'national_code' => $sellerRequest->national_code,
+                'phone' => $sellerRequest->phone,
+                'bank_name' => $sellerRequest->bank_name,
+                'bank_account' => $sellerRequest->bank_account,
+                'seller_verified_at' => now(),
+                'seller_badge' => 'bronze',
+            ], fn ($value) => $value !== null);
+
+            // ✅ اگر فروشنده در فرم مدارک یک نام مستعار (shop_alias) دلخواه
+            // برای آدرس عمومی‌اش انتخاب کرده باشد، همان مبنای اسلاگ می‌شود؛
+            // وگرنه User::boot() خودش از shop_name می‌سازد.
+            if (!empty($sellerRequest->shop_alias)) {
+                $attributes['slug'] = User::generateUniqueSlug($sellerRequest->shop_alias, $user->id);
+            }
+
+            // ✅ حیاتی: $sellerRequest->user()->update([...]) (روی خودِ رابطه‌ی
+            // BelongsTo) یک UPDATE مستقیم روی دیتابیس اجرا می‌کند و کاملاً از
+            // رویدادهای مدل مثل saving رد می‌شود — یعنی هوک تولید خودکار
+            // اسلاگ در User::boot() هیچ‌وقت اجرا نمی‌شد و User.slug همیشه
+            // خالی می‌ماند. با گرفتن خودِ نمونه‌ی User و صدا زدن update()
+            // روی آن، رویداد مدل درست اجرا می‌شود.
+            $user->update($attributes);
+
+            \App\Models\Notification::create([
+                'user_id' => $sellerRequest->user_id,
+                'type' => 'seller_request_final_approved',
+                'title' => 'تبریک! شعبه شما افتتاح شد',
+                'message' => 'مدارک شما با موفقیت تایید شد. اکنون می‌توانید وارد پنل فروشندگی شده و محصولات خود را ثبت کنید.',
             ]);
         });
     }

@@ -184,8 +184,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
         Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
         Route::post('/seller-requests/{sellerRequest}/upload-documents', [\App\Http\Controllers\Api\SellerRequestController::class, 'uploadDocuments'])->name('seller-requests.upload-documents');
-        Route::put('/seller-requests/{sellerRequest}/complete', [\App\Http\Controllers\Api\SellerRequestController::class, 'complete'])->name('seller-requests.complete');
-        
+        // ✅ PUT .../complete حذف شد — controller method متناظرش (SellerRequestController::complete)
+        // کد مرده و هیچ‌وقت از فرانت‌اند صدا زده نمی‌شد (رجوع به کامنت آن‌جا).
+
         // امتیاز و نظر به فروشنده
         Route::post('/seller-ratings', [SellerRatingController::class, 'store']);
         Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'index']);
@@ -434,8 +435,10 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::put('/{user}/status', [AdminUserController::class, 'updateStatus'])->name('update-status');
                 Route::post('/{user}/approve-seller', [AdminUserController::class, 'approveSeller'])->name('approve-seller');
                 Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->name('reject-seller');
-                Route::post('/{user}/approve-seller-request', [AdminUserController::class, 'approveSellerRequest'])->name('approve-seller-request');
-                Route::post('/{user}/reject-seller-request', [AdminUserController::class, 'rejectSellerRequest'])->name('reject-seller-request');
+                // ✅ approve-seller-request حذف شد (controller method متناظرش
+                // هم حذف شد — رجوع به کامنت AdminUserController). reject-seller-request
+                // هم حذف شد چون دقیقاً همان controller method مسیر reject
+                // پایین‌تر را صدا می‌زد؛ فرانت‌اند فقط از reject استفاده می‌کرد.
                 Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->name('initial-approve');
                 Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->name('final-approve');
                 Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->name('reject');

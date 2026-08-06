@@ -107,19 +107,10 @@ class AdminUserController extends Controller
         ]);
     }
 
-    /**
-     * تأیید درخواست فروشندگی و تغییر نقش کاربر
-     */
-    public function approveSellerRequest($id)
-    {
-        $adminId = auth()->id();
-        $this->userService->approveSellerRequest((int) $id, $adminId);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'درخواست فروشندگی تأیید شد و نقش کاربر به فروشنده تغییر کرد.',
-        ]);
-    }
+    // ✅ approveSellerRequest() (تک‌مرحله‌ای و مسیر /approve-seller-request)
+    // اینجا بود، ولی هیچ‌جای فرانت‌اند صدایش نمی‌زد — initialApproveRequest/
+    // finalApproveRequest زیر جریان واقعی ۲مرحله‌ای تایید ادمین هستند. حذف
+    // شد (رجوع به کامنت مشابه در AdminUserService).
 
     /**
      * رد درخواست فروشندگی
@@ -130,78 +121,54 @@ class AdminUserController extends Controller
             'reason' => 'required|string|max:500'
         ]);
 
-        $adminId = auth()->id();
-        $this->userService->rejectSellerRequest((int) $id, $adminId, $validated['reason']);
+        try {
+            $adminId = auth()->id();
+            $this->userService->rejectSellerRequest((int) $id, $adminId, $validated['reason']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'درخواست فروشندگی رد شد.',
-        ]);
-    }
-        /**
-     * مرحله ۲: تایید اولیه توسط ادمین و ارسال نوتیفیکیشن به فروشنده
-     */
-    public function initialApproveRequest($id)
-    {
-        $request = \App\Models\SellerRequest::findOrFail($id);
-        
-        if ($request->status !== 'pending_initial') {
-            return response()->json(['success' => false, 'message' => 'این درخواست در وضعیت مناسبی برای تایید اولیه نیست.'], 400);
+            return response()->json([
+                'success' => true,
+                'message' => 'درخواست فروشندگی رد شد.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
-
-        // ۱. تغییر وضعیت به pending_documents
-        $request->update([
-            'status' => 'pending_documents',
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-        ]);
-
-        // ۲. ارسال نوتیفیکیشن به کاربر
-        \App\Models\Notification::create([
-            'user_id' => $request->user_id,
-            'type' => 'seller_request_initial_approved',
-            'title' => 'تایید اولیه درخواست فروشندگی',
-            'message' => 'درخواست اولیه شما تایید شد. لطفاً برای تکمیل مدارک (تصویر کارت ملی و جواز کسب) و افتتاح نهایی شعبه، به پنل فروشندگی مراجعه کنید.',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تایید اولیه انجام شد و نوتیفیکیشن برای کاربر ارسال گردید.'
-        ]);
     }
 
     /**
-     * مرحله ۴: تایید نهایی توسط ادمین (پس از آپلود مدارک توسط فروشنده)
+     * مرحله ۲: تایید اولیه توسط ادمین و ارسال نوتیفیکیشن به فروشنده
+     * ✅ منطق این متد قبلاً مستقیم اینجا بود (برخلاف الگوی بقیه‌ی این
+     * کنترلر که همه‌چیز را به Service می‌سپارد) — به AdminUserService منتقل شد.
+     */
+    public function initialApproveRequest($id)
+    {
+        try {
+            $this->userService->initialApproveRequest((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تایید اولیه انجام شد و نوتیفیکیشن برای کاربر ارسال گردید.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * مرحله ۴: تایید نهایی توسط ادمین (پس از آپلود مدارک توسط فروشنده) —
+     * نقش کاربر به seller تغییر می‌کند و اطلاعات واقعی شعبه از SellerRequest
+     * به User منتقل می‌شود (رجوع به کامنت AdminUserService::finalApproveRequest).
      */
     public function finalApproveRequest($id)
     {
-        $request = \App\Models\SellerRequest::findOrFail($id);
-        
-        if ($request->status !== 'pending_final') {
-            return response()->json(['success' => false, 'message' => 'این درخواست هنوز مدارک آن تکمیل نشده است.'], 400);
+        try {
+            $this->userService->finalApproveRequest((int) $id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'فروشندگی کاربر تایید نهایی شد و نقش او به فروشنده تغییر کرد.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
-
-        // ۱. تغییر وضعیت به approved
-        $request->update([
-            'status' => 'approved',
-            'reviewed_by' => auth()->id(),
-            'reviewed_at' => now(),
-        ]);
-
-        // ۲. تغییر نقش کاربر به seller
-        $request->user()->update(['role' => 'seller']);
-
-        // ۳. ارسال نوتیفیکیشن موفقیت نهایی
-        \App\Models\Notification::create([
-            'user_id' => $request->user_id,
-            'type' => 'seller_request_final_approved',
-            'title' => 'تبریک! شعبه شما افتتاح شد',
-            'message' => 'مدارک شما با موفقیت تایید شد. اکنون می‌توانید وارد پنل فروشندگی شده و محصولات خود را ثبت کنید.',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'فروشندگی کاربر تایید نهایی شد و نقش او به فروشنده تغییر کرد.'
-        ]);
     }
 }
