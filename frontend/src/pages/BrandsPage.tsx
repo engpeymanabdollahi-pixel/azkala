@@ -14,7 +14,7 @@ import {
 import { useModelStore } from '@/store/modelStore';
 import { mockBrands } from '@/data/mockData';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 
 interface BrandsPageProps {

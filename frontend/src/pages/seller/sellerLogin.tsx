@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Store, ArrowLeft, CheckCircle, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import toast from 'react-hot-toast';
 import { useState } from 'react';

@@ -4,7 +4,7 @@ import { Heart, ShoppingCart, Trash2, Flame, Loader2, Store, UserX } from 'lucid
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';

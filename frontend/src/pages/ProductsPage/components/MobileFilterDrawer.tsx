@@ -1,5 +1,5 @@
 import { Filter, X, Flame, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { PRICE_RANGES, RATING_OPTIONS, MOBILE_DRAWER_MAX_HEIGHT } from '../constants';

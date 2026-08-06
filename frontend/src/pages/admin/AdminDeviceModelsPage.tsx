@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Trash2, Plus, Smartphone } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { CrudTable, type ColumnDef, type FilterConfig, type ActionConfig } from '@/features/admin/components/CrudTable';
 import { adminDeviceModelService, type AdminDeviceModel, type DeviceModelFormData } from '@/services/api/adminDeviceModel.service';
 import { adminDeviceBrandService } from '@/services/api/adminDeviceBrand.service';

@@ -3,10 +3,10 @@ import {
   Award, Edit2, Trash2, Eye, Plus, Package,
   CheckCircle, XCircle, Crown, Gem, Star, RefreshCw,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Input } from '@/components/ui/Input';
+import { Input } from '@/components/ui/input';
 import { CrudTable, type ColumnDef, type FilterConfig, type ActionConfig, type BulkActionConfig } from '@/features/admin/components/CrudTable';
 import {
   adminBrandService,

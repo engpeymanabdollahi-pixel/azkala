@@ -5,8 +5,8 @@ import {
   Phone, User as UserIcon, Home, Building2, Package,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/utils/cn';

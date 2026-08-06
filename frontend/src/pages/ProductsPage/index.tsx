@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query'; // ✅ اضافه شد
 import { Smartphone, Package, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';

@@ -6,7 +6,7 @@ import {
   Filter, RefreshCw, MapPin, Star, RotateCw, MessageCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatPrice } from '@/utils/format';

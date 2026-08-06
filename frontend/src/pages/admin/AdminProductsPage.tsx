@@ -8,7 +8,7 @@ import {
   Download, MoreVertical, Zap, Award, Flame, BarChart3,
   ArrowUpDown, RefreshCw, Tag, Store, ArrowLeft,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SafeImage } from '@/components/ui/SafeImage';

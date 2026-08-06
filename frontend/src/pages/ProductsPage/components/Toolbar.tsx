@@ -1,5 +1,5 @@
 import { Search, Filter, Grid3x3, List, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import { SortDropdown } from './SortDropdown';

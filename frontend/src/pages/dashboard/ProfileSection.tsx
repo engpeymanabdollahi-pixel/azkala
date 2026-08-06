@@ -7,8 +7,8 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
 import { useWishlistStore } from '@/store/wishlistStore';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';

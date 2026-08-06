@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useModelStore } from '@/store/modelStore';
 import { useCartStore } from '@/store/cartStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { formatPrice } from '@/utils/format';

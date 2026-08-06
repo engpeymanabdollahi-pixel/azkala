@@ -37,7 +37,7 @@ import {
   Baby, Dog, Cat, Fish, Bird,
   Zap, Flame, Crown, Gem, Rocket,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SafeImage } from '@/components/ui/SafeImage';

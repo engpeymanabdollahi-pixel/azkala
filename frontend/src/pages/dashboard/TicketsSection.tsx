@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, XCircle as XIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 import apiClient from '@/services/api/client';

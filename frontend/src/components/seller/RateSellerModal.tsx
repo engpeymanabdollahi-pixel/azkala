@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Star, CheckCircle, Award } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { sellerRatingService } from '@/services/api/sellerRating.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';

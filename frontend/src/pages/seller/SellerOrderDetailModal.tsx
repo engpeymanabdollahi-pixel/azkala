@@ -6,7 +6,7 @@ import {
   Copy, DollarSign, ShoppingBag, Sparkles, XCircle, Tag,
   MessageSquare, TrendingUp, Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { formatPrice } from '@/utils/format';

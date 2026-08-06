@@ -1,8 +1,8 @@
 // src/pages/ContactPage.tsx
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Send, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
 
 export function ContactPage() {
