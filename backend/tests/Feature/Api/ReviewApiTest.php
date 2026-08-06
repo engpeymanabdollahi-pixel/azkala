@@ -220,6 +220,116 @@ class ReviewApiTest extends TestCase
     }
 
     /**
+     * ✅ قبلاً incrementHelpful() هیچ ردی از رأی‌دهنده نگه نمی‌داشت — یک
+     * کاربرِ واردشده می‌توانست با کلیک مکرر روی «مفید بود» عدد را
+     * بی‌نهایت بالا ببرد. حالا رأی دوم همان کاربر عدد را دیگر افزایش
+     * نمی‌دهد، اما همچنان پاسخ موفق (idempotent) برمی‌گرداند.
+     */
+    public function test_a_user_cannot_vote_helpful_twice_on_the_same_review(): void
+    {
+        $review = Review::factory()->create([
+            'product_id' => $this->product->id,
+            'helpful_count' => 0,
+        ]);
+
+        $this->actingAs($this->user)
+            ->postJson("/api/v1/reviews/{$review->id}/helpful")
+            ->assertStatus(200)
+            ->assertJsonPath('data.helpful_count', 1);
+
+        $this->actingAs($this->user)
+            ->postJson("/api/v1/reviews/{$review->id}/helpful")
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.helpful_count', 1);
+
+        $this->assertSame(1, (int) $review->fresh()->helpful_count);
+        $this->assertSame(1, \DB::table('review_helpful_votes')
+            ->where('review_id', $review->id)
+            ->where('user_id', $this->user->id)
+            ->count());
+    }
+
+    public function test_different_users_can_each_vote_helpful_once(): void
+    {
+        $review = Review::factory()->create([
+            'product_id' => $this->product->id,
+            'helpful_count' => 0,
+        ]);
+
+        $this->actingAs($this->user)->postJson("/api/v1/reviews/{$review->id}/helpful")->assertStatus(200);
+        $this->actingAs($this->otherUser)->postJson("/api/v1/reviews/{$review->id}/helpful")->assertStatus(200);
+
+        $this->assertSame(2, (int) $review->fresh()->helpful_count);
+    }
+
+    /**
+     * ✅ قبلاً getApprovedReviewsPaginated() هیچ پارامتر امتیازی نمی‌پذیرفت
+     * — دکمه‌های فیلتر ستاره در فرانت فقط همان یک صفحهٔ بارگذاری‌شده را در
+     * سمت کلاینت فیلتر می‌کردند، نه کل نظرات محصول.
+     */
+    public function test_review_list_can_be_filtered_by_rating(): void
+    {
+        Review::factory()->create(['product_id' => $this->product->id, 'status' => 'approved', 'rating' => 5, 'comment' => 'پنج ستاره']);
+        Review::factory()->create(['product_id' => $this->product->id, 'status' => 'approved', 'rating' => 2, 'comment' => 'دو ستاره']);
+
+        $response = $this->getJson("/api/v1/products/{$this->product->id}/reviews?rating=5");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('data.reviews'));
+        $this->assertSame('پنج ستاره', $response->json('data.reviews.0.comment'));
+    }
+
+    /**
+     * ✅ قبلاً پاسخ ادمین به یک نظر (که در پنل مدیریت واقعاً ثبت می‌شود)
+     * هیچ‌وقت در پاسخ عمومی این endpoint نمایش داده نمی‌شد.
+     */
+    public function test_review_list_exposes_admin_reply_when_present(): void
+    {
+        Review::factory()->create([
+            'product_id' => $this->product->id,
+            'status' => 'approved',
+            'admin_reply' => 'با تشکر از نظر شما',
+            'replied_at' => now(),
+        ]);
+
+        $response = $this->getJson("/api/v1/products/{$this->product->id}/reviews");
+
+        $response->assertStatus(200);
+        $this->assertSame('با تشکر از نظر شما', $response->json('data.reviews.0.admin_reply'));
+        $this->assertNotNull($response->json('data.reviews.0.replied_at'));
+    }
+
+    /**
+     * ✅ قبلاً has_reviewed هیچ‌وقت محاسبه/برگردانده نمی‌شد — فرانت با مقدار
+     * همیشه-false فرم ثبت نظر را حتی برای کاربری که قبلاً نظر داده بود
+     * نشان می‌داد.
+     */
+    public function test_can_review_reports_whether_the_user_already_reviewed(): void
+    {
+        $this->actingAs($this->user)
+            ->getJson("/api/v1/products/{$this->product->id}/can-review")
+            ->assertStatus(200)
+            ->assertJsonPath('has_reviewed', false);
+
+        Review::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $this->product->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->getJson("/api/v1/products/{$this->product->id}/can-review")
+            ->assertStatus(200)
+            ->assertJsonPath('has_reviewed', true);
+
+        // نظرِ کاربر دیگر نباید روی این کاربر تأثیر بگذارد.
+        $this->actingAs($this->otherUser)
+            ->getJson("/api/v1/products/{$this->product->id}/can-review")
+            ->assertStatus(200)
+            ->assertJsonPath('has_reviewed', false);
+    }
+
+    /**
      * Regression: routes/api_v1.php redefined this route inside its public
      * products group, overriding the authenticated definition in api.php.
      * With no auth middleware Sanctum never resolved the bearer token, so

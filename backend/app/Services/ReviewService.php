@@ -5,19 +5,27 @@ namespace App\Services;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\ReviewHelpfulVote;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ReviewService
 {
-    public function getApprovedReviewsPaginated(int $productId): LengthAwarePaginator
+    // ✅ قبلاً هیچ پارامتر فیلتر امتیازی وجود نداشت — دکمه‌های فیلتر ستاره
+    // در فرانت فقط روی همان یک صفحهٔ بارگذاری‌شده در سمت کلاینت فیلتر
+    // می‌کردند، نه کل نظرات محصول. حالا فیلتر واقعاً در دیتابیس اعمال می‌شود.
+    public function getApprovedReviewsPaginated(int $productId, ?int $rating = null): LengthAwarePaginator
     {
-        return Review::with('user:id,name')
+        $query = Review::with('user:id,name')
             ->where('product_id', $productId)
-            ->where('status', 'approved')
-            ->orderByDesc('created_at')
-            ->paginate(10);
+            ->where('status', 'approved');
+
+        if ($rating !== null) {
+            $query->where('rating', $rating);
+        }
+
+        return $query->orderByDesc('created_at')->paginate(10);
     }
 
     public function getRatingDistribution(int $productId): array
@@ -78,12 +86,47 @@ class ReviewService
         $this->updateProductRating($productId);
     }
 
-    public function incrementHelpful(int $reviewId): Review
+    /**
+     * ✅ قبلاً این متد بدون هیچ ردیابی‌ای هر بار helpful_count را افزایش
+     * می‌داد — یک کاربرِ واردشده می‌توانست با کلیک مکرر روی «مفید بود»
+     * این عدد را بی‌نهایت بالا ببرد. حالا هر (کاربر، نظر) فقط یک بار
+     * می‌تواند رأی بدهد؛ رأی تکراری بدون خطا و به‌صورت idempotent نادیده
+     * گرفته می‌شود (هماهنگ با الگوی PublicSellerController::follow()).
+     */
+    public function incrementHelpful(int $reviewId, int $userId): array
     {
-        $review = Review::findOrFail($reviewId);
-        $review->increment('helpful_count');
+        return DB::transaction(function () use ($reviewId, $userId) {
+            $review = Review::findOrFail($reviewId);
 
-        return $review;
+            $alreadyVoted = ReviewHelpfulVote::where('review_id', $reviewId)
+                ->where('user_id', $userId)
+                ->exists();
+
+            if ($alreadyVoted) {
+                return ['review' => $review, 'already_voted' => true];
+            }
+
+            ReviewHelpfulVote::create([
+                'review_id' => $reviewId,
+                'user_id' => $userId,
+            ]);
+            $review->increment('helpful_count');
+
+            return ['review' => $review, 'already_voted' => false];
+        });
+    }
+
+    /**
+     * ✅ قبلاً ReviewController::canReview() هیچ‌وقت این مقدار را برنمی‌گرداند
+     * — فرانت فرض می‌کرد همیشه false است و فرم ثبت نظر را حتی برای کاربری
+     * که قبلاً نظر داده بود نشان می‌داد؛ کاربر فقط بعد از پر کردن کامل فرم
+     * و ارسال، با خطای ۴۰۰ createReview() متوجه می‌شد.
+     */
+    public function hasUserReviewed(int $userId, int $productId): bool
+    {
+        return Review::where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->exists();
     }
 
     public function checkUserPurchased(int $userId, int $productId): bool
@@ -91,11 +134,12 @@ class ReviewService
         try {
             return OrderItem::whereHas('order', function ($q) use ($userId) {
                 $q->where('user_id', $userId)
-                  ->where('payment_status', 'paid')
-                  ->whereIn('status', ['delivered', 'completed']);
+                    ->where('payment_status', 'paid')
+                    ->whereIn('status', ['delivered', 'completed']);
             })->where('product_id', $productId)->exists();
         } catch (\Exception $e) {
-            Log::error('checkUserPurchased error: ' . $e->getMessage());
+            Log::error('checkUserPurchased error: '.$e->getMessage());
+
             return false;
         }
     }
@@ -104,7 +148,7 @@ class ReviewService
     {
         try {
             $product = Product::find($productId);
-            if (!$product) {
+            if (! $product) {
                 return;
             }
 
@@ -117,7 +161,7 @@ class ReviewService
             $product->rating = round($stats->avg_rating ?? 0, 2);
             $product->save();
         } catch (\Exception $e) {
-            Log::error('updateProductRating error: ' . $e->getMessage());
+            Log::error('updateProductRating error: '.$e->getMessage());
         }
     }
 }

@@ -8,6 +8,7 @@ use App\Services\ReviewService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ReviewController extends Controller
 {
@@ -24,7 +25,11 @@ class ReviewController extends Controller
     public function index(Request $request, $productId)
     {
         try {
-            $reviews = $this->reviewService->getApprovedReviewsPaginated((int) $productId);
+            // ✅ قبلاً پارامتر rating اصلاً به سرویس پاس داده نمی‌شد — دکمه‌های
+            // فیلتر ستاره در فرانت فقط همان یک صفحهٔ بارگذاری‌شده را در سمت
+            // کلاینت فیلتر می‌کردند، نه کل نظرات محصول.
+            $rating = $request->filled('rating') ? (int) $request->input('rating') : null;
+            $reviews = $this->reviewService->getApprovedReviewsPaginated((int) $productId, $rating);
 
             // محاسبه توزیع امتیازات
             $ratingDistribution = $this->reviewService->getRatingDistribution((int) $productId);
@@ -57,6 +62,10 @@ class ReviewController extends Controller
                             'rating' => $review->rating,
                             'is_verified' => $review->is_verified,
                             'helpful_count' => $review->helpful_count,
+                            // ✅ قبلاً پاسخ ادمین (که واقعاً در پنل مدیریت ثبت
+                            // می‌شود) هیچ‌وقت در پاسخ عمومی نمایش داده نمی‌شد.
+                            'admin_reply' => $review->admin_reply,
+                            'replied_at' => $review->replied_at?->format('Y-m-d'),
                             'created_at' => $review->created_at->format('Y-m-d'),
                             'created_at_fa' => $review->created_at->format('Y/m/d'),
                         ];
@@ -75,7 +84,8 @@ class ReviewController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('ReviewController@index: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ' | Line: ' . $e->getLine());
+            Log::error('ReviewController@index: '.$e->getMessage().' | File: '.$e->getFile().' | Line: '.$e->getLine());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت نظرات.',
@@ -117,7 +127,7 @@ class ReviewController extends Controller
                     'created_at_fa' => $review->created_at->format('Y/m/d'),
                 ],
             ], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'خطای اعتبارسنجی',
@@ -131,7 +141,8 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            Log::error('ReviewController@store: ' . $e->getMessage());
+            Log::error('ReviewController@store: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در ثبت نظر',
@@ -160,7 +171,8 @@ class ReviewController extends Controller
                 'message' => 'نظر مورد نظر یافت نشد.',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('ReviewController@destroy: ' . $e->getMessage());
+            Log::error('ReviewController@destroy: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در حذف نظر',
@@ -174,11 +186,14 @@ class ReviewController extends Controller
     public function helpful(Request $request, $reviewId)
     {
         try {
-            $review = $this->reviewService->incrementHelpful((int) $reviewId);
+            $result = $this->reviewService->incrementHelpful((int) $reviewId, $request->user()->id);
 
             return response()->json([
                 'success' => true,
-                'data' => ['helpful_count' => $review->helpful_count],
+                'message' => $result['already_voted']
+                    ? 'شما قبلاً به این نظر رأی «مفید بود» داده‌اید.'
+                    : 'رأی شما با موفقیت ثبت شد.',
+                'data' => ['helpful_count' => $result['review']->helpful_count],
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
@@ -186,7 +201,8 @@ class ReviewController extends Controller
                 'message' => 'نظر مورد نظر یافت نشد.',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('ReviewController@helpful: ' . $e->getMessage());
+            Log::error('ReviewController@helpful: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا',
@@ -201,30 +217,38 @@ class ReviewController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'can_review' => false,
-                'message' => 'برای ثبت نظر باید وارد حساب کاربری خود شوید.'
+                'message' => 'برای ثبت نظر باید وارد حساب کاربری خود شوید.',
             ], 401);
         }
 
         $product = Product::find($productId);
-        if (!$product) {
+        if (! $product) {
             return response()->json([
                 'can_review' => false,
-                'message' => 'محصول مورد نظر یافت نشد.'
+                'message' => 'محصول مورد نظر یافت نشد.',
             ], 404);
         }
 
         // بررسی خرید محصول
         $hasPurchased = $this->reviewService->checkUserPurchased($user->id, (int) $productId);
 
+        // ✅ قبلاً has_reviewed هیچ‌وقت محاسبه/برگردانده نمی‌شد — فرانت با
+        // مقدار همیشه-false فرم ثبت نظر را حتی برای کاربری که قبلاً نظر
+        // داده بود نشان می‌داد.
+        $hasReviewed = $this->reviewService->hasUserReviewed($user->id, (int) $productId);
+
         return response()->json([
             'can_review' => true, // اجازه ثبت نظر (حتی اگر نخریده باشد، بسته به سیاست سایت)
             'has_purchased' => $hasPurchased,
-            'message' => $hasPurchased
-                ? 'شما این محصول را خریداری کرده‌اید و نشان "خریدار تأییدشده" دریافت می‌کنید.'
-                : 'شما می‌توانید نظر ثبت کنید (اما نشان خریدار تأییدشده نخواهید داشت).'
+            'has_reviewed' => $hasReviewed,
+            'message' => $hasReviewed
+                ? 'شما قبلاً برای این محصول نظر ثبت کرده‌اید.'
+                : ($hasPurchased
+                    ? 'شما این محصول را خریداری کرده‌اید و نشان "خریدار تأییدشده" دریافت می‌کنید.'
+                    : 'شما می‌توانید نظر ثبت کنید (اما نشان خریدار تأییدشده نخواهید داشت).'),
         ]);
     }
 }

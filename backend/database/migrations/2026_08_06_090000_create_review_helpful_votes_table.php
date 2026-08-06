@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * ✅ ReviewController::helpful() قبلاً بدون هیچ ردیابی‌ای فقط
+ * helpful_count را افزایش می‌داد — یک کاربرِ واردشده می‌توانست با کلیک
+ * مکرر روی دکمه‌ی «مفید بود» این عدد را بی‌نهایت بالا ببرد. این جدول یک
+ * رأیِ «مفید بود» به ازای هر (کاربر، نظر) را ثبت می‌کند.
+ */
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('review_helpful_votes', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('review_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['review_id', 'user_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('review_helpful_votes');
+    }
+};
