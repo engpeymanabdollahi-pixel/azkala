@@ -118,8 +118,8 @@ export function AdminBrandsPage() {
             </div>
           )}
           <div>
-            <div className="font-bold text-gray-900">{brand.name}</div>
-            <div className="text-xs text-gray-500">{brand.slug}</div>
+            <div className="font-bold text-gray-900 dark:text-gray-100">{brand.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{brand.slug}</div>
           </div>
         </div>
       ),
@@ -143,7 +143,7 @@ export function AdminBrandsPage() {
             ویژه
           </Badge>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-gray-400 dark:text-gray-500">-</span>
         )
       ),
     },
@@ -172,7 +172,7 @@ export function AdminBrandsPage() {
       label: 'محصولات',
       sortable: true,
       render: (value) => (
-        <div className="flex items-center gap-1 text-gray-700">
+        <div className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
           <Package className="w-4 h-4" />
           <span className="font-semibold">{value || 0}</span>
         </div>
@@ -181,7 +181,7 @@ export function AdminBrandsPage() {
     {
       key: 'country',
       label: 'کشور',
-      render: (value) => value || <span className="text-gray-400">-</span>,
+      render: (value) => value || <span className="text-gray-400 dark:text-gray-500">-</span>,
     },
   ];
 
@@ -368,9 +368,9 @@ export function AdminBrandsPage() {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm font-medium">فعال</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">فعال</span>
               </label>
 
               <label className="flex items-center gap-2 cursor-pointer">
@@ -378,13 +378,13 @@ export function AdminBrandsPage() {
                   type="checkbox"
                   checked={formData.is_featured}
                   onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm font-medium">ویژه</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ویژه</span>
               </label>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button
                 onClick={handleSubmit}
                 isLoading={createMutation.isPending || updateMutation.isPending}
@@ -418,14 +418,14 @@ export function AdminBrandsPage() {
                 </div>
               )}
               <div>
-                <h3 className="text-xl font-bold">{selectedBrand.name}</h3>
-                <p className="text-gray-500 text-sm">{selectedBrand.slug}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedBrand.name}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{selectedBrand.slug}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">وضعیت</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">وضعیت</label>
                 <div>
                   <Badge variant={selectedBrand.is_active ? 'success' : 'error'}>
                     {selectedBrand.is_active ? 'فعال' : 'غیرفعال'}
@@ -433,7 +433,7 @@ export function AdminBrandsPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">ویژه</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">ویژه</label>
                 <div>
                   <Badge variant={selectedBrand.is_featured ? 'accent' : 'secondary'}>
                     {selectedBrand.is_featured ? 'ویژه' : 'معمولی'}
@@ -441,31 +441,31 @@ export function AdminBrandsPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">کشور</label>
-                <div className="font-medium">{selectedBrand.country || '-'}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">کشور</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{selectedBrand.country || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">وب‌سایت</label>
-                <div className="font-medium">{selectedBrand.website || '-'}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">وب‌سایت</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{selectedBrand.website || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">تعداد محصولات</label>
-                <div className="font-medium">{selectedBrand.products_count || 0}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">تعداد محصولات</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{selectedBrand.products_count || 0}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">ترتیب نمایش</label>
-                <div className="font-medium">{selectedBrand.sort_order || 0}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">ترتیب نمایش</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{selectedBrand.sort_order || 0}</div>
               </div>
             </div>
 
             {selectedBrand.description && (
               <div>
-                <label className="text-xs text-gray-500">توضیحات</label>
-                <p className="text-sm mt-1">{selectedBrand.description}</p>
+                <label className="text-xs text-gray-500 dark:text-gray-400">توضیحات</label>
+                <p className="text-sm mt-1 text-gray-700 dark:text-gray-300">{selectedBrand.description}</p>
               </div>
             )}
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button onClick={() => handleEdit(selectedBrand)} fullWidth>
                 ویرایش
               </Button>

@@ -303,13 +303,13 @@ export function AdminCategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
               <FolderTree className="w-5 h-5 text-white" />
             </div>
             مدیریت دسته‌بندی‌ها
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             سازماندهی، مدیریت و بهینه‌سازی دسته‌بندی‌های محصولات
           </p>
         </div>
@@ -336,27 +336,27 @@ export function AdminCategoriesPage() {
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               placeholder="جستجو در نام، slug یا توضیحات..."
               value={searchInput}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+              className="w-full pr-10 pl-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
             />
           </div>
 
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setViewMode('tree')}
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5',
                 viewMode === 'tree'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-gray-100'
               )}
             >
               <FolderTree className="w-3.5 h-3.5" />
@@ -367,8 +367,8 @@ export function AdminCategoriesPage() {
               className={cn(
                 'px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5',
                 viewMode === 'list'
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-gray-100'
               )}
             >
               <List className="w-3.5 h-3.5" />
@@ -379,7 +379,7 @@ export function AdminCategoriesPage() {
 
         {/* Type Filter */}
         <div className="flex gap-1.5 flex-wrap">
-          <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5 px-2">
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 flex items-center gap-1.5 px-2">
             <Filter className="w-3.5 h-3.5" />
             نوع:
           </span>
@@ -397,7 +397,7 @@ export function AdminCategoriesPage() {
                   'px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
                   typeFilter === item.value
                     ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 )}
               >
                 <Icon className="w-3 h-3" />
@@ -409,7 +409,7 @@ export function AdminCategoriesPage() {
 
         {/* Status Filter */}
         <div className="flex gap-1.5 flex-wrap">
-          <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5 px-2">
+          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 flex items-center gap-1.5 px-2">
             <Filter className="w-3.5 h-3.5" />
             وضعیت:
           </span>
@@ -427,7 +427,7 @@ export function AdminCategoriesPage() {
                   'px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
                   statusFilter === item.value
                     ? 'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-md shadow-accent-500/30'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 )}
               >
                 <Icon className="w-3 h-3" />
@@ -487,11 +487,11 @@ export function AdminCategoriesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         {/* Tree View */}
         {viewMode === 'tree' && (
           <>
-            <div className="flex items-center justify-between p-3 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleExpandAll}
@@ -500,16 +500,16 @@ export function AdminCategoriesPage() {
                   <FolderOpen className="w-3.5 h-3.5" />
                   باز کردن همه
                 </button>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
                 <button
                   onClick={handleCollapseAll}
-                  className="text-xs font-bold text-gray-600 hover:text-gray-700 flex items-center gap-1"
+                  className="text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
                 >
                   <Folder className="w-3.5 h-3.5" />
                   بستن همه
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 💡 برای تغییر ترتیب، دسته‌ها را بکشید و رها کنید
               </p>
             </div>
@@ -517,7 +517,7 @@ export function AdminCategoriesPage() {
             {treeLoading ? (
               <div className="p-8 space-y-3">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
+                  <div key={i} className="h-12 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : tree.length === 0 ? (
@@ -542,7 +542,7 @@ export function AdminCategoriesPage() {
                   items={tree.map(c => c.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
                     {tree.map((node) => (
                       <SortableTreeNode
                         key={node.id}
@@ -567,7 +567,7 @@ export function AdminCategoriesPage() {
             {listLoading ? (
               <div className="p-8 space-y-3">
                 {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+                  <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
                 ))}
               </div>
             ) : categories.length === 0 ? (
@@ -585,7 +585,7 @@ export function AdminCategoriesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
+                    <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
                       <th className="px-3 py-3 text-right">
                         <input
                           type="checkbox"
@@ -594,12 +594,12 @@ export function AdminCategoriesPage() {
                           className="w-4 h-4 text-primary-600 rounded"
                         />
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">دسته</th>
-                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">نوع</th>
-                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">محصولات</th>
-                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">ترتیب</th>
-                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600">وضعیت</th>
-                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-600">عملیات</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-400">دسته</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-400">نوع</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-400">محصولات</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-400">ترتیب</th>
+                      <th className="px-3 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-400">وضعیت</th>
+                      <th className="px-3 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-400">عملیات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -611,7 +611,7 @@ export function AdminCategoriesPage() {
                         <tr
                           key={cat.id}
                           className={cn(
-                            'border-b border-gray-50 hover:bg-gray-50/50 transition-colors',
+                            'border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors',
                             isSelected && 'bg-primary-50/30'
                           )}
                         >
@@ -638,10 +638,10 @@ export function AdminCategoriesPage() {
                                 />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-900 line-clamp-1">
+                                <p className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1">
                                   {cat.name}
                                 </p>
-                                <p className="text-[10px] text-gray-500 line-clamp-1">
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-1">
                                   /{cat.slug}
                                 </p>
                               </div>
@@ -662,14 +662,14 @@ export function AdminCategoriesPage() {
                           </td>
                           <td className="px-3 py-3">
                             <div className="flex items-center gap-1">
-                              <Package className="w-3.5 h-3.5 text-gray-400" />
-                              <span className="text-sm font-bold text-gray-700">
+                              <Package className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                              <span className="text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600">
                                 {cat.products_count}
                               </span>
                             </div>
                           </td>
                           <td className="px-3 py-3">
-                            <span className="text-sm text-gray-700">{cat.sort_order}</span>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 dark:text-gray-600">{cat.sort_order}</span>
                           </td>
                           <td className="px-3 py-3">
                             <Badge variant={cat.is_active ? 'success' : 'gray'} size="sm">
@@ -690,21 +690,21 @@ export function AdminCategoriesPage() {
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => window.open(`http://localhost:5173/products?category=${cat.slug}`, '_blank')}
-                                className="p-1.5 hover:bg-primary-50 rounded-lg text-gray-500 hover:text-primary-600 transition-colors"
+                                className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors"
                                 title="پیش‌نمایش در سایت"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleOpenEditModal(cat)}
-                                className="p-1.5 hover:bg-accent-50 rounded-lg text-gray-500 hover:text-accent-600 transition-colors"
+                                className="p-1.5 hover:bg-accent-50 dark:hover:bg-accent-900/30 rounded-lg text-gray-500 dark:text-gray-400 hover:text-accent-600 transition-colors"
                                 title="ویرایش"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(cat.id, cat.name)}
-                                className="p-1.5 hover:bg-error-50 rounded-lg text-gray-500 hover:text-error-600 transition-colors"
+                                className="p-1.5 hover:bg-error-50 dark:hover:bg-error-900/30 rounded-lg text-gray-500 dark:text-gray-400 hover:text-error-600 transition-colors"
                                 title="حذف"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -778,14 +778,14 @@ function SortableTreeNode({
         ref={setNodeRef}
         style={style}
         className={cn(
-          'flex items-center gap-2 py-2.5 px-3 hover:bg-gray-50/50 transition-colors border-b border-gray-50',
+          'flex items-center gap-2 py-2.5 px-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors border-b border-gray-50 dark:border-gray-700/50',
           isDragging && 'opacity-50 bg-primary-50'
         )}
       >
         <button
           {...attributes}
           {...listeners}
-          className="p-1 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
+          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-grab active:cursor-grabbing text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
         >
           <GripVertical className="w-4 h-4" />
         </button>
@@ -794,7 +794,7 @@ function SortableTreeNode({
           onClick={() => hasChildren && onToggleExpand(node.id)}
           className={cn(
             'p-1 rounded transition-colors',
-            hasChildren ? 'hover:bg-gray-200 text-gray-600' : 'text-transparent cursor-default'
+            hasChildren ? 'hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400' : 'text-transparent cursor-default'
           )}
         >
           {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -806,7 +806,7 @@ function SortableTreeNode({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-gray-900 line-clamp-1">{node.name}</p>
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-1">{node.name}</p>
             {node.is_temporary && (
               <Badge variant="warning" size="sm" className="text-[9px]">
                 <Clock className="w-2.5 h-2.5 ml-0.5" />
@@ -819,7 +819,7 @@ function SortableTreeNode({
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500">
+          <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">
             <span className="flex items-center gap-0.5">
               <Package className="w-2.5 h-2.5" />
               {node.products_count} محصول
@@ -836,14 +836,14 @@ function SortableTreeNode({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onEdit(node)}
-            className="p-1.5 hover:bg-accent-50 rounded-lg text-gray-500 hover:text-accent-600 transition-colors"
+            className="p-1.5 hover:bg-accent-50 dark:hover:bg-accent-900/30 rounded-lg text-gray-500 dark:text-gray-400 hover:text-accent-600 transition-colors"
             title="ویرایش"
           >
             <Edit2 className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onDelete(node.id, node.name)}
-            className="p-1.5 hover:bg-error-50 rounded-lg text-gray-500 hover:text-error-600 transition-colors"
+            className="p-1.5 hover:bg-error-50 dark:hover:bg-error-900/30 rounded-lg text-gray-500 dark:text-gray-400 hover:text-error-600 transition-colors"
             title="حذف"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -888,18 +888,18 @@ function StatCard({ label, value, icon: Icon, color }: {
     error: 'text-error-600 bg-error-50',
     warning: 'text-warning-600 bg-warning-50',
     accent: 'text-accent-600 bg-accent-50',
-    gray: 'text-gray-600 bg-gray-50',
+    gray: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900',
   };
 
   return (
-    <div className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm hover:shadow-md transition-all">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-center justify-between mb-2">
         <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', colors[color])}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
-      <p className="text-xl font-black text-gray-900">{value.toLocaleString('fa-IR')}</p>
-      <p className="text-[10px] text-gray-500 mt-0.5">{label}</p>
+      <p className="text-xl font-black text-gray-900 dark:text-gray-100">{value.toLocaleString('fa-IR')}</p>
+      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
     </div>
   );
 }
@@ -1027,18 +1027,18 @@ function CategoryFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-l from-primary-50/50 to-white">
-          <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-l from-primary-50/50 to-white">
+          <h3 className="text-lg font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <FolderTree className="w-5 h-5 text-primary-600" />
             {isEditing ? 'ویرایش دسته‌بندی' : 'افزودن دسته‌بندی جدید'}
           </h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
 
-        <div className="flex border-b border-gray-100 bg-gray-50/50">
+        <div className="flex border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1048,8 +1048,8 @@ function CategoryFormModal({
                 className={cn(
                   'px-4 py-2.5 text-xs font-bold transition-all flex items-center gap-1.5 border-b-2 -mb-px',
                   activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600 bg-white'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'border-primary-500 text-primary-600 bg-white dark:bg-gray-800'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -1063,7 +1063,7 @@ function CategoryFormModal({
           {activeTab === 'basic' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">
                   نام دسته <span className="text-error-500">*</span>
                 </label>
                 <input
@@ -1076,28 +1076,28 @@ function CategoryFormModal({
                     }
                   }}
                   placeholder="مثلاً: گوشی موبایل"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Slug (URL)</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">Slug (URL)</label>
                 <input
                   type="text"
                   value={formData.slug}
                   onChange={(e) => updateField('slug', e.target.value)}
                   placeholder="mobile-phones"
                   dir="ltr"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">دسته والد</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">دسته والد</label>
                 <select
                   value={formData.parent_id || ''}
                   onChange={(e) => updateField('parent_id', e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 >
                   <option value="">— بدون والد (دسته ریشه) —</option>
                   {categoriesList
@@ -1109,22 +1109,22 @@ function CategoryFormModal({
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">توضیحات</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">توضیحات</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => updateField('description', e.target.value)}
                   placeholder="توضیحات دسته..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1.5">آیکون</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">آیکون</label>
                   <button
                     onClick={() => setShowIconPicker(!showIconPicker)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-right flex items-center gap-2 hover:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-right flex items-center gap-2 hover:border-primary-500"
                   >
                     {formData.icon ? (
                       <>
@@ -1132,11 +1132,11 @@ function CategoryFormModal({
                         <span>{formData.icon}</span>
                       </>
                     ) : (
-                      <span className="text-gray-400">انتخاب آیکون...</span>
+                      <span className="text-gray-400 dark:text-gray-500">انتخاب آیکون...</span>
                     )}
                   </button>
                   {showIconPicker && (
-                    <div className="mt-2 p-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto grid grid-cols-8 gap-1">
+                    <div className="mt-2 p-2 border border-gray-200 dark:border-gray-700 rounded-lg max-h-48 overflow-y-auto grid grid-cols-8 gap-1">
                       {AVAILABLE_ICONS.map((iconName) => {
                         const Icon = getIconComponent(iconName);
                         return (
@@ -1147,12 +1147,12 @@ function CategoryFormModal({
                               setShowIconPicker(false);
                             }}
                             className={cn(
-                              'p-2 rounded hover:bg-primary-50 transition-colors',
+                              'p-2 rounded hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors',
                               formData.icon === iconName && 'bg-primary-100 border border-primary-300'
                             )}
                             title={iconName}
                           >
-                            <Icon className="w-4 h-4 text-gray-700 mx-auto" />
+                            <Icon className="w-4 h-4 text-gray-700 dark:text-gray-300 dark:text-gray-600 mx-auto" />
                           </button>
                         );
                       })}
@@ -1161,34 +1161,34 @@ function CategoryFormModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1.5">ترتیب نمایش</label>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">ترتیب نمایش</label>
                   <input
                     type="number"
                     value={formData.sort_order}
                     onChange={(e) => updateField('sort_order', parseInt(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">URL تصویر</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">URL تصویر</label>
                 <input
                   type="text"
                   value={formData.image || ''}
                   onChange={(e) => updateField('image', e.target.value)}
                   placeholder="https://example.com/image.jpg"
                   dir="ltr"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
                 {formData.image && (
-                  <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                  <div className="mt-2 w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                     <SafeImage src={formData.image} alt="preview" className="w-full h-full object-cover" fallbackEmoji="📷" />
                   </div>
                 )}
               </div>
 
-              <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer">
+              <label className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_active}
@@ -1196,8 +1196,8 @@ function CategoryFormModal({
                   className="w-4 h-4 text-primary-600 rounded"
                 />
                 <div>
-                  <p className="text-sm font-bold text-gray-700">فعال</p>
-                  <p className="text-[10px] text-gray-500">دسته در سایت نمایش داده می‌شود</p>
+                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600">فعال</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">دسته در سایت نمایش داده می‌شود</p>
                 </div>
               </label>
             </div>
@@ -1213,50 +1213,50 @@ function CategoryFormModal({
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Meta Title</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">Meta Title</label>
                 <input
                   type="text"
                   value={formData.meta_title || ''}
                   onChange={(e) => updateField('meta_title', e.target.value)}
                   placeholder={formData.name || 'عنوان صفحه'}
                   maxLength={200}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
-                <p className="text-[10px] text-gray-500 mt-1">{(formData.meta_title || '').length}/200</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">{(formData.meta_title || '').length}/200</p>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Meta Description</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">Meta Description</label>
                 <textarea
                   value={formData.meta_description || ''}
                   onChange={(e) => updateField('meta_description', e.target.value)}
                   placeholder={formData.description || 'توضیحات صفحه...'}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">Meta Keywords</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">Meta Keywords</label>
                 <input
                   type="text"
                   value={formData.meta_keywords || ''}
                   onChange={(e) => updateField('meta_keywords', e.target.value)}
                   placeholder="کلمه1, کلمه2, کلمه3"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                 />
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs font-bold text-gray-700 mb-2">پیش‌نمایش گوگل:</p>
-                <div className="bg-white p-3 rounded border border-gray-200">
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-2">پیش‌نمایش گوگل:</p>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                   <p className="text-blue-700 text-sm font-medium line-clamp-1">
                     {formData.meta_title || formData.name || 'عنوان دسته'}
                   </p>
                   <p className="text-green-700 text-xs mt-1">
                     azkala.com › categories › {formData.slug || 'slug'}
                   </p>
-                  <p className="text-gray-600 text-xs mt-1 line-clamp-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1 line-clamp-2">
                     {formData.meta_description || formData.description || 'توضیحات دسته...'}
                   </p>
                 </div>
@@ -1274,7 +1274,7 @@ function CategoryFormModal({
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1.5">افزودن تگ جدید</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">افزودن تگ جدید</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -1287,7 +1287,7 @@ function CategoryFormModal({
                       }
                     }}
                     placeholder="نام تگ را وارد کنید..."
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                   />
                   <Button onClick={handleAddTag} size="sm" className="gap-1">
                     <Plus className="w-4 h-4" />
@@ -1297,7 +1297,7 @@ function CategoryFormModal({
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-2">
                   تگ‌های موجود ({formData.tags?.length || 0})
                 </label>
                 {formData.tags && formData.tags.length > 0 ? (
@@ -1316,9 +1316,9 @@ function CategoryFormModal({
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <Tag className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">هنوز تگی اضافه نشده</p>
+                  <div className="p-8 text-center bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300">
+                    <Tag className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">هنوز تگی اضافه نشده</p>
                   </div>
                 )}
               </div>
@@ -1334,7 +1334,7 @@ function CategoryFormModal({
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg cursor-pointer">
+              <label className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.is_temporary}
@@ -1342,48 +1342,48 @@ function CategoryFormModal({
                   className="w-4 h-4 text-primary-600 rounded"
                 />
                 <div>
-                  <p className="text-sm font-bold text-gray-700">این دسته موقت است</p>
-                  <p className="text-[10px] text-gray-500">برای کمپین‌های فصلی و تبلیغاتی</p>
+                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600">این دسته موقت است</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">برای کمپین‌های فصلی و تبلیغاتی</p>
                 </div>
               </label>
 
               {formData.is_temporary && (
                 <>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1.5">نام کمپین</label>
+                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">نام کمپین</label>
                     <input
                       type="text"
                       value={formData.campaign_name || ''}
                       onChange={(e) => updateField('campaign_name', e.target.value)}
                       placeholder="مثلاً: کمپین نوروز ۱۴۰۵"
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1.5">تاریخ شروع</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">تاریخ شروع</label>
                       <input
                         type="date"
                         value={formData.start_date || ''}
                         onChange={(e) => updateField('start_date', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1.5">تاریخ پایان</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5">تاریخ پایان</label>
                       <input
                         type="date"
                         value={formData.end_date || ''}
                         onChange={(e) => updateField('end_date', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5 flex items-center gap-1">
                         <Palette className="w-3.5 h-3.5" />
                         رنگ پس‌زمینه
                       </label>
@@ -1392,7 +1392,7 @@ function CategoryFormModal({
                           type="color"
                           value={formData.bg_color || '#ffffff'}
                           onChange={(e) => updateField('bg_color', e.target.value)}
-                          className="w-12 h-10 rounded border border-gray-200 cursor-pointer"
+                          className="w-12 h-10 rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
                         />
                         <input
                           type="text"
@@ -1400,12 +1400,12 @@ function CategoryFormModal({
                           onChange={(e) => updateField('bg_color', e.target.value)}
                           placeholder="#ffffff"
                           dir="ltr"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
+                          className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1.5 flex items-center gap-1">
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 dark:text-gray-600 mb-1.5 flex items-center gap-1">
                         <Palette className="w-3.5 h-3.5" />
                         رنگ متن
                       </label>
@@ -1414,7 +1414,7 @@ function CategoryFormModal({
                           type="color"
                           value={formData.text_color || '#000000'}
                           onChange={(e) => updateField('text_color', e.target.value)}
-                          className="w-12 h-10 rounded border border-gray-200 cursor-pointer"
+                          className="w-12 h-10 rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
                         />
                         <input
                           type="text"
@@ -1422,14 +1422,14 @@ function CategoryFormModal({
                           onChange={(e) => updateField('text_color', e.target.value)}
                           placeholder="#000000"
                           dir="ltr"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
+                          className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 font-mono"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div
-                    className="p-4 rounded-lg border-2 border-dashed border-gray-300"
+                    className="p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600"
                     style={{
                       backgroundColor: formData.bg_color || '#ffffff',
                       color: formData.text_color || '#000000',
@@ -1450,7 +1450,7 @@ function CategoryFormModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-end gap-2 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
           <Button variant="outline" onClick={onClose} disabled={isPending}>
             انصراف
           </Button>

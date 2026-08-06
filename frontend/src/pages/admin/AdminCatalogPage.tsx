@@ -67,20 +67,20 @@ export function AdminCatalogPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
               <Package className="w-5 h-5 text-white" />
             </div>
             مدیریت کاتالوگ
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             مدیریت دسته‌بندی‌ها، برندها و سلسله‌مراتب دستگاه‌ها
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-2 overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-2 overflow-x-auto">
         <div className="flex gap-2 min-w-max">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -106,7 +106,7 @@ export function AdminCatalogPage() {
                   'flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap',
                   isActive
                     ? getActiveClasses()
-                    : 'text-gray-600 hover:bg-gray-100'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 )}
               >
                 <Icon className="w-4 h-4" />

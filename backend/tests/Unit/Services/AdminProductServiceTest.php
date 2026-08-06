@@ -2,9 +2,8 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\Product;
 use App\Models\Category;
-use App\Models\User;
+use App\Models\Product;
 use App\Repositories\AdminProductRepository;
 use App\Services\Admin\AdminProductService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,12 +14,13 @@ class AdminProductServiceTest extends TestCase
     use RefreshDatabase;
 
     protected AdminProductService $service;
+
     protected AdminProductRepository $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new AdminProductRepository();
+        $this->repository = new AdminProductRepository;
         $this->service = new AdminProductService($this->repository);
     }
 
@@ -37,6 +37,21 @@ class AdminProductServiceTest extends TestCase
         $this->assertArrayHasKey('products', $result);
         $this->assertArrayHasKey('pagination', $result);
         $this->assertEquals(5, $result['pagination']['total']);
+    }
+
+    /**
+     * ✅ قبلاً compare_price (ستون واقعیِ «قیمت قبل از تخفیف») در پاسخ
+     * formatProduct نبود — جدول محصولات پنل ادمین دقیقاً روی همین فیلد
+     * شرط می‌زد تا قیمت خط‌خورده را نشان دهد، پس هیچ محصولی، هرچقدر هم
+     * compare_price واقعی داشت، تخفیف را در پنل ادمین نشان نمی‌داد.
+     */
+    public function test_products_list_exposes_real_compare_price(): void
+    {
+        Product::factory()->create(['price' => 100000, 'compare_price' => 150000]);
+
+        $result = $this->service->getProducts([], 20);
+
+        $this->assertSame(150000.0, $result['products']->first()['compare_price']);
     }
 
     public function test_can_filter_products_by_active_status(): void

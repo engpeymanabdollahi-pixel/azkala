@@ -196,9 +196,9 @@ export function CrudTable<T extends { id: number }>({
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-2xl">
-        <p className="text-red-800 font-semibold">خطا در دریافت داده‌ها</p>
-        <p className="text-red-600 text-sm mt-1">{(error as Error).message}</p>
+      <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl">
+        <p className="text-red-800 dark:text-red-400 font-semibold">خطا در دریافت داده‌ها</p>
+        <p className="text-red-600 dark:text-red-400 text-sm mt-1">{(error as Error).message}</p>
         <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-3">
           <RefreshCw className="w-4 h-4 ml-2" />
           تلاش مجدد
@@ -215,7 +215,7 @@ export function CrudTable<T extends { id: number }>({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-2xl font-black text-gray-900">{title || 'مدیریت داده‌ها'}</h2>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100">{title || 'مدیریت داده‌ها'}</h2>
         <div className="flex gap-2">
           {exportOptions?.enabled && (
             <Select
@@ -236,14 +236,14 @@ export function CrudTable<T extends { id: number }>({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+      <div className="flex flex-wrap gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
         {/* Search */}
         <div className="flex-1 min-w-[250px]">
           <Input
             placeholder="جستجو..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+            leftIcon={<Search className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
           />
         </div>
 
@@ -279,8 +279,8 @@ export function CrudTable<T extends { id: number }>({
 
       {/* Bulk Actions */}
       {enableSelection && selectedIds.length > 0 && bulkActions.length > 0 && (
-        <div className="flex items-center gap-3 p-4 bg-primary-50 border border-primary-200 rounded-2xl">
-          <span className="text-sm font-bold text-primary-700">
+        <div className="flex items-center gap-3 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-2xl">
+          <span className="text-sm font-bold text-primary-700 dark:text-primary-400">
             {selectedIds.length} مورد انتخاب شده
           </span>
           <div className="flex gap-2 mr-auto">
@@ -309,7 +309,7 @@ export function CrudTable<T extends { id: number }>({
       )}
 
       {/* Table */}
-      <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm">
+      <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Spinner size="lg" />
@@ -322,7 +322,7 @@ export function CrudTable<T extends { id: number }>({
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50">
+              <TableRow className="bg-gray-50 dark:bg-gray-900">
                 {enableSelection && (
                   <TableHead className="w-[50px]">
                     <Checkbox
@@ -336,7 +336,7 @@ export function CrudTable<T extends { id: number }>({
                     key={String(column.key)}
                     style={{ width: column.width }}
                     className={cn(
-                      column.sortable && 'cursor-pointer hover:bg-gray-100 transition-colors',
+                      column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
                       column.className
                     )}
                     onClick={() => column.sortable && handleSort(String(column.key))}

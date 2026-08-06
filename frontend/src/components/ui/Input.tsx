@@ -26,9 +26,9 @@ export function Input({
   return (
     <div className={cn('flex flex-col gap-1.5', fullWidth && 'w-full')}>
       {label && (
-        <label 
-          htmlFor={inputId} 
-          className="text-sm font-semibold text-gray-700 flex items-center gap-1"
+        <label
+          htmlFor={inputId}
+          className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1"
         >
           {label}
           {props.required && <span className="text-error-500 text-lg leading-none">*</span>}
@@ -36,7 +36,7 @@ export function Input({
       )}
       <div className="relative group">
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-primary-500 transition-colors pointer-events-none">
             {rightIcon}
           </div>
         )}
@@ -44,11 +44,11 @@ export function Input({
           {...props}
           id={inputId}
           className={cn(
-            'w-full rounded-xl border-2 bg-white px-4 py-3 text-gray-900 text-sm',
-            'placeholder:text-gray-400',
-            'border-gray-200',
-            'focus:border-primary-500 focus:ring-4 focus:ring-primary-100 focus:outline-none',
-            'disabled:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200',
+            'w-full rounded-xl border-2 bg-white dark:bg-gray-900 px-4 py-3 text-gray-900 dark:text-gray-100 text-sm',
+            'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+            'border-gray-200 dark:border-gray-700',
+            'focus:border-primary-500 focus:ring-4 focus:ring-primary-100 dark:focus:ring-primary-900/30 focus:outline-none',
+            'disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:cursor-not-allowed disabled:border-gray-200 dark:disabled:border-gray-700',
             'transition-all duration-200',
             rightIcon && 'pr-11',
             leftIcon && 'pl-11',
@@ -57,7 +57,7 @@ export function Input({
           )}
         />
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-primary-500 transition-colors pointer-events-none">
             {leftIcon}
           </div>
         )}
@@ -71,7 +71,7 @@ export function Input({
         </p>
       )}
       {hint && !error && (
-        <p className="text-xs text-gray-500">{hint}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
       )}
     </div>
   );

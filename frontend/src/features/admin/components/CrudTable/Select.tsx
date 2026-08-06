@@ -44,18 +44,18 @@ export function Select({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex h-10 w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 w-full items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
           isOpen && 'ring-2 ring-primary-500'
         )}
       >
-        <span className={cn(!selectedOption && 'text-gray-500')}>
+        <span className={cn(!selectedOption && 'text-gray-500 dark:text-gray-400')}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown className={cn('h-4 w-4 opacity-50 transition-transform', isOpen && 'rotate-180')} />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 min-w-[8rem] w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg animate-in fade-in-0 zoom-in-95">
+        <div className="absolute z-50 mt-1 min-w-[8rem] w-full overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg animate-in fade-in-0 zoom-in-95">
           <div className="p-1">
             {options.map((option) => (
               <button
@@ -66,8 +66,8 @@ export function Select({
                   setIsOpen(false);
                 }}
                 className={cn(
-                  'relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2 text-sm outline-none hover:bg-gray-100 transition-colors',
-                  String(value) === String(option.value) && 'bg-primary-50 text-primary-700 font-medium'
+                  'relative flex w-full cursor-pointer select-none items-center rounded-lg px-3 py-2 text-sm outline-none text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                  String(value) === String(option.value) && 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium'
                 )}
               >
                 {option.label}

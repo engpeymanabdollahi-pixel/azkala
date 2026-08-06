@@ -94,8 +94,8 @@ export function AdminDeviceBrandsPage() {
             {brand.name?.charAt(0)}
           </div>
           <div>
-            <div className="font-bold text-gray-900">{brand.name}</div>
-            <div className="text-xs text-gray-500">{brand.slug}</div>
+            <div className="font-bold text-gray-900 dark:text-gray-100">{brand.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{brand.slug}</div>
           </div>
         </div>
       ),
@@ -185,11 +185,11 @@ export function AdminDeviceBrandsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">نوع دستگاه</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">نوع دستگاه</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-2"
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-2"
               >
                 <option value="mobile">موبایل</option>
                 <option value="laptop">لپ‌تاپ</option>
@@ -200,12 +200,12 @@ export function AdminDeviceBrandsPage() {
 
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                <span className="text-sm font-medium">فعال</span>
+                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">فعال</span>
               </label>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button onClick={handleSubmit} isLoading={createMutation.isPending || updateMutation.isPending} fullWidth>
                 {modalMode === 'create' ? 'ایجاد برند' : 'ذخیره تغییرات'}
               </Button>
@@ -223,18 +223,18 @@ export function AdminDeviceBrandsPage() {
                 {selectedBrand.name?.charAt(0)}
               </div>
               <div>
-                <h3 className="text-xl font-bold">{selectedBrand.name}</h3>
-                <p className="text-gray-500 text-sm">{selectedBrand.slug}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{selectedBrand.name}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{selectedBrand.slug}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500">نوع دستگاه</label>
-                <div className="font-medium">{typeLabels[selectedBrand.type] || selectedBrand.type}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">نوع دستگاه</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{typeLabels[selectedBrand.type] || selectedBrand.type}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">وضعیت</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">وضعیت</label>
                 <div>
                   <Badge variant={selectedBrand.is_active ? 'success' : 'error'}>
                     {selectedBrand.is_active ? 'فعال' : 'غیرفعال'}
@@ -243,7 +243,7 @@ export function AdminDeviceBrandsPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button onClick={() => handleEdit(selectedBrand)} fullWidth>ویرایش</Button>
               <Button variant="outline" onClick={closeModal} fullWidth>بستن</Button>
             </div>

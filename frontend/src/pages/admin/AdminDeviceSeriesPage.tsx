@@ -70,13 +70,13 @@ export function AdminDeviceSeriesPage() {
             <Smartphone className="w-5 h-5" />
           </div>
           <div>
-            <div className="font-bold text-gray-900">{series.name}</div>
-            <div className="text-xs text-gray-500">{series.slug}</div>
+            <div className="font-bold text-gray-900 dark:text-gray-100">{series.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{series.slug}</div>
           </div>
         </div>
       ),
     },
-    { key: 'brand_name', label: 'برند', render: (value) => <span className="font-medium text-gray-700">{value}</span> },
+    { key: 'brand_name', label: 'برند', render: (value) => <span className="font-medium text-gray-700 dark:text-gray-300">{value}</span> },
     {
       key: 'is_active', label: 'وضعیت',
       render: (value) => <Badge variant={value ? 'success' : 'error'} size="sm">{value ? 'فعال' : 'غیرفعال'}</Badge>,
@@ -121,11 +121,11 @@ export function AdminDeviceSeriesPage() {
         <Modal isOpen={true} onClose={closeModal} title={modalMode === 'create' ? 'افزودن سری جدید' : 'ویرایش سری'} size="md">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">برند دستگاه *</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">برند دستگاه *</label>
               <select
                 value={formData.brand_id}
                 onChange={(e) => setFormData({ ...formData, brand_id: Number(e.target.value) })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-2"
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-2"
                 required
               >
                 {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -136,12 +136,12 @@ export function AdminDeviceSeriesPage() {
             
             <div className="flex items-center gap-6 pt-2">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                <span className="text-sm font-medium">فعال</span>
+                <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">فعال</span>
               </label>
             </div>
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
               <Button onClick={handleSubmit} isLoading={createMutation.isPending || updateMutation.isPending} fullWidth>
                 {modalMode === 'create' ? 'ایجاد' : 'ذخیره تغییرات'}
               </Button>

@@ -37,8 +37,8 @@ class AdminProductService
                 'stats' => $stats,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminProductService@getProducts: ' . $e->getMessage());
-            throw new \Exception('خطا در دریافت محصولات: ' . $e->getMessage(), 500);
+            Log::error('AdminProductService@getProducts: '.$e->getMessage());
+            throw new \Exception('خطا در دریافت محصولات: '.$e->getMessage(), 500);
         }
     }
 
@@ -49,10 +49,11 @@ class AdminProductService
     {
         try {
             $product = $this->repository->findOrFail($id);
+
             return $this->repository->quickUpdate($product, $data);
         } catch (\Exception $e) {
-            Log::error('AdminProductService@quickUpdate: ' . $e->getMessage());
-            throw new \Exception('خطا در به‌روزرسانی: ' . $e->getMessage(), 500);
+            Log::error('AdminProductService@quickUpdate: '.$e->getMessage());
+            throw new \Exception('خطا در به‌روزرسانی: '.$e->getMessage(), 500);
         }
     }
 
@@ -77,7 +78,7 @@ class AdminProductService
                 'message' => $messages[$action] ?? 'عملیات انجام شد',
             ];
         } catch (\Exception $e) {
-            Log::error('AdminProductService@bulkAction: ' . $e->getMessage());
+            Log::error('AdminProductService@bulkAction: '.$e->getMessage());
             throw new \Exception('خطا در عملیات', 500);
         }
     }
@@ -89,9 +90,10 @@ class AdminProductService
     {
         try {
             $product = $this->repository->findOrFail($id);
+
             return $this->repository->delete($product);
         } catch (\Exception $e) {
-            Log::error('AdminProductService@deleteProduct: ' . $e->getMessage());
+            Log::error('AdminProductService@deleteProduct: '.$e->getMessage());
             throw new \Exception('خطا در حذف', 500);
         }
     }
@@ -112,7 +114,7 @@ class AdminProductService
                 'performance_score' => $performanceScore,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminProductService@getProductStats: ' . $e->getMessage());
+            Log::error('AdminProductService@getProductStats: '.$e->getMessage());
             throw new \Exception('خطا', 500);
         }
     }
@@ -126,29 +128,47 @@ class AdminProductService
 
         // Sales score (max 40)
         $sales = $product->sales_count ?? 0;
-        if ($sales >= 100) $score += 40;
-        elseif ($sales >= 50) $score += 30;
-        elseif ($sales >= 20) $score += 20;
-        elseif ($sales >= 5) $score += 10;
+        if ($sales >= 100) {
+            $score += 40;
+        } elseif ($sales >= 50) {
+            $score += 30;
+        } elseif ($sales >= 20) {
+            $score += 20;
+        } elseif ($sales >= 5) {
+            $score += 10;
+        }
 
         // Rating score (max 30)
         $rating = $product->rating ?? 0;
-        if ($rating >= 4.5) $score += 30;
-        elseif ($rating >= 4) $score += 25;
-        elseif ($rating >= 3.5) $score += 15;
-        elseif ($rating >= 3) $score += 10;
+        if ($rating >= 4.5) {
+            $score += 30;
+        } elseif ($rating >= 4) {
+            $score += 25;
+        } elseif ($rating >= 3.5) {
+            $score += 15;
+        } elseif ($rating >= 3) {
+            $score += 10;
+        }
 
         // Stock score (max 15)
         $stock = $product->stock ?? 0;
-        if ($stock >= 50) $score += 15;
-        elseif ($stock >= 20) $score += 10;
-        elseif ($stock >= 5) $score += 5;
+        if ($stock >= 50) {
+            $score += 15;
+        } elseif ($stock >= 20) {
+            $score += 10;
+        } elseif ($stock >= 5) {
+            $score += 5;
+        }
 
         // Views score (max 15)
         $views = $product->views_count ?? 0;
-        if ($views >= 1000) $score += 15;
-        elseif ($views >= 500) $score += 10;
-        elseif ($views >= 100) $score += 5;
+        if ($views >= 1000) {
+            $score += 15;
+        } elseif ($views >= 500) {
+            $score += 10;
+        } elseif ($views >= 100) {
+            $score += 5;
+        }
 
         return $score;
     }
@@ -177,6 +197,12 @@ class AdminProductService
             'main_image' => $product->main_image,
             'price' => (float) $product->price,
             'discount_price' => $product->discount_price ? (float) $product->discount_price : null,
+            // ✅ قبلاً این ستون واقعی (قیمت «قبل» برای نمایش خط‌خورده) اصلاً
+            // در پاسخ نبود، با اینکه جدول ادمین دقیقاً روی
+            // product.compare_price نمایش تخفیف را شرط می‌زد — یعنی هیچ
+            // محصولی، هرچقدر هم compare_price واقعی داشت، در پنل ادمین
+            // قیمت خط‌خورده نشان نمی‌داد.
+            'compare_price' => $product->compare_price ? (float) $product->compare_price : null,
             'stock' => $product->stock,
             'rating' => (float) ($product->rating ?? 0),
             'reviews_count' => $product->reviews_count ?? 0,
