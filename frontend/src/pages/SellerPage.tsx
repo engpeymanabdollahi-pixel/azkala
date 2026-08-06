@@ -87,11 +87,41 @@ export default function SellerPage() {
     },
   });
 
+  // ✅ قبلاً همیشه فقط اولین ۲۰ محصول بدون هیچ کنترلی گرفته می‌شد — بک‌اند
+  // (PublicSellerService::getSellerProducts) از قبل sort/search/category_id/
+  // has_discount و صفحه‌بندی واقعی را پشتیبانی می‌کرد ولی فرانت‌اند هیچ‌کدام
+  // را استفاده نمی‌کرد. فروشگاهی با بیش از ۲۰ محصول عملاً بقیه را
+  // غیرقابل‌دسترس می‌کرد.
+  const [productSearch, setProductSearch] = useState('');
+  const [productSort, setProductSort] = useState('newest');
+  const [productDiscountOnly, setProductDiscountOnly] = useState(false);
+  const [productsPage, setProductsPage] = useState(1);
+
+  // جستجو با تأخیر (debounce) تا با هر حرف تایپ‌شده درخواست جدید نرود
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(productSearch), 400);
+    return () => clearTimeout(timer);
+  }, [productSearch]);
+
+  // با تغییر هر فیلتر، به صفحه‌ی اول برگرد
+  useEffect(() => {
+    setProductsPage(1);
+  }, [debouncedSearch, productSort, productDiscountOnly]);
+
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['seller-products', slug],
+    queryKey: ['seller-products', slug, debouncedSearch, productSort, productDiscountOnly, productsPage],
     queryFn: async () => {
-      const res = await apiClient.get(`/sellers/${slug}/products`, { params: { per_page: 20 } });
-      return res.data;
+      const res = await apiClient.get(`/sellers/${slug}/products`, {
+        params: {
+          per_page: 20,
+          page: productsPage,
+          sort: productSort,
+          search: debouncedSearch || undefined,
+          has_discount: productDiscountOnly || undefined,
+        },
+      });
+      return res.data as { data: unknown[]; meta: { current_page: number; last_page: number; total: number } };
     },
     enabled: !!sellerData && activeTab === 'products',
   });
@@ -194,9 +224,9 @@ export default function SellerPage() {
   }, [sellerData]);
 
   const isOwner = isAuthenticated && user && sellerData && user.id === sellerData.user_id;
-  const products: Product[] = Array.isArray(productsData?.data)
-    ? productsData.data
-    : (Array.isArray(productsData?.data?.data) ? productsData.data.data : []);
+  // ✅ PublicSellerController::products() همیشه {success, data: [...], meta}
+  // برمی‌گرداند — بدون بسته‌بندی تودرتوی اضافه.
+  const products = (productsData?.data ?? []) as Product[];
 
   const isFollowing = sellerData?.is_followed_by_current_user || false;
 
@@ -371,13 +401,82 @@ export default function SellerPage() {
           <div className="p-6 min-h-[400px]">
             {activeTab === 'products' && (
               <>
+                {/* ✅ نوار جستجو/مرتب‌سازی/فیلتر — قبلاً هیچ‌کدام وجود نداشت،
+                    با اینکه بک‌اند از قبل همه‌شان را پشتیبانی می‌کرد. */}
+                <div className="flex flex-col sm:flex-row gap-3 mb-5">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="جستجو در محصولات این فروشگاه..."
+                      className="w-full pr-4 pl-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                    />
+                  </div>
+                  <select
+                    value={productSort}
+                    onChange={(e) => setProductSort(e.target.value)}
+                    className="px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                  >
+                    <option value="newest">جدیدترین</option>
+                    <option value="popular">پرفروش‌ترین</option>
+                    <option value="rating">بالاترین امتیاز</option>
+                    <option value="price_low">ارزان‌ترین</option>
+                    <option value="price_high">گران‌ترین</option>
+                  </select>
+                  <label className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-xl text-sm text-gray-700 dark:text-gray-300 cursor-pointer whitespace-nowrap select-none">
+                    <input
+                      type="checkbox"
+                      checked={productDiscountOnly}
+                      onChange={(e) => setProductDiscountOnly(e.target.checked)}
+                      className="rounded border-gray-300 dark:border-slate-500 text-primary-600 focus:ring-primary-500"
+                    />
+                    فقط تخفیف‌دار
+                  </label>
+                </div>
+
                 {productsLoading ? (
                   <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" /></div>
                 ) : products.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {products.map((product) => (
-                      <ProductCard key={product.id} product={product} onClick={() => navigate(`/products/${product.slug}`)} />
-                    ))}
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {products.map((product) => (
+                        <ProductCard key={product.id} product={product} onClick={() => navigate(`/products/${product.slug}`)} />
+                      ))}
+                    </div>
+
+                    {productsData && productsData.meta.last_page > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-6">
+                        <button
+                          onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                          disabled={productsPage === 1}
+                          className="px-4 py-2 rounded-lg text-sm font-bold border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          قبلی
+                        </button>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          صفحه {productsPage.toLocaleString('fa-IR')} از {productsData.meta.last_page.toLocaleString('fa-IR')} ({productsData.meta.total.toLocaleString('fa-IR')} محصول)
+                        </span>
+                        <button
+                          onClick={() => setProductsPage((p) => Math.min(productsData.meta.last_page, p + 1))}
+                          disabled={productsPage === productsData.meta.last_page}
+                          className="px-4 py-2 rounded-lg text-sm font-bold border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          بعدی
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : debouncedSearch || productDiscountOnly ? (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" />
+                    <p className="font-bold">محصولی مطابق این جستجو/فیلتر یافت نشد.</p>
+                    <button
+                      onClick={() => { setProductSearch(''); setProductDiscountOnly(false); }}
+                      className="mt-4 px-4 py-2 text-primary-600 dark:text-primary-400 font-bold hover:underline"
+                    >
+                      پاک کردن فیلترها
+                    </button>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
