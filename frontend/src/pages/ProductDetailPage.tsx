@@ -32,7 +32,7 @@ ShoppingBag,
   Home,
   Search,
   RefreshCw,
-  Filter,
+  Reply,
 } from 'lucide-react';
 
 import { useCartStore } from '@/store/cartStore';
@@ -55,15 +55,6 @@ import toast from 'react-hot-toast';
 import { useChatStore } from '@/store/chatStore';
 
 type TabType = 'description' | 'specifications' | 'compatibility' | 'reviews';
-
-// 🆕 دسته‌بندی‌های نظر
-const REVIEW_CATEGORIES = [
-  { value: 'general', label: 'نظر کلی', icon: '💬' },
-  { value: 'quality', label: 'کیفیت محصول', icon: '⭐' },
-  { value: 'price', label: 'قیمت و ارزش', icon: '💰' },
-  { value: 'shipping', label: 'ارسال و بسته‌بندی', icon: '📦' },
-  { value: 'support', label: 'پشتیبانی فروشنده', icon: '🎧' },
-];
 
 export function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -96,10 +87,16 @@ export function ProductDetailPage() {
     title: '',
     comment: '',
   });
-  const [reviewCategory, setReviewCategory] = useState('general');
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewsPage, setReviewsPage] = useState(1);
   const [reviewFilter, setReviewFilter] = useState<number | 'all'>('all');
+
+  // ✅ فیلتر ستاره قبلاً فقط همان یک صفحهٔ بارگذاری‌شده را در سمت کلاینت
+  // فیلتر می‌کرد؛ حالا با تغییر فیلتر، صفحه‌بندی نظرات هم به صفحه ۱ برمی‌گردد
+  // (هماهنگ با الگوی مشابه در SellerPage.tsx).
+  useEffect(() => {
+    setReviewsPage(1);
+  }, [reviewFilter]);
 
    // ==================== Data Fetching ====================
   useEffect(() => {
@@ -191,8 +188,8 @@ export function ProductDetailPage() {
   }, [slug]);
 
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
-    queryKey: ['product-reviews', product?.id, reviewsPage],
-    queryFn: () => reviewService.getReviews(product!.id, reviewsPage),
+    queryKey: ['product-reviews', product?.id, reviewsPage, reviewFilter],
+    queryFn: () => reviewService.getReviews(product!.id, reviewsPage, reviewFilter === 'all' ? undefined : reviewFilter),
     enabled: !!product,
   });
 
@@ -212,13 +209,15 @@ export function ProductDetailPage() {
 
   const createReviewMutation = useMutation({
     mutationFn: reviewService.createReview,
-    onSuccess: () => {
+    // ✅ قبلاً پیام واقعی بکند (که یادآوری می‌کند نظر پس از تأیید نمایش
+    // داده می‌شود) نادیده گرفته می‌شد و یک پیام عمومی هاردکد نشان داده
+    // می‌شد.
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['product-reviews', product?.id] });
       queryClient.invalidateQueries({ queryKey: ['can-review', product?.id] });
-      toast.success('نظر شما با موفقیت ثبت شد', { icon: '⭐' });
+      toast.success(response.message || 'نظر شما با موفقیت ثبت شد', { icon: '⭐' });
       setShowReviewForm(false);
       setReviewForm({ rating: 0, title: '', comment: '' });
-      setReviewCategory('general');
     },
     onError: (error: unknown) => {
       const message = error instanceof Error && 'response' in error
@@ -230,8 +229,9 @@ export function ProductDetailPage() {
 
   const helpfulMutation = useMutation({
     mutationFn: reviewService.markHelpful,
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['product-reviews', product?.id] });
+      toast.success(response.message, { icon: '👍' });
     },
   });
 
@@ -290,12 +290,6 @@ export function ProductDetailPage() {
 
   const totalReviews = reviewsSummary?.total_reviews || 0;
 
-  // 🆕 فیلتر نظرات
-  const filteredReviews = useMemo(() => {
-    if (reviewFilter === 'all') return reviews;
-    return reviews.filter((r: Review) => r.rating === reviewFilter);
-  }, [reviews, reviewFilter]);
-
   // ==================== Handlers ====================
   const handleAddToCart = useCallback(() => {
     if (!product) return;
@@ -335,9 +329,7 @@ export function ProductDetailPage() {
     createReviewMutation.mutate({
       product_id: product.id,
       rating: reviewForm.rating,
-      title: reviewForm.title 
-        ? `[${REVIEW_CATEGORIES.find(c => c.value === reviewCategory)?.label}] ${reviewForm.title}`
-        : `[${REVIEW_CATEGORIES.find(c => c.value === reviewCategory)?.label}]`,
+      title: reviewForm.title || undefined,
       comment: reviewForm.comment,
     });
   };
@@ -465,23 +457,23 @@ export function ProductDetailPage() {
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">
 
         {/* 🔧 Breadcrumb - Compact */}
-        <nav className="flex items-center gap-1.5 text-xs text-gray-500 mb-3 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-100">
-          <Link to="/" className="hover:text-primary-600 flex items-center gap-0.5">
+        <nav className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-3 bg-white dark:bg-gray-800 rounded-xl px-3 py-2 shadow-sm border border-gray-100 dark:border-gray-700">
+          <Link to="/" className="hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-0.5">
             <Home className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">خانه</span>
           </Link>
-          <ChevronLeft className="w-3 h-3 text-gray-300 rotate-180" />
-          <Link to="/products" className="hover:text-primary-600">فروشگاه</Link>
+          <ChevronLeft className="w-3 h-3 text-gray-300 dark:text-gray-600 rotate-180" />
+          <Link to="/products" className="hover:text-primary-600 dark:hover:text-primary-400">فروشگاه</Link>
           {product.category && (
             <>
-              <ChevronLeft className="w-3 h-3 text-gray-300 rotate-180" />
-              <Link to={`/products?category=${product.category.id}`} className="hover:text-primary-600">
+              <ChevronLeft className="w-3 h-3 text-gray-300 dark:text-gray-600 rotate-180" />
+              <Link to={`/products?category=${product.category.id}`} className="hover:text-primary-600 dark:hover:text-primary-400">
                 {product.category.name}
               </Link>
             </>
           )}
-          <ChevronLeft className="w-3 h-3 text-gray-300 rotate-180" />
-          <span className="text-gray-900 font-medium line-clamp-1">{product.name}</span>
+          <ChevronLeft className="w-3 h-3 text-gray-300 dark:text-gray-600 rotate-180" />
+          <span className="text-gray-900 dark:text-gray-100 font-medium line-clamp-1">{product.name}</span>
         </nav>
 
         {/* 🔧 Grid اصلی - Compact */}
@@ -491,7 +483,7 @@ export function ProductDetailPage() {
           <div className="space-y-2.5">
             <div
               className={cn(
-                'relative bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-md group',
+                'relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-md group',
                 isZoomed && 'cursor-zoom-out'
               )}
               onMouseEnter={() => setIsZoomed(true)}
@@ -545,15 +537,15 @@ export function ProductDetailPage() {
                   <>
                     <button
                       onClick={() => setSelectedImage((prev) => (prev - 1 + images.length) % images.length)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-900/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
                     >
-                      <ChevronRight className="w-5 h-5 text-gray-700" />
+                      <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-200" />
                     </button>
                     <button
                       onClick={() => setSelectedImage((prev) => (prev + 1) % images.length)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-900/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
                     >
-                      <ChevronLeft className="w-5 h-5 text-gray-700" />
+                      <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-200" />
                     </button>
                   </>
                 )}
@@ -567,10 +559,10 @@ export function ProductDetailPage() {
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
                     className={cn(
-                      'w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 bg-white',
+                      'w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 bg-white dark:bg-gray-800',
                       selectedImage === idx
                         ? 'border-primary-500 shadow-md scale-105'
-                        : 'border-gray-200 hover:border-primary-300'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
                     )}
                   >
                     <SafeImage src={img} alt="" className="w-full h-full object-contain p-1" />
@@ -599,7 +591,7 @@ export function ProductDetailPage() {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-xl md:text-2xl font-black text-gray-900 leading-tight mb-2">
+              <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-gray-100 leading-tight mb-2">
                 {product.name}
               </h1>
               {rating > 0 && (
@@ -611,20 +603,20 @@ export function ProductDetailPage() {
                           key={i}
                           className={cn(
                             'w-4 h-4',
-                            i < Math.floor(rating) ? 'text-warning-400 fill-warning-400' : 'text-gray-300'
+                            i < Math.floor(rating) ? 'text-warning-400 fill-warning-400' : 'text-gray-300 dark:text-gray-600'
                           )}
                         />
                       ))}
                     </div>
-                    <span className="font-bold text-gray-900">{rating.toFixed(1)}</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{rating.toFixed(1)}</span>
                   </div>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-gray-600 flex items-center gap-1">
+                  <span className="text-gray-400 dark:text-gray-600">|</span>
+                  <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <MessageCircle className="w-3.5 h-3.5" />
                     {totalReviews} نظر
                   </span>
-                  <span className="text-gray-400">|</span>
-                  <span className="text-success-600 flex items-center gap-1">
+                  <span className="text-gray-400 dark:text-gray-600">|</span>
+                  <span className="text-success-600 dark:text-success-400 flex items-center gap-1">
                     <CheckCircle className="w-3.5 h-3.5" />
                     {product.sales_count || 0} فروش
                   </span>
@@ -637,8 +629,8 @@ export function ProductDetailPage() {
               <div className={cn(
                 'p-3 rounded-xl flex items-start gap-2.5 border-2',
                 isCompatible
-                  ? 'bg-gradient-to-r from-success-50 to-primary-50 border-success-300'
-                  : 'bg-gradient-to-r from-error-50 to-warning-50 border-error-300'
+                  ? 'bg-gradient-to-r from-success-50 to-primary-50 dark:from-success-950/30 dark:to-primary-950/30 border-success-300 dark:border-success-800'
+                  : 'bg-gradient-to-r from-error-50 to-warning-50 dark:from-error-950/30 dark:to-warning-950/30 border-error-300 dark:border-error-800'
               )}>
                 <div className={cn(
                   'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
@@ -647,12 +639,12 @@ export function ProductDetailPage() {
                   {isCompatible ? <CheckCircle className="w-5 h-5 text-white" /> : <AlertCircle className="w-5 h-5 text-white" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={cn('font-black text-sm mb-0.5', isCompatible ? 'text-success-700' : 'text-error-700')}>
+                  <p className={cn('font-black text-sm mb-0.5', isCompatible ? 'text-success-700 dark:text-success-400' : 'text-error-700 dark:text-error-400')}>
                     {isCompatible
                       ? `✓ کاملاً سازگار با ${selectedDeviceName}`
                       : `✗ با ${selectedDeviceName} سازگار نیست`}
                   </p>
-                  <p className="text-xs text-gray-600 flex items-center gap-1">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <SelectedDeviceIcon className="w-3 h-3" />
                     مدل: <strong>{selectedModel.name}</strong>
                   </p>
@@ -661,19 +653,19 @@ export function ProductDetailPage() {
             )}
 
             {/* 🔧 Price Box - Compact */}
-            <div className="bg-gradient-to-br from-primary-50 via-white to-accent-50 border-2 border-primary-200 rounded-xl p-3 shadow-md">
+            <div className="bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-primary-950/40 dark:via-gray-800 dark:to-accent-950/40 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-3 shadow-md">
               {discountPercent > 0 && product.compare_price && (
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-gray-400 line-through">{formatPrice(product.compare_price)}</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{formatPrice(product.compare_price)}</span>
                   <Badge variant="error" className="text-[10px]">{discountPercent}٪ تخفیف</Badge>
                 </div>
               )}
               <div className="flex items-baseline gap-1.5 mb-1">
-                <span className="text-2xl md:text-3xl font-black text-primary-700">{formatPrice(finalPrice)}</span>
-                <span className="text-xs text-gray-500">تومان</span>
+                <span className="text-2xl md:text-3xl font-black text-primary-700 dark:text-primary-400">{formatPrice(finalPrice)}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">تومان</span>
               </div>
               {discountPercent > 0 && product.compare_price && (
-                <div className="flex items-center gap-1.5 text-xs text-success-600 font-semibold bg-success-50 px-2 py-1 rounded-lg border border-success-200">
+                <div className="flex items-center gap-1.5 text-xs text-success-600 dark:text-success-400 font-semibold bg-success-50 dark:bg-success-900/20 px-2 py-1 rounded-lg border border-success-200 dark:border-success-800">
                   <Gift className="w-3 h-3" />
                   صرفه‌جویی: {formatPrice(product.compare_price - finalPrice)}
                 </div>
@@ -812,22 +804,22 @@ export function ProductDetailPage() {
           })()}
 
             {/* 🔧 Quantity & Actions - Compact */}
-            <div className="bg-white border border-gray-100 rounded-xl p-3 space-y-2.5">
+            <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-gray-900 text-sm">تعداد:</span>
-                <div className="flex items-center bg-gray-100 rounded-xl p-1">
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">تعداد:</span>
+                <div className="flex items-center bg-gray-100 dark:bg-gray-900 rounded-xl p-1">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     disabled={quantity === 1}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-colors disabled:opacity-50"
+                    className="w-8 h-8 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <Minus className="w-4 h-4" />
                   </button>
-                  <span className="w-10 text-center font-black text-base text-gray-900">{quantity}</span>
+                  <span className="w-10 text-center font-black text-base text-gray-900 dark:text-gray-100">{quantity}</span>
                   <button
                     onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
                     disabled={quantity >= product.stock}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-lg transition-colors disabled:opacity-50"
+                    className="w-8 h-8 flex items-center justify-center text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" />
                   </button>
@@ -864,11 +856,11 @@ export function ProductDetailPage() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-primary-50 rounded-lg border border-primary-100">
-                <Truck className="w-4 h-4 text-primary-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800">
+                <Truck className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900">ارسال سریع</p>
-                  <p className="text-[10px] text-gray-600">۲ تا ۳ روز کاری</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-gray-100">ارسال سریع</p>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400">۲ تا ۳ روز کاری</p>
                 </div>
               </div>
             </div>
@@ -883,14 +875,14 @@ export function ProductDetailPage() {
               ].map((item, i) => {
                 const Icon = item.icon;
                 return (
-                  <div key={i} className="bg-white border border-gray-100 rounded-lg p-2 text-center hover:border-primary-200 hover:shadow-md transition-all">
+                  <div key={i} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg p-2 text-center hover:border-primary-200 dark:hover:border-primary-800 hover:shadow-md transition-all">
                     <div className={cn(
                       'w-8 h-8 bg-gradient-to-br rounded-md flex items-center justify-center mx-auto mb-1 shadow-sm',
                       item.color
                     )}>
                       <Icon className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-[9px] font-bold text-gray-700 leading-tight">{item.text}</p>
+                    <p className="text-[9px] font-bold text-gray-700 dark:text-gray-300 leading-tight">{item.text}</p>
                   </div>
                 );
               })}
@@ -899,8 +891,8 @@ export function ProductDetailPage() {
         </div>
 
         {/* 🔧 Tabs Section - Compact */}
-        <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-6">
-          <div className="flex border-b border-gray-100 overflow-x-auto scrollbar-hide">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
+          <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto scrollbar-hide">
             {[
               { id: 'description' as TabType, label: 'توضیحات', icon: Package },
               { id: 'specifications' as TabType, label: 'مشخصات', icon: Shield },
@@ -915,8 +907,8 @@ export function ProductDetailPage() {
                   className={cn(
                     'px-3 md:px-5 py-3 font-bold text-xs transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0',
                     activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600 bg-primary-50/50'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50/50 dark:bg-primary-900/20'
+                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -928,25 +920,25 @@ export function ProductDetailPage() {
 
           <div className="p-4 md:p-5">
             {activeTab === 'description' && (
-              <div className="text-gray-700 text-sm leading-relaxed">
-                <div className="bg-gradient-to-r from-primary-50 to-accent-50 rounded-xl p-4 mb-3 border border-primary-100">
-                  <h3 className="font-black text-gray-900 text-sm mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-primary-600" />
+              <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                <div className="bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl p-4 mb-3 border border-primary-100 dark:border-primary-800">
+                  <h3 className="font-black text-gray-900 dark:text-gray-100 text-sm mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                     معرفی محصول
                   </h3>
-                  <p className="text-gray-700 text-sm leading-relaxed">{product.description}</p>
+                  <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{product.description}</p>
                 </div>
               </div>
             )}
 
             {activeTab === 'specifications' && product.specifications && Object.keys(product.specifications).length > 0 && (
-              <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
                 <table className="w-full text-xs">
                   <tbody>
                     {Object.entries(product.specifications).map(([key, value], idx) => (
-                      <tr key={key} className={cn('border-b border-gray-100 last:border-0', idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50')}>
-                        <td className="py-2 px-3 text-gray-500 font-semibold w-1/3">{key}</td>
-                        <td className="py-2 px-3 text-gray-900 font-medium">{value}</td>
+                      <tr key={key} className={cn('border-b border-gray-100 dark:border-gray-700 last:border-0', idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-900/50')}>
+                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400 font-semibold w-1/3">{key}</td>
+                        <td className="py-2 px-3 text-gray-900 dark:text-gray-100 font-medium">{value}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -959,13 +951,13 @@ export function ProductDetailPage() {
                 {product.compatible_models && product.compatible_models.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {product.compatible_models.map((model) => (
-                      <div key={model.id} className="flex items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-100 hover:border-success-300 hover:shadow-sm transition-all">
+                      <div key={model.id} className="flex items-center gap-2 p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-success-300 dark:hover:border-success-700 hover:shadow-sm transition-all">
                         <div className="w-9 h-9 bg-gradient-to-br from-success-500 to-success-600 rounded-lg flex items-center justify-center flex-shrink-0">
                           <CheckCircle className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-xs">{model.name}</p>
-                          <p className="text-[10px] text-gray-500">{model.brand?.name}</p>
+                          <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{model.name}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{model.brand?.name}</p>
                         </div>
                         <Badge variant="success" size="sm">سازگار</Badge>
                       </div>
@@ -973,8 +965,8 @@ export function ProductDetailPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Smartphone className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                    <p className="text-gray-500 text-sm">این محصول سازگاری با مدل خاصی ندارد</p>
+                    <Smartphone className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">این محصول سازگاری با مدل خاصی ندارد</p>
                   </div>
                 )}
               </div>
@@ -986,8 +978,8 @@ export function ProductDetailPage() {
                 
                 {/* Rating Summary - Compact */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl p-4 text-center border border-primary-100">
-                    <div className="text-4xl font-black text-primary-700 mb-1">
+                  <div className="bg-gradient-to-br from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl p-4 text-center border border-primary-100 dark:border-primary-800">
+                    <div className="text-4xl font-black text-primary-700 dark:text-primary-400 mb-1">
                       {averageRating.toFixed(1)}
                     </div>
                     <div className="flex items-center justify-center gap-0.5 mb-1.5">
@@ -996,32 +988,32 @@ export function ProductDetailPage() {
                           key={i}
                           className={cn(
                             'w-4 h-4',
-                            i < Math.floor(averageRating) ? 'text-warning-400 fill-warning-400' : 'text-gray-300'
+                            i < Math.floor(averageRating) ? 'text-warning-400 fill-warning-400' : 'text-gray-300 dark:text-gray-600'
                           )}
                         />
                       ))}
                     </div>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
                       بر اساس <strong>{totalReviews}</strong> نظر
                     </p>
                   </div>
 
-                  <div className="md:col-span-2 bg-white rounded-xl p-4 border border-gray-100">
-                    <h4 className="font-bold text-gray-900 mb-2 text-xs">توزیع امتیازات</h4>
+                  <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                    <h4 className="font-bold text-gray-900 dark:text-gray-100 mb-2 text-xs">توزیع امتیازات</h4>
                     <div className="space-y-1.5">
                       {ratingDistribution.map((item) => (
                         <div key={item.rating} className="flex items-center gap-2">
                           <div className="flex items-center gap-0.5 w-10">
-                            <span className="text-[10px] font-bold text-gray-700">{item.rating}</span>
+                            <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{item.rating}</span>
                             <Star className="w-2.5 h-2.5 text-warning-400 fill-warning-400" />
                           </div>
-                          <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-warning-400 to-warning-500 rounded-full transition-all duration-500"
                               style={{ width: `${item.percentage}%` }}
                             />
                           </div>
-                          <span className="text-[10px] font-bold text-gray-700 w-8 text-left">
+                          <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 w-8 text-left">
                             {item.count}
                           </span>
                         </div>
@@ -1053,9 +1045,9 @@ export function ProductDetailPage() {
                 )}
 
                 {!isAuthenticated && (
-                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
-                    <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-1.5" />
-                    <p className="text-gray-700 font-bold text-sm mb-0.5">برای ثبت نظر وارد شوید</p>
+                  <div className="bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
+                    <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-1.5" />
+                    <p className="text-gray-700 dark:text-gray-300 font-bold text-sm mb-0.5">برای ثبت نظر وارد شوید</p>
                     <Button
                       onClick={() => openAuthModal({ reason: 'برای ثبت نظر درباره این محصول وارد شوید.' })}
                       size="sm"
@@ -1066,36 +1058,29 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* 🆕 Review Form - بهبود یافته با دسته‌بندی */}
+                {/* ✅ کاربری که قبلاً نظر داده، این پیام واقعی has_reviewed را
+                    می‌بیند به‌جای اینکه فرم را دوباره ببیند و فقط بعد از ارسال
+                    با خطا مواجه شود. */}
+                {isAuthenticated && hasReviewed && (
+                  <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-center">
+                    <p className="text-gray-600 dark:text-gray-400 text-xs flex items-center justify-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-success-500" />
+                      شما قبلاً برای این محصول نظر ثبت کرده‌اید
+                    </p>
+                  </div>
+                )}
+
+                {/* 🆕 Review Form - بهبود یافته */}
                 {showReviewForm && canReview && (
-                  <div className="bg-white border-2 border-primary-200 rounded-xl p-4 animate-fade-in">
-                    <h4 className="font-black text-gray-900 mb-3 flex items-center gap-1.5 text-sm">
-                      <MessageCircle className="w-4 h-4 text-primary-600" />
+                  <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 animate-fade-in">
+                    <h4 className="font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-1.5 text-sm">
+                      <MessageCircle className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                       ثبت نظر جدید
                     </h4>
 
-                    {/* 🆕 دسته‌بندی نظر */}
-                    <div className="mb-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                        <Filter className="w-3 h-3 inline ml-1" />
-                        دسته‌بندی نظر
-                      </label>
-                      <select
-                        value={reviewCategory}
-                        onChange={(e) => setReviewCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 bg-white"
-                      >
-                        {REVIEW_CATEGORIES.map((cat) => (
-                          <option key={cat.value} value={cat.value}>
-                            {cat.icon} {cat.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     {/* 🆕 ستاره‌های رنگی بهبود یافته */}
                     <div className="mb-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1.5">امتیاز شما</label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">امتیاز شما</label>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -1112,14 +1097,14 @@ export function ProductDetailPage() {
                                   'w-8 h-8 transition-all duration-200',
                                   star <= (hoverRating || reviewForm.rating)
                                     ? 'text-warning-400 fill-warning-400 drop-shadow-[0_2px_4px_rgba(251,191,36,0.5)]'
-                                    : 'text-gray-300 hover:text-warning-200'
+                                    : 'text-gray-300 dark:text-gray-600 hover:text-warning-200 dark:hover:text-warning-800'
                                 )}
                               />
                             </button>
                           ))}
                         </div>
                         {reviewForm.rating > 0 && (
-                          <span className="text-xs font-bold text-warning-600 bg-warning-50 px-2 py-1 rounded-md">
+                          <span className="text-xs font-bold text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-900/20 px-2 py-1 rounded-md">
                             {['', 'ضعیف', 'متوسط', 'خوب', 'عالی', 'فوق‌العاده'][reviewForm.rating]}
                           </span>
                         )}
@@ -1128,20 +1113,20 @@ export function ProductDetailPage() {
 
                     {/* Title */}
                     <div className="mb-2.5">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">عنوان نظر (اختیاری)</label>
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">عنوان نظر (اختیاری)</label>
                       <input
                         type="text"
                         value={reviewForm.title}
                         onChange={(e) => setReviewForm(prev => ({ ...prev, title: e.target.value }))}
                         placeholder="مثلاً: کیفیت عالی، پیشنهاد می‌کنم"
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500"
                         maxLength={255}
                       />
                     </div>
 
                     {/* Comment */}
                     <div className="mb-3">
-                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                      <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                         متن نظر <span className="text-error-500">*</span>
                       </label>
                       <textarea
@@ -1149,11 +1134,11 @@ export function ProductDetailPage() {
                         onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
                         placeholder="تجربه خود از استفاده این محصول را بنویسید..."
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 resize-none"
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500 resize-none"
                         minLength={10}
                         maxLength={2000}
                       />
-                      <p className="text-[10px] text-gray-500 mt-1">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
                         حداقل ۱۰ کاراکتر • {reviewForm.comment.length}/2000
                       </p>
                     </div>
@@ -1167,7 +1152,6 @@ export function ProductDetailPage() {
                         onClick={() => {
                           setShowReviewForm(false);
                           setReviewForm({ rating: 0, title: '', comment: '' });
-                          setReviewCategory('general');
                         }}
                         disabled={createReviewMutation.isPending}
                       >
@@ -1194,12 +1178,14 @@ export function ProductDetailPage() {
                 {/* 🆕 Reviews List با فیلتر */}
                 <div>
                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                    <h4 className="font-black text-gray-900 text-sm flex items-center gap-1.5">
-                      <MessageCircle className="w-4 h-4 text-primary-600" />
+                    <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1.5">
+                      <MessageCircle className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                       نظرات کاربران ({totalReviews})
                     </h4>
-                    
-                    {/* 🆕 فیلتر بر اساس امتیاز */}
+
+                    {/* 🆕 فیلتر بر اساس امتیاز — قبلاً فقط همان یک صفحهٔ
+                        بارگذاری‌شده را در سمت کلاینت فیلتر می‌کرد، حالا از
+                        بکند واقعاً فیلتر می‌شود. */}
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setReviewFilter('all')}
@@ -1207,7 +1193,7 @@ export function ProductDetailPage() {
                           'px-2 py-1 rounded-md text-[10px] font-bold transition-all',
                           reviewFilter === 'all'
                             ? 'bg-primary-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                         )}
                       >
                         همه
@@ -1220,7 +1206,7 @@ export function ProductDetailPage() {
                             'px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-0.5',
                             reviewFilter === r
                               ? 'bg-primary-500 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                           )}
                         >
                           <Star className="w-2.5 h-2.5 fill-current" />
@@ -1233,24 +1219,24 @@ export function ProductDetailPage() {
                   {reviewsLoading ? (
                     <div className="space-y-2">
                       {[1, 2, 3].map(i => (
-                        <div key={i} className="bg-white border border-gray-100 rounded-xl p-4 animate-pulse">
+                        <div key={i} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 animate-pulse">
                           <div className="flex items-center gap-2 mb-2">
-                            <div className="w-9 h-9 bg-gray-200 rounded-full" />
+                            <div className="w-9 h-9 bg-gray-200 dark:bg-gray-700 rounded-full" />
                             <div className="flex-1">
-                              <div className="h-3 bg-gray-200 rounded w-24 mb-1" />
-                              <div className="h-2 bg-gray-200 rounded w-16" />
+                              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-1" />
+                              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-16" />
                             </div>
                           </div>
-                          <div className="h-2 bg-gray-200 rounded w-full mb-1.5" />
-                          <div className="h-2 bg-gray-200 rounded w-3/4" />
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-full mb-1.5" />
+                          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
                         </div>
                       ))}
                     </div>
-                  ) : filteredReviews.length === 0 ? (
-                    <div className="text-center py-8 bg-white border border-gray-100 rounded-xl">
-                      <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">
-                        {reviewFilter === 'all' 
+                  ) : reviews.length === 0 ? (
+                    <div className="text-center py-8 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl">
+                      <MessageCircle className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">
+                        {reviewFilter === 'all'
                           ? 'هنوز نظری ثبت نشده است'
                           : `نظری با امتیاز ${reviewFilter} ستاره یافت نشد`}
                       </p>
@@ -1258,10 +1244,10 @@ export function ProductDetailPage() {
                   ) : (
                     <>
                       <div className="space-y-2">
-                        {filteredReviews.map((review: Review) => (
+                        {reviews.map((review: Review) => (
                           <div
                             key={review.id}
-                            className="bg-white border border-gray-100 rounded-xl p-3 hover:border-primary-200 hover:shadow-sm transition-all"
+                            className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 hover:border-primary-200 dark:hover:border-primary-800 hover:shadow-sm transition-all"
                           >
                             <div className="flex justify-between items-start mb-2 flex-wrap gap-2">
                               <div className="flex items-center gap-2">
@@ -1270,7 +1256,7 @@ export function ProductDetailPage() {
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-1.5">
-                                    <p className="font-bold text-gray-900 text-xs">{review.user.name}</p>
+                                    <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{review.user.name}</p>
                                     {review.is_verified && (
                                       <Badge variant="success" size="sm" className="text-[9px]">
                                         <BadgeCheck className="w-2.5 h-2.5 ml-0.5" />
@@ -1285,12 +1271,12 @@ export function ProductDetailPage() {
                                           key={i}
                                           className={cn(
                                             'w-3 h-3',
-                                            i < review.rating ? 'text-warning-400 fill-warning-400' : 'text-gray-200'
+                                            i < review.rating ? 'text-warning-400 fill-warning-400' : 'text-gray-200 dark:text-gray-600'
                                           )}
                                         />
                                       ))}
                                     </div>
-                                    <span className="text-[9px] text-gray-500 flex items-center gap-0.5">
+                                    <span className="text-[9px] text-gray-500 dark:text-gray-400 flex items-center gap-0.5">
                                       <Clock className="w-2.5 h-2.5" />
                                       {review.created_at_fa}
                                     </span>
@@ -1300,16 +1286,28 @@ export function ProductDetailPage() {
                             </div>
 
                             {review.title && (
-                              <h5 className="font-bold text-gray-900 text-xs mb-1">{review.title}</h5>
+                              <h5 className="font-bold text-gray-900 dark:text-gray-100 text-xs mb-1">{review.title}</h5>
                             )}
 
-                            <p className="text-gray-700 text-xs leading-relaxed mb-2">{review.comment}</p>
+                            <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed mb-2">{review.comment}</p>
 
-                            <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                            {/* ✅ پاسخ ادمین — قبلاً این فیلد واقعی هیچ‌وقت از بکند
+                                نمی‌آمد و نمایش داده نمی‌شد. */}
+                            {review.admin_reply && (
+                              <div className="mb-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-2.5">
+                                <p className="flex items-center gap-1 text-[10px] font-bold text-primary-700 dark:text-primary-400 mb-1">
+                                  <Reply className="w-3 h-3" />
+                                  پاسخ فروشگاه ازکالا
+                                </p>
+                                <p className="text-gray-700 dark:text-gray-300 text-[11px] leading-relaxed">{review.admin_reply}</p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                               <button
                                 onClick={() => helpfulMutation.mutate(review.id)}
                                 disabled={helpfulMutation.isPending}
-                                className="flex items-center gap-1 text-[10px] text-gray-600 hover:text-success-600 transition-colors disabled:opacity-50"
+                                className="flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-400 hover:text-success-600 dark:hover:text-success-400 transition-colors disabled:opacity-50"
                               >
                                 <ThumbsUp className="w-3 h-3" />
                                 مفید ({review.helpful_count})
@@ -1330,7 +1328,7 @@ export function ProductDetailPage() {
                           >
                             <ChevronRight className="w-3.5 h-3.5" />
                           </Button>
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             صفحه {reviewsPagination.current_page} از {reviewsPagination.last_page}
                           </span>
                           <Button

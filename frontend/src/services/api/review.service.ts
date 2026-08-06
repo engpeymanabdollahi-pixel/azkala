@@ -16,6 +16,10 @@ export interface Review {
   rating: number;
   is_verified: boolean;
   helpful_count: number;
+  // ✅ پاسخ ادمین (که واقعاً در پنل مدیریت ثبت می‌شود) — قبلاً هیچ‌وقت از
+  // بکند برنمی‌گشت، حالا با ReviewController::index() همراه می‌آید.
+  admin_reply: string | null;
+  replied_at: string | null;
   created_at: string;
   created_at_fa: string;
 }
@@ -67,12 +71,15 @@ export const reviewService = {
   /**
    * دریافت نظرات یک محصول
    * ✅ پارامتر page به صورت عدد ساده
+   * ✅ پارامتر rating اختیاری — قبلاً فیلتر ستاره در فرانت فقط همان یک
+   * صفحهٔ بارگذاری‌شده را در سمت کلاینت فیلتر می‌کرد؛ حالا واقعاً از
+   * بکند فیلتر می‌شود.
    */
-  async getReviews(productId: number, page: number = 1): Promise<ReviewsResponse> {
+  async getReviews(productId: number, page: number = 1, rating?: number): Promise<ReviewsResponse> {
     try {
       const response = await apiClient.get<ReviewsResponse>(
         `/products/${productId}/reviews`,
-        { params: { page } }
+        { params: { page, ...(rating ? { rating } : {}) } }
       );
       return response.data;
     } catch (error) {
@@ -132,6 +139,7 @@ export const reviewService = {
    */
   async markHelpful(reviewId: number): Promise<{
     success: boolean;
+    message: string;
     data: { helpful_count: number };
   }> {
     const response = await apiClient.post(`/reviews/${reviewId}/helpful`);

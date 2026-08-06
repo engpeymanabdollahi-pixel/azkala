@@ -123,6 +123,10 @@ class ReviewController extends Controller
                     'rating' => $review->rating,
                     'is_verified' => $review->is_verified,
                     'helpful_count' => $review->helpful_count,
+                    // ✅ برای همسانی با ساختار Review در index() (نظر تازه‌ثبت‌شده
+                    // هنوز پاسخی از ادمین ندارد).
+                    'admin_reply' => null,
+                    'replied_at' => null,
                     'created_at' => $review->created_at->format('Y-m-d'),
                     'created_at_fa' => $review->created_at->format('Y/m/d'),
                 ],
