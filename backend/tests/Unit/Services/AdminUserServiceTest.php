@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Services;
 
-use App\Models\SellerRequest;
 use App\Models\User;
 use App\Repositories\AdminUserRepository;
 use App\Services\Admin\AdminUserService;
@@ -14,12 +13,13 @@ class AdminUserServiceTest extends TestCase
     use RefreshDatabase;
 
     protected AdminUserService $service;
+
     protected AdminUserRepository $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new AdminUserRepository();
+        $this->repository = new AdminUserRepository;
         $this->service = new AdminUserService($this->repository);
     }
 
@@ -142,28 +142,13 @@ class AdminUserServiceTest extends TestCase
         ]);
     }
 
-    // ==================== approveSeller Tests ====================
-
-    public function test_can_approve_seller(): void
-    {
-        $user = User::factory()->create([
-            'role' => 'customer',
-            'is_active' => true,
-            'seller_badge' => 'none',
-            'seller_rating' => 0,
-            'total_sales' => 0,
-            'products_count' => 0,
-        ]);
-
-        $approved = $this->service->approveSeller($user->id);
-
-        $this->assertEquals('seller', $approved->role);
-        $this->assertNotNull($approved->seller_verified_at);
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'role' => 'seller',
-        ]);
-    }
+    // ✅ approveSeller() («تایید یک‌کلیکی فروشنده») به‌طور کامل از سرویس،
+    // ریپازیتوری، کنترلر و روت حذف شد — این دکمه کاملاً موازی و مستقل از
+    // خط‌لولهٔ واقعی درخواست فروشندگی بود و چون shop_name/مدارک هیچ‌وقت
+    // جمع‌آوری نمی‌شد، فروشندهٔ «تاییدشده» با آن هیچ‌وقت slug نمی‌گرفت و
+    // صفحه‌ی عمومی‌اش برای همیشه ۴۰۴ می‌داد. پوشش تست مسیر واقعی
+    // (initialApproveRequest/finalApproveRequest) در
+    // AdminUserServiceSellerRequestApprovalTest است.
 
     // ==================== rejectSeller Tests ====================
 
@@ -187,49 +172,24 @@ class AdminUserServiceTest extends TestCase
     {
         // ✅ تکمیل تست خالی با یک assertion معتبر
         User::factory()->create(['role' => 'seller']);
-        
+
         $result = $this->service->getSellerRequests();
-        
+
         // بررسی اینکه متد یک Collection یا آرایه برمی‌گرداند
         $this->assertIsIterable($result);
     }
 
-    // ==================== approveSeller/rejectSeller (مسیر مستقیم، بدون SellerRequest) ====================
-    // ✅ approveSellerRequest()/rejectSellerRequest() قدیمی که این بخش قبلاً
-    // به نامشان اشاره می‌کرد از سرویس حذف شدند (کد مرده، هیچ‌جای فرانت‌اند
-    // صدا نمی‌زد) — این دو تست همان‌طور که واقعاً هست approveSeller/rejectSeller
-    // را با یک نام تست کمی گمراه‌کننده پوشش می‌دهند؛ پوشش initialApproveRequest/
-    // finalApproveRequest/rejectSellerRequest (جریان واقعی) در
-    // AdminUserServiceSellerRequestApprovalTest جدید است.
-
-    public function test_can_approve_seller_request(): void
+    /**
+     * ✅ لغو فروشندگیِ یک فروشندهٔ از قبل تاییدشده - اقدامی مستقل از
+     * خط‌لولهٔ درخواست فروشندگی (مثلاً به‌خاطر تخلف).
+     */
+    public function test_can_revoke_an_already_approved_seller(): void
     {
-        // ساخت کاربر customer که درخواست فروشندگی دارد
-        $user = User::factory()->create([
-            'role' => 'customer',
-            'is_active' => true,
-        ]);
-
-        // استفاده از متد approveSeller که در سایر تست‌ها کار می‌کند
-        $approved = $this->service->approveSeller($user->id);
-
-        $this->assertEquals('seller', $approved->role);
-        $this->assertNotNull($approved->seller_verified_at);
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'role' => 'seller',
-        ]);
-    }
-
-    public function test_can_reject_seller_request(): void
-    {
-        // ساخت کاربر seller که قرار است رد شود
         $user = User::factory()->create([
             'role' => 'seller',
             'is_active' => true,
         ]);
 
-        // استفاده از متد rejectSeller که در سایر تست‌ها کار می‌کند
         $rejected = $this->service->rejectSeller($user->id);
 
         $this->assertEquals('customer', $rejected->role);

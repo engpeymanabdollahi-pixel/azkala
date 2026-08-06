@@ -4,9 +4,7 @@ namespace App\Repositories;
 
 use App\Models\SellerRequest;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 
 class AdminUserRepository
 {
@@ -18,7 +16,7 @@ class AdminUserRepository
         $query = User::query();
 
         // Role filter
-        if (!empty($filters['role']) && $filters['role'] !== 'all') {
+        if (! empty($filters['role']) && $filters['role'] !== 'all') {
             $query->where('role', $filters['role']);
         }
 
@@ -29,22 +27,22 @@ class AdminUserRepository
         }
 
         // Online status filter
-        if (!empty($filters['online']) && $filters['online'] !== 'all') {
+        if (! empty($filters['online']) && $filters['online'] !== 'all') {
             if ($filters['online'] === 'online') {
                 $query->where('last_seen_at', '>=', now()->subMinutes(5));
             } elseif ($filters['online'] === 'offline') {
                 $query->where(function ($q) {
                     $q->where('last_seen_at', '<', now()->subMinutes(5))
-                      ->orWhereNull('last_seen_at');
+                        ->orWhereNull('last_seen_at');
                 });
             }
         }
 
         // Conversations count filter
-        if (!empty($filters['conversations']) && $filters['conversations'] !== 'all') {
+        if (! empty($filters['conversations']) && $filters['conversations'] !== 'all') {
             $query->withCount([
                 'conversationsAsBuyer as buyer_conversations_count',
-                'conversationsAsSeller as seller_conversations_count'
+                'conversationsAsSeller as seller_conversations_count',
             ]);
 
             switch ($filters['conversations']) {
@@ -64,7 +62,7 @@ class AdminUserRepository
         }
 
         // Sentiment filter
-        if (!empty($filters['sentiment']) && $filters['sentiment'] !== 'all') {
+        if (! empty($filters['sentiment']) && $filters['sentiment'] !== 'all') {
             $query->withAvg('sentiments', 'score');
 
             switch ($filters['sentiment']) {
@@ -81,7 +79,7 @@ class AdminUserRepository
         }
 
         // Reports count filter
-        if (!empty($filters['reports']) && $filters['reports'] !== 'all') {
+        if (! empty($filters['reports']) && $filters['reports'] !== 'all') {
             $query->withCount('reported as reported_count');
 
             switch ($filters['reports']) {
@@ -98,13 +96,13 @@ class AdminUserRepository
         }
 
         // Search
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('shop_name', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('shop_name', 'like', "%{$search}%");
             });
         }
 
@@ -138,6 +136,7 @@ class AdminUserRepository
     public function update(User $user, array $data): User
     {
         $user->update($data);
+
         return $user;
     }
 
@@ -167,25 +166,26 @@ class AdminUserRepository
     }
 
     /**
-     * Approve seller
+     * ❌ approveSeller() («تایید یک‌کلیکی فروشنده») اینجا بود و از دکمه‌ی
+     * «تایید به عنوان فروشنده» روی هر ردیفِ مشتری در تب کاربران صدا زده
+     * می‌شد — کاملاً موازی و مستقل از خط‌لولهٔ واقعی درخواست فروشندگی
+     * (SellerRequest چهار‌مرحله‌ای). چون هیچ shop_name/مدارک/اطلاعات بانکی‌ای
+     * هیچ‌وقت جمع‌آوری نمی‌شد، کاربرِ «تاییدشده» با این دکمه role=seller
+     * می‌گرفت اما shop_name خالی می‌ماند — یعنی طبق User::boot() هیچ‌وقت
+     * slug نمی‌گرفت و صفحه‌ی عمومی /seller/:slug او برای همیشه ۴۰۴ می‌داد.
+     * حذف شد؛ تنها راه واقعی تبدیل به فروشنده همان initialApproveRequest/
+     * finalApproveRequest (رجوع به AdminUserService) است.
      */
-    public function approveSeller(User $user): User
-    {
-        $user->update([
-            'role' => 'seller',
-            'seller_verified_at' => now(),
-            'seller_badge' => 'bronze',
-        ]);
-        
-        return $user;
-    }
 
     /**
-     * Reject seller
+     * Reject seller — لغو وضعیت فروشندگیِ یک فروشندهٔ از قبل تاییدشده
+     * (برخلاف approveSeller، این یک اقدام مستقل و واقعی است: مثلاً تخلف
+     * فروشنده‌ای که قبلاً از مسیر واقعی تایید شده بود).
      */
     public function rejectSeller(User $user): User
     {
         $user->update(['role' => 'customer']);
+
         return $user;
     }
 
@@ -197,59 +197,5 @@ class AdminUserRepository
         return SellerRequest::with('user:id,name,email,phone')
             ->orderByDesc('created_at')
             ->paginate($perPage);
-    }
-
-    /**
-     * Find seller request by ID
-     */
-    public function findSellerRequest(int $id): ?SellerRequest
-    {
-        return SellerRequest::find($id);
-    }
-
-    /**
-     * Approve seller request (transaction)
-     */
-    public function approveSellerRequest(int $requestId, int $adminId): array
-    {
-        return DB::transaction(function () use ($requestId, $adminId) {
-            $sellerRequest = SellerRequest::findOrFail($requestId);
-            $user = User::findOrFail($sellerRequest->user_id);
-
-            $user->update([
-                'role' => 'seller',
-                'shop_name' => $sellerRequest->shop_name,
-                'seller_verified_at' => now(),
-                'seller_badge' => 'bronze',
-            ]);
-
-            $sellerRequest->update([
-                'status' => 'approved',
-                'reviewed_by' => $adminId,
-                'reviewed_at' => now(),
-            ]);
-
-            return [
-                'user' => $user,
-                'request' => $sellerRequest,
-            ];
-        });
-    }
-
-    /**
-     * Reject seller request
-     */
-    public function rejectSellerRequest(int $requestId, int $adminId, string $reason): SellerRequest
-    {
-        $sellerRequest = SellerRequest::findOrFail($requestId);
-
-        $sellerRequest->update([
-            'status' => 'rejected',
-            'rejection_reason' => $reason,
-            'reviewed_by' => $adminId,
-            'reviewed_at' => now(),
-        ]);
-
-        return $sellerRequest;
     }
 }

@@ -436,12 +436,13 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::get('/{user}', [AdminUserController::class, 'show'])->name('show');
                 Route::put('/{user}/role', [AdminUserController::class, 'updateRole'])->name('update-role');
                 Route::put('/{user}/status', [AdminUserController::class, 'updateStatus'])->name('update-status');
-                Route::post('/{user}/approve-seller', [AdminUserController::class, 'approveSeller'])->name('approve-seller');
                 Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->name('reject-seller');
                 // ✅ approve-seller-request حذف شد (controller method متناظرش
                 // هم حذف شد — رجوع به کامنت AdminUserController). reject-seller-request
                 // هم حذف شد چون دقیقاً همان controller method مسیر reject
                 // پایین‌تر را صدا می‌زد؛ فرانت‌اند فقط از reject استفاده می‌کرد.
+                // ❌ approve-seller («تایید یک‌کلیکی») هم حذف شد — رجوع به
+                // کامنت کامل در AdminUserRepository::rejectSeller().
                 Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->name('initial-approve');
                 Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->name('final-approve');
                 Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->name('reject');

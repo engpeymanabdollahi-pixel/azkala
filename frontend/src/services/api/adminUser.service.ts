@@ -120,10 +120,11 @@ export const adminUserService = {
     return response.data;
   },
 
-  async approveSeller(id: number) {
-    const response = await client.post(`/admin/users/${id}/approve-seller`);
-    return response.data;
-  },
+  // ❌ approveSeller() («تایید یک‌کلیکی فروشنده») حذف شد — این مکانیزم
+  // کاملاً موازی و مستقل از خط‌لولهٔ واقعی درخواست فروشندگی بود و چون هیچ
+  // shop_name/مدارک/اطلاعات بانکی‌ای هیچ‌وقت جمع‌آوری نمی‌شد، فروشندهٔ
+  // «تاییدشده» با آن هیچ‌وقت slug نمی‌گرفت و صفحه‌ی عمومی‌اش ۴۰۴ می‌داد.
+  // تنها راه واقعی، initialApproveRequest/finalApproveRequest زیر است.
 
   async rejectSeller(id: number, reason: string) {
     const response = await client.post(`/admin/users/${id}/reject-seller`, { reason });
@@ -132,11 +133,6 @@ export const adminUserService = {
 
   async getSellerRequests(): Promise<SellerRequestsResponse> {
     const response = await client.get<SellerRequestsResponse>('/admin/users/seller-requests');
-    return response.data;
-  },
-
-  async approveSellerRequest(id: number) {
-    const response = await client.post(`/admin/users/${id}/approve-seller-request`);
     return response.data;
   },
 

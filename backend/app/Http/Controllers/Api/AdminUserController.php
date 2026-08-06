@@ -38,7 +38,7 @@ class AdminUserController extends Controller
     public function show($id)
     {
         $data = $this->userService->getUserDetails((int) $id);
-        
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 
@@ -48,7 +48,7 @@ class AdminUserController extends Controller
     public function updateRole(Request $request, $id)
     {
         $validated = $request->validate([
-            'role' => 'required|in:customer,seller,admin'
+            'role' => 'required|in:customer,seller,admin',
         ]);
 
         $this->userService->updateUserRole((int) $id, $validated['role']);
@@ -62,7 +62,7 @@ class AdminUserController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'is_active' => 'required|boolean'
+            'is_active' => 'required|boolean',
         ]);
 
         $this->userService->updateUserStatus((int) $id, $validated['is_active']);
@@ -70,25 +70,19 @@ class AdminUserController extends Controller
         return response()->json(['success' => true, 'message' => 'وضعیت تغییر کرد']);
     }
 
-    /**
-     * تأیید فروشنده (قدیمی)
-     */
-    public function approveSeller($id)
-    {
-        $this->userService->approveSeller((int) $id);
-        
-        return response()->json(['success' => true, 'message' => 'فروشنده تأیید شد']);
-    }
+    // ❌ approveSeller() («قدیمی»، تایید یک‌کلیکی) حذف شد — رجوع به کامنت
+    // کامل در AdminUserRepository::rejectSeller() برای دلیل. تنها راه واقعی
+    // تبدیل به فروشنده initialApproveRequest/finalApproveRequest زیر است.
 
     /**
-     * رد فروشنده (قدیمی)
+     * لغو وضعیت فروشندگیِ یک فروشندهٔ از قبل تاییدشده (بازگشت به مشتری)
      */
     public function rejectSeller(Request $request, $id)
     {
         $request->validate(['reason' => 'required|string|max:500']);
-        
+
         $this->userService->rejectSeller((int) $id);
-        
+
         return response()->json(['success' => true, 'message' => 'فروشنده رد شد']);
     }
 
@@ -99,11 +93,11 @@ class AdminUserController extends Controller
     public function sellerRequests(Request $request)
     {
         $data = $this->userService->getSellerRequests((int) $request->get('per_page', 20));
-        
+
         return response()->json([
             'success' => true,
             'data' => $data,
-            'message' => 'درخواست‌ها با موفقیت دریافت شدند'
+            'message' => 'درخواست‌ها با موفقیت دریافت شدند',
         ]);
     }
 
@@ -118,7 +112,7 @@ class AdminUserController extends Controller
     public function rejectSellerRequest(Request $request, $id)
     {
         $validated = $request->validate([
-            'reason' => 'required|string|max:500'
+            'reason' => 'required|string|max:500',
         ]);
 
         try {
@@ -146,7 +140,7 @@ class AdminUserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تایید اولیه انجام شد و نوتیفیکیشن برای کاربر ارسال گردید.'
+                'message' => 'تایید اولیه انجام شد و نوتیفیکیشن برای کاربر ارسال گردید.',
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
@@ -165,7 +159,7 @@ class AdminUserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'فروشندگی کاربر تایید نهایی شد و نقش او به فروشنده تغییر کرد.'
+                'message' => 'فروشندگی کاربر تایید نهایی شد و نقش او به فروشنده تغییر کرد.',
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);

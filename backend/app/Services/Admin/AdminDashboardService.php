@@ -33,7 +33,7 @@ class AdminDashboardService
                 'monthly_stats' => $monthlyStats,
             ]);
         } catch (\Exception $e) {
-            Log::error('AdminDashboardService@getDashboardStats: ' . $e->getMessage());
+            Log::error('AdminDashboardService@getDashboardStats: '.$e->getMessage());
             throw new \Exception('خطا در دریافت آمار', 500);
         }
     }
@@ -46,8 +46,9 @@ class AdminDashboardService
         try {
             $stats = $this->repository->getChatStats();
 
-            // محاسبه نرخ تبدیل (ساده‌سازی شده)
-            $avgResponseMinutes = 5; // مقدار پیش‌فرض
+            // ✅ قبلاً avg_response_minutes همیشه ۵ هاردکد بود؛ حالا میانگین
+            // واقعی از AdminDashboardRepository::getAverageResponseMinutes() می‌آید.
+            $avgResponseMinutes = $this->repository->getAverageResponseMinutes();
             $conversionRate = $stats['total_conversations'] > 0
                 ? round(($stats['total_conversations'] / max(1, $stats['total_messages'])) * 100, 1)
                 : 0;
@@ -57,7 +58,7 @@ class AdminDashboardService
                 'conversion_rate' => $conversionRate,
             ]);
         } catch (\Exception $e) {
-            Log::error('AdminDashboardService@getChatStats: ' . $e->getMessage());
+            Log::error('AdminDashboardService@getChatStats: '.$e->getMessage());
             throw new \Exception('خطا در دریافت آمار چت', 500);
         }
     }
@@ -85,7 +86,7 @@ class AdminDashboardService
                 'neutral_percent' => $total > 0 ? round(($neutral / $total) * 100, 1) : 0,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminDashboardService@getSentimentStats: ' . $e->getMessage());
+            Log::error('AdminDashboardService@getSentimentStats: '.$e->getMessage());
             throw new \Exception('خطا در دریافت آمار احساسات', 500);
         }
     }
@@ -98,14 +99,17 @@ class AdminDashboardService
         try {
             $recentMessages = $this->repository->getRecentChatMessages(10);
             $activeSellers = $this->repository->getActiveSellersCount();
+            // ✅ قبلاً busiest_hour همیشه رشته‌ی ثابت «۱۴:۰۰ - ۱۶:۰۰» بود؛
+            // حالا از توزیع واقعی ساعت پیام‌ها محاسبه می‌شود.
+            $busiestHour = $this->repository->getBusiestHour();
 
             return [
                 'recent_messages' => $recentMessages,
                 'active_sellers' => $activeSellers,
-                'busiest_hour' => '14:00 - 16:00', // مقدار ثابت
+                'busiest_hour' => $busiestHour ?? 'داده‌ای موجود نیست',
             ];
         } catch (\Exception $e) {
-            Log::error('AdminDashboardService@getRecentChatActivity: ' . $e->getMessage());
+            Log::error('AdminDashboardService@getRecentChatActivity: '.$e->getMessage());
             throw new \Exception('خطا در دریافت فعالیت‌های اخیر', 500);
         }
     }
