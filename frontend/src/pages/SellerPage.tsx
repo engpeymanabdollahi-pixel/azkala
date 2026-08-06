@@ -40,6 +40,19 @@ interface PublicSeller {
   updated_at: string;
 }
 
+// ✅ شکل واقعی پاسخ GET /sellers/{slug}/reviews — قبلاً تب «نظرات» کلاً
+// یک placeholder «به‌زودی» بود، با اینکه seller_ratings واقعی از قبل وجود داشت.
+interface SellerReview {
+  id: number;
+  user_name: string;
+  product_quality: number;
+  shipping_speed: number;
+  communication: number;
+  overall_rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
 type TabId = 'products' | 'about' | 'reviews';
 
 // تابع کمکی برای تبدیل مسیر نسبی به مطلق
@@ -81,6 +94,18 @@ export default function SellerPage() {
       return res.data;
     },
     enabled: !!sellerData && activeTab === 'products',
+  });
+
+  // ✅ قبلاً تب «نظرات» هیچ کوئری‌ای نداشت و همیشه یک placeholder ثابت
+  // نشان می‌داد. reviews_count واقعی (فاز ۱) الان به این داده وصل می‌شود.
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
+    queryKey: ['seller-reviews', slug, reviewsPage],
+    queryFn: async () => {
+      const res = await apiClient.get(`/sellers/${slug}/reviews`, { params: { page: reviewsPage, per_page: 10 } });
+      return res.data as { data: SellerReview[]; meta: { current_page: number; last_page: number; total: number } };
+    },
+    enabled: !!sellerData && activeTab === 'reviews',
   });
 
   const followMutation = useMutation({
@@ -228,6 +253,18 @@ export default function SellerPage() {
             <div className="flex-1 text-center md:text-right">
               <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
                 <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-gray-100">{sellerData.shop_name}</h1>
+                {/* ✅ قبلاً verified_at واقعی fetch می‌شد ولی هیچ‌جا نمایش
+                    داده نمی‌شد — یک نشان اعتماد واقعی که مشتری با آن
+                    راستی‌آزمایی‌شدن فروشنده را می‌بیند. */}
+                {sellerData.verified_at && (
+                  <span
+                    className="flex items-center gap-1 px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full text-xs font-bold"
+                    title="فروشنده تایید‌شده"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    تایید‌شده
+                  </span>
+                )}
                 {isOwner && (
                   <button
                     onClick={() => navigate('/seller/settings')}
@@ -368,11 +405,68 @@ export default function SellerPage() {
               </div>
             )}
 
+            {/* ✅ قبلاً این تب فقط یک متن ثابت «به‌زودی» بود — حالا از
+                seller_ratings واقعی (فاز ۱) تغذیه می‌شود. */}
             {activeTab === 'reviews' && (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" />
-                <p className="font-bold">بخش نظرات به زودی با سیستم امتیازدهی یکپارچه می‌شود.</p>
-              </div>
+              <>
+                {reviewsLoading ? (
+                  <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" /></div>
+                ) : reviewsData && reviewsData.data.length > 0 ? (
+                  <div className="space-y-4">
+                    {reviewsData.data.map((review) => (
+                      <div key={review.id} className="p-4 border border-gray-100 dark:border-slate-700 rounded-xl">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div>
+                            <p className="font-bold text-gray-900 dark:text-gray-100 text-sm">{review.user_name}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                              {new Date(review.created_at).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                          </div>
+                          <span className="flex items-center gap-1 flex-shrink-0 bg-warning-50 dark:bg-warning-900/20 text-warning-700 dark:text-warning-400 px-2.5 py-1 rounded-lg text-sm font-bold">
+                            <Star className="w-3.5 h-3.5 fill-warning-500 text-warning-500" />
+                            {review.overall_rating.toFixed(1)}
+                          </span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-3">{review.comment}</p>
+                        )}
+                        <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span>کیفیت محصول: <b className="text-gray-700 dark:text-gray-300">{review.product_quality}/۵</b></span>
+                          <span>سرعت ارسال: <b className="text-gray-700 dark:text-gray-300">{review.shipping_speed}/۵</b></span>
+                          <span>ارتباط با فروشنده: <b className="text-gray-700 dark:text-gray-300">{review.communication}/۵</b></span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {reviewsData.meta.last_page > 1 && (
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        <button
+                          onClick={() => setReviewsPage((p) => Math.max(1, p - 1))}
+                          disabled={reviewsPage === 1}
+                          className="px-4 py-2 rounded-lg text-sm font-bold border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          قبلی
+                        </button>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          صفحه {reviewsPage.toLocaleString('fa-IR')} از {reviewsData.meta.last_page.toLocaleString('fa-IR')}
+                        </span>
+                        <button
+                          onClick={() => setReviewsPage((p) => Math.min(reviewsData.meta.last_page, p + 1))}
+                          disabled={reviewsPage === reviewsData.meta.last_page}
+                          className="px-4 py-2 rounded-lg text-sm font-bold border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          بعدی
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" />
+                    <p className="font-bold">هنوز نظری برای این فروشگاه ثبت نشده است.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
