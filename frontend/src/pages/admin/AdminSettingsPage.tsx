@@ -10,10 +10,11 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { adminSettingService, type Setting } from '@/services/api/adminSetting.service';
+import { adminSettingService, type Setting, type SettingValue } from '@/services/api/adminSetting.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { STORAGE_URL } from '@/lib/apiConfig';
+import type { AxiosError } from 'axios';
 
 // ==================== Types ====================
 type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'notifications' | 'legal' | 'system' | 'history';
@@ -43,7 +44,7 @@ export function AdminSettingsPage() {
   // State
   const [activeTab, setActiveTab] = useState<TabType>('general');
   const [searchQuery, setSearchQuery] = useState('');
-  const [changes, setChanges] = useState<Record<string, any>>({});
+  const [changes, setChanges] = useState<Record<string, SettingValue>>({});
 
   // ==================== Queries ====================
   const { data, isLoading } = useQuery({
@@ -68,14 +69,14 @@ export function AdminSettingsPage() {
 
   // ==================== Mutations ====================
   const saveMutation = useMutation({
-    mutationFn: ({ group, settings: items }: { group: string; settings: any[] }) =>
+    mutationFn: ({ group, settings: items }: { group: string; settings: Array<{ key: string; value: SettingValue }> }) =>
       adminSettingService.updateGroup(group, items),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
       toast.success(response.message || 'تنظیمات با موفقیت ذخیره شد', { icon: '✅' });
       setChanges({});
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       toast.error(error.response?.data?.message || 'خطا در ذخیره‌سازی تنظیمات');
     },
   });
@@ -115,7 +116,7 @@ export function AdminSettingsPage() {
     setSearchQuery(''); // ✅ حل ریشه‌ای باگ خالی بودن تب‌ها: پاک کردن جستجو هنگام تغییر تب
   };
 
-  const handleValueChange = (key: string, value: any) => {
+  const handleValueChange = (key: string, value: SettingValue) => {
     setChanges(prev => ({ ...prev, [key]: value }));
   };
 
@@ -157,8 +158,9 @@ export function AdminSettingsPage() {
       const response = await adminSettingService.import(items);
       toast.success(response.message, { icon: '✅' });
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
-    } catch (error: any) {
-      toast.error('خطا در وارد کردن فایل: ' + error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'فرمت فایل نامعتبر است';
+      toast.error('خطا در وارد کردن فایل: ' + message);
     }
     event.target.value = ''; // Reset input
   };
@@ -219,7 +221,7 @@ export function AdminSettingsPage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           placeholder="جستجو در تنظیمات (بر اساس نام یا کلید)..."
@@ -232,7 +234,7 @@ export function AdminSettingsPage() {
             onClick={() => setSearchQuery('')}
             className="absolute left-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors"
           >
-            <X className="w-4 h-4 text-gray-400" />
+            <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </button>
         )}
       </div>
@@ -323,7 +325,7 @@ export function AdminSettingsPage() {
             </div>
           ) : filteredSettings.length === 0 ? (
             <EmptyState
-              icon={<Search className="w-12 h-12 text-gray-300" />}
+              icon={<Search className="w-12 h-12 text-gray-300 dark:text-gray-600" />}
               title={isSearching ? 'موردی یافت نشد' : 'تنظیمی یافت نشد'}
               description={
                 isSearching 
@@ -358,7 +360,7 @@ export function AdminSettingsPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setChanges({})} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+            <Button variant="ghost" size="sm" onClick={() => setChanges({})} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
               انصراف
             </Button>
             <Button onClick={handleSave} disabled={saveMutation.isPending} isLoading={saveMutation.isPending} className="gap-2">
@@ -382,12 +384,17 @@ function SettingRow({
   isChanged,
 }: {
   setting: Setting;
-  currentValue: any;
-  onChange: (value: any) => void;
+  currentValue: SettingValue;
+  onChange: (value: SettingValue) => void;
   onToggleLock: () => void;
   isChanged: boolean;
 }) {
   const [showPassword, setShowPassword] = useState(false);
+
+  // مقادیر boolean/File برای این ورودی‌های متنی معنا ندارند؛ فقط برای نوع‌های
+  // text/number/color/textarea/email/url استفاده می‌شود.
+  const textValue = (value: SettingValue): string | number =>
+    typeof value === 'string' || typeof value === 'number' ? value : '';
 
   const renderInput = () => {
     switch (setting.type) {
@@ -420,7 +427,7 @@ function SettingRow({
         return (
           <input
             type="number"
-            value={currentValue ?? ''}
+            value={textValue(currentValue)}
             onChange={(e) => onChange(e.target.value)}
             disabled={setting.is_locked}
             className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -432,14 +439,14 @@ function SettingRow({
           <div className="flex items-center gap-3">
             <input
               type="color"
-              value={currentValue || '#000000'}
+              value={typeof currentValue === 'string' ? currentValue : '#000000'}
               onChange={(e) => onChange(e.target.value)}
               disabled={setting.is_locked}
               className="w-12 h-10 rounded-lg border border-gray-200 dark:border-slate-700 cursor-pointer disabled:opacity-50 bg-transparent"
             />
             <input
               type="text"
-              value={currentValue || ''}
+              value={textValue(currentValue)}
               onChange={(e) => onChange(e.target.value)}
               disabled={setting.is_locked}
               dir="ltr"
@@ -451,7 +458,7 @@ function SettingRow({
       case 'textarea':
         return (
           <textarea
-            value={currentValue || ''}
+            value={textValue(currentValue)}
             onChange={(e) => onChange(e.target.value)}
             disabled={setting.is_locked}
             rows={3}
@@ -467,7 +474,7 @@ function SettingRow({
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
-                value={currentValue || ''}
+                value={textValue(currentValue)}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={setting.is_locked}
                 dir="ltr"
@@ -487,7 +494,7 @@ function SettingRow({
         return (
           <input
             type="text"
-            value={currentValue || ''}
+            value={textValue(currentValue)}
             onChange={(e) => onChange(e.target.value)}
             disabled={setting.is_locked}
             dir="ltr"
@@ -509,7 +516,7 @@ function SettingRow({
             <label className="text-sm font-bold text-gray-900 dark:text-white">
               {setting.label || setting.key}
             </label>
-            {setting.is_locked && <Lock className="w-3.5 h-3.5 text-gray-400" />}
+            {setting.is_locked && <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
             {setting.is_sensitive && <Shield className="w-3.5 h-3.5 text-warning-500" />}
             {isChanged && <Badge variant="warning" size="sm">تغییر کرده</Badge>}
           </div>
@@ -544,16 +551,16 @@ function SettingRow({
   );
 }
 
-function FileUploadInput({ currentValue, onChange, isLocked, label }: { 
-  currentValue: any; 
-  onChange: (val: any) => void; 
-  isLocked: boolean; 
-  label: string; 
+function FileUploadInput({ currentValue, onChange, isLocked, label }: {
+  currentValue: SettingValue;
+  onChange: (val: SettingValue) => void;
+  isLocked: boolean;
+  label: string;
 }) {
   const [preview, setPreview] = useState<string | null>(
-    currentValue && typeof currentValue === 'string' && !currentValue.startsWith('http') 
-      ? `${STORAGE_URL}/${currentValue.replace(/^storage\//, '')}`
-      : (currentValue || null)
+    typeof currentValue === 'string' && currentValue
+      ? (currentValue.startsWith('http') ? currentValue : `${STORAGE_URL}/${currentValue.replace(/^storage\//, '')}`)
+      : null
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -638,8 +645,8 @@ function HistoryTab() {
       queryClient.invalidateQueries({ queryKey: ['admin-settings-history'] });
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'خطا در عملیات بازگشت');
+    onError: (error: AxiosError<{ message?: string }>) => {
+      toast.error(error.response?.data?.message || 'خطا در عملیات بازگشت');
     },
   });
 
@@ -670,7 +677,7 @@ function HistoryTab() {
           </div>
         ) : histories.length === 0 ? (
           <EmptyState
-            icon={<History className="w-12 h-12 text-gray-300" />}
+            icon={<History className="w-12 h-12 text-gray-300 dark:text-gray-600" />}
             title="تاریخچه‌ای وجود ندارد"
             description="هنوز تغییری در تنظیمات این گروه ثبت نشده است."
           />

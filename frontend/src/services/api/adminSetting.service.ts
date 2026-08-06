@@ -1,11 +1,13 @@
 import apiClient from './client';
 
+export type SettingValue = string | number | boolean | File | null | undefined;
+
 export interface Setting {
   id: number;
   key: string;
-  value: any;
+  value: SettingValue;
   group: string;
-  type: 'text' | 'number' | 'boolean' | 'json' | 'file' | 'color' | 'email' | 'url' | 'textarea';
+  type: 'text' | 'number' | 'boolean' | 'json' | 'file' | 'image' | 'color' | 'email' | 'url' | 'textarea';
   label: string;
   description?: string;
   is_locked: boolean;
@@ -62,7 +64,7 @@ export const adminSettingService = {
     return response.data;
   },
 
-    async updateGroup(group: string, settings: Array<{ key: string; value: any }>, note?: string) {
+  async updateGroup(group: string, settings: Array<{ key: string; value: SettingValue }>, note?: string) {
     // بررسی هوشمند: آیا هیچ‌کدام از مقادیر، شیء File هستند؟
     const hasFile = settings.some(s => s.value instanceof File);
 
@@ -73,7 +75,7 @@ export const adminSettingService = {
       
       settings.forEach((item, index) => {
         formData.append(`settings[${index}][key]`, item.key);
-        formData.append(`settings[${index}][value]`, item.value);
+        formData.append(`settings[${index}][value]`, item.value instanceof File ? item.value : String(item.value ?? ''));
       });
 
       // Axios به صورت خودکار Boundary صحیح را تنظیم می‌کند
@@ -89,7 +91,7 @@ export const adminSettingService = {
     }
   },
 
-  async updateSetting(key: string, value: any, note?: string) {
+  async updateSetting(key: string, value: SettingValue, note?: string) {
     const response = await apiClient.put(`/admin/settings/${key}`, { value, note });
     return response.data;
   },
@@ -119,7 +121,7 @@ export const adminSettingService = {
     return response.data;
   },
 
-  async import(settings: Array<{ key: string; value: any }>) {
+  async import(settings: Array<{ key: string; value: SettingValue }>) {
     const response = await apiClient.post('/admin/settings/import', { settings });
     return response.data;
   },

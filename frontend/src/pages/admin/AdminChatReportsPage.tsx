@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Badge, type BadgeProps } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ExportButton } from '@/components/admin/ExportButton';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';
 
@@ -186,14 +187,23 @@ export function AdminChatReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-          <Flag className="w-6 h-6 text-white" />
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Flag className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">مدیریت گزارش‌های تخلف چت</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">بررسی و مدیریت گزارش‌های کاربران</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100">مدیریت گزارش‌های تخلف چت</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">بررسی و مدیریت گزارش‌های کاربران</p>
-        </div>
+        {/* ✅ قبلاً کامپوننت ExportButton برای type="reports" ساخته شده بود
+            ولی هیچ صفحه‌ای آن را رندر نمی‌کرد و کاملاً غیرقابل‌دسترس بود */}
+        <ExportButton
+          type="reports"
+          label="خروجی"
+          filters={{ status: statusFilter !== 'all' ? statusFilter : undefined }}
+        />
       </div>
 
       {/* Stats Cards */}

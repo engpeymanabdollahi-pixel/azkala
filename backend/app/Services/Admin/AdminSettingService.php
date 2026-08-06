@@ -4,8 +4,10 @@ namespace App\Services\Admin;
 
 use App\Models\Setting;
 use App\Repositories\AdminSettingRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AdminSettingService
 {
@@ -48,7 +50,7 @@ class AdminSettingService
                 'stats' => $stats,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@getGroupedSettings: ' . $e->getMessage());
+            Log::error('AdminSettingService@getGroupedSettings: '.$e->getMessage());
             throw new \Exception('خطا در دریافت تنظیمات', 500);
         }
     }
@@ -62,12 +64,12 @@ class AdminSettingService
             $updated = $this->repository->updateBulk($settings, $userId, $note);
 
             // Clear cache
-            Cache::forget('settings_' . $group);
+            Cache::forget('settings_'.$group);
             Cache::forget('settings_all');
 
             return $updated;
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@updateGroup: ' . $e->getMessage());
+            Log::error('AdminSettingService@updateGroup: '.$e->getMessage());
             throw new \Exception('خطا در به‌روزرسانی گروه', 500);
         }
     }
@@ -101,15 +103,15 @@ class AdminSettingService
 
                 $this->repository->updateSetting($setting, $value, $userId);
 
-                Cache::forget('settings_' . $setting->group);
+                Cache::forget('settings_'.$setting->group);
                 Cache::forget('settings_all');
             }
 
             return true;
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             throw new \Exception('تنظیم یافت نشد', 404);
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@updateSetting: ' . $e->getMessage());
+            Log::error('AdminSettingService@updateSetting: '.$e->getMessage());
             throw $e;
         }
     }
@@ -122,11 +124,12 @@ class AdminSettingService
         try {
             $setting = $this->repository->findByKeyOrFail($key);
             $this->repository->toggleLock($setting);
+
             return $setting->is_locked;
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             throw new \Exception('تنظیم یافت نشد', 404);
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@toggleLock: ' . $e->getMessage());
+            Log::error('AdminSettingService@toggleLock: '.$e->getMessage());
             throw new \Exception('خطا در تغییر قفل', 500);
         }
     }
@@ -163,7 +166,7 @@ class AdminSettingService
                 ],
             ];
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@getHistory: ' . $e->getMessage());
+            Log::error('AdminSettingService@getHistory: '.$e->getMessage());
             throw new \Exception('خطا در دریافت تاریخچه', 500);
         }
     }
@@ -176,13 +179,13 @@ class AdminSettingService
         try {
             $history = $this->repository->findHistory($historyId);
 
-            if (!$history) {
+            if (! $history) {
                 throw new \Exception('تاریخچه یافت نشد', 404);
             }
 
             $setting = $this->repository->findByKey($history->setting_key);
 
-            if (!$setting) {
+            if (! $setting) {
                 throw new \Exception('تنظیم یافت نشد', 404);
             }
 
@@ -197,19 +200,19 @@ class AdminSettingService
                 'old_value' => $setting->value,
                 'new_value' => $history->old_value,
                 'changed_by' => $userId,
-                'note' => 'بازگشت به نسخه تاریخ #' . $historyId,
+                'note' => 'بازگشت به نسخه تاریخ #'.$historyId,
                 'label' => $history->label,
             ]);
 
             // Restore old value
             $this->repository->updateSetting($setting, $history->old_value, $userId);
 
-            Cache::forget('settings_' . $setting->group);
+            Cache::forget('settings_'.$setting->group);
             Cache::forget('settings_all');
 
             return true;
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@rollback: ' . $e->getMessage());
+            Log::error('AdminSettingService@rollback: '.$e->getMessage());
             throw $e;
         }
     }
@@ -242,7 +245,7 @@ class AdminSettingService
 
             return $created;
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@seedDefaults: ' . $e->getMessage());
+            Log::error('AdminSettingService@seedDefaults: '.$e->getMessage());
             throw new \Exception('خطا در مقداردهی اولیه', 500);
         }
     }
@@ -271,7 +274,7 @@ class AdminSettingService
                 'settings' => $exported,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@export: ' . $e->getMessage());
+            Log::error('AdminSettingService@export: '.$e->getMessage());
             throw new \Exception('خطا در خروجی', 500);
         }
     }
@@ -286,8 +289,8 @@ class AdminSettingService
 
             foreach ($settings as $item) {
                 $setting = $this->repository->findByKey($item['key']);
-                
-                if (!$setting || $setting->is_locked) {
+
+                if (! $setting || $setting->is_locked) {
                     continue;
                 }
 
@@ -316,32 +319,92 @@ class AdminSettingService
 
             return $imported;
         } catch (\Exception $e) {
-            Log::error('AdminSettingService@import: ' . $e->getMessage());
+            Log::error('AdminSettingService@import: '.$e->getMessage());
             throw new \Exception('خطا در ورود', 500);
         }
     }
 
     /**
-     * Test SMTP (mock)
+     * تست واقعی SMTP با تنظیمات ذخیره‌شده در جدول settings
+     *
+     * ✅ قبلاً این متد بدون توجه به مقدار واقعی تنظیمات، همیشه success=true
+     * برمی‌گرداند (یک mock ثابت) — یعنی حتی با SMTP host/port/رمز کاملاً
+     * غلط یا خالی، ادمین همیشه پیام «ارسال موفق» می‌دید.
      */
     public function testSmtp(): array
     {
-        // TODO: Implement real SMTP test
-        return [
-            'success' => true,
-            'message' => 'ایمیل تست با موفقیت ارسال شد (شبیه‌سازی)',
-        ];
+        $host = Setting::get('smtp_host');
+        $port = Setting::get('smtp_port');
+        $username = Setting::get('smtp_username');
+        $password = Setting::get('smtp_password');
+        $encryption = Setting::get('smtp_encryption');
+        $fromEmail = Setting::get('support_email') ?: config('mail.from.address');
+
+        if (! $host || ! $port || ! $fromEmail) {
+            return [
+                'success' => false,
+                'message' => 'برای تست، ابتدا SMTP Host، Port و ایمیل پشتیبانی را در تنظیمات ذخیره کنید',
+            ];
+        }
+
+        try {
+            config([
+                'mail.mailers.smtp.host' => $host,
+                'mail.mailers.smtp.port' => (int) $port,
+                'mail.mailers.smtp.username' => $username ?: null,
+                'mail.mailers.smtp.password' => $password ?: null,
+                'mail.mailers.smtp.encryption' => $encryption ?: null,
+                // تایم‌اوت کوتاه تا در صورت مسدود بودن شبکه، تست به‌جای هنگ کردن سریع شکست بخورد
+                'mail.mailers.smtp.timeout' => 5,
+            ]);
+
+            Mail::mailer('smtp')->raw(
+                'این یک ایمیل تست از پنل مدیریت ازکالا است. اگر این ایمیل را دریافت کرده‌اید، تنظیمات SMTP صحیح است.',
+                function ($message) use ($fromEmail) {
+                    $message->to($fromEmail)->subject('تست تنظیمات SMTP - ازکالا');
+                }
+            );
+
+            return [
+                'success' => true,
+                'message' => 'ایمیل تست با موفقیت ارسال شد',
+            ];
+        } catch (\Exception $e) {
+            Log::error('AdminSettingService@testSmtp: '.$e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'خطا در ارسال ایمیل تست: '.$e->getMessage(),
+            ];
+        }
     }
 
     /**
-     * Test SMS (mock)
+     * تست تنظیمات پیامک
+     *
+     * ✅ قبلاً این متد بدون توجه به مقدار واقعی تنظیمات، همیشه success=true
+     * برمی‌گرداند — یعنی حتی بدون هیچ کلید API یا شماره فرستنده‌ای، ادمین
+     * پیام «ارسال موفق» می‌دید. چون هیچ درگاه پیامک واقعی در این پروژه
+     * پیاده‌سازی نشده، این متد اکنون حداقل صحت وجود تنظیمات لازم را واقعاً
+     * بررسی می‌کند و به‌جای موفقیت جعلی، صادقانه اعلام می‌کند که اتصال به
+     * درگاه واقعی هنوز پیاده‌سازی نشده است.
      */
     public function testSms(): array
     {
-        // TODO: Implement real SMS test
+        $provider = Setting::get('sms_provider');
+        $apiKey = Setting::get('sms_api_key');
+        $senderNumber = Setting::get('sms_sender_number');
+
+        if (! $provider || ! $apiKey || ! $senderNumber) {
+            return [
+                'success' => false,
+                'message' => 'برای تست پیامک، ابتدا سرویس‌دهنده، کلید API و شماره فرستنده را در تنظیمات ذخیره کنید',
+            ];
+        }
+
         return [
             'success' => true,
-            'message' => 'پیامک تست با موفقیت ارسال شد (شبیه‌سازی)',
+            'message' => 'تنظیمات پیامک ذخیره شده است؛ اتصال به درگاه واقعی پیامک هنوز پیاده‌سازی نشده (شبیه‌سازی)',
         ];
     }
 
@@ -357,7 +420,7 @@ class AdminSettingService
         } elseif ($type === 'json') {
             return json_decode($value, true) ?? [];
         }
-        
+
         return $value;
     }
 }

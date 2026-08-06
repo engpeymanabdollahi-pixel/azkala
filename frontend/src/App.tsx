@@ -243,15 +243,10 @@ export default function App() {
                 border: '1px solid #fca5a5',
               },
             },
-            warning: {
-              duration: 4000,
-              iconTheme: { primary: '#f59e0b', secondary: '#ffffff' },
-              style: {
-                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                color: '#92400e',
-                border: '1px solid #fcd34d',
-              },
-            },
+            // ✅ react-hot-toast از نوع toast «warning» پشتیبانی نمی‌کند
+            // (فقط success/error/loading/blank دارد) و هیچ‌جای کد هم
+            // toast.warning(...) صدا زده نمی‌شد — این پیکربندی مرده بود و
+            // خطای تایپ DefaultToastOptions هم تولید می‌کرد.
             loading: {
               duration: Infinity,
               style: {
@@ -277,6 +272,11 @@ export default function App() {
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
               <Route path="/brands" element={<BrandsPage />} />
+              {/* ✅ قبلاً این صفحه کامل احراز هویت (OTP + ایمیل/رمز) در App.tsx
+                  ایمپورت شده بود ولی هیچ <Route> ای برایش تعریف نشده بود؛
+                  isAuthPage هم صراحتاً مسیر /auth را برای مخفی کردن هدر/فوتر
+                  در نظر گرفته بود، یعنی این صفحه هرگز قابل‌دسترس نبود. */}
+              <Route path="/auth" element={<AuthPage />} />
               <Route path="/seller-request" element={<SellerRequestPage />} />
               <Route path="/seller-login" element={<SellerLoginPage />} />
               <Route path="/contact" element={<ContactPage />} />

@@ -20,6 +20,7 @@ import {
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
+import { ExportButton } from '@/components/admin/ExportButton';
 
 // ==================== Types ====================
 
@@ -177,6 +178,9 @@ export function AdminProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* ✅ قبلاً کامپوننت ExportButton برای type="products" ساخته شده بود
+              ولی هیچ صفحه‌ای آن را رندر نمی‌کرد و کاملاً غیرقابل‌دسترس بود */}
+          <ExportButton type="products" label="خروجی" />
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
             <RefreshCw className="w-4 h-4" />
             بروزرسانی
@@ -315,7 +319,7 @@ export function AdminProductsPage() {
               </Button>
               <Button
                 size="sm"
-                variant="error"
+                variant="danger"
                 onClick={() => {
                   if (window.confirm(`آیا از حذف ${selectedIds.length} محصول مطمئن هستید؟`)) {
                     bulkMutation.mutate({ ids: selectedIds, action: 'delete' });

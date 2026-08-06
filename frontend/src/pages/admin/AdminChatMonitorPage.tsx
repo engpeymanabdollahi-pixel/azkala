@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ExportButton } from '@/components/admin/ExportButton';
 import { cn } from '@/utils/cn';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';
@@ -227,6 +228,9 @@ export function AdminChatMonitorPage() {
             </p>
           </div>
         </div>
+        {/* ✅ قبلاً کامپوننت ExportButton برای type="chat" ساخته شده بود ولی
+            هیچ صفحه‌ای آن را رندر نمی‌کرد و کاملاً غیرقابل‌دسترس بود */}
+        <ExportButton type="chat" label="خروجی مکالمات" />
       </div>
 
       {/* Stats Cards */}

@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ArrayExport;
 use App\Http\Controllers\Controller;
-use App\Models\Order;
-use App\Models\User;
-use App\Models\Product;
+use App\Models\ChatReport;
 use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\ChatReport;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportExportController extends Controller
 {
@@ -52,14 +52,15 @@ class ReportExportController extends Controller
                 ];
             })->toArray();
 
-            $filename = 'orders_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            
-            return Excel::download(new \Maatwebsite\Excel\Sheet($data), $filename);
+            $filename = 'orders_'.now()->format('Y-m-d_H-i-s').'.xlsx';
+
+            return Excel::download(new ArrayExport($data), $filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportOrdersExcel: ' . $e->getMessage());
+            Log::error('ReportExportController@exportOrdersExcel: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -91,13 +92,15 @@ class ReportExportController extends Controller
                 'to_date' => $request->to_date,
             ]);
 
-            $filename = 'orders_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'orders_'.now()->format('Y-m-d_H-i-s').'.pdf';
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportOrdersPdf: ' . $e->getMessage());
+            Log::error('ReportExportController@exportOrdersPdf: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -131,13 +134,15 @@ class ReportExportController extends Controller
                 ];
             })->toArray();
 
-            $filename = 'users_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            return Excel::download(new \Maatwebsite\Excel\Sheet($data), $filename);
+            $filename = 'users_'.now()->format('Y-m-d_H-i-s').'.xlsx';
+
+            return Excel::download(new ArrayExport($data), $filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportUsersExcel: ' . $e->getMessage());
+            Log::error('ReportExportController@exportUsersExcel: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -174,13 +179,15 @@ class ReportExportController extends Controller
                 ];
             })->toArray();
 
-            $filename = 'chat_conversations_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            return Excel::download(new \Maatwebsite\Excel\Sheet($data), $filename);
+            $filename = 'chat_conversations_'.now()->format('Y-m-d_H-i-s').'.xlsx';
+
+            return Excel::download(new ArrayExport($data), $filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportChatExcel: ' . $e->getMessage());
+            Log::error('ReportExportController@exportChatExcel: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -211,13 +218,15 @@ class ReportExportController extends Controller
                 ];
             })->toArray();
 
-            $filename = 'products_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            return Excel::download(new \Maatwebsite\Excel\Sheet($data), $filename);
+            $filename = 'products_'.now()->format('Y-m-d_H-i-s').'.xlsx';
+
+            return Excel::download(new ArrayExport($data), $filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportProductsExcel: ' . $e->getMessage());
+            Log::error('ReportExportController@exportProductsExcel: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -251,13 +260,15 @@ class ReportExportController extends Controller
                 ];
             })->toArray();
 
-            $filename = 'chat_reports_' . now()->format('Y-m-d_H-i-s') . '.xlsx';
-            return Excel::download(new \Maatwebsite\Excel\Sheet($data), $filename);
+            $filename = 'chat_reports_'.now()->format('Y-m-d_H-i-s').'.xlsx';
+
+            return Excel::download(new ArrayExport($data), $filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportReportsExcel: ' . $e->getMessage());
+            Log::error('ReportExportController@exportReportsExcel: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -287,13 +298,15 @@ class ReportExportController extends Controller
                 'title' => 'گزارش خلاصه عملکرد',
             ]);
 
-            $filename = 'summary_report_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'summary_report_'.now()->format('Y-m-d_H-i-s').'.pdf';
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportSummaryPdf: ' . $e->getMessage());
+            Log::error('ReportExportController@exportSummaryPdf: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -309,6 +322,7 @@ class ReportExportController extends Controller
             'delivered' => 'تحویل شده',
             'cancelled' => 'لغو شده',
         ];
+
         return $labels[$status] ?? $status;
     }
 
@@ -319,6 +333,7 @@ class ReportExportController extends Controller
             'seller' => 'فروشنده',
             'admin' => 'مدیر',
         ];
+
         return $labels[$role] ?? $role;
     }
 
@@ -330,9 +345,11 @@ class ReportExportController extends Controller
             'resolved' => 'حل شده',
             'dismissed' => 'رد شده',
         ];
+
         return $labels[$status] ?? $status;
     }
-           /**
+
+    /**
      * خروجی PDF لیست کاربران
      */
     public function exportUsersPdf(Request $request)
@@ -356,13 +373,15 @@ class ReportExportController extends Controller
                 'title' => 'گزارش کاربران',
             ])->setPaper('a4', 'portrait');
 
-            $filename = 'users_' . now()->format('Y-m-d_H-i-s') . '.pdf';
+            $filename = 'users_'.now()->format('Y-m-d_H-i-s').'.pdf';
+
             return $pdf->download($filename);
         } catch (\Exception $e) {
-            Log::error('ReportExportController@exportUsersPdf: ' . $e->getMessage());
+            Log::error('ReportExportController@exportUsersPdf: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در Export: ' . $e->getMessage(),
+                'message' => 'خطا در Export: '.$e->getMessage(),
             ], 500);
         }
     }
