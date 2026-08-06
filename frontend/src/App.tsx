@@ -1,7 +1,7 @@
 // src/App.tsx - پیکربندی اصلی روت‌ها با پشتیبانی از Lazy Loading و Error Boundary
 import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastOptions } from 'react-hot-toast';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/Footer';
 import { ModelSelectorModal } from '@/components/features/ModelSelector/ModelSelectorModal';

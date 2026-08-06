@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Smartphone, X, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import type { UserDevice } from '../types';
 

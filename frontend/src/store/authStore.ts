@@ -19,6 +19,7 @@ interface AuthState {
   logout: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setSeller: (seller: Seller | null) => void;
+  setUser: (user: User | null) => void;
   
   // Helpers
   isSeller: () => boolean;
@@ -124,6 +125,10 @@ export const useAuthStore = create<AuthState>()(
 
       setSeller: (seller: Seller | null) => {
         set({ seller });
+      },
+
+      setUser: (user: User | null) => {
+        set({ user, isAuthenticated: !!user });
       },
 
       isSeller: () => {

@@ -5,7 +5,7 @@ import {
   Copy, Home, FileText, PartyPopper, Clock, MapPin,
   DollarSign, ChevronLeft, Sparkles,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';

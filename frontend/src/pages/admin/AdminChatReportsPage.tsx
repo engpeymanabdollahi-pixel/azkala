@@ -6,7 +6,7 @@ import {
   User, Shield, Ban, Send, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';

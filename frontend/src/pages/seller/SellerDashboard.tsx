@@ -25,7 +25,7 @@ import {
   Store,
 } from 'lucide-react';
 import { formatPrice } from '@/utils/format';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { SimpleChart } from '@/components/ui/SimpleChart';
 import { cn } from '@/utils/cn';

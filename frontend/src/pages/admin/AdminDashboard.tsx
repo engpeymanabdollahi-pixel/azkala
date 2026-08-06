@@ -6,7 +6,7 @@ import {
   DollarSign, Eye, Star, AlertCircle, CheckCircle, Clock,
   ArrowLeft, RefreshCw, Flag, MessageCircle, Shield,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import apiClient from '@/services/api/client';

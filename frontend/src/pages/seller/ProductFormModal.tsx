@@ -4,7 +4,7 @@ import {
   X, Package, DollarSign, Tag, Smartphone, CheckCircle,
   Loader2, Save, FileText, Image as ImageIcon, Plus, Trash2, ArrowLeft, Search, Edit
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { ImageUploader } from '@/components/ui/ImageUploader';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/api/useSellerProducts';

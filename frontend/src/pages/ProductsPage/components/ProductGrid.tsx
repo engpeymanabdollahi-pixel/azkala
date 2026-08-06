@@ -1,6 +1,6 @@
 import { ProductCard } from '@/components/features/ProductCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Search, Smartphone, Package, X } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';

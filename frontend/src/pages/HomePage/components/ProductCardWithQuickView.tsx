@@ -3,7 +3,7 @@ import { Star, Eye, ShoppingBag, Heart, TrendingUp } from 'lucide-react';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';

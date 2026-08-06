@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, History, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';
 

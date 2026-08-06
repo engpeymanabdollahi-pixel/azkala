@@ -122,4 +122,6 @@ export const cancelAllRequests = (): void => {
   // React Query خودش مدیریت لغو درخواست‌ها را انجام می‌دهد
 };
 
+export { client as apiClient };
+
 export default client;

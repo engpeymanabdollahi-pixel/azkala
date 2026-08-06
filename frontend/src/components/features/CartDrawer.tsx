@@ -1,6 +1,6 @@
 import { ShoppingCart, X, Trash2, Plus, Minus, ArrowLeft, Package } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';

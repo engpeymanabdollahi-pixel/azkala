@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Copy, CheckCircle, Package, Search, Filter, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/Badge';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';

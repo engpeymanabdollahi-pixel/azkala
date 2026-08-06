@@ -5,7 +5,7 @@ import {
   DollarSign, Loader2, Download, CheckSquare, Square,
   RefreshCw, Flame, ArrowUpDown, Copy, ExternalLink,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';

@@ -7,7 +7,7 @@ import {
   Clock, Shield, TestTube,
 } from 'lucide-react';
 
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { adminSettingService, type Setting } from '@/services/api/adminSetting.service';

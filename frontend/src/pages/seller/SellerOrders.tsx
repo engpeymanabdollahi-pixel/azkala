@@ -4,7 +4,7 @@ import {
   ShoppingCart, Package, Truck, CheckCircle, Clock, XCircle,
   Search, Eye, DollarSign, Calendar, RefreshCw, X, Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';

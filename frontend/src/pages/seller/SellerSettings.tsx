@@ -5,7 +5,7 @@ import { Store, Upload, Save, Loader2, Image as ImageIcon, ArrowLeft } from 'luc
 import { toast } from 'react-hot-toast';
 import { sellerService } from '@/services/api/seller.service';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 // تابع کمکی برای تبدیل مسیر نسبی به مطلق
 const getImageUrl = (path: string | null | undefined) => {

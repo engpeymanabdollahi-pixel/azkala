@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award } from 'lucide-react';
 import { useModelStore, useCartStore } from '@/store';
 import { useWishlistStore } from '@/store/wishlistStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import type { Product } from '@/types/models';

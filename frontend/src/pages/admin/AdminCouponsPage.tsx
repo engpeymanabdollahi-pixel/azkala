@@ -6,7 +6,7 @@ import {
   Tag, Percent, DollarSign, Calendar, Users, Package,
   Search, ArrowLeft, ToggleLeft, ToggleRight, Copy,
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { couponService, type Coupon } from '@/services/api/coupon.service';

@@ -39,7 +39,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useModelStore } from '@/store/modelStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SafeImage } from '@/components/ui/SafeImage';
