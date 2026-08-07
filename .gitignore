@@ -1,4 +1,3 @@
-```
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -86,5 +85,6 @@ dmypy.json
 
 # Gradle
 .gradle/
+vendor/
 
-```
+backend/.env
