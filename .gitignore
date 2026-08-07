@@ -5,44 +5,50 @@ node_modules/
 # Build artifacts
 dist/
 build/
-*.js.map
-*.tsbuildinfo
+*.js
+*.ts
+*.tsx
 
-# Environment variables
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
 .env
 .env.local
-*.env.*
+.env.*
 
-# IDE files
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Logs
-*.log
-
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
-
-# Python cache
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Temporary files
-*.tmp
-*.temp
+# Compiled
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
 
-# OS generated files
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Cache
+.mypy_cache/
+.pytest_cache/
+.gradle/
+target/
+
+# System
 .DS_Store
 Thumbs.db
-
-# Testing
-.nyc_output/
-coverage/
-junit.xml
 ```

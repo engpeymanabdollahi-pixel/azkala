@@ -38,5 +38,5 @@ export const DEFAULT_SORT_OPTION = 'popular' as const;
 // ==================== UI Constants ====================
 
 export const PRODUCTS_PER_PAGE = 100;
-export const SKELETON_COUNT = 10;
+export const SKELETON_COUNT = 12; // Match grid layout: 2 mobile, 3 tablet, 4 desktop
 export const MOBILE_DRAWER_MAX_HEIGHT = '85vh';
