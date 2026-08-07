@@ -88,10 +88,11 @@ export function useWishlistApi() {
       // بررسی خطای 409 - محصول قبلاً در لیست بوده
       const axiosError = error as any;
       const errorCode = axiosError.response?.data?.code;
+      const errorMessage = axiosError.response?.data?.message;
       
       if (axiosError.response?.status === 409 || errorCode === 'ALREADY_WISHLISTED') {
         // این یک خطا نیست، فقط اطلاع‌رسانی می‌کنیم
-        toast.info('این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
+        toast.info(errorMessage || 'این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
           icon: 'ℹ️', 
           duration: 2000,
           style: {
