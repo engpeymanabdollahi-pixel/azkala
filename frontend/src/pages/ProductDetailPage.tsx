@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { logger } from '../utils/logger';
 import {
   ShoppingCart,
 ShoppingBag,
@@ -164,11 +165,11 @@ export function ProductDetailPage() {
 
         // 🛡️ نادیده گرفتن خطای CanceledError ناشی از React 18 Strict Mode
         if (errorObj.name === 'CanceledError' || errorObj.code === 'ERR_CANCELED' || errorObj.message === 'canceled') {
-          console.log('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
+          logger.debug('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
           return; // خارج شدن از تابع بدون تنظیم state خطا
         }
 
-        console.error('❌ خطا واقعی در دریافت محصول:', err);
+        logger.error('❌ خطا واقعی در دریافت محصول:', err);
         if (isMounted) {
           setError(errorObj.response?.data?.message || errorObj.message || 'خطا در بارگذاری محصول');
         }

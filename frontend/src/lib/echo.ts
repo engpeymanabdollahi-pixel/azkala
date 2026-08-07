@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 import { API_ORIGIN } from '@/lib/apiConfig';
+import { logger } from '@/utils/logger';
 
 window.Pusher = Pusher;
 
@@ -41,11 +42,11 @@ const echo = new Echo({
             return response.json();
           })
           .then(data => {
-            console.log('✅ Channel authorized:', channel.name);
+            logger.debug(`Channel authorized: ${channel.name}`);
             callback(false, data);
           })
           .catch(error => {
-            console.error('❌ Channel authorization error:', error);
+            logger.error('Channel authorization error:', error as Error);
             callback(true);
           });
       },
@@ -53,6 +54,6 @@ const echo = new Echo({
   },
 });
 
-console.log('🔌 Echo initialized');
+logger.debug('Echo initialized');
 
 export default echo;

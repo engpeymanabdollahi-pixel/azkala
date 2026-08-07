@@ -5,19 +5,23 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BrandResource;
 use App\Models\Brand;
+use Illuminate\Support\Facades\Cache;
 
 class BrandController extends Controller
 {
     public function index()
     {
-        $brands = Brand::active()
-            ->withCount("products")
-            ->orderBy("name")
-            ->get();
-
+        // کش‌گذاری لیست برندها برای ۱ ساعت
         return response()->json([
             "success" => true,
-            "data" => BrandResource::collection($brands),
+            "data" => Cache::remember('brands_active', 3600, function () {
+                return BrandResource::collection(
+                    Brand::active()
+                        ->withCount("products")
+                        ->orderBy("name")
+                        ->get()
+                );
+            }),
         ]);
     }
 

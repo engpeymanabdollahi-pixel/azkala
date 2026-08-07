@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
@@ -16,13 +17,18 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Category::with('children')->root()->active();
+            // کش‌گذاری لیست دسته‌بندی‌ها برای ۱ ساعت
+            $cacheKey = 'categories_' . ($request->has('with_products_count') ? 'with_count' : 'simple');
+            
+            $categories = Cache::remember($cacheKey, 3600, function () use ($request) {
+                $query = Category::with('children')->root()->active();
 
-            if ($request->has('with_products_count')) {
-                $query->withCount('products');
-            }
+                if ($request->has('with_products_count')) {
+                    $query->withCount('products');
+                }
 
-            $categories = $query->orderBy('sort_order')->get();
+                return $query->orderBy('sort_order')->get();
+            });
 
             return response()->json([
                 'success' => true,

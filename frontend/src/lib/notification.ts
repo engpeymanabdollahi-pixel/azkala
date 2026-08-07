@@ -1,5 +1,7 @@
 // 🔔 Notification Service
 
+import { logger } from '@/utils/logger';
+
 // صدای اعلان با Web Audio API (بدون نیاز به فایل صوتی)
 export const playNotificationSound = () => {
   try {
@@ -19,14 +21,14 @@ export const playNotificationSound = () => {
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.5);
   } catch (error) {
-    console.warn('Could not play notification sound:', error);
+    logger.warn('Could not play notification sound:', error as Error);
   }
 };
 
 // نمایش نوتیفیکیشن مرورگر (اگر اجازه داده شده)
 export const showBrowserNotification = (title: string, body: string) => {
   if (!('Notification' in window)) {
-    console.log('Browser does not support notifications');
+    logger.debug('Browser does not support notifications');
     return;
   }
 

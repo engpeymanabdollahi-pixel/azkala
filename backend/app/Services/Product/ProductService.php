@@ -25,10 +25,15 @@ class ProductService
     public function getProducts(ProductFilterDTO $filters): LengthAwarePaginator
     {
         try {
-            return $this->productRepository->getActiveProducts(
-                $filters->toArray(),
-                $filters->per_page
-            );
+            // کش‌گذاری لیست محصولات با کلید داینامیک بر اساس فیلترها
+            $cacheKey = 'products_' . md5(json_encode($filters->toArray()));
+            
+            return Cache::remember($cacheKey, 600, function () use ($filters) {
+                return $this->productRepository->getActiveProducts(
+                    $filters->toArray(),
+                    $filters->per_page
+                );
+            });
         } catch (\Exception $e) {
             Log::error('ProductService@getProducts: ' . $e->getMessage());
             throw $e;
