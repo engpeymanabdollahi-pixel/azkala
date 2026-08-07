@@ -1,5 +1,13 @@
 import apiClient from './client';
 
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  image?: string;
+  [key: string]: unknown;
+}
+
 export interface ApiCartItem {
   id: number;
   product_id: number;
@@ -7,7 +15,7 @@ export interface ApiCartItem {
   quantity: number;
   price: number;
   total: number;
-  product: any;
+  product: Product;
 }
 
 export interface CartResponse {
@@ -24,7 +32,7 @@ export interface CartResponse {
 export interface CartActionResponse {
   success: boolean;
   message: string;
-  data: any; // می‌تواند CartItem یا اطلاعات به‌روزرسانی شده سبد باشد
+  data: ApiCartItem | CartResponse['data'];
 }
 
 export const cartService = {
@@ -40,7 +48,7 @@ export const cartService = {
    * افزودن محصول به سبد (با پشتیبانی از device_model_id)
    */
   async addToCart(productId: number, quantity: number = 1, deviceModelId?: number): Promise<CartActionResponse> {
-    const payload: any = { product_id: productId, quantity };
+    const payload: { product_id: number; quantity: number; device_model_id?: number } = { product_id: productId, quantity };
     if (deviceModelId) {
       payload.device_model_id = deviceModelId;
     }
