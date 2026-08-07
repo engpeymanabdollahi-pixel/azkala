@@ -71,6 +71,42 @@ class PushSubscriptionController extends Controller
     }
 
     /**
+     * ارسال نوتیفیکیشن سفارشی
+     */
+    public function sendCustom(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'url' => 'nullable|string|max:500',
+            'extra_data' => 'nullable|array',
+        ]);
+
+        $result = $this->pushSubscriptionService->sendCustomNotification(
+            Auth::id(),
+            $validated['title'],
+            $validated['body'],
+            $validated['url'] ?? '/',
+            $validated['extra_data'] ?? []
+        );
+
+        if (!$result['sent']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'No active subscriptions',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'success_count' => $result['success_count'],
+                'total_count' => $result['total_count'],
+            ],
+        ]);
+    }
+
+    /**
      * دریافت کلید VAPID Public
      */
     public function getVapidPublicKey()

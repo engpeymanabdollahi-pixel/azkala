@@ -594,6 +594,7 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::post('/subscribe', [PushSubscriptionController::class, 'store'])->name('subscribe');
                 Route::delete('/unsubscribe/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('unsubscribe');
                 Route::post('/test', [PushSubscriptionController::class, 'sendTest'])->name('test');
+                Route::post('/custom', [PushSubscriptionController::class, 'sendCustom'])->name('custom');
                 Route::get('/vapid-public-key', [PushSubscriptionController::class, 'getVapidPublicKey'])->name('vapid-public-key');
             });
 
