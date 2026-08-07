@@ -35,4 +35,28 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | SMS Services
+    |--------------------------------------------------------------------------
+    */
+
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'log'), // kavenegar, melipayamak, ghasedak, log
+    ],
+
+    'kavenegar' => [
+        'api_key' => env('KAVENEGAR_API_KEY'),
+    ],
+
+    'melipayamak' => [
+        'username' => env('MELIPAYAMAK_USERNAME'),
+        'password' => env('MELIPAYAMAK_PASSWORD'),
+        'from' => env('MELIPAYAMAK_FROM', '50005'),
+    ],
+
+    'ghasedak' => [
+        'api_key' => env('GHASEDAK_API_KEY'),
+    ],
+
 ];
