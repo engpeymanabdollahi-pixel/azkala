@@ -1,10 +1,11 @@
 import apiClient from './client';
+import type { Product } from '@/types/product';
 
 export interface WishlistItem {
   id: number;
   user_id: number;
   product_id: number;
-  product: any;
+  product: Product;
   created_at: string;
 }
 

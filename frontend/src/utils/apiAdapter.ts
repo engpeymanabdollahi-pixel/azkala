@@ -16,7 +16,7 @@ interface ApiProductResponse {
   sku?: string;
   description?: string;
   short_description?: string;
-  specifications?: Record<string, any>;
+  specifications?: Record<string, unknown>;
   rating?: string | number;
   reviews_count?: number;
   views_count?: number;
@@ -35,7 +35,7 @@ interface ApiProductResponse {
     slug?: string;
     image?: string | null;
     release_year?: number | null;
-    specs?: Record<string, any>;
+    specs?: Record<string, unknown>;
     created_at?: string;
     updated_at?: string;
   }>;
