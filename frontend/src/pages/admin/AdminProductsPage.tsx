@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SafeImage } from '@/components/ui/SafeImage';
+import { ProductCardSkeleton } from '@/components/features/ProductCardSkeleton';
 import { 
   adminProductService, 
   type AdminProduct, 
@@ -345,9 +346,13 @@ export function AdminProductsPage() {
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-8 space-y-3">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div className="p-6 space-y-3">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <ProductCardSkeleton 
+                key={i} 
+                variant="list"
+                style={{ animationDelay: `${i * 50}ms` }} 
+              />
             ))}
           </div>
         ) : products.length === 0 ? (

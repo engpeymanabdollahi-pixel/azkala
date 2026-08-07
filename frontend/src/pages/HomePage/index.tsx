@@ -520,7 +520,12 @@ export function HomePage() {
 
             {isDataLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {[...Array(6)].map((_, i) => <ProductCardSkeleton key={i} />)}
+                {[...Array(8)].map((_, i) => (
+                  <ProductCardSkeleton 
+                    key={i} 
+                    style={{ animationDelay: `${i * 50}ms` }} 
+                  />
+                ))}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">

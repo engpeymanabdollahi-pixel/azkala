@@ -172,7 +172,10 @@ export function ProductsPage() {
           <div className="h-10 bg-white dark:bg-slate-800 rounded-xl mb-3 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-              <ProductCardSkeleton key={i} />
+              <ProductCardSkeleton 
+                key={i} 
+                style={{ animationDelay: `${i * 50}ms` }} 
+              />
             ))}
           </div>
         </div>
