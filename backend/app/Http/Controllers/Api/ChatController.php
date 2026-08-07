@@ -133,4 +133,48 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * بررسی وضعیت آنلاین بودن کاربران
+     */
+    public function getOnlineStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'user_ids' => 'required|array',
+                'user_ids.*' => 'required|integer|exists:users,id',
+            ]);
+
+            $userIds = $request->input('user_ids');
+            $onlineStatus = [];
+
+            // در حال حاضر با استفاده از last_activity جدول users بررسی می‌کنیم
+            // بعداً می‌توان به WebSocket ارتقا داد
+            foreach ($userIds as $userId) {
+                $user = \App\Models\User::find($userId);
+                if ($user) {
+                    // کاربرانی که در ۵ دقیقه اخیر فعالیت داشته‌اند آنلاین محسوب می‌شوند
+                    $isOnline = $user->last_activity && 
+                                now()->timestamp - $user->last_activity <= 300; // 5 minutes
+                    
+                    $onlineStatus[$userId] = $isOnline;
+                } else {
+                    $onlineStatus[$userId] = false;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $onlineStatus,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('ChatController@getOnlineStatus: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در بررسی وضعیت آنلاین بودن',
+            ], 500);
+        }
+    }
 }

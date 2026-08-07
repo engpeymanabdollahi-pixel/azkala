@@ -1,27 +1,28 @@
 import { productService, categoryService } from './services/api';
+import { logger } from './utils/logger';
 
 async function testApi() {
-  console.log('🧪 Testing API connection...');
+  logger.info('🧪 Testing API connection...');
   
   try {
     // Test categories
-    console.log('\n📂 Testing categories...');
+    logger.info('\\n📂 Testing categories...');
     const categories = await categoryService.getCategories();
-    console.log('✓ Categories:', categories.data.length);
+    logger.info('✓ Categories:', categories.data.length);
     
     // Test products
-    console.log('\n📦 Testing products...');
+    logger.info('\\n📦 Testing products...');
     const products = await productService.getProducts();
-    console.log('✓ Products:', products.data.data.length);
+    logger.info('✓ Products:', products.data.data.length);
     
     // Test featured
-    console.log('\n⭐ Testing featured products...');
+    logger.info('\\n⭐ Testing featured products...');
     const featured = await productService.getFeatured();
-    console.log('✓ Featured:', featured.data.length);
+    logger.info('✓ Featured:', featured.data.length);
     
-    console.log('\n✅ All API tests passed!');
+    logger.info('\\n✅ All API tests passed!');
   } catch (error) {
-    console.error('❌ API test failed:', error);
+    logger.error('❌ API test failed:', error);
   }
 }
 

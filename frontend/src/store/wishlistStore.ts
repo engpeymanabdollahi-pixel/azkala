@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Product } from '@/types/models';
 import { wishlistService } from '@/services/api/wishlist.service';
 import { useAuthStore } from './authStore';
+import { logger } from '../utils/logger';
 
 interface WishlistState {
   items: Product[];
@@ -70,7 +71,7 @@ export const useWishlistStore = create<WishlistState>()(
         
         // اگر کاربر لاگین نیست، از localStorage استفاده کن
         if (!isAuthenticated) {
-          console.log('⚠️ کاربر لاگین نیست، از localStorage استفاده می‌شود');
+          logger.debug('⚠️ کاربر لاگین نیست، از localStorage استفاده می‌شود');
           return;
         }
         
@@ -91,9 +92,9 @@ export const useWishlistStore = create<WishlistState>()(
             lastSync: Date.now()
           });
           
-          console.log(`✅ Wishlist sync شد: ${apiItems.length} محصول از API`);
+          logger.info(`✅ Wishlist sync شد: ${apiItems.length} محصول از API`);
         } catch (error) {
-          console.error('Failed to sync wishlist from API:', error);
+          logger.error('Failed to sync wishlist from API:', error);
         } finally {
           set({ isSyncing: false });
         }
@@ -109,10 +110,10 @@ export const useWishlistStore = create<WishlistState>()(
         } catch (error: any) {
           // اگر 404 بود، یعنی محصول در API نیست - از localStorage حذف کن
           if (error.response?.status === 404) {
-            console.warn(`⚠️ محصول #${productId} در سرور نیست، از localStorage حذف شد`);
+            logger.warn(`⚠️ محصول #${productId} در سرور نیست، از localStorage حذف شد`);
             set({ items: get().items.filter(item => item.id !== productId) });
           } else {
-            console.error(`Failed to sync wishlist ${action}:`, error);
+            logger.error(`Failed to sync wishlist ${action}:`, error);
           }
         }
       },
@@ -125,7 +126,7 @@ export const useWishlistStore = create<WishlistState>()(
           if (state) {
             const validItems = state.items.filter(p => p && p.id && p.slug);
             if (validItems.length !== state.items.length) {
-              console.log(`🧹 ${state.items.length - validItems.length} محصول نامعتبر از wishlist حذف شد`);
+              logger.info(`🧹 ${state.items.length - validItems.length} محصول نامعتبر از wishlist حذف شد`);
               state.items = validItems;
             }
           }

@@ -3,6 +3,8 @@
  * ثبت و مدیریت Service Worker برای قابلیت‌های PWA
  */
 
+import { logger } from '../../utils/logger';
+
 const SW_URL = '/sw.js';
 const SW_SCOPE = '/';
 
@@ -12,7 +14,7 @@ const SW_SCOPE = '/';
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   // بررسی پشتیبانی مرورگر
   if (!('serviceWorker' in navigator)) {
-    console.warn('[PWA] Service Worker در این مرورگر پشتیبانی نمی‌شود');
+    logger.warn('[PWA] Service Worker در این مرورگر پشتیبانی نمی‌شود');
     return null;
   }
 
@@ -21,7 +23,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       scope: SW_SCOPE
     });
 
-    console.log('[PWA] ✅ Service Worker ثبت شد:', registration.scope);
+    logger.info('[PWA] ✅ Service Worker ثبت شد:', registration.scope);
 
     // بررسی به‌روزرسانی
     registration.addEventListener('updatefound', () => {
@@ -31,7 +33,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          console.log('[PWA] 🔄 نسخه جدید در دسترس است');
+          logger.info('[PWA] 🔄 نسخه جدید در دسترس است');
           
           // نمایش پیام به کاربر
           if (confirm('نسخه جدید ازکالا در دسترس است. آیا می‌خواهید صفحه را بروزرسانی کنید؟')) {
@@ -50,7 +52,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
     return registration;
   } catch (error) {
-    console.error('[PWA] ❌ خطا در ثبت Service Worker:', error);
+    logger.error('[PWA] ❌ خطا در ثبت Service Worker:', error);
     return null;
   }
 }
@@ -60,29 +62,29 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!('Notification' in window)) {
-    console.warn('[PWA] نوتیفیکیشن در این مرورگر پشتیبانی نمی‌شود');
+    logger.warn('[PWA] نوتیفیکیشن در این مرورگر پشتیبانی نمی‌شود');
     return 'denied';
   }
 
   // اگر قبلاً مجوز داده شده
   if (Notification.permission === 'granted') {
-    console.log('[PWA] ✅ مجوز نوتیفیکیشن قبلاً داده شده');
+    logger.info('[PWA] ✅ مجوز نوتیفیکیشن قبلاً داده شده');
     return 'granted';
   }
 
   // اگر قبلاً رد شده
   if (Notification.permission === 'denied') {
-    console.warn('[PWA] ❌ مجوز نوتیفیکیشن رد شده');
+    logger.warn('[PWA] ❌ مجوز نوتیفیکیشن رد شده');
     return 'denied';
   }
 
   // درخواست مجوز
   try {
     const permission = await Notification.requestPermission();
-    console.log('[PWA] مجوز نوتیفیکیشن:', permission);
+    logger.info('[PWA] مجوز نوتیفیکیشن:', permission);
     return permission;
   } catch (error) {
-    console.error('[PWA] خطا در درخواست مجوز:', error);
+    logger.error('[PWA] خطا در درخواست مجوز:', error);
     return 'denied';
   }
 }
@@ -96,7 +98,7 @@ export function showLocalNotification(
   options?: NotificationOptions
 ): void {
   if (Notification.permission !== 'granted') {
-    console.warn('[PWA] مجوز نوتیفیکیشن داده نشده');
+    logger.warn('[PWA] مجوز نوتیفیکیشن داده نشده');
     return;
   }
 
@@ -119,9 +121,9 @@ export function showLocalNotification(
       notification.close();
     };
 
-    console.log('[PWA] 🔔 نوتیفیکیشن نمایش داده شد:', title);
+    logger.info('[PWA] 🔔 نوتیفیکیشن نمایش داده شد:', title);
   } catch (error) {
-    console.error('[PWA] خطا در نمایش نوتیفیکیشن:', error);
+    logger.error('[PWA] خطا در نمایش نوتیفیکیشن:', error);
   }
 }
 
@@ -162,7 +164,7 @@ export function setupInstallPrompt(): void {
     // ذخیره رویداد برای استفاده بعدی
     deferredPrompt = e;
     
-    console.log('[PWA] ✅ Install Prompt آماده است');
+    logger.info('[PWA] ✅ Install Prompt آماده است');
     
     // نمایش دکمه نصب به کاربر (اختیاری)
     showInstallButton();
@@ -170,7 +172,7 @@ export function setupInstallPrompt(): void {
 
   // گوش دادن به نصب موفق
   window.addEventListener('appinstalled', () => {
-    console.log('[PWA] ✅ PWA با موفقیت نصب شد');
+    logger.info('[PWA] ✅ PWA با موفقیت نصب شد');
     deferredPrompt = null;
     hideInstallButton();
   });
