@@ -27,4 +27,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /bootstrap/cache/*.php
-!/bootstrap/cache/.gitignore
+!/bootstrap/cache/.gitignore.env
+test-results.xml
+phpunit-full.log
