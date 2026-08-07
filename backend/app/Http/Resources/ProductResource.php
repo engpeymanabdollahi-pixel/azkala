@@ -15,6 +15,14 @@ class ProductResource extends JsonResource
             $discountPercentage = round((($this->compare_price - $this->price) / $this->compare_price) * 100);
         }
 
+        // ✅ بررسی وضعیت علاقه‌مندی کاربر فعلی به محصول
+        $isWishlisted = false;
+        if ($request->user()) {
+            $isWishlisted = \App\Models\Wishlist::where('user_id', $request->user()->id)
+                ->where('product_id', $this->id)
+                ->exists();
+        }
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -104,6 +112,9 @@ class ProductResource extends JsonResource
             
             // ✅ استفاده از متغیر محاسبه‌شده‌ی امن
             'discount_percentage' => $discountPercentage,
+            
+            // ✅ وضعیت علاقه‌مندی کاربر فعلی
+            'is_wishlisted' => $isWishlisted,
         ];
     }
 }

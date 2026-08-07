@@ -156,64 +156,51 @@ class PublicSellerController extends Controller
     }
 
     /**
-     * ❤️ دنبال کردن شعبه آنلاین (RESTful)
+     * ⭐ دنبال کردن یا لغو دنبال کردن فروشگاه (Toggle)
      * POST /api/v1/sellers/{id}/follow
      */
     public function follow(Request $request, $id)
     {
-        $user = $request->user();
-        $seller = $this->publicSellerService->findActiveSellerById((int) $id);
-
-        if ($user->id === $seller->id) {
-            return response()->json(['success' => false, 'message' => 'شما نمی‌توانید فروشگاه خود را دنبال کنید.'], 400);
-        }
-
-        if ($user->isFollowingSeller($seller->id)) {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'برای دنبال کردن فروشگاه باید وارد حساب کاربری شوید.',
+                ], 401);
+            }
+            
+            $result = $user->toggleFollowSeller((int) $id);
+            
             return response()->json([
                 'success' => true,
-                'message' => 'شما قبلاً این شعبه را دنبال کرده‌اید.',
-                'is_following' => true,
-                'followers_count' => $seller->followers_count,
+                'message' => $result['action'] === 'followed' 
+                    ? 'فروشگاه با موفقیت دنبال شد.' 
+                    : 'دنبال کردن فروشگاه لغو شد.',
+                'data' => $result,
             ]);
+            
+        } catch (\Exception $e) {
+            $code = $e->getCode();
+            if (!in_array($code, [400, 404])) {
+                $code = 500;
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $code);
         }
-
-        // ✅ نسخه دوم: استفاده از تراکنش برای جلوگیری از Race Condition
-        $this->publicSellerService->followSeller($user, $seller);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'شعبه آنلاین با موفقیت به لیست علاقه‌مندی‌های شما اضافه شد.',
-            'is_following' => true,
-            'followers_count' => $seller->fresh()->followers_count,
-        ]);
     }
 
     /**
-     * 💔 لغو دنبال کردن شعبه آنلاین (RESTful)
+     * 💔 لغو دنبال کردن فروشگاه (Deprecated - از follow بجای این استفاده کنید)
      * DELETE /api/v1/sellers/{id}/follow
      */
     public function unfollow(Request $request, $id)
     {
-        $user = $request->user();
-        $seller = $this->publicSellerService->findSellerById((int) $id);
-
-        if (! $user->isFollowingSeller($seller->id)) {
-            return response()->json([
-                'success' => true,
-                'message' => 'شما این شعبه را دنبال نکرده‌اید.',
-                'is_following' => false,
-                'followers_count' => $seller->followers_count,
-            ]);
-        }
-
-        $this->publicSellerService->unfollowSeller($user, $seller);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'دنبال کردن شعبه با موفقیت لغو شد.',
-            'is_following' => false,
-            'followers_count' => $seller->fresh()->followers_count,
-        ]);
+        return $this->follow($request, $id);
     }
 
     /**

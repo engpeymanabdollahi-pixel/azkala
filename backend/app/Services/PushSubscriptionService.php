@@ -51,6 +51,7 @@ class PushSubscriptionService
             'badge' => '/icons/icon-192.png',
             'url' => '/',
             'tag' => 'test',
+            'timestamp' => now()->timestamp,
         ];
 
         $results = [];
@@ -66,5 +67,95 @@ class PushSubscriptionService
         }
 
         return ['sent' => true, 'results' => $results];
+    }
+
+    /**
+     * ارسال نوتیفیکیشن سفارشی
+     */
+    public function sendCustomNotification(int $userId, string $title, string $body, string $url = '/', array $extraData = []): array
+    {
+        $subscriptions = PushSubscription::where('user_id', $userId)->active()->get();
+
+        if ($subscriptions->isEmpty()) {
+            return ['sent' => false, 'results' => [], 'message' => 'No active subscriptions'];
+        }
+
+        $webPush = new WebPush();
+        $payload = array_merge([
+            'title' => $title,
+            'body' => $body,
+            'icon' => '/icons/icon-192.png',
+            'badge' => '/icons/icon-192.png',
+            'url' => $url,
+            'tag' => 'custom-' . time(),
+            'timestamp' => now()->timestamp,
+        ], $extraData);
+
+        $results = [];
+        $successCount = 0;
+        
+        foreach ($subscriptions as $sub) {
+            $result = $webPush->send($sub->toWebPushArray(), $payload);
+            $results[] = $result;
+
+            if ($result['success']) {
+                $sub->markAsUsed();
+                $successCount++;
+            } else {
+                $sub->deactivate();
+            }
+        }
+
+        return [
+            'sent' => $successCount > 0,
+            'success_count' => $successCount,
+            'total_count' => $subscriptions->count(),
+            'results' => $results
+        ];
+    }
+
+    /**
+     * ارسال نوتیفیکیشن به همه کاربران (برای ادمین)
+     */
+    public function broadcastNotification(string $title, string $body, string $url = '/', array $extraData = []): array
+    {
+        $subscriptions = PushSubscription::active()->get();
+
+        if ($subscriptions->isEmpty()) {
+            return ['sent' => false, 'results' => [], 'message' => 'No active subscriptions'];
+        }
+
+        $webPush = new WebPush();
+        $payload = array_merge([
+            'title' => $title,
+            'body' => $body,
+            'icon' => '/icons/icon-192.png',
+            'badge' => '/icons/icon-192.png',
+            'url' => $url,
+            'tag' => 'broadcast-' . time(),
+            'timestamp' => now()->timestamp,
+        ], $extraData);
+
+        $results = [];
+        $successCount = 0;
+        
+        foreach ($subscriptions as $sub) {
+            $result = $webPush->send($sub->toWebPushArray(), $payload);
+            $results[] = $result;
+
+            if ($result['success']) {
+                $sub->markAsUsed();
+                $successCount++;
+            } else {
+                $sub->deactivate();
+            }
+        }
+
+        return [
+            'sent' => $successCount > 0,
+            'success_count' => $successCount,
+            'total_count' => $subscriptions->count(),
+            'results' => $results
+        ];
     }
 }
