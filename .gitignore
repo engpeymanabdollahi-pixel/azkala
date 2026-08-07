@@ -1,1 +1,67 @@
-Nothing should be ignored based on the provided file changes, as only a TypeScript source file was modified and no build artifacts, dependencies, or temporary files were included in the changes.
+```gitignore
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.js.map
+*.ts.map
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage*
+.nox/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+```
+
+Wait, let me reconsider. The only change was a TypeScript React file modification. No build artifacts, dependencies, or temporary files were mentioned in the changes. Let me check again.
+
+The file `frontend/src/pages/seller/components/FilterPanel.tsx` is just a source code file, which shouldn't be ignored.
+
+Output: (nothing)

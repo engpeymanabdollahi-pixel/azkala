@@ -8,7 +8,7 @@
  * - دکمه ریست فیلترها
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { X, SlidersHorizontal, RotateCcw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -46,23 +46,15 @@ export function FilterPanel({
   priceRange = { min: 0, max: 10000000 },
   onClose
 }: FilterPanelProps) {
-  const [localFilters, setLocalFilters] = useState<FilterState>(filters);
+  // استفاده از controlled component بدون state محلی برای جلوگیری از anti-pattern
   const [brandSearch, setBrandSearch] = useState('');
 
-  // همگام‌سازی با فیلترهای والد.
-  //
-  // بازیابی از LocalStorage عمداً اینجا نیست، در ProductTemplates.tsx است:
-  // در موبایل این پنل هر بار که کشو باز می‌شود دوباره mount می‌شود، پس اگر
-  // بازیابی اینجا بود، هر بار localFilters را با نسخه‌ی ذخیره‌شده بازنویسی
-  // می‌کرد — حتی اگر filters (والد) از قبل چیز دیگری بود — و چون onFilterChange
-  // صدا زده نمی‌شد، چک‌باکس‌ها یک چیز نشان می‌دادند و نتایج چیز دیگری.
-  useEffect(() => {
-    setLocalFilters(filters);
-  }, [filters]);
+  // همگام‌سازی با فیلترهای والد با استفاده از useMemo به جای useEffect + setState
+  const localFilters = useMemo(() => filters, [filters]);
 
   const handleApplyFilters = () => {
-    onFilterChange(localFilters);
-    localStorage.setItem('productTemplatesFilters', JSON.stringify(localFilters));
+    onFilterChange(filters);
+    localStorage.setItem('productTemplatesFilters', JSON.stringify(filters));
     onClose?.();
   };
 
@@ -75,27 +67,22 @@ export function FilterPanel({
       inStockOnly: false,
       search: ''
     };
-    setLocalFilters(resetFilters);
     onFilterChange(resetFilters);
     localStorage.removeItem('productTemplatesFilters');
   };
 
   const toggleCategory = (categoryId: number) => {
-    setLocalFilters(prev => ({
-      ...prev,
-      categories: prev.categories.includes(categoryId)
-        ? prev.categories.filter(id => id !== categoryId)
-        : [...prev.categories, categoryId]
-    }));
+    const newCategories = filters.categories.includes(categoryId)
+      ? filters.categories.filter(id => id !== categoryId)
+      : [...filters.categories, categoryId];
+    onFilterChange({ ...filters, categories: newCategories });
   };
 
   const toggleBrand = (brandId: number) => {
-    setLocalFilters(prev => ({
-      ...prev,
-      brands: prev.brands.includes(brandId)
-        ? prev.brands.filter(id => id !== brandId)
-        : [...prev.brands, brandId]
-    }));
+    const newBrands = filters.brands.includes(brandId)
+      ? filters.brands.filter(id => id !== brandId)
+      : [...filters.brands, brandId];
+    onFilterChange({ ...filters, brands: newBrands });
   };
 
   const formatPrice = (price: number) => 
@@ -107,10 +94,10 @@ export function FilterPanel({
 
   // محاسبه تعداد فیلترهای فعال
   const activeFiltersCount = 
-    localFilters.categories.length +
-    localFilters.brands.length +
-    (localFilters.inStockOnly ? 1 : 0) +
-    (localFilters.minPrice > priceRange.min || localFilters.maxPrice < priceRange.max ? 1 : 0);
+    filters.categories.length +
+    filters.brands.length +
+    (filters.inStockOnly ? 1 : 0) +
+    (filters.minPrice > priceRange.min || filters.maxPrice < priceRange.max ? 1 : 0);
 
   return (
     <div className={cn(
@@ -149,8 +136,8 @@ export function FilterPanel({
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
-              value={localFilters.search}
-              onChange={(e) => setLocalFilters(prev => ({ ...prev, search: e.target.value }))}
+              value={filters.search}
+              onChange={(e) => onFilterChange({ ...filters, search: e.target.value })}
               placeholder="نام محصول، برند یا دسته‌بندی..."
               className="w-full pr-10 pl-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/40 transition-all text-sm"
             />
@@ -169,7 +156,7 @@ export function FilterPanel({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-                    localFilters.categories.includes(cat.id)
+                    filters.categories.includes(cat.id)
                       ? "bg-primary-500 border-primary-500 text-white shadow-md"
                       : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-primary-300 dark:hover:border-primary-500"
                   )}
@@ -204,7 +191,7 @@ export function FilterPanel({
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500",
-                    localFilters.brands.includes(brand.id)
+                    filters.brands.includes(brand.id)
                       ? "bg-accent-500 border-accent-500 text-white shadow-md"
                       : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-accent-300 dark:hover:border-accent-500"
                   )}
@@ -226,8 +213,8 @@ export function FilterPanel({
               <input
                 id="template-min-price"
                 type="number"
-                value={localFilters.minPrice}
-                onChange={(e) => setLocalFilters(prev => ({ ...prev, minPrice: Number(e.target.value) }))}
+                value={filters.minPrice}
+                onChange={(e) => onFilterChange({ ...filters, minPrice: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr"
               />
             </div>
@@ -236,14 +223,14 @@ export function FilterPanel({
               <input
                 id="template-max-price"
                 type="number"
-                value={localFilters.maxPrice}
-                onChange={(e) => setLocalFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
+                value={filters.maxPrice}
+                onChange={(e) => onFilterChange({ ...filters, maxPrice: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr"
               />
             </div>
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            از {formatPrice(localFilters.minPrice)} تا {formatPrice(localFilters.maxPrice)} تومان
+            از {formatPrice(filters.minPrice)} تا {formatPrice(filters.maxPrice)} تومان
           </div>
         </div>
 
@@ -252,8 +239,8 @@ export function FilterPanel({
           <input
             type="checkbox"
             id="inStockOnly"
-            checked={localFilters.inStockOnly}
-            onChange={(e) => setLocalFilters(prev => ({ ...prev, inStockOnly: e.target.checked }))}
+            checked={filters.inStockOnly}
+            onChange={(e) => onFilterChange({ ...filters, inStockOnly: e.target.checked })}
             className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-primary-500 focus:ring-primary-500"
           />
           <label htmlFor="inStockOnly" className="text-sm font-semibold text-gray-700 dark:text-gray-200 cursor-pointer flex-1">
