@@ -5,17 +5,15 @@ __pycache__/
 *.o
 *.obj
 *.class
-*.exe
-*.dll
 *.so
-*.a
+*.dll
+*.exe
 *.out
 
 # Dependencies
 node_modules/
-vendor/
-composer.lock
-*.lock
+venv/
+.venv/
 .env
 .env.local
 .env.*
@@ -25,22 +23,6 @@ composer.lock
 *.tmp
 *.swp
 *.swo
-*.bak
-*.~
-.DS_Store
-Thumbs.db
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# IDE specific
-.vscode/
-.idea/
-*.iml
-*.ipr
-*.iws
 
 # Build directories
 dist/
@@ -48,17 +30,31 @@ build/
 target/
 .gradle/
 
-# Cache directories
-.cache/
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+.Python
+*.egg-info/
+.eggs/
 .mypy_cache/
 .pytest_cache/
-.hadolint.yaml
 
-# OS generated files
-*.swp
-*~
+# System files
 .DS_Store
-ehthumbs.db
-Icon?
 Thumbs.db
 ```
