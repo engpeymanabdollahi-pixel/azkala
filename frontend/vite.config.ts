@@ -59,5 +59,8 @@ export default defineConfig({
     
     // Source maps فقط در development
     sourcemap: false,
+    
+    // Image Optimization (جایگزین vite-plugin-imagemin به دلیل محدودیت فضا)
+    assetsInlineLimit: 4096, // تصاویر زیر 4KB را inline کند
   },
 });

@@ -235,9 +235,9 @@ function showInstallButton(): void {
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        console.log('[PWA] ✅ کاربر نصب را پذیرفت');
+        logger.info('[PWA] ✅ کاربر نصب را پذیرفت');
       } else {
-        console.log('[PWA] ❌ کاربر نصب را رد کرد');
+        logger.info('[PWA] ❌ کاربر نصب را رد کرد');
       }
       
       deferredPrompt = null;
