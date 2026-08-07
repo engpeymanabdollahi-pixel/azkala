@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Package, Plus, Search, Edit, Trash2, Eye, MoreVertical, History,
   AlertCircle, CheckCircle, XCircle, X, Grid3x3, List,
@@ -201,21 +201,21 @@ export function SellerProducts() {
     };
   }, [products]);
 
-  const handleOpenCreateModal = useCallback(() => {
+  const handleOpenCreateModal = () => {
     setFormModalMode('create');
     setEditingProductId(null);
     setIsFormModalOpen(true);
-  }, []);
+  };
 
-  const handleOpenEditModal = useCallback((id: number) => {
+  const handleOpenEditModal = (id: number) => {
     setFormModalMode('edit');
     setEditingProductId(id);
     setIsFormModalOpen(true);
     setShowDropdown(null);
     setShowQuickView(null);
-  }, []);
+  };
 
-  const handleDelete = useCallback(async (id: number) => {
+  const handleDelete = async (id: number) => {
     const product = products.find((p) => p.id === id);
     try {
       await deleteProductMutation.mutateAsync(id);
@@ -224,9 +224,9 @@ export function SellerProducts() {
     } catch {
       toast.error('خطا در حذف محصول. لطفاً دوباره تلاش کنید.');
     }
-  }, [deleteProductMutation, products]);
+  };
 
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = async () => {
     const ids = Array.from(selectedProducts);
     try {
       await Promise.all(ids.map((id) => deleteProductMutation.mutateAsync(id)));
@@ -236,25 +236,25 @@ export function SellerProducts() {
     } catch {
       toast.error('خطا در حذف دسته‌ای محصولات');
     }
-  }, [deleteProductMutation, selectedProducts]);
+  };
 
-  const toggleProductSelection = useCallback((id: number) => {
+  const toggleProductSelection = (id: number) => {
     setSelectedProducts((prev) => {
       const newSet = new Set(prev);
       newSet.has(id) ? newSet.delete(id) : newSet.add(id);
       return newSet;
     });
-  }, []);
+  };
 
-  const toggleSelectAll = useCallback(() => {
+  const toggleSelectAll = () => {
     setSelectedProducts((prev) => 
       prev.size === filteredProducts.length && filteredProducts.length > 0 
         ? new Set() 
         : new Set(filteredProducts.map((p) => p.id))
     );
-  }, [filteredProducts]);
+  };
 
-  const handleExportCSV = useCallback(() => {
+  const handleExportCSV = () => {
     const headers = ['نام', 'قیمت', 'موجودی', 'SKU', 'وضعیت'];
     const rows = filteredProducts.map((p) => [
       p.name, p.price, p.stock, p.sku || '-', p.is_active ? 'فعال' : 'غیرفعال'
@@ -268,14 +268,14 @@ export function SellerProducts() {
     link.click();
     URL.revokeObjectURL(url);
     toast.success('فایل CSV با موفقیت دانلود شد');
-  }, [filteredProducts]);
+  };
 
-  const getStatusBadge = useCallback((product: Product) => {
+  const getStatusBadge = (product: Product) => {
     if (product.stock === 0) return <Badge variant="error" size="sm" className="gap-1"><AlertCircle className="w-3 h-3" />ناموجود</Badge>;
     if (!product.is_active) return <Badge variant="gray" size="sm" className="gap-1"><XCircle className="w-3 h-3" />غیرفعال</Badge>;
     if (product.stock < 10) return <Badge variant="warning" size="sm" className="gap-1"><Flame className="w-3 h-3" />کم‌موجود</Badge>;
     return <Badge variant="success" size="sm" className="gap-1"><CheckCircle className="w-3 h-3" />فعال</Badge>;
-  }, []);
+  };
 
   if (isLoading) {
     return (
