@@ -59,11 +59,12 @@ class WishlistController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            if ($e->getCode() === 400) {
+            if ($e->getCode() === 409) {
                 return response()->json([
                     'success' => false,
                     'message' => $e->getMessage(),
-                ], 400);
+                    'code' => 'ALREADY_WISHLISTED',
+                ], 409);
             }
 
             Log::error('WishlistController@store: ' . $e->getMessage());

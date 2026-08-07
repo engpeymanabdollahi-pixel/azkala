@@ -17,12 +17,12 @@ class WishlistService
 
     public function addToWishlist(int $userId, int $productId): Wishlist
     {
-        $exists = Wishlist::where('user_id', $userId)
+        $existing = Wishlist::where('user_id', $userId)
             ->where('product_id', $productId)
-            ->exists();
+            ->first();
 
-        if ($exists) {
-            throw new \Exception('این محصول قبلاً در لیست علاقه‌مندی‌های شما وجود دارد.', 400);
+        if ($existing) {
+            throw new \Exception('این محصول قبلاً در لیست علاقه‌مندی‌های شما وجود دارد.', 409);
         }
 
         return Wishlist::create([
