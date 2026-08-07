@@ -291,9 +291,50 @@ public function cart()
                     ->withTimestamps();
     }
 
-    public function isFollowingSeller($sellerId)
+    public function isFollowingSeller($sellerId): bool
     {
-        return $this->followingSellers()->where('seller_id', $sellerId)->exists();
+        if (!$sellerId) {
+            return false;
+        }
+        
+        return $this->followingSellers()
+            ->where('seller_id', $sellerId)
+            ->exists();
+    }
+
+    /**
+     * دنبال کردن یا لغو دنبال کردن فروشنده (Toggle)
+     * @return array{action: string, is_following: bool, followers_count: int}
+     */
+    public function toggleFollowSeller($sellerId): array
+    {
+        $seller = User::where('id', $sellerId)->where('role', 'seller')->first();
+        
+        if (!$seller) {
+            throw new \Exception('فروشنده یافت نشد.', 404);
+        }
+        
+        if ($this->id === $seller->id) {
+            throw new \Exception('شما نمی‌توانید فروشگاه خود را دنبال کنید.', 400);
+        }
+        
+        $isFollowing = $this->isFollowingSeller($sellerId);
+        
+        \DB::transaction(function () use ($seller, $isFollowing) {
+            if ($isFollowing) {
+                $this->followingSellers()->detach($seller->id);
+                $seller->decrement('followers_count');
+            } else {
+                $this->followingSellers()->attach($seller->id);
+                $seller->increment('followers_count');
+            }
+        });
+        
+        return [
+            'action' => $isFollowing ? 'unfollowed' : 'followed',
+            'is_following' => !$isFollowing,
+            'followers_count' => $seller->fresh()->followers_count,
+        ];
     }
 
     // ==================== Helper Methods ====================

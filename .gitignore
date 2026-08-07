@@ -1,1 +1,64 @@
-Nothing should be ignored since only source code files (.php) were modified and no build artifacts, dependencies, or temporary files were detected in the changes.
+```php
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+*.lock
+.env
+.env.local
+.env.*
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+*.~
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# IDE specific
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Build directories
+dist/
+build/
+target/
+.gradle/
+
+# Cache directories
+.cache/
+.mypy_cache/
+.pytest_cache/
+.hadolint.yaml
+
+# OS generated files
+*.swp
+*~
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+```
