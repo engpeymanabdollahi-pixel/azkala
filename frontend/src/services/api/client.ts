@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { API_ORIGIN, API_V1_URL } from '@/lib/apiConfig';
+import { logger } from '@/utils/logger';
 
 // ==================== Axios Instance ====================
 const client = axios.create({
@@ -40,11 +41,8 @@ client.interceptors.request.use(
 
     // 4. Logging در Development
     if (import.meta.env.DEV) {
-      console.log(
-        `%c📤 Request: ${config.method?.toUpperCase()} ${config.url}`,
-        'color: #3b82f6; font-weight: bold;',
-        config.data instanceof FormData ? 'FormData (File Upload)' : config.data
-      );
+      logger.debug(`Request: ${config.method?.toUpperCase()} ${config.url}`, 
+        config.data instanceof FormData ? 'FormData (File Upload)' : config.data);
     }
 
     return config;
@@ -56,10 +54,7 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => {
     if (import.meta.env.DEV) {
-      console.log(
-        `%c✅ Response: ${response.status} ${response.config.url}`,
-        'color: #10b981; font-weight: bold;'
-      );
+      logger.debug(`Response: ${response.status} ${response.config.url}`);
     }
 
     // ✅ حفظ ساختار قبلی: برگرداندن کل آبجکت response تا ۳۶ فایل Service خراب نشوند
@@ -72,11 +67,8 @@ client.interceptors.response.use(
     const errorData = error.response?.data as any;
 
     if (import.meta.env.DEV) {
-      console.error(
-        `%c❌ Response Error: ${status || 'Network'} ${url}`,
-        'color: #ef4444; font-weight: bold;',
-        errorData || error.message
-      );
+      logger.error(`Response Error: ${status || 'Network'} ${url}`, 
+        errorData || error.message);
     }
 
           // مدیریت هوشمند خطای ۴۰۱
