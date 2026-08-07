@@ -40,15 +40,18 @@ class CorsConfigTest extends TestCase
      */
     public function test_allowed_origins_come_from_the_environment(): void
     {
-        config(['cors.allowed_origins' => null]);
-        $this->refreshApplication();
+        // ذخیره‌ی مقدار اصلی برای بازیابی بعد از تست
+        $originalEnv = getenv('CORS_ALLOWED_ORIGINS');
+        $originalEnvArray = $_ENV['CORS_ALLOWED_ORIGINS'] ?? null;
 
+        // تنظیم متغیر محیطی با مقادیر تست
         putenv('CORS_ALLOWED_ORIGINS=https://azkala.example, https://admin.azkala.example');
         $_ENV['CORS_ALLOWED_ORIGINS'] = 'https://azkala.example, https://admin.azkala.example';
 
+        // خواندن مستقیم از متغیر محیطی (نه از config cache)
         $origins = array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('CORS_ALLOWED_ORIGINS'))
+            explode(',', (string) ($_ENV['CORS_ALLOWED_ORIGINS'] ?? getenv('CORS_ALLOWED_ORIGINS')))
         )));
 
         // فاصله‌ی اطراف باید trim شود، وگرنه مبدأ با یک space اضافه هرگز match نمی‌شود.
@@ -57,8 +60,18 @@ class CorsConfigTest extends TestCase
             $origins
         );
 
-        putenv('CORS_ALLOWED_ORIGINS');
-        unset($_ENV['CORS_ALLOWED_ORIGINS']);
+        // بازیابی مقادیر اصلی
+        if ($originalEnv !== false) {
+            putenv("CORS_ALLOWED_ORIGINS=$originalEnv");
+        } else {
+            putenv('CORS_ALLOWED_ORIGINS');
+        }
+        
+        if ($originalEnvArray !== null) {
+            $_ENV['CORS_ALLOWED_ORIGINS'] = $originalEnvArray;
+        } else {
+            unset($_ENV['CORS_ALLOWED_ORIGINS']);
+        }
     }
 
     /**
