@@ -49,15 +49,11 @@ export function FilterPanel({
   const [localFilters, setLocalFilters] = useState<FilterState>(filters);
   const [brandSearch, setBrandSearch] = useState('');
 
-  // همگام‌سازی با فیلترهای والد.
-  //
-  // بازیابی از LocalStorage عمداً اینجا نیست، در ProductTemplates.tsx است:
-  // در موبایل این پنل هر بار که کشو باز می‌شود دوباره mount می‌شود، پس اگر
-  // بازیابی اینجا بود، هر بار localFilters را با نسخه‌ی ذخیره‌شده بازنویسی
-  // می‌کرد — حتی اگر filters (والد) از قبل چیز دیگری بود — و چون onFilterChange
-  // صدا زده نمی‌شد، چک‌باکس‌ها یک چیز نشان می‌دادند و نتایج چیز دیگری.
+  // همگام‌سازی با فیلترهای والد - فقط در صورت تغییر واقعی
   useEffect(() => {
-    setLocalFilters(filters);
+    if (JSON.stringify(localFilters) !== JSON.stringify(filters)) {
+      setLocalFilters(filters);
+    }
   }, [filters]);
 
   const handleApplyFilters = () => {
