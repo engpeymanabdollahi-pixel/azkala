@@ -16,6 +16,7 @@ class Conversation extends Model
         'product_id',
         'is_active',
         'last_message_at',
+        'updated_at',
     ];
 
     protected $casts = [
