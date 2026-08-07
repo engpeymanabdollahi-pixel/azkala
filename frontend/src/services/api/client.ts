@@ -31,7 +31,8 @@ client.interceptors.request.use(
     // 3. مدیریت حیاتی Content-Type برای FormData
     if (config.data instanceof FormData) {
       if (config.headers) {
-        delete (config.headers as any)['Content-Type'];
+        const headers = config.headers as Record<string, string | boolean>;
+        delete headers['Content-Type'];
       }
     } else {
       if (config.headers) {
@@ -64,7 +65,7 @@ client.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const status = error.response?.status;
     const url = originalRequest?.url || 'unknown';
-    const errorData = error.response?.data as any;
+    const errorData = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined;
 
     if (import.meta.env.DEV) {
       logger.error(`Response Error: ${status || 'Network'} ${url}`, 

@@ -5,7 +5,7 @@ import { logger } from '@/utils/logger';
 // صدای اعلان با Web Audio API (بدون نیاز به فایل صوتی)
 export const playNotificationSound = () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
