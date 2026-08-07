@@ -90,16 +90,27 @@ class ProductResource extends JsonResource
                 ];
             }),
             
-            'compatible_models' => $this->whenLoaded('compatibleModels', function () {
-                return $this->compatibleModels->map(function ($model) {
+            'compatible_models' => $this->whenLoaded('deviceModels', function () {
+                return $this->deviceModels->map(function ($model) {
                     return [
                         'id' => $model->id,
                         'name' => $model->name,
                         'slug' => $model->slug,
-                        'brand' => $model->brand ? [
-                            'id' => $model->brand->id,
-                            'name' => $model->brand->name,
+                        'brand' => $model->series?->brand ? [
+                            'id' => $model->series->brand->id,
+                            'name' => $model->series->brand->name,
                         ] : null,
+                    ];
+                });
+            }),
+            
+            // ✅ فیلد device_models برای سازگاری با تست ProductTemplatesEndpointTest
+            'device_models' => $this->whenLoaded('deviceModels', function () {
+                return $this->deviceModels->map(function ($model) {
+                    return [
+                        'id' => $model->id,
+                        'name' => $model->name,
+                        'slug' => $model->slug,
                     ];
                 });
             }),
