@@ -24,31 +24,36 @@ class AdminSettingService
     public function getGroupedSettings(?string $group = null, ?string $search = null): array
     {
         try {
-            $settings = $this->repository->getSettings($group, $search);
+            // کش‌گذاری تنظیمات با کلید داینامیک
+            $cacheKey = 'settings_' . ($group ?? 'all') . '_' . ($search ?? 'simple');
+            
+            return Cache::remember($cacheKey, 1800, function () use ($group, $search) {
+                $settings = $this->repository->getSettings($group, $search);
 
-            $grouped = $settings->groupBy('group')->map(function ($items) {
-                return $items->map(function ($s) {
-                    return [
-                        'id' => $s->id,
-                        'key' => $s->key,
-                        'value' => $this->castValue($s->value, $s->type),
-                        'group' => $s->group,
-                        'type' => $s->type,
-                        'label' => $s->label,
-                        'description' => $s->description,
-                        'is_locked' => (bool) $s->is_locked,
-                        'is_sensitive' => (bool) $s->is_sensitive,
-                        'updated_at' => $s->updated_at ? $s->updated_at->format('Y-m-d H:i') : null,
-                    ];
+                $grouped = $settings->groupBy('group')->map(function ($items) {
+                    return $items->map(function ($s) {
+                        return [
+                            'id' => $s->id,
+                            'key' => $s->key,
+                            'value' => $this->castValue($s->value, $s->type),
+                            'group' => $s->group,
+                            'type' => $s->type,
+                            'label' => $s->label,
+                            'description' => $s->description,
+                            'is_locked' => (bool) $s->is_locked,
+                            'is_sensitive' => (bool) $s->is_sensitive,
+                            'updated_at' => $s->updated_at ? $s->updated_at->format('Y-m-d H:i') : null,
+                        ];
+                    });
                 });
+
+                $stats = $this->repository->getStats();
+
+                return [
+                    'settings' => $grouped,
+                    'stats' => $stats,
+                ];
             });
-
-            $stats = $this->repository->getStats();
-
-            return [
-                'settings' => $grouped,
-                'stats' => $stats,
-            ];
         } catch (\Exception $e) {
             Log::error('AdminSettingService@getGroupedSettings: '.$e->getMessage());
             throw new \Exception('خطا در دریافت تنظیمات', 500);

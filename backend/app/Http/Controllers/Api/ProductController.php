@@ -9,12 +9,31 @@ use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+/**
+ * @OA\Tag(
+ *     name="Products",
+ *     description="مدیریت محصولات و جستجو"
+ * )
+ */
 class ProductController extends Controller
 {
     public function __construct(protected ProductService $productService) {}
 
     /**
-     * لیست محصولات با فیلتر
+     * @OA\Get(
+     *     path="/api/products",
+     *     summary="لیست محصولات با فیلتر",
+     *     tags={"Products"},
+     *     @OA\Parameter(name="search", in="query", @OA\Schema(type="string")),
+     *     @OA\Parameter(name="category_id", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="brand_id", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="min_price", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="max_price", in="query", @OA\Schema(type="integer")),
+     *     @OA\Parameter(name="sort", in="query", @OA\Schema(type="string", enum={"price_asc", "price_desc", "newest"})),
+     *     @OA\Response(response=200, description="Successful response",
+     *         @OA\JsonContent(@OA\Property(property="data", type="array", @OA\Items()))
+     *     )
+     * )
      */
     public function index(Request $request)
     {
@@ -28,7 +47,14 @@ class ProductController extends Controller
     }
 
     /**
-     * نمایش جزئیات یک محصول
+     * @OA\Get(
+     *     path="/api/products/{id}",
+     *     summary="نمایش جزئیات یک محصول",
+     *     tags={"Products"},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Successful response"),
+     *     @OA\Response(response=404, description="Product not found")
+     * )
      */
     public function show($id)
     {
