@@ -149,18 +149,24 @@ export async function getServiceWorkerStatus(): Promise<{
 }
 // ==================== Install Prompt ====================
 
-let deferredPrompt: any = null;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice?: Promise<{ outcome: string }>;
+}
+
+let deferredPrompt: BeforeInstallPromptEvent | null = null;
 
 /**
  * گوش دادن به رویداد beforeinstallprompt
  */
 export function setupInstallPrompt(): void {
-  window.addEventListener('beforeinstallprompt', (e: any) => {
+  window.addEventListener('beforeinstallprompt', (e: Event) => {
+    const event = e as BeforeInstallPromptEvent;
     // جلوگیری از نمایش خودکار prompt
-    e.preventDefault();
+    event.preventDefault();
     
     // ذخیره رویداد برای استفاده بعدی
-    deferredPrompt = e;
+    deferredPrompt = event;
     
     console.log('[PWA] ✅ Install Prompt آماده است');
     

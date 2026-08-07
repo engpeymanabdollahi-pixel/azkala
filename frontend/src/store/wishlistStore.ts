@@ -106,9 +106,10 @@ export const useWishlistStore = create<WishlistState>()(
           } else if (action === 'remove') {
             await wishlistService.removeFromWishlist(productId);
           }
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as { response?: { status?: number } };
           // اگر 404 بود، یعنی محصول در API نیست - از localStorage حذف کن
-          if (error.response?.status === 404) {
+          if (err.response?.status === 404) {
             console.warn(`⚠️ محصول #${productId} در سرور نیست، از localStorage حذف شد`);
             set({ items: get().items.filter(item => item.id !== productId) });
           } else {

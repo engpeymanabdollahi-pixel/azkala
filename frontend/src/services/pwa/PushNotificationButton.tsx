@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Bell, BellOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { usePushNotification } from '@/services/pwa/usePushNotification';
 

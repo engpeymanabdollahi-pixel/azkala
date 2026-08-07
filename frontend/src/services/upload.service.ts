@@ -31,8 +31,9 @@ export const uploadImages = async (files: File[]): Promise<string[]> => {
     }
 
     throw new Error(response.data.message || 'آپلود ناموفق بود');
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'خطا در آپلود تصاویر';
+  } catch (error) {
+    const err = error as { response?: { data?: { message?: string } } };
+    const message = err.response?.data?.message || 'خطا در آپلود تصاویر';
     throw new Error(message);
   }
 };
