@@ -40,14 +40,12 @@ export function useHomeData(): HomeData {
     const fetchData = async () => {
       // اگر قبلاً fetch شده و داده داریم، استفاده از cache
       if (cachedData && !isFetching) {
-        console.log('⚠️ useHomeData: قبلاً fetch شده، استفاده از state');
         setData(cachedData);
         return;
       }
 
       // اگر در حال fetch است، صبر کن
       if (isFetching && fetchPromise) {
-        console.log('⚠️ useHomeData: در حال fetch، صبر کنید...');
         try {
           const result = await fetchPromise;
           if (isMounted.current) {
@@ -63,8 +61,6 @@ export function useHomeData(): HomeData {
       isFetching = true;
       fetchPromise = (async () => {
         try {
-          console.log('🔄 useHomeData: شروع fetch داده‌ها...');
-
           const [productsRes, categoriesRes, brandsRes] = await Promise.allSettled([
             productService.getProducts({ per_page: 50 }),
             categoryService.getCategories(),
@@ -86,7 +82,6 @@ export function useHomeData(): HomeData {
             } else if (response.data && Array.isArray(response.data.products)) {
               products = response.data.products;
             }
-            console.log('📦 Products:', products.length, 'items');
           }
 
           if (categoriesRes.status === 'fulfilled') {
@@ -98,7 +93,6 @@ export function useHomeData(): HomeData {
             } else if (response.data && Array.isArray(response.data.categories)) {
               categories = response.data.categories;
             }
-            console.log('📁 Categories:', categories.length, 'items');
           }
 
           if (brandsRes.status === 'fulfilled') {
@@ -110,7 +104,6 @@ export function useHomeData(): HomeData {
             } else if (response.data && Array.isArray(response.data.brands)) {
               brands = response.data.brands;
             }
-            console.log('🏷️ Brands:', brands.length, 'items');
           }
 
           const featuredProducts = products.filter(p => p.is_featured).slice(0, 12);
@@ -134,7 +127,6 @@ export function useHomeData(): HomeData {
             setData(result);
           }
 
-          console.log('✅ useHomeData: داده‌ها با موفقیت لود شدند');
           return result;
 
         } catch (error) {

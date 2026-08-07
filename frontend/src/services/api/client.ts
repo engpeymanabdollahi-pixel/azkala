@@ -40,9 +40,8 @@ client.interceptors.request.use(
 
     // 4. Logging در Development
     if (import.meta.env.DEV) {
-      console.log(
-        `%c📤 Request: ${config.method?.toUpperCase()} ${config.url}`,
-        'color: #3b82f6; font-weight: bold;',
+      console.debug(
+        `📤 Request: ${config.method?.toUpperCase()} ${config.url}`,
         config.data instanceof FormData ? 'FormData (File Upload)' : config.data
       );
     }
@@ -56,9 +55,8 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   (response) => {
     if (import.meta.env.DEV) {
-      console.log(
-        `%c✅ Response: ${response.status} ${response.config.url}`,
-        'color: #10b981; font-weight: bold;'
+      console.debug(
+        `✅ Response: ${response.status} ${response.config.url}`
       );
     }
 

@@ -164,7 +164,6 @@ export function ProductDetailPage() {
 
         // 🛡️ نادیده گرفتن خطای CanceledError ناشی از React 18 Strict Mode
         if (errorObj.name === 'CanceledError' || errorObj.code === 'ERR_CANCELED' || errorObj.message === 'canceled') {
-          console.log('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
           return; // خارج شدن از تابع بدون تنظیم state خطا
         }
 

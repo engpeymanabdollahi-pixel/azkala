@@ -133,4 +133,30 @@ class ChatController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    /**
+     * ثبت وضعیت آنلاین بودن کاربر
+     */
+    public function getOnlineStatus(Request $request)
+    {
+        try {
+            $userId = $request->user()->id;
+            // اینجا می‌توانید از کش یا Redis برای ذخیره وضعیت آنلاین استفاده کنید
+            // فعلاً یک پاسخ ساده برمی‌گردانیم
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user_id' => $userId,
+                    'is_online' => true,
+                    'last_seen' => now(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('ChatController@getOnlineStatus: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در دریافت وضعیت آنلاین',
+            ], 500);
+        }
+    }
 }
