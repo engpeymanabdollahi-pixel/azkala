@@ -16,12 +16,13 @@ class ProductResource extends JsonResource
         }
 
         // ✅ بررسی وضعیت علاقه‌مندی کاربر فعلی به محصول
+        // فقط زمانی که کاربر لاگین کرده باشد و wishlist رابطه لود شده باشد
         $isWishlisted = false;
-        if ($request->user()) {
-            $isWishlisted = \App\Models\Wishlist::where('user_id', $request->user()->id)
-                ->where('product_id', $this->id)
-                ->exists();
+        if ($request->user() && $this->relationLoaded('wishlist')) {
+            $isWishlisted = $this->wishlist !== null;
         }
+        // اگر wishlist لود نشده، مقدار false برمی‌گردانیم تا از کوئری N+1 جلوگیری شود
+        // برای دریافت وضعیت wishlist باید از eager load استفاده کرد
 
         return [
             'id' => $this->id,
