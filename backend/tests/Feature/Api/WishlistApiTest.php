@@ -58,7 +58,7 @@ class WishlistApiTest extends TestCase
 
         $this->actingAs($this->user)
             ->postJson('/api/v1/wishlist', ['product_id' => $this->product->id])
-            ->assertStatus(400)
+            ->assertStatus(409)
             ->assertJsonPath('success', false);
 
         $this->assertSame(1, Wishlist::where('user_id', $this->user->id)->count());
