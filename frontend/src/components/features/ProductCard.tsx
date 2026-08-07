@@ -1,10 +1,9 @@
 import { memo } from 'react';
-import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, ShieldCheck, Zap } from 'lucide-react';
+import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, Store } from 'lucide-react';
 import { useModelStore, useCartStore } from '@/store';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import type { Product } from '@/types/models';
@@ -16,7 +15,7 @@ interface ProductCardProps {
   onViewDetails?: (product: Product) => void;
   onClick?: () => void;
   variant?: 'grid' | 'list';
-  index?: number; // For staggered animations
+  index?: number;
 }
 
 export const ProductCard = memo(({
@@ -28,9 +27,9 @@ export const ProductCard = memo(({
 }: ProductCardProps) => {
   const { selectedModel } = useModelStore();
   const { addItem } = useCartStore();
-  // useWishlistApi نه useWishlistStore: Optimistic UI با rollback، به‌علاوه‌ی
-  // prefetch محصول. این سومین باری است که این فایل به store برمی‌گردد، چون هر
-  // بار از پایه‌ای منشعب می‌شود که هوک را ندارد.
+  // useWishlistApi نه useWishlistStore: علاقه‌مندی را با Optimistic UI و rollback
+  // مدیریت می‌کند و prefetch محصول را هم می‌دهد. این برنچ از main منشعب شده بود و
+  // آن هوک را نداشت، پس صرفاً به store برمی‌گشت.
   const { isInWishlist, toggleWishlist, prefetchProduct } = useWishlistApi();
 
   const isWishlisted = isInWishlist(product.id);
@@ -66,12 +65,12 @@ export const ProductCard = memo(({
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // toast داخل خودِ hook زده می‌شود، کنار rollback؛ اینجا تکرارش کنیم برای یک
-    // عمل دو پیام نشان داده می‌شود.
+    // toastها داخل خودِ hook زده می‌شوند، کنار rollback در صورت خطا — اینجا
+    // تکرارشان کنیم دو پیام برای یک عمل نشان داده می‌شود.
     toggleWishlist(product);
   };
 
-  // پیش‌واکشی هنگام hover تا باز شدن صفحه‌ی جزئیات آنی حس شود
+  // پیش‌واکشی محصول هنگام hover تا باز شدن صفحه‌ی جزئیات آنی حس شود
   const handleMouseEnter = () => {
     prefetchProduct(product);
   };
@@ -93,32 +92,46 @@ export const ProductCard = memo(({
   // بررسی پرفروش بودن
   const isBestSeller = product.sales_count && product.sales_count > 100;
 
+  // استایل پایه کارت با انیمیشن ورود staggered
+  const baseCardClasses = cn(
+    'group relative flex flex-col bg-white dark:bg-gray-800 rounded-2xl overflow-hidden',
+    'border border-gray-200 dark:border-gray-700',
+    'hover:border-primary-300 dark:hover:border-primary-600',
+    'hover:shadow-2xl dark:hover:shadow-black/40',
+    'transition-all duration-300 ease-out cursor-pointer',
+    'hover:scale-[1.02] active:scale-[0.98]',
+    'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+    'animate-in fade-in slide-in-from-bottom-2'
+  );
+
+  // تأخیر پلکانی به‌صورت style اعمال می‌شود، نه کلاس. Tailwind کلاس‌ها را با
+  // اسکن متنِ سورس تولید می‌کند و رشته‌ای که در زمان اجرا ساخته شود
+  // (`animation-delay-[${...}]`) هرگز در خروجی نمی‌آید — یعنی آن نسخه بی‌اثر بود.
+  const staggerStyle = index > 0 ? { animationDelay: `${index * 50}ms` } : undefined;
 
   // نمای لیستی
   if (variant === 'list') {
     return (
-      <Card
-        variant={discountPercent > 0 ? 'accent' : 'tinted'}
-        interactive
-        entranceDelay={index * 50}
-        className="group flex"
+      <div
+        className={baseCardClasses}
+        style={staggerStyle}
         onClick={handleCardClick}
         onMouseEnter={handleMouseEnter}
         role="article"
+        aria-label={`محصول ${product.name}`}
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
       >
-        {/* Image Section */}
-        <div className="relative w-32 h-32 flex-shrink-0 bg-gray-50 dark:bg-gray-700">
+        <div className="relative w-32 h-32 flex-shrink-0 bg-gray-50 dark:bg-gray-700 overflow-hidden">
           <SafeImage
             src={product.main_image}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-            showEmojiOnError
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             fallbackEmoji="📦"
+            showEmojiOnError
           />
           {discountPercent > 0 && (
-            <div className="absolute top-1 right-1 animate-bounce-in">
+            <div className="absolute top-1 right-1 animate-in fade-in zoom-in duration-300">
               <Badge variant="error" className="text-xs px-1.5 py-0.5 shadow-lg">
                 {discountPercent}٪
               </Badge>
@@ -126,53 +139,26 @@ export const ProductCard = memo(({
           )}
         </div>
 
-        {/* Content Section */}
         <div className="flex-1 p-3 flex flex-col gap-1.5">
           {selectedModel && isCompatible && (
-            // شکل قرصی هم‌شکل با حالت گرید — قبلاً اینجا فقط متن ساده بود، در
-            // حالی که همین نشان در نمای گرید پس‌زمینه‌ی رنگی دارد.
-            <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold bg-success-50 dark:bg-success-900/20 px-2.5 py-1 rounded-lg w-fit">
+            <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold bg-success-50 dark:bg-success-900/20 px-2 py-1 rounded-lg w-fit">
               <CheckCircle className="w-3.5 h-3.5" />
               <span>سازگار با {selectedModel.name}</span>
             </div>
           )}
-          <h3 className={cn(
-            'font-bold text-gray-900 dark:text-gray-100 text-sm line-clamp-2 leading-relaxed',
-            'group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300'
-          )}>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm line-clamp-2 leading-relaxed group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
             {product.name}
           </h3>
           {product.seller && (
             <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-              <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
+              <Store className="w-3 h-3" />
               {product.seller.shop_name}
             </p>
-          )}
-          {/* امتیاز — در نمای گرید بود، در نمای لیستی از قلم افتاده بود */}
-          {product.rating && product.rating > 0 && (
-            <div className="flex items-center gap-1.5">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={cn(
-                      'w-3.5 h-3.5',
-                      star <= Math.round(product.rating!)
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'text-gray-300 dark:text-gray-600'
-                    )}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                ({product.reviews_count})
-              </span>
-            </div>
           )}
           <div className="flex items-center justify-between mt-auto">
             <div className="flex flex-col">
               {product.compare_price && product.compare_price > product.price && (
-                <span className="text-xs text-gray-400 dark:text-gray-500 line-through decoration-error-500/50">
+                <span className="text-xs text-gray-400 dark:text-gray-500 line-through decoration-gray-400">
                   {formatPrice(product.compare_price)}
                 </span>
               )}
@@ -185,58 +171,45 @@ export const ProductCard = memo(({
               onClick={handleAddToCart}
               disabled={product.stock === 0}
               leftIcon={<ShoppingCart className="w-3.5 h-3.5" />}
-              className={cn(
-                'text-xs transition-all duration-300',
-                'active:scale-95 hover:shadow-lg'
-              )}
+              className="text-xs active:scale-95 transition-transform"
             >
               افزودن
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     );
   }
 
   // نمای گرید (پیش‌فرض)
   return (
-    <Card
-      // ته‌رنگ بر اساس وضعیت خودِ محصول انتخاب می‌شود، نه تصادفی: تخفیف‌دار
-      // نارنجی، سازگار با دستگاهِ انتخابیِ کاربر سبز، بقیه فیروزه‌ای ملایم.
-      // این‌طور رنگ یک نشانه است نه تزیین.
-      variant={discountPercent > 0 ? 'accent' : selectedModel && isCompatible ? 'success' : 'tinted'}
-      interactive
-      entranceDelay={index * 50}
-      className="group flex flex-col hover:scale-[1.02]"
+    <div
+      className={baseCardClasses}
+      style={staggerStyle}
       onClick={handleCardClick}
       onMouseEnter={handleMouseEnter}
       role="article"
+      aria-label={`محصول ${product.name}`}
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
     >
-      {/* Image Section */}
+      {/* بخش تصویر */}
       <div className="relative aspect-square overflow-hidden bg-gray-50 dark:bg-gray-700">
         <SafeImage
           src={product.main_image}
           alt={product.name}
-          className={cn(
-            'w-full h-full object-cover',
-            'group-hover:scale-110 transition-transform duration-700 ease-out'
-          )}
-          showEmojiOnError
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           fallbackEmoji="📦"
+          showEmojiOnError
         />
 
-        {/* Badges - Top Right */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1.5">
+        {/* Badgeهای بالا سمت راست */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5 z-10">
           {discountPercent > 0 && (
             <Badge 
               variant="error" 
-              className={cn(
-                'shadow-lg animate-bounce-in',
-                'bg-gradient-to-r from-error-500 to-error-600 text-white border-0'
-              )}
-              icon={<Flame className="w-3 h-3 animate-pulse" />}
+              className="shadow-lg animate-pulse-soft dark:shadow-black/30"
+              icon={<Flame className="w-3 h-3" />}
             >
               {discountPercent}٪ تخفیف
             </Badge>
@@ -244,7 +217,7 @@ export const ProductCard = memo(({
           {isBestSeller && (
             <Badge 
               variant="accent" 
-              className="shadow-lg bg-gradient-to-r from-accent-500 to-accent-600 text-white border-0"
+              className="shadow-lg dark:shadow-black/30"
               icon={<Award className="w-3 h-3" />}
             >
               پرفروش
@@ -252,104 +225,93 @@ export const ProductCard = memo(({
           )}
         </div>
 
-        {/* Low Stock Badge - Top Left */}
+        {/* Badge موجودی کم - بالا سمت چپ */}
         {isLowStock && (
-          <div className="absolute top-2 left-2 animate-pulse-soft">
-            <Badge variant="warning" className="shadow-lg text-xs" icon={<Zap className="w-3 h-3" />}>
+          <div className="absolute top-2 left-2 z-10">
+            <Badge variant="warning" className="shadow-lg text-xs dark:shadow-black/30">
               فقط {product.stock} عدد
             </Badge>
           </div>
         )}
 
-        {/* Out of Stock Overlay */}
+        {/* Overlay ناموجود */}
         {product.stock === 0 && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300">
-            <span className="text-white font-bold text-lg bg-black/40 px-6 py-2 rounded-xl shadow-xl border border-white/20">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center animate-fade-in z-20">
+            <span className="text-white font-bold text-lg bg-black/40 px-6 py-2 rounded-xl shadow-xl">
               ناموجود
             </span>
           </div>
         )}
 
-        {/* Wishlist Button */}
+        {/* دکمه علاقمندی */}
         <button
           onClick={handleWishlist}
           className={cn(
-            'absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center',
-            'opacity-0 group-hover:opacity-100 transition-all duration-300 ease-out',
-            'bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-lg',
-            'hover:scale-110 active:scale-95',
-            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none',
-            isWishlisted 
-              ? 'text-red-500 opacity-100' 
-              : 'text-gray-400 dark:text-gray-500 hover:text-red-400',
+            'absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center z-20',
+            'opacity-0 group-hover:opacity-100 transition-all duration-300',
+            'bg-white dark:bg-gray-800 shadow-lg hover:scale-110 active:scale-95',
+            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+            isWishlisted ? 'text-red-500 opacity-100' : 'text-gray-400 hover:text-red-400 dark:text-gray-500 dark:hover:text-red-400',
             isLowStock && 'top-10'
           )}
-          aria-label={isWishlisted ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
-          type="button"
+          aria-label="افزودن به علاقه‌مندی‌ها"
         >
-          <Heart className={cn('w-4 h-4 transition-all', isWishlisted && 'fill-current scale-110')} />
+          <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
         </button>
 
-        {/* Quick View Button */}
+        {/* دکمه مشاهده سریع */}
         <button
           onClick={handleQuickView}
           className={cn(
-            'absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5',
+            'absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20',
             'bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm text-gray-700 dark:text-gray-200 text-xs font-semibold',
-            'px-4 py-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-700',
+            'px-4 py-2 rounded-full shadow-lg',
             'opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0',
-            'transition-all duration-300 ease-out',
-            'hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400',
-            'hover:shadow-xl hover:scale-105 active:scale-95',
-            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:outline-none'
+            'transition-all duration-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600 dark:hover:text-primary-400',
+            'active:scale-95',
+            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900'
           )}
           aria-label="مشاهده سریع"
-          type="button"
         >
           <Eye className="w-3.5 h-3.5" />
           مشاهده سریع
         </button>
       </div>
 
-      {/* Content Section */}
-      <div className="p-4 flex flex-col gap-2.5 flex-1">
-        {/* Compatibility Badge */}
+      {/* بخش اطلاعات */}
+      <div className="p-4 flex flex-col gap-2 flex-1">
+        {/* سازگاری با مدل گوشی */}
         {selectedModel && isCompatible && (
-          <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold bg-success-50 dark:bg-success-900/20 px-2.5 py-1.5 rounded-xl animate-in fade-in">
+          <div className="flex items-center gap-1 text-success-600 dark:text-success-400 text-xs font-semibold bg-success-50 dark:bg-success-900/20 px-2 py-1 rounded-lg w-fit">
             <CheckCircle className="w-3.5 h-3.5" />
             <span>سازگار با {selectedModel.name}</span>
           </div>
         )}
 
-        {/* Product Name */}
-        <h3 className={cn(
-          'font-bold text-gray-900 dark:text-gray-100 text-sm line-clamp-2 leading-relaxed',
-          'group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300',
-          'min-h-[2.5rem]'
-        )}>
+        {/* نام محصول */}
+        <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm line-clamp-2 leading-relaxed group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        {/* Seller Name */}
+        {/* نام فروشنده */}
         {product.seller && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 bg-primary-400 dark:bg-primary-500 rounded-full"></span>
+          <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-1 flex items-center gap-1">
+            <Store className="w-3 h-3" />
             {product.seller.shop_name}
           </p>
         )}
 
-        {/* Rating */}
+        {/* امتیاز و نظرات */}
         {product.rating && product.rating > 0 && (
-          <div className="flex items-center gap-1.5 group/rating">
+          <div className="flex items-center gap-1.5">
             <div className="flex">
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                   key={star}
                   className={cn(
-                    'w-3.5 h-3.5 transition-all duration-200',
-                    'group-hover/rating:scale-110',
+                    'w-3.5 h-3.5 transition-colors',
                     star <= Math.round(product.rating!)
-                      ? 'text-yellow-400 fill-yellow-400 drop-shadow-sm'
+                      ? 'text-yellow-400 fill-yellow-400'
                       : 'text-gray-300 dark:text-gray-600'
                   )}
                 />
@@ -361,24 +323,25 @@ export const ProductCard = memo(({
           </div>
         )}
 
-        {/* Warranty Badge */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 px-2.5 py-2 rounded-xl border border-gray-100 dark:border-gray-700">
-          <ShieldCheck className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" />
+        {/* گارانتی */}
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 px-2 py-1.5 rounded-lg">
+          <svg className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
           <span>گارانتی اصالت و سلامت</span>
         </div>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Price & Add to Cart */}
+        {/* قیمت و دکمه */}
         <div className="flex items-end justify-between gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col">
             {product.compare_price && product.compare_price > product.price && (
-              <span className="text-xs text-gray-400 dark:text-gray-500 line-through decoration-error-500/50">
+              <span className="text-xs text-gray-400 dark:text-gray-500 line-through decoration-gray-400">
                 {formatPrice(product.compare_price)}
               </span>
             )}
-            <span className="text-lg font-bold text-primary-600 dark:text-primary-400 tracking-tight">
+            <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
               {formatPrice(product.price)}
             </span>
           </div>
@@ -388,17 +351,13 @@ export const ProductCard = memo(({
             onClick={handleAddToCart}
             disabled={product.stock === 0}
             leftIcon={<ShoppingCart className="w-4 h-4" />}
-            className={cn(
-              'flex-shrink-0 transition-all duration-300',
-              'active:scale-95 hover:shadow-lg hover:-translate-y-0.5',
-              'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-800'
-            )}
+            className="flex-shrink-0 active:scale-95 transition-transform"
           >
             افزودن
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 });
 

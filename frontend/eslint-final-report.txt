@@ -1,0 +1,1131 @@
+﻿
+> react-vite-tailwind@0.0.0 lint
+> eslint .
+
+
+C:\laragon\www\azkala\frontend\src\components\CheckoutForm.tsx
+  51:28  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\laragon\www\azkala\frontend\src\components\CheckoutForm.tsx:51:28
+  49 |
+  50 |   // ┘╪╕╪د╪▒╪ز ╪ذ╪▒ ╪ز╪║█î█î╪▒ ╪د╪│╪ز╪د┘
+> 51 |   const selectedProvince = watch('shipping_address.province');
+     |                            ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  52 |   const paymentMethod = watch('payment_method');
+  53 |
+  54 |   // ┘ê┘é╪ز█î ╪د╪│╪ز╪د┘ ╪ز╪║█î█î╪▒ ┌ر╪▒╪»╪î ┘à┘é╪»╪د╪▒ ╪┤┘ç╪▒ ╪▒╪د ╪«╪د┘█î ┌ر┘ ╪ز╪د ┌ر╪د╪▒╪ذ╪▒ ┘à╪ش╪ذ┘ê╪▒ ╪ذ┘ç ╪د┘╪ز╪«╪د╪ذ ╪┤┘ç╪▒ ╪ش╪»█î╪» ╪┤┘ê╪»  react-hooks/incompatible-library
+
+C:\laragon\www\azkala\frontend\src\components\auth\AuthModal.tsx
+  18:3  warning  'Lock' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  19:3  warning  'Mail' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  20:3  warning  'UserPlus' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  22:3  warning  'Sparkles' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\laragon\www\azkala\frontend\src\components\chat\ChatWidget.tsx
+   62:6   warning  React Hook useEffect has a missing dependency: 'loadConversations'. Either include it or remove the dependency array              react-hooks/exhaustive-deps
+  127:6   warning  React Hook useEffect has a missing dependency: 'activeConversation?.seller_id'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  266:19  warning  Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+  676:76  warning  Unexpected any. Specify a different type                                                                                          @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx
+   64:7   warning  Error: Cannot access variable before it is declared
+
+`loadHierarchy` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx:64:7
+  62 |   useEffect(() => {
+  63 |     if (isModalOpen) {
+> 64 |       loadHierarchy();
+     |       ^^^^^^^^^^^^^ `loadHierarchy` accessed before it is declared
+  65 |
+  66 |       if (selectedSeries && selectedBrand) {
+  67 |         const brand = hierarchy.find(b => b.id === selectedBrand.id);
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx:92:3
+   90 |   }, [isModalOpen]);
+   91 |
+>  92 |   const loadHierarchy = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  93 |     setIsLoading(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+>  94 |     setError(null);
+      ظخ
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^
+> 104 |   };
+      | ^^^^^ `loadHierarchy` is declared here
+  105 |
+  106 |   const filteredHierarchy = useMemo(() => {
+  107 |     if (selectedDeviceType === 'all') return hierarchy;                                                                                                                                                react-hooks/immutability
+   71:11  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx:71:11
+  69 |
+  70 |         if (brand && series) {
+> 71 |           setTempBrand(brand);
+     |           ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  72 |           setTempSeries(series);
+  73 |           setStep('model');
+  74 |         }                                                                                                                                                                                                                                                                              react-hooks/set-state-in-effect
+  214:5   warning  Error: Cannot access variable before it is declared
+
+`resetState` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx:214:5
+  212 |     toast.success(`${model.name} ╪د┘╪ز╪«╪د╪ذ ╪┤╪»`, { icon: '≡اô▒', duration: 1500 });
+  213 |     closeModal();
+> 214 |     resetState();
+      |     ^^^^^^^^^^ `resetState` accessed before it is declared
+  215 |   }, [tempBrand, tempSeries, setSelectedBrand, setSelectedSeries, setSelectedModel, closeModal]);
+  216 |
+  217 |   const handleBack = useCallback(() => {
+
+C:\laragon\www\azkala\frontend\src\components\features\ModelSelector\ModelSelectorModal.tsx:238:3
+  236 |   }, [clearSelection]);
+  237 |
+> 238 |   const resetState = () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 239 |     setStep('brand');
+      | ^^^^^^^^^^^^^^^^^^^^^
+> 240 |     setTempBrand(null);
+      | ^^^^^^^^^^^^^^^^^^^^^
+> 241 |     setTempSeries(null);
+      | ^^^^^^^^^^^^^^^^^^^^^
+> 242 |     setSearchTerm('');
+      | ^^^^^^^^^^^^^^^^^^^^^
+> 243 |     setSelectedDeviceType('all');
+      | ^^^^^^^^^^^^^^^^^^^^^
+> 244 |   };
+      | ^^^^^ `resetState` is declared here
+  245 |
+  246 |   useEffect(() => {
+  247 |     if (!isModalOpen) return;  react-hooks/immutability
+
+C:\laragon\www\azkala\frontend\src\components\layout\Header\hooks\useVoiceSearch.ts
+  54:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\components\layout\Header\hooks\useVoiceSearch.ts:54:7
+  52 |
+  53 |     if (!SpeechRecognition) {
+> 54 |       setIsSupported(false);
+     |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |       return;
+  56 |     }
+  57 |  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\components\layout\Header\index.tsx
+  98:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\components\layout\Header\index.tsx:98:5
+   96 |   // ╪»╪د╪«┘ UserMenu █î╪د ╪»┌ر┘à┘ç ╪ذ╪د╪▓┌»╪┤╪ز ┘à╪▒┘ê╪▒┌»╪▒).
+   97 |   useEffect(() => {
+>  98 |     setShowUserMenu(false);
+      |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+   99 |     setShowNotifications(false);
+  100 |     setShowMegaMenu(false);
+  101 |     setShowQuickAccess(false);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\components\layout\SellerLayout.tsx
+  99:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\components\layout\SellerLayout.tsx:99:5
+   97 |   // Close menus on route change
+   98 |   useEffect(() => {
+>  99 |     setUserMenuOpen(false);
+      |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  100 |     setNotificationsOpen(false);
+  101 |     setSidebarOpen(false);
+  102 |     setSearchOpen(false);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\components\ui\Button.tsx
+  55:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\laragon\www\azkala\frontend\src\components\ui\ImageUploader.tsx
+   1:28  warning  'useEffect' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  80:19  warning  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\components\ui\Input.tsx
+  4:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\laragon\www\azkala\frontend\src\features\admin\components\CrudTable\CrudTable.tsx
+    2:20  warning  'useMutation' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+    8:24  warning  'Download' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+    8:34  warning  'Trash2' is defined but never used. Allowed unused vars must match /^_/u                 @typescript-eslint/no-unused-vars
+    8:42  warning  'Edit' is defined but never used. Allowed unused vars must match /^_/u                   @typescript-eslint/no-unused-vars
+    8:48  warning  'Eye' is defined but never used. Allowed unused vars must match /^_/u                    @typescript-eslint/no-unused-vars
+   19:20  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   86:67  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+   93:34  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  212:9   warning  'totalColumns' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  227:63  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\features\admin\components\ModalForm\ModalForm.tsx
+  35:26  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:46  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:47  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  79:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\features\admin\hooks\useCrudMutations.ts
+   19:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   25:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   37:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   64:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   79:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   94:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  113:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\features\admin\hooks\useCrudTable.ts
+   17:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   24:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:48  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   52:34  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\hooks\api\useSellerProducts.ts
+  35:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  54:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\hooks\useCart.ts
+  19:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\hooks\useCategories.ts
+  3:32  warning  'Category' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\laragon\www\azkala\frontend\src\lib\echo.ts
+  18:25  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  18:30  warning  'options' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  18:39  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+  20:71  warning  Unexpected any. Specify a different type                                   @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\main.tsx
+  23:10  warning  Fast refresh only works when a file has exports. Move your component(s) to a separate file  react-refresh/only-export-components
+
+C:\laragon\www\azkala\frontend\src\pages\HomePage\hooks\useCountdown.ts
+  46:6  warning  React Hook useEffect has a missing dependency: 'targetDate'. Either include it or remove the dependency array                             react-hooks/exhaustive-deps
+  46:7  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\HomePage\hooks\useRecentlyViewed.ts
+  26:11  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\HomePage\hooks\useRecentlyViewed.ts:26:11
+  24 |           const parsed: number[] = JSON.parse(stored);
+  25 |           const products = allProducts.filter(p => parsed.includes(p.id));
+> 26 |           setRecentlyViewed(products.slice(0, RECENTLY_VIEWED_DISPLAY_ITEMS));
+     |           ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |         }
+  28 |       } catch (e) {
+  29 |         console.error('Error parsing recently viewed:', e);  react-hooks/set-state-in-effect
+  33:6   warning  React Hook useEffect has a missing dependency: 'allProducts'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\HomePage\index.tsx
+  54:20  warning  'apiSpecialOffers' is assigned a value but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  95:6   warning  React Hook useMemo has a missing dependency: 'selectedModel'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\OrderSuccessPage.tsx
+  31:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\OrderSuccessPage.tsx:31:7
+  29 |
+  30 |     if (stateData) {
+> 31 |       setOrderData(stateData);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  32 |       localStorage.setItem('last_order_success', JSON.stringify(stateData));
+  33 |     } else if (storedData) {
+  34 |       try {  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\ProductDetailPage.tsx
+   98:5   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\ProductDetailPage.tsx:98:5
+   96 |   // (┘ç┘à╪د┘ç┘┌» ╪ذ╪د ╪د┘┌»┘ê█î ┘à╪┤╪د╪ذ┘ç ╪»╪▒ SellerPage.tsx).
+   97 |   useEffect(() => {
+>  98 |     setReviewsPage(1);
+      |     ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+   99 |   }, [reviewFilter]);
+  100 |
+  101 |    // ==================== Data Fetching ====================                           react-hooks/set-state-in-effect
+  648:22  warning  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\laragon\www\azkala\frontend\src\pages\ProductDetailPage.tsx:648:22
+  646 |                   </p>
+  647 |                   <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+> 648 |                     <SelectedDeviceIcon className="w-3 h-3" />
+      |                      ^^^^^^^^^^^^^^^^^^ This component is created during render
+  649 |                     ┘à╪»┘: <strong>{selectedModel.name}</strong>
+  650 |                   </p>
+  651 |                 </div>
+
+C:\laragon\www\azkala\frontend\src\pages\ProductDetailPage.tsx:264:30
+  262 |   }, [selectedModel]);
+  263 |
+> 264 |   const SelectedDeviceIcon = getDeviceTypeIcon(selectedModel?.brand?.type);
+      |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  265 |
+  266 |   const discountPercent = useMemo(() => {
+  267 |     if (!product) return 0;  react-hooks/static-components
+
+C:\laragon\www\azkala\frontend\src\pages\ProductsPage\index.tsx
+  138:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\ProductsPage\index.tsx:138:7
+  136 |   useEffect(() => {
+  137 |     if (selectedModel && !selectedDeviceIds.includes(selectedModel.id)) {
+> 138 |       setSelectedDeviceIds((prev) => [...prev, selectedModel.id]);
+      |       ^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  139 |     }
+  140 |   }, [selectedModel]);
+  141 |  react-hooks/set-state-in-effect
+  140:6  warning  React Hook useEffect has a missing dependency: 'selectedDeviceIds'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\ProfilePage.tsx
+    6:24  warning  'Clock' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+    7:40  warning  'Truck' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+    7:47  warning  'CheckCircle' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+    8:16  warning  'Loader2' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   47:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\ProfilePage.tsx:47:7
+  45 |   useEffect(() => {
+  46 |     if (user) {
+> 47 |       setFormData({
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |         name: user.name ?? '',
+  49 |         email: user.email ?? '',
+  50 |         phone: user.phone ?? '',  react-hooks/set-state-in-effect
+   73:22  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+   89:22  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  265:57  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\RegisterPage.tsx
+  23:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\SellerPage.tsx
+  109:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\SellerPage.tsx:109:5
+  107 |   // ╪ذ╪د ╪ز╪║█î█î╪▒ ┘ç╪▒ ┘█î┘╪ز╪▒╪î ╪ذ┘ç ╪╡┘╪ص┘çظî█î ╪د┘ê┘ ╪ذ╪▒┌»╪▒╪»
+  108 |   useEffect(() => {
+> 109 |     setProductsPage(1);
+      |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  110 |   }, [debouncedSearch, productSort, productDiscountOnly]);
+  111 |
+  112 |   const { data: productsData, isLoading: productsLoading } = useQuery({  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\SellerRequestPage.tsx
+  344:27  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+C:\laragon\www\azkala\frontend\src\pages\SellerRequestPage.tsx:344:27
+  342 |   });
+  343 |
+> 344 |   const watchedProvince = watch('province');
+      |                           ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  345 |   const selectedProvinceData = provinces.find((p) => p.id === watchedProvince);
+  346 |
+  347 |   const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {  react-hooks/incompatible-library
+
+C:\laragon\www\azkala\frontend\src\pages\WishlistPage.tsx
+  29:6   warning  React Hook useEffect has a missing dependency: 'syncFromApi'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  31:58  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  51:55  warning  Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminBlocksPage.tsx
+  108:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminBlocksPage.tsx:108:5
+  106 |
+  107 |   useEffect(() => {
+> 108 |     loadBlocks();
+      |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  109 |     loadStats();
+  110 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  111 |   }, [currentPage, reasonFilter]);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminBrandsPage.tsx
+    3:30  warning  'Plus' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+    4:43  warning  'RefreshCw' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+   12:3   warning  'adminBrandService' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   17:8   warning  'toast' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+  154:78  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+  163:42  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminCategoriesPage.tsx
+    21:44  warning  'Eye' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+    79:33  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   150:22  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   156:60  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   169:25  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   804:12  warning  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminCategoriesPage.tsx:804:12
+  802 |
+  803 |         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center flex-shrink-0">
+> 804 |           <Icon className="w-4 h-4 text-primary-600" />
+      |            ^^^^ This component is created during render
+  805 |         </div>
+  806 |
+  807 |         <div className="flex-1 min-w-0">
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminCategoriesPage.tsx:771:16
+  769 |   };
+  770 |
+> 771 |   const Icon = getIconComponent(node.icon);
+      |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^ The component is created during render here
+  772 |   const isExpanded = expandedIds.has(node.id);
+  773 |   const hasChildren = node.children.length > 0;
+  774 |  react-hooks/static-components
+   882:9   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   958:22  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+   973:22  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+  1019:52  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminChatMonitorPage.tsx
+  152:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminChatMonitorPage.tsx:152:5
+  150 |
+  151 |   useEffect(() => {
+> 152 |     loadConversations();
+      |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  153 |     loadStats();
+  154 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  155 |   }, [currentPage, statusFilter, messagesCountFilter]);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminChatReportsPage.tsx
+  114:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminChatReportsPage.tsx:114:5
+  112 |
+  113 |   useEffect(() => {
+> 114 |     loadReports();
+      |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  115 |     loadStats();
+  116 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  117 |   }, [currentPage, statusFilter, reasonFilter]);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminDashboard.tsx
+  5:50  warning  'TrendingDown' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  7:31  warning  'MessageCircle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminDeviceBrandsPage.tsx
+    2:30  warning  'Plus' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+    9:3   warning  'adminDeviceBrandService' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   17:33  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+  191:85  warning  Unexpected any. Specify a different type                                                   @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminDeviceModelsPage.tsx
+   2:25  warning  'Plus' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  40:21  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminDeviceModelsPage.tsx:40:21
+  38 |   };
+  39 |
+> 40 |   useEffect(() => { loadSeries(); }, []);
+     |                     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  41 |
+  42 |   const { createMutation, updateMutation, deleteMutation } = useCrudMutations({
+  43 |     queryKeys: ['admin/device-models'],  react-hooks/set-state-in-effect
+  40:38  warning  React Hook useEffect has a missing dependency: 'loadSeries'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminDeviceSeriesPage.tsx
+   2:25  warning  'Eye' is defined but never used. Allowed unused vars must match /^_/u                                                 @typescript-eslint/no-unused-vars
+   2:30  warning  'Plus' is defined but never used. Allowed unused vars must match /^_/u                                                @typescript-eslint/no-unused-vars
+   8:10  warning  'adminDeviceSeriesService' is defined but never used. Allowed unused vars must match /^_/u                            @typescript-eslint/no-unused-vars
+  34:6   warning  React Hook useEffect has a missing dependency: 'formData.brand_id'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminFaqManagementPage.tsx
+  130:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminFaqManagementPage.tsx:130:5
+  128 |
+  129 |   useEffect(() => {
+> 130 |     loadFaqs();
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  131 |     loadStats();
+  132 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  133 |   }, [currentPage, categoryFilter, statusFilter, typeFilter]);  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminMessageTemplatesPage.tsx
+  91:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminMessageTemplatesPage.tsx:91:5
+  89 |
+  90 |   useEffect(() => {
+> 91 |     loadTemplates();
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  92 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  93 |   }, [currentPage, categoryFilter, statusFilter]);
+  94 |  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminProductsPage.tsx
+   86:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:60  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  683:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  735:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminReportsPage.tsx
+  1879:5  warning  Error: Cannot reassign variable after render completes
+
+Reassigning `currentAngle` after render has completed can cause inconsistent behavior on subsequent renders. Consider using state instead.
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminReportsPage.tsx:1879:5
+  1877 |     const startAngle = currentAngle;
+  1878 |     const endAngle = currentAngle + angle;
+> 1879 |     currentAngle = endAngle;
+       |     ^^^^^^^^^^^^ Cannot reassign `currentAngle` after render completes
+  1880 |
+  1881 |     const x1 = center + radius * Math.cos(startAngle);
+  1882 |     const y1 = center + radius * Math.sin(startAngle);  react-hooks/immutability
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminSentimentDashboard.tsx
+  79:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminSentimentDashboard.tsx:79:5
+  77 |
+  78 |   useEffect(() => {
+> 79 |     loadAllData();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |   }, []);
+  81 |
+  82 |   if (isLoading) {  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminSuggestionManagementPage.tsx
+  190:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminSuggestionManagementPage.tsx:190:5
+  188 |
+  189 |   useEffect(() => {
+> 190 |     loadStats();
+      |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  191 |     if (activeTab === 'overview') {
+  192 |       loadTopPerformers();
+  193 |       loadTopSellers();  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\admin\AdminUsersPage.tsx
+   38:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   48:67  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:58  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  454:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  605:94  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  623:59  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  636:97  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  742:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\pages\dashboard\ProfileSection.tsx
+  67:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\dashboard\ProfileSection.tsx:67:7
+  65 |   useEffect(() => {
+  66 |     if (user) {
+> 67 |       setFormData({
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  68 |         name: user.name ?? '',
+  69 |         email: user.email ?? '',
+  70 |         phone: user.phone ?? '',  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\dashboard\WishlistSection.tsx
+  43:7  warning  Error: Cannot access variable before it is declared
+
+`fetchFollowedSellers` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\dashboard\WishlistSection.tsx:43:7
+  41 |     }
+  42 |     if (isAuthenticated) {
+> 43 |       fetchFollowedSellers();
+     |       ^^^^^^^^^^^^^^^^^^^^ `fetchFollowedSellers` accessed before it is declared
+  44 |     }
+  45 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  46 |   }, [isAuthenticated]);
+
+C:\laragon\www\azkala\frontend\src\pages\dashboard\WishlistSection.tsx:48:3
+  46 |   }, [isAuthenticated]);
+  47 |
+> 48 |   const fetchFollowedSellers = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 49 |     setIsLoadingSellers(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |     try {
+     ظخ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 57 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 58 |   };
+     | ^^^^^ `fetchFollowedSellers` is declared here
+  59 |
+  60 |   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+  61 |     e.stopPropagation();  react-hooks/immutability
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductFormModal.tsx
+  110:7  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductFormModal.tsx:110:7
+  108 |   useEffect(() => {
+  109 |     if (mode === 'edit' && productData) {
+> 110 |       setFormData({
+      |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  111 |         name: productData.name || '',
+  112 |         slug: productData.slug || '',
+  113 |         price: parseFloat(productData.price) || 0,  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductHistoryModal.tsx
+  28:7  warning  Error: Cannot access variable before it is declared
+
+`fetchHistory` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductHistoryModal.tsx:28:7
+  26 |   useEffect(() => {
+  27 |     if (isOpen && productId) {
+> 28 |       fetchHistory();
+     |       ^^^^^^^^^^^^ `fetchHistory` accessed before it is declared
+  29 |     }
+  30 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  31 |   }, [isOpen, productId]);
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductHistoryModal.tsx:33:3
+  31 |   }, [isOpen, productId]);
+  32 |
+> 33 |   const fetchHistory = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |     setLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 35 |     try {
+     ظخ
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 42 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^
+> 43 |   };
+     | ^^^^^ `fetchHistory` is declared here
+  44 |
+  45 |   if (!isOpen) return null;
+  46 |  react-hooks/immutability
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx
+  125:5  warning  Error: Cannot access variable before it is declared
+
+`loadFilterOptions` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx:125:5
+  123 |   // ╪ذ╪د╪▒┌»╪░╪د╪▒█î ╪»╪│╪ز┘çظî╪ذ┘╪»█îظî┘ç╪د ┘ê ╪ذ╪▒┘╪»┘ç╪د ╪ذ╪▒╪د█î ┘█î┘╪ز╪▒
+  124 |   useEffect(() => {
+> 125 |     loadFilterOptions();
+      |     ^^^^^^^^^^^^^^^^^ `loadFilterOptions` accessed before it is declared
+  126 |   }, []);
+  127 |
+  128 |   const loadFilterOptions = async () => {
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx:128:3
+  126 |   }, []);
+  127 |
+> 128 |   const loadFilterOptions = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |     try {
+      | ^^^^^^^^^
+> 130 |       // ╪د█î┘ ╪»┘ê ╪│╪▒┘ê█î╪│ ╪▒┘ê╪زظî┘ç╪د█î ┘ê╪د┘é╪╣█î /categories ┘ê /brands ╪▒╪د ┘à█îظî╪▓┘┘╪».
+      ظخ
+      | ^^^^^^^^^
+> 142 |     }
+      | ^^^^^^^^^
+> 143 |   };
+      | ^^^^^ `loadFilterOptions` is declared here
+  144 |
+  145 |   // ╪ذ╪د╪▒┌»╪░╪د╪▒█î ╪╣┘╪د┘é┘çظî┘à┘╪»█îظî┘ç╪د ╪د╪▓ LocalStorage
+  146 |   useEffect(() => {  react-hooks/immutability
+  150:9  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx:150:9
+  148 |     if (saved) {
+  149 |       try {
+> 150 |         setFavorites(JSON.parse(saved));
+      |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  151 |       } catch {
+  152 |         console.error('Error loading favorites');
+  153 |       }                              react-hooks/set-state-in-effect
+  171:7  warning  Error: Cannot access variable before it is declared
+
+`loadTemplates` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx:171:7
+  169 |   useEffect(() => {
+  170 |     const timeoutId = setTimeout(() => {
+> 171 |       loadTemplates();
+      |       ^^^^^^^^^^^^^ `loadTemplates` accessed before it is declared
+  172 |     }, 300); // Debounce 300ms
+  173 |
+  174 |     return () => clearTimeout(timeoutId);
+
+C:\laragon\www\azkala\frontend\src\pages\seller\ProductTemplates.tsx:178:3
+  176 |   }, [filters.search, deviceType]);
+  177 |
+> 178 |   const loadTemplates = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 179 |     try {
+      | ^^^^^^^^^
+> 180 |       setLoading(true);
+      ظخ
+      | ^^^^^^^^^
+> 194 |     }
+      | ^^^^^^^^^
+> 195 |   };
+      | ^^^^^ `loadTemplates` is declared here
+  196 |
+  197 |   // ┌ر┘╛█î ┘à╪ص╪╡┘ê┘
+  198 |   const handleCopy = useCallback(async (templateId: number) => {               react-hooks/immutability
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx
+   42:62  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+   64:56  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-explicit-any
+  130:5   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:130:5
+  128 |   // ==================== Effects ====================
+  129 |   useEffect(() => {
+> 130 |     loadConversations();
+      |     ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  131 |     loadQuickReplies();
+  132 |     loadFaqs();
+  133 |   }, []);                                                                                                             react-hooks/set-state-in-effect
+  131:5   warning  Error: Cannot access variable before it is declared
+
+`loadQuickReplies` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:131:5
+  129 |   useEffect(() => {
+  130 |     loadConversations();
+> 131 |     loadQuickReplies();
+      |     ^^^^^^^^^^^^^^^^ `loadQuickReplies` accessed before it is declared
+  132 |     loadFaqs();
+  133 |   }, []);
+  134 |
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:416:3
+  414 |
+  415 |   // Loaders
+> 416 |   const loadQuickReplies = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 417 |     try {
+      | ^^^^^^^^^
+> 418 |       const res = await quickReplyService.getQuickReplies();
+      | ^^^^^^^^^
+> 419 |       if (res.success) setQuickReplies(res.data);
+      | ^^^^^^^^^
+> 420 |     } catch (error) {
+      | ^^^^^^^^^
+> 421 |       console.error(error);
+      | ^^^^^^^^^
+> 422 |     }
+      | ^^^^^^^^^
+> 423 |   };
+      | ^^^^^ `loadQuickReplies` is declared here
+  424 |
+  425 |   const loadFaqs = async () => {
+  426 |     try {  react-hooks/immutability
+  132:5   warning  Error: Cannot access variable before it is declared
+
+`loadFaqs` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:132:5
+  130 |     loadConversations();
+  131 |     loadQuickReplies();
+> 132 |     loadFaqs();
+      |     ^^^^^^^^ `loadFaqs` accessed before it is declared
+  133 |   }, []);
+  134 |
+  135 |   // ≡ا¤ Polling ظ¤ ┘é╪ذ┘╪د┘ï poll() ╪«┘ê╪»╪┤ ╪▒╪د ╪ذ╪د setTimeout(poll, 10000) ╪»┘ê╪ذ╪د╪▒┘ç
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:425:3
+  423 |   };
+  424 |
+> 425 |   const loadFaqs = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 426 |     try {
+      | ^^^^^^^^^
+> 427 |       const res = await chatFaqService.getFaqs();
+      | ^^^^^^^^^
+> 428 |       if (res.success) setFaqs(res.data);
+      | ^^^^^^^^^
+> 429 |     } catch (error) {
+      | ^^^^^^^^^
+> 430 |       console.error(error);
+      | ^^^^^^^^^
+> 431 |     }
+      | ^^^^^^^^^
+> 432 |   };
+      | ^^^^^ `loadFaqs` is declared here
+  433 |
+  434 |   // ≡اجû FAQ Handlers
+  435 |   const handleSaveFaq = async () => {        react-hooks/immutability
+  133:6   warning  React Hook useEffect has a missing dependency: 'loadConversations'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  172:6   warning  React Hook useEffect has a missing dependency: 'loadConversations'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  181:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:181:7
+  179 |   useEffect(() => {
+  180 |     if (selectedConversation) {
+> 181 |       loadSentimentStats();
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  182 |     } else {
+  183 |       setSentimentStats(null);
+  184 |     }                                                                                                                              react-hooks/set-state-in-effect
+  185:6   warning  React Hook useEffect has missing dependencies: 'loadSentimentStats' and 'selectedConversation'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  411:5   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerChatPage.tsx:411:5
+  409 | useEffect(() => {
+  410 |   if (selectedConversation) {
+> 411 |     loadProductSuggestions();
+      |     ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  412 |   }
+  413 | }, [selectedConversation?.id]);
+  414 |                                                                                                                                            react-hooks/set-state-in-effect
+  413:4   warning  React Hook useEffect has missing dependencies: 'loadProductSuggestions' and 'selectedConversation'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/exhaustive-deps
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerDashboard.tsx
+  126:29  warning  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `stats`, but the source dependencies were [stats?.monthly_sales]. Inferred less specific property than source.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerDashboard.tsx:126:29
+  124 |   const orders = useMemo(() => (Array.isArray(ordersData?.data) ? ordersData.data : []), [ordersData]);
+  125 |
+> 126 |   const chartData = useMemo(() => {
+      |                             ^^^^^^^
+> 127 |     if (!stats?.monthly_sales) return [];
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 128 |     return stats.monthly_sales.map(sale => ({
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 129 |       label: sale.month,
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 130 |       value: typeof sale.sales === 'number' && Number.isFinite(sale.sales) ? sale.sales : 0,
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 131 |       color: '#3b82f6',
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 132 |     }));
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 133 |   }, [stats?.monthly_sales]);
+      | ^^^^ Could not preserve existing manual memoization
+  134 |
+  135 |   // ╪▒╪┤╪» ╪»╪▒╪ت┘à╪» ┘╪│╪ذ╪ز ╪ذ┘ç ┘à╪د┘ç ┘é╪ذ┘ ظ¤ ╪د╪▓ ┘ç┘à╪د┘ ╪┤╪┤ظî┘à╪د┘ç┘çظî█î ┘ê╪د┘é╪╣█î chartData/monthly_sales
+  136 |   // ┘à╪ص╪د╪│╪ذ┘ç ┘à█îظî╪┤┘ê╪»╪î ┘┘ç █î┌ر ╪»╪▒╪╡╪» ╪س╪د╪ذ╪ز (┬س█▒█▓.█╡┘ز+┬╗) ┌ر┘ç ┘ç┘à█î╪┤┘ç ┘ç┘à╪د┘ ╪ذ┘ê╪»╪î ╪ذ╪▒╪د█î ┘ç╪▒  react-hooks/preserve-manual-memoization
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerOrderDetail.tsx
+  89:70  warning  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `order.shipping_address`, but the source dependencies were [order?.shipping_address]. Inferred different dependency than source.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerOrderDetail.tsx:89:70
+   87 |   }, []);
+   88 |
+>  89 |   const shippingAddress = useMemo<SellerOrderShippingAddress | null>(() => {
+      |                                                                      ^^^^^^^
+>  90 |     if (!order?.shipping_address) return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  91 |     if (typeof order.shipping_address === 'string') {
+      ظخ
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  98 |     return order.shipping_address;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  99 |   }, [order?.shipping_address]);
+      | ^^^^ Could not preserve existing manual memoization
+  100 |
+  101 |   const availableStatuses = useMemo(() => (order ? getAvailableTransitions(order.status) : []), [order]);
+  102 |  react-hooks/preserve-manual-memoization
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerOrderDetailModal.tsx
+  79:70  warning  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `order.shipping_address`, but the source dependencies were [order?.shipping_address]. Inferred different dependency than source.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerOrderDetailModal.tsx:79:70
+  77 |   // Parse shipping_address ظ¤ ╪ذ╪د cast ╪ت╪▒╪د█î┘çظî╪د█î Order ┘à╪»┘╪î ╪ذ┌رظî╪د┘╪» ╪»█î┌»╪▒ ╪▒╪┤╪ز┘çظî█î
+  78 |   // JSON ╪«╪د┘à ╪ذ╪▒┘┘à█îظî┌»╪▒╪»╪د┘╪»╪î ┘ê┘█î ╪د█î┘ ┌┌ر ╪ذ╪▒╪د█î ╪│╪د╪▓┌»╪د╪▒█î ╪ذ╪د ╪»╪د╪»┘çظî█î ┘é╪»█î┘à█îظî╪ز╪▒ ┘à█îظî┘à╪د┘╪».
+> 79 |   const shippingAddress = useMemo<SellerOrderShippingAddress | null>(() => {
+     |                                                                      ^^^^^^^
+> 80 |     if (!order?.shipping_address) return null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 81 |     if (typeof order.shipping_address === 'string') {
+     ظخ
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 88 |     return order.shipping_address;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 89 |   }, [order?.shipping_address]);
+     | ^^^^ Could not preserve existing manual memoization
+  90 |
+  91 |   const availableStatuses = useMemo(() => (order ? getAvailableTransitions(order.status) : []), [order]);
+  92 |  react-hooks/preserve-manual-memoization
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerProducts.tsx
+    6:21  warning  'ArrowUpDown' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   14:10  warning  'cn' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  121:7   warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerProducts.tsx:121:7
+  119 |   useEffect(() => {
+  120 |     if (productId) {
+> 121 |       setFormModalMode('edit');
+      |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  122 |       setEditingProductId(Number(productId));
+  123 |       setIsFormModalOpen(true);
+  124 |     }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/set-state-in-effect
+  140:65  warning  Error: Cannot access variable before it is declared
+
+`handleOpenCreateModal` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerProducts.tsx:140:65
+  138 |     const handleKeyDown = (e: KeyboardEvent) => {
+  139 |       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+> 140 |       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); handleOpenCreateModal(); }
+      |                                                                 ^^^^^^^^^^^^^^^^^^^^^ `handleOpenCreateModal` accessed before it is declared
+  141 |       else if (e.key === '/' ) { e.preventDefault(); searchInputRef.current?.focus(); }
+  142 |       else if (e.key === 'Escape') {
+  143 |         setIsFormModalOpen(false);
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerProducts.tsx:204:3
+  202 |   }, [products]);
+  203 |
+> 204 |   const handleOpenCreateModal = useCallback(() => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 205 |     setFormModalMode('create');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 206 |     setEditingProductId(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 207 |     setIsFormModalOpen(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 208 |   }, []);
+      | ^^^^^^^^^^ `handleOpenCreateModal` is declared here
+  209 |
+  210 |   const handleOpenEditModal = useCallback((id: number) => {
+  211 |     setFormModalMode('edit');  react-hooks/immutability
+  152:6   warning  React Hook useEffect has a missing dependency: 'handleOpenCreateModal'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  204:45  warning  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+C:\laragon\www\azkala\frontend\src\pages\seller\SellerProducts.tsx:204:45
+  202 |   }, [products]);
+  203 |
+> 204 |   const handleOpenCreateModal = useCallback(() => {
+      |                                             ^^^^^^^
+> 205 |     setFormModalMode('create');
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 206 |     setEditingProductId(null);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 207 |     setIsFormModalOpen(true);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 208 |   }, []);
+      | ^^^^ Could not preserve existing memoization
+  209 |
+  210 |   const handleOpenEditModal = useCallback((id: number) => {
+  211 |     setFormModalMode('edit');                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/preserve-manual-memoization
+  244:7   warning  Expected an assignment or function call and instead saw an expression                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-expressions
+
+C:\laragon\www\azkala\frontend\src\pages\seller\components\FilterPanel.tsx
+  60:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\laragon\www\azkala\frontend\src\pages\seller\components\FilterPanel.tsx:60:5
+  58 |   // ╪╡╪»╪د ╪▓╪»┘ç ┘┘à█îظî╪┤╪»╪î ┌┌رظî╪ذ╪د┌ر╪│ظî┘ç╪د █î┌ر ┌█î╪▓ ┘╪┤╪د┘ ┘à█îظî╪»╪د╪»┘╪» ┘ê ┘╪ز╪د█î╪ش ┌█î╪▓ ╪»█î┌»╪▒█î.
+  59 |   useEffect(() => {
+> 60 |     setLocalFilters(filters);
+     |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  61 |   }, [filters]);
+  62 |
+  63 |   const handleApplyFilters = () => {  react-hooks/set-state-in-effect
+
+C:\laragon\www\azkala\frontend\src\services\api\adminAdvancedReport.service.ts
+  141:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:19  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:16  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  144:22  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\services\api\adminDeviceModel.service.ts
+  23:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  25:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\services\api\adminDeviceSeries.service.ts
+   2:10  warning  'AdminDeviceBrand' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  22:28  warning  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+  24:52  warning  Unexpected any. Specify a different type                                            @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\services\api\auth.service.ts
+  52:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\laragon\www\azkala\frontend\src\services\api\cart.service.ts
+  10:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:9   warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  43:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+ظ£û 180 problems (1 error, 179 warnings)
+
