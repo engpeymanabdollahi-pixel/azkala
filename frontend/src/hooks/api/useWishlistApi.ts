@@ -84,6 +84,21 @@ export function useWishlistApi() {
       if (context?.alreadyExists) {
         return;
       }
+      
+      // بررسی خطای 409 - محصول قبلاً در لیست بوده
+      const axiosError = error as any;
+      if (axiosError.response?.status === 409) {
+        // این یک خطا نیست، فقط اطلاع‌رسانی می‌کنیم
+        toast.info('این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
+          icon: 'ℹ️', 
+          duration: 2000 
+        });
+        // Refetch برای اطمینان از sync بودن داده‌ها
+        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+        return;
+      }
+      
+      // سایر خطاها - rollback
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       toast.error('خطا در افزودن به علاقمندی‌ها', { icon: '💔', duration: 3000 });
       console.error('Failed to add to wishlist:', error);
