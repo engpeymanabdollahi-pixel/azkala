@@ -1,4 +1,61 @@
 ```
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+*.env.*
+
 # Dependencies
 node_modules/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# Build artifacts
+dist/
+build/
+target/
+*.out
+*.exe
+*.dll
+*.so
+*.a
+*.class
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.tox/
+
+# PHP/Laravel specific
+vendor/
+composer.lock
+.php_cs.cache
+
+# Temporary files
+*.tmp
+*~
+\#*\#
 ```
