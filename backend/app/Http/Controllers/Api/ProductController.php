@@ -24,6 +24,12 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+            ],
         ]);
     }
 
