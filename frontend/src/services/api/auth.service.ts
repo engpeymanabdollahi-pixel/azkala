@@ -33,6 +33,13 @@ export interface AuthResponse {
   message: string;
 }
 
+interface ApiError {
+  response?: {
+    status: number;
+    data?: unknown;
+  };
+}
+
 export const authService = {
   async login(data: LoginData): Promise<AuthResponse> {
     try {
@@ -49,9 +56,10 @@ export const authService = {
       }
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login service error:', error);
-      if (error.response) {
+      const apiError = error as ApiError;
+      if (apiError.response) {
         throw error;
       }
       throw new Error('خطا در ارتباط با سرور');
@@ -69,9 +77,10 @@ export const authService = {
       }
       
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Register service error:', error);
-      if (error.response) {
+      const apiError = error as ApiError;
+      if (apiError.response) {
         throw error;
       }
       throw new Error('خطا در ارتباط با سرور');
