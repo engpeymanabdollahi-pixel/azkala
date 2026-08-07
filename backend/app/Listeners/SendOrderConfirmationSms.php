@@ -3,6 +3,7 @@
 namespace App\Listeners;
 
 use App\Events\Order\OrderCreated;
+use App\Services\SmsService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -19,8 +20,11 @@ class SendOrderConfirmationSms implements ShouldQueue
     {
         $order = $event->order;
 
-        // TODO: در اینجا کد واقعی ارسال پیامک (مثلاً با Kavenegar) قرار می‌گیرد
-        // مثال: SmsService::send($order->user->phone, "سفارش {$order->order_number} با موفقیت ثبت شد.");
+        // ارسال پیامک تأیید سفارش به مشتری
+        if ($order->user && $order->user->phone) {
+            $message = "سفارش {$order->order_number} با موفقیت ثبت شد.\nاز خرید شما سپاسگزاریم.";
+            SmsService::send($order->user->phone, $message);
+        }
 
         Log::channel('daily')->info('SMS Confirmation queued for order', [
             'order_id' => $order->id,
