@@ -48,6 +48,11 @@ export function useWishlistApi() {
       // Snapshot از وضعیت قبلی
       const previousWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || [];
       
+      // اگر محصول از قبل در لیست هست، کاری نکن
+      if (previousWishlist.some(item => item.id === newProduct.id)) {
+        return { previousWishlist, alreadyExists: true };
+      }
+      
       // آپدیت فوری UI
       queryClient.setQueryData(['wishlist'], (old: Product[] = []) => [...old, newProduct]);
       
@@ -56,11 +61,15 @@ export function useWishlistApi() {
         useWishlistStore.getState().addItem(newProduct);
       }
       
-      return { previousWishlist };
+      return { previousWishlist, alreadyExists: false };
     },
     
     // ✅ onSuccess: Toast و refetch
     onSuccess: (data) => {
+      if (data.alreadyExists) {
+        toast.info('این محصول قبلاً در علاقمندی‌های شما وجود دارد', { icon: 'ℹ️', duration: 2000 });
+        return;
+      }
       toast.success(
         data.isLocal 
           ? 'به علاقمندی‌ها اضافه شد (ذخیره موقت)' 
@@ -72,6 +81,9 @@ export function useWishlistApi() {
     
     // ❌ onError: Rollback
     onError: (error, _product, context) => {
+      if (context?.alreadyExists) {
+        return;
+      }
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       toast.error('خطا در افزودن به علاقمندی‌ها', { icon: '💔', duration: 3000 });
       console.error('Failed to add to wishlist:', error);

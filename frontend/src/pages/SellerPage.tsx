@@ -153,7 +153,7 @@ export default function SellerPage() {
         ? await apiClient.post(url)
         : await apiClient.delete(url);
 
-      return res.data;
+      return { action, ...res.data };
     },
     onMutate: async (action) => {
       await queryClient.cancelQueries({ queryKey: ['seller', slug] });
@@ -178,13 +178,14 @@ export default function SellerPage() {
         toast.error(message || 'خطا در برقراری ارتباط با سرور');
       }
     },
-    onSuccess: (data: { is_following: boolean; followers_count: number }, action) => {
+    onSuccess: (data: { action: 'follow' | 'unfollow'; is_following: boolean; followers_count: number }) => {
+      const { action, is_following, followers_count } = data;
       queryClient.setQueryData<PublicSeller | undefined>(['seller', slug], (old) => {
         if (!old) return old;
         return {
           ...old,
-          is_followed_by_current_user: data.is_following,
-          followers_count: data.followers_count,
+          is_followed_by_current_user: is_following,
+          followers_count: followers_count,
         };
       });
       toast.success(action === 'follow' ? 'شعبه به لیست علاقه‌مندی‌ها اضافه شد ❤️' : 'دنبال کردن لغو شد');
