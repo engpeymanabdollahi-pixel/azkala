@@ -254,8 +254,9 @@ Route::prefix('v1')->group(function () {
         Route::prefix('wishlist')->name('wishlist.')->group(function () {
             Route::get('/', [WishlistController::class, 'index'])->name('index');
             Route::post('/', [WishlistController::class, 'store'])->name('store');
-            Route::delete('/{productId}', [WishlistController::class, 'destroy'])->name('destroy');
+            // ✅ روت /check باید قبل از روت delete تعریف شود تا به درستی match شود
             Route::get('/check/{productId}', [WishlistController::class, 'check'])->name('check');
+            Route::delete('/{productId}', [WishlistController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('addresses')->name('addresses.')->group(function () {
