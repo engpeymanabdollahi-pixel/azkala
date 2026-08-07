@@ -1,8 +1,21 @@
 // ==================== Excel Export (با CDN) ====================
 
-declare const XLSX: any;
+interface XLSXLibrary {
+  utils: {
+    json_to_sheet: (data: unknown[]) => unknown;
+    book_new: () => unknown;
+    book_append_sheet: (workbook: unknown, worksheet: unknown, sheetName: string) => void;
+    writeFile: (workbook: unknown, filename: string) => void;
+  };
+}
 
-export function exportToExcel(data: any[], filename: string, sheetName: string = 'Sheet1') {
+declare const XLSX: XLSXLibrary | undefined;
+
+interface ExcelRow {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export function exportToExcel(data: ExcelRow[], filename: string, sheetName: string = 'Sheet1') {
   try {
     if (typeof XLSX === 'undefined') {
       console.error('XLSX library not loaded');
@@ -12,11 +25,12 @@ export function exportToExcel(data: any[], filename: string, sheetName: string =
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-    
+
     // تنظیم عرض ستون‌ها
     const columns = Object.keys(data[0] || {});
-    worksheet['!cols'] = columns.map(() => ({ wch: 20 }));
-    
+    const worksheetWithCols = worksheet as { '!cols'?: Array<{ wch: number }> };
+    worksheetWithCols['!cols'] = columns.map(() => ({ wch: 20 }));
+
     XLSX.writeFile(workbook, `${filename}.xlsx`);
     return true;
   } catch (error) {
@@ -27,13 +41,44 @@ export function exportToExcel(data: any[], filename: string, sheetName: string =
 
 // ==================== PDF Export (با CDN) ====================
 
-declare const window: any;
+interface JsPDF {
+  new (options: { orientation: string; unit: string; format: string }): {
+    setFontSize: (size: number) => void;
+    text: (text: string, x: number, y: number) => void;
+    autoTable: (options: {
+      head: string[][];
+      body: string[][];
+      startY: number;
+      styles: { fontSize: number; cellPadding: number };
+      headStyles: { fillColor: number[]; textColor: number };
+      alternateRowStyles: { fillColor: number[] };
+    }) => void;
+    save: (filename: string) => void;
+  };
+}
+
+interface WindowWithJsPDF {
+  jspdf: {
+    jsPDF: JsPDF;
+  };
+}
+
+declare const window: Window & typeof globalThis & WindowWithJsPDF;
+
+interface PdfColumn {
+  header: string;
+  key: string;
+}
+
+interface PdfRow {
+  [key: string]: string | number | boolean | null | undefined;
+}
 
 export function exportToPdf(
-  data: any[],
+  data: PdfRow[],
   filename: string,
   title: string,
-  columns: { header: string; key: string }[]
+  columns: PdfColumn[]
 ) {
   try {
     const { jsPDF } = window.jspdf;
@@ -53,7 +98,7 @@ export function exportToPdf(
 
     // جدول
     const headers = columns.map(col => col.header);
-    const rows = data.map(item => 
+    const rows = data.map(item =>
       columns.map(col => String(item[col.key] ?? '-'))
     );
 
@@ -84,14 +129,18 @@ export function exportToPdf(
 
 // ==================== CSV Export ====================
 
-export function exportToCsv(data: any[], filename: string) {
+interface CsvRow {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export function exportToCsv(data: CsvRow[], filename: string) {
   try {
     if (data.length === 0) return false;
 
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(','),
-      ...data.map(row => 
+      ...data.map(row =>
         headers.map(header => {
           const value = row[header];
           return `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -99,16 +148,18 @@ export function exportToCsv(data: any[], filename: string) {
       )
     ].join('\n');
 
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.href = url;
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
     link.setAttribute('download', `${filename}.csv`);
+    link.style.visibility = 'hidden';
+    
     document.body.appendChild(link);
     link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-
+    document.body.removeChild(link);
+    
     return true;
   } catch (error) {
     console.error('Export to CSV error:', error);
