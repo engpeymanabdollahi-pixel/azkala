@@ -87,11 +87,18 @@ export function useWishlistApi() {
       
       // بررسی خطای 409 - محصول قبلاً در لیست بوده
       const axiosError = error as any;
-      if (axiosError.response?.status === 409) {
+      const errorCode = axiosError.response?.data?.code;
+      
+      if (axiosError.response?.status === 409 || errorCode === 'ALREADY_WISHLISTED') {
         // این یک خطا نیست، فقط اطلاع‌رسانی می‌کنیم
         toast.info('این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
           icon: 'ℹ️', 
-          duration: 2000 
+          duration: 2000,
+          style: {
+            background: '#f6f8fa',
+            color: '#24292f',
+            border: '1px solid #d0d7de',
+          },
         });
         // Refetch برای اطمینان از sync بودن داده‌ها
         queryClient.invalidateQueries({ queryKey: ['wishlist'] });
