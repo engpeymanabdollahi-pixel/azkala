@@ -61,17 +61,20 @@ class ProductResource extends JsonResource
 
             // ✅ اطلاعات فروشنده (با لود خودکار و ایمن)
             'seller' => $this->when($this->seller_id, function () {
-                $this->loadMissing('seller');
-                return $this->seller ? [
-                    'id' => $this->seller->id,
-                    'shop_name' => $this->seller->shop_name ?? $this->seller->name ?? 'فروشگاه',
-                    'slug' => $this->seller->slug,
-                    'avatar' => $this->seller->avatar,
-                    'rating' => (float) ($this->seller->seller_rating ?? 0),
-                    'is_verified' => $this->seller->seller_verified_at !== null,
-                    'products_count' => (int) ($this->seller->products_count ?? 0),
-                    'total_sales' => (float) ($this->seller->total_sales ?? 0),
-                ] : null;
+                // استفاده از whenLoaded به جای loadMissing برای جلوگیری از N+1
+                // وقتی seller از قبل eager-load شده باشد، از همان استفاده می‌شود
+                return $this->whenLoaded('seller', function () {
+                    return $this->seller ? [
+                        'id' => $this->seller->id,
+                        'shop_name' => $this->seller->shop_name ?? $this->seller->name ?? 'فروشگاه',
+                        'slug' => $this->seller->slug,
+                        'avatar' => $this->seller->avatar,
+                        'rating' => (float) ($this->seller->seller_rating ?? 0),
+                        'is_verified' => $this->seller->seller_verified_at !== null,
+                        'products_count' => (int) ($this->seller->products_count ?? 0),
+                        'total_sales' => (float) ($this->seller->total_sales ?? 0),
+                    ] : null;
+                });
             }),
 
             'brand' => $this->whenLoaded('brand', function () {
