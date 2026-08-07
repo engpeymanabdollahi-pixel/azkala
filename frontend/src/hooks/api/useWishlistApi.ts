@@ -86,7 +86,7 @@ export function useWishlistApi() {
       }
       
       // بررسی خطای 409 - محصول قبلاً در لیست بوده
-      const axiosError = error as any;
+      const axiosError = error as { response?: { status?: number; data?: { code?: string; message?: string } } };
       const errorCode = axiosError.response?.data?.code;
       const errorMessage = axiosError.response?.data?.message;
       

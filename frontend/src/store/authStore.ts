@@ -44,8 +44,8 @@ export const useAuthStore = create<AuthState>()(
         // ✅ اصلاح امنیتی: حذف localStorage.setItem('token', ...)
         // توکن فقط در حافظه Zustand می‌ماند و توسط apiClient خوانده می‌شود.
         
-        if (response.user?.role === 'seller' && (response as any).seller) {
-          set({ seller: (response as any).seller });
+        if (response.user?.role === 'seller' && 'seller' in response) {
+          set({ seller: response.seller as Seller });
         }
 
         try {
@@ -60,11 +60,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { authService } = await import('@/services/api/auth.service');
           await authService.logout();
-        } catch (error: any) {
+        } catch (error) {
           const isAuthError = 
-            error.response?.status === 401 || 
-            error.message?.includes('No refresh token') ||
-            error.message?.includes('Unauthenticated');
+            (error as { response?: { status?: number } }).response?.status === 401 || 
+            (error as { message?: string }).message?.includes('No refresh token') ||
+            (error as { message?: string }).message?.includes('Unauthenticated');
 
           if (!isAuthError) {
             console.error('Unexpected logout error:', error);

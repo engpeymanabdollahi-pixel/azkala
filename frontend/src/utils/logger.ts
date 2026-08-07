@@ -22,7 +22,7 @@ class Logger {
     return this.enabledLevels.has(level);
   }
 
-  private formatMessage(level: LogLevel, message: string, ...args: unknown[]): string {
+  private formatMessage(level: LogLevel, message: string, ..._args: unknown[]): string {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
     return `${prefix} ${message}`;
@@ -60,11 +60,14 @@ class Logger {
   /**
    * Send error to external tracking service (e.g., Sentry)
    */
-  private sendToErrorTracking(message: string, args: unknown[]): void {
+  private sendToErrorTracking(message: string, _args: unknown[]): void {
     // Placeholder for Sentry or other error tracking integration
     // Example: Sentry.captureException(new Error(message));
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(new Error(message));
+    if (typeof window !== 'undefined') {
+      const win = window as typeof window & { Sentry?: { captureException: (error: Error) => void } };
+      if (win.Sentry) {
+        win.Sentry.captureException(new Error(message));
+      }
     }
   }
 
