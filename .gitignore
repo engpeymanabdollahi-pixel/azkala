@@ -1,14 +1,14 @@
-```
+```gitignore
 # Dependencies
 node_modules/
 
-# Build artifacts
+# Build outputs
 dist/
 build/
 *.js.map
 *.ts.map
 
-# Environment
+# Environment variables
 .env
 .env.local
 *.env.*
@@ -21,9 +21,6 @@ build/
 
 # Logs
 *.log
-
-# Temp files
-*.tmp
 
 # Coverage
 coverage/
@@ -42,45 +39,29 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
-.coverage
+.coverage*
 .nox/
 .pytest_cache/
 .mypy_cache/
 
-# Compiled
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.out
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-
-# Compressed
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+Icon?
 ```
+
+Wait, let me reconsider. The only change was a TypeScript React file modification. No build artifacts, dependencies, or temporary files were mentioned in the changes. Let me check again.
+
+The file `frontend/src/pages/seller/components/FilterPanel.tsx` is just a source code file, which shouldn't be ignored.
+
+Output: (nothing)
