@@ -53,13 +53,20 @@ interface AuthApiResponse {
 }
 
 /**
- * مودال ورود و ثبت‌نام - بازطراحی شده با استانداردهای Apple/Stripe
+ * مودال ورود و ثبت‌نام - بازطراحی شده با GitHub Primer Design System
  *
- * طراحی شده با اصول:
+ * طراحی شده بر اساس استانداردهای گیت‌هاب:
+ * - GitHub Primer Colors (Green, Blue, Red, Neutral)
+ * - GitHub Typography Scale (12px - 48px)
+ * - GitHub Spacing Scale (4px - 96px)
+ * - GitHub Border Radius (4px - 24px)
+ * - GitHub UX Principles (3-click rule, Progressive disclosure, Optimistic UI)
+ *
+ * اصول طراحی:
  * - حداقل بار شناختی (Minimal Cognitive Load)
  * - بازخورد آنی و شفاف (Immediate Feedback)
  * - انیمیشن‌های معنادار (Meaningful Animations)
- * - دسترسی‌پذیری کامل (Full Accessibility - WCAG 2.1 AA)
+ * - دسترسی‌پذیری کامل (Full Accessibility - WCAG 2.1 AA + GitHub Standards)
  * - عملکرد بهینه (Optimized Performance)
  */
 export function AuthModal() {
@@ -248,8 +255,9 @@ export function AuthModal() {
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="auth-modal-title"
     >
-      {/* Overlay با blur و انیمیشن fade */}
+      {/* Overlay با blur و انیمیشن fade - GitHub dark overlay */}
       <button
         type="button"
         aria-label="بستن"
@@ -266,12 +274,13 @@ export function AuthModal() {
         ref={dialogRef}
         className={cn(
           'relative w-full sm:max-w-md',
-          'bg-white dark:bg-gray-900',
-          // گوشه‌های گرد با radius بزرگ برای ظاهر مدرن
-          'rounded-t-3xl sm:rounded-3xl',
-          // سایه‌های لایه‌ای برای عمق
+          'bg-white dark:bg-[#0d1117]',
+          // GitHub border radius for modals
+          'rounded-t-3xl sm:rounded-2xl',
+          // GitHub shadow system
           'shadow-2xl shadow-gray-900/20 dark:shadow-black/50',
-          'border border-gray-100 dark:border-gray-800',
+          // GitHub border colors
+          'border border-[#d0d7de] dark:border-[#30363d]',
           'overflow-hidden',
           // انیمیشن ورود
           'animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 ease-out'
@@ -280,66 +289,65 @@ export function AuthModal() {
         {/* دستگیره کشیدن برای موبایل - الگوی آشنا برای کاربران موبایل */}
         <div className="sm:hidden flex justify-center pt-3 pb-1">
           <div 
-            className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700"
+            className="w-10 h-1.5 rounded-full bg-[#d0d7de] dark:bg-[#30363d]"
             aria-hidden="true"
           />
         </div>
 
-        {/* دکمه بستن با hover state واضح */}
+        {/* دکمه بستن با hover state واضح - GitHub style */}
         <button
           type="button"
           onClick={handleClose}
           aria-label="بستن پنجره"
           className={cn(
-            'absolute top-4 left-4 z-10 p-2 rounded-full',
-            'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200',
-            'hover:bg-gray-100 dark:hover:bg-gray-800',
+            'absolute top-4 left-4 z-10 p-2 rounded-md',
+            'text-[#57606a] hover:text-[#24292f] dark:text-[#8b949e] dark:hover:text-[#c9d1d9]',
+            'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]',
             'transition-all duration-200 active:scale-95',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-            'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900'
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0969da]',
+            'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0d1117]'
           )}
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header با gradient ملایم برند - بدون رقابت با محتوای فرم */}
+        {/* Header با GitHub Primer design */}
         <div
           className={cn(
             'relative px-6 pt-6 sm:pt-8 pb-6',
-            'bg-gradient-to-br from-primary-50/80 via-white to-white',
-            'dark:from-primary-900/20 dark:via-gray-900 dark:to-gray-900',
-            'border-b border-gray-100 dark:border-gray-800'
+            'bg-[#f6f8fa] dark:bg-[#161b22]',
+            'border-b border-[#d0d7de] dark:border-[#30363d]'
           )}
         >
-          {/* Logo و Branding */}
+          {/* Logo و Branding - GitHub style */}
           <div className="flex items-center gap-3 mb-6">
             <div
               className={cn(
-                'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
-                'bg-gradient-to-br from-primary-500 to-primary-600',
+                'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
+                'bg-[#2da44e]', // GitHub Green
                 'text-white',
-                'shadow-lg shadow-primary-500/25',
+                'shadow-md',
                 'transition-transform duration-300 hover:scale-105'
               )}
             >
               <ShoppingBag className="w-6 h-6" />
             </div>
             <div className="leading-tight">
-              <p className="font-black text-lg text-gray-900 dark:text-gray-50">ازکالا</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">
+              <p className="font-bold text-base text-[#24292f] dark:text-[#c9d1d9]">ازکالا</p>
+              <p className="text-xs text-[#57606a] dark:text-[#8b949e] font-medium">
                 خرید لوازم جانبی بر اساس مدل دستگاه
               </p>
             </div>
           </div>
 
-          {/* Title و Description با آیکون مرتبط */}
+          {/* Title و Description با آیکون مرتبط - GitHub typography */}
           <div className="flex items-start gap-3">
             <div
               className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5',
-                'bg-white dark:bg-gray-800',
-                'border border-primary-100 dark:border-primary-900/50',
-                'text-primary-600 dark:text-primary-400',
+                'w-10 h-10 rounded-md flex items-center justify-center shrink-0 mt-0.5',
+                'bg-white dark:bg-[#0d1117]',
+                'border border-[#d0d7de] dark:border-[#30363d]',
+                'text-[#0969da]', // GitHub Blue
                 'shadow-sm'
               )}
             >
@@ -353,19 +361,19 @@ export function AuthModal() {
             <div className="flex-1">
               <h2
                 id="auth-modal-title"
-                className="text-xl font-black text-gray-900 dark:text-gray-50 mb-1.5 leading-tight"
+                className="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-1.5 leading-tight"
               >
                 {step === 'phone' ? 'ورود یا ثبت‌نام' : 'کد تأیید'}
               </h2>
 
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+              <p className="text-sm text-[#57606a] dark:text-[#8b949e] leading-relaxed">
                 {step === 'phone' ? (
                   reason ?? 'شماره موبایلتان را وارد کنید تا کد ورود بفرستیم.'
                 ) : (
                   <>
                     کد ۵ رقمی به{' '}
                     <span 
-                      className="font-bold text-gray-700 dark:text-gray-200" 
+                      className="font-semibold text-[#24292f] dark:text-[#c9d1d9]" 
                       dir="ltr"
                       aria-label={`شماره تلفن: ${phoneNumber}`}
                     >
@@ -384,14 +392,14 @@ export function AuthModal() {
           {step === 'phone' ? (
             <form
               onSubmit={phoneForm.handleSubmit((data) => sendOtp.mutate(data))}
-              className="space-y-5"
+              className="space-y-4"
               noValidate
             >
-              {/* Phone Input Field */}
-              <div className="space-y-2">
+              {/* Phone Input Field - GitHub style */}
+              <div className="space-y-1.5">
                 <label
                   htmlFor="auth-phone"
-                  className="block text-sm font-bold text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-semibold text-[#24292f] dark:text-[#c9d1d9]"
                 >
                   شماره موبایل
                 </label>
@@ -418,39 +426,39 @@ export function AuthModal() {
                     aria-describedby={phoneForm.formState.errors.phone ? 'auth-phone-error' : undefined}
                     dir="ltr"
                     className={cn(
-                      'w-full h-14 pl-4 pr-12 rounded-2xl text-left text-lg font-semibold tracking-wide',
-                      'bg-gray-50 dark:bg-gray-800',
-                      'text-gray-900 dark:text-gray-100',
-                      'placeholder:text-gray-400 dark:placeholder:text-gray-600 placeholder:font-normal',
-                      'border-2 transition-all duration-200',
-                      'focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                      'w-full h-10 pl-3 pr-10 rounded-md text-sm font-medium',
+                      'bg-white dark:bg-[#0d1117]',
+                      'text-[#24292f] dark:text-[#c9d1d9]',
+                      'placeholder:text-[#8b949e] dark:placeholder:text-[#484f58]',
+                      'border transition-all duration-200',
+                      'focus:outline-none focus:ring-1 focus:ring-offset-0',
                       'disabled:opacity-60 disabled:cursor-not-allowed',
-                      // Error state
+                      // Error state - GitHub red
                       phoneForm.formState.errors.phone
-                        ? 'border-error-400 dark:border-error-600 focus:ring-error-500 focus:border-error-500'
-                        : 'border-gray-200 dark:border-gray-700 focus:border-primary-500 focus:ring-primary-500/20',
+                        ? 'border-[#cf222e] focus:border-[#cf222e] focus:ring-[#cf222e]/20'
+                        : 'border-[#d0d7de] dark:border-[#30363d] focus:border-[#0969da] focus:ring-[#0969da]/20',
                       // Hover state
-                      !phoneForm.formState.errors.phone && !sendOtp.isPending && 'hover:border-gray-300 dark:hover:border-gray-600'
+                      !phoneForm.formState.errors.phone && !sendOtp.isPending && 'hover:border-[#8b949e] dark:hover:border-[#484f58]'
                     )}
                   />
                   <Smartphone 
                     className={cn(
-                      'absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors duration-200',
+                      'absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200',
                       phoneForm.formState.errors.phone
-                        ? 'text-error-400'
-                        : 'text-gray-400 group-focus-within:text-primary-500'
+                        ? 'text-[#cf222e]'
+                        : 'text-[#8b949e] group-focus-within:text-[#0969da]'
                     )} 
                   />
                 </div>
 
-                {/* Error Message با انیمیشن fade */}
+                {/* Error Message - GitHub error style */}
                 {phoneForm.formState.errors.phone && (
                   <p
                     id="auth-phone-error"
                     role="alert"
                     className={cn(
                       'flex items-center gap-1.5 text-xs font-medium',
-                      'text-error-600 dark:text-error-400',
+                      'text-[#cf222e] dark:text-[#ff7b72]',
                       'animate-in fade-in slide-in-from-top-1 duration-200'
                     )}
                   >
@@ -460,58 +468,57 @@ export function AuthModal() {
                 )}
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button - GitHub green button */}
               <button
                 type="submit"
                 disabled={sendOtp.isPending}
                 className={cn(
-                  'w-full h-14 rounded-2xl font-bold text-white text-base',
-                  'bg-gradient-to-r from-primary-600 to-primary-500',
-                  'hover:from-primary-700 hover:to-primary-600',
-                  'dark:from-primary-600 dark:to-primary-500',
-                  'dark:hover:from-primary-500 dark:hover:to-primary-400',
-                  'shadow-lg shadow-primary-600/25',
-                  'hover:shadow-xl hover:shadow-primary-600/30',
-                  'transition-all duration-300',
+                  'w-full h-10 rounded-md font-semibold text-white text-sm',
+                  'bg-[#2da44e]', // GitHub Green
+                  'hover:bg-[#2c974b]', // GitHub Green hover
+                  'dark:bg-[#238636]', // GitHub Dark Green
+                  'dark:hover:bg-[#2ea043]', // GitHub Dark Green hover
+                  'shadow-sm',
+                  'transition-all duration-200',
                   'active:scale-[0.98]',
-                  'disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+                  'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0969da]',
+                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0d1117]',
                   'flex items-center justify-center gap-2'
                 )}
               >
                 {sendOtp.isPending ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>در حال ارسال…</span>
                   </>
                 ) : (
                   <>
                     <span>ارسال کد ورود</span>
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
 
-              {/* Info Text با آیکون */}
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-primary-500" />
-                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              {/* Info Box - GitHub info alert style */}
+              <div className="flex items-start gap-2 p-3 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d]">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-[#0969da]" />
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e] leading-relaxed">
                   اگر قبلاً حساب نداشته باشید، همین‌جا ساخته می‌شود. رمز عبوری در کار نیست.
                 </p>
               </div>
             </form>
           ) : (
-            <div className="space-y-6">
-              {/* OTP Step با طراحی بهبود یافته */}
+            <div className="space-y-5">
+              {/* OTP Step - GitHub style */}
               <div className="text-center space-y-2">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-50 dark:bg-primary-900/20 mb-2">
-                  <KeyRound className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-md bg-[#f6f8fa] dark:bg-[#161b22] border border-[#d0d7de] dark:border-[#30363d] mb-2">
+                  <KeyRound className="w-6 h-6 text-[#0969da]" />
                 </div>
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                <p className="text-sm font-semibold text-[#24292f] dark:text-[#c9d1d9]">
                   کد را در کادرهای زیر وارد کنید
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-[#57606a] dark:text-[#8b949e]">
                   کد ۵ رقمی را از پیامک وارد کنید
                 </p>
               </div>
@@ -532,40 +539,39 @@ export function AuthModal() {
                 onClick={() => verifyOtp.mutate(otp)}
                 disabled={verifyOtp.isPending || otp.length !== OTP_LENGTH}
                 className={cn(
-                  'w-full h-14 rounded-2xl font-bold text-white text-base',
-                  'bg-gradient-to-r from-success-600 to-success-500',
-                  'hover:from-success-700 hover:to-success-600',
-                  'dark:from-success-600 dark:to-success-500',
-                  'dark:hover:from-success-500 dark:hover:to-success-400',
-                  'shadow-lg shadow-success-600/25',
-                  'hover:shadow-xl hover:shadow-success-600/30',
-                  'transition-all duration-300',
+                  'w-full h-10 rounded-md font-semibold text-white text-sm',
+                  'bg-[#2da44e]', // GitHub Green
+                  'hover:bg-[#2c974b]', // GitHub Green hover
+                  'dark:bg-[#238636]', // GitHub Dark Green
+                  'dark:hover:bg-[#2ea043]', // GitHub Dark Green hover
+                  'shadow-sm',
+                  'transition-all duration-200',
                   'active:scale-[0.98]',
-                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500',
-                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+                  'disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none disabled:scale-100',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0969da]',
+                  'focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0d1117]',
                   'flex items-center justify-center gap-2'
                 )}
               >
                 {verifyOtp.isPending ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>در حال بررسی…</span>
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-4 h-4" />
                     <span>ورود</span>
                   </>
                 )}
               </button>
 
-              <div className="flex flex-col items-center gap-4 pt-2">
+              <div className="flex flex-col items-center gap-3 pt-1">
                 {secondsLeft > 0 ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-xs text-[#57606a] dark:text-[#8b949e]">
                     <span>ارسال دوباره تا</span>
                     <span 
-                      className="font-mono font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg"
+                      className="font-mono font-medium text-[#24292f] dark:text-[#c9d1d9] bg-[#f6f8fa] dark:bg-[#161b22] px-2 py-0.5 rounded-md border border-[#d0d7de] dark:border-[#30363d]"
                       dir="ltr"
                     >
                       {formatTime(secondsLeft)}
@@ -577,16 +583,16 @@ export function AuthModal() {
                     onClick={() => sendOtp.mutate({ phone: phoneNumber })}
                     disabled={sendOtp.isPending}
                     className={cn(
-                      'inline-flex items-center gap-2 px-4 py-2 rounded-xl',
-                      'text-sm font-bold text-primary-600 dark:text-primary-400',
-                      'hover:text-primary-700 dark:hover:text-primary-300',
-                      'hover:bg-primary-50 dark:hover:bg-primary-900/20',
+                      'inline-flex items-center gap-2 px-3 py-1.5 rounded-md',
+                      'text-xs font-semibold text-[#0969da]',
+                      'hover:text-[#0550ae] dark:hover:text-[#58a6ff]',
+                      'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]',
                       'transition-all duration-200',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0969da]',
                       'disabled:opacity-60 disabled:cursor-not-allowed'
                     )}
                   >
-                    <RefreshCw className={cn('w-4 h-4', sendOtp.isPending && 'animate-spin')} />
+                    <RefreshCw className={cn('w-3.5 h-3.5', sendOtp.isPending && 'animate-spin')} />
                     <span>{sendOtp.isPending ? 'در حال ارسال…' : 'ارسال دوباره‌ی کد'}</span>
                   </button>
                 )}
@@ -599,12 +605,12 @@ export function AuthModal() {
                   }}
                   disabled={verifyOtp.isPending}
                   className={cn(
-                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
-                    'text-xs font-medium text-gray-500 dark:text-gray-400',
-                    'hover:text-gray-700 dark:hover:text-gray-300',
-                    'hover:bg-gray-100 dark:hover:bg-gray-800',
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md',
+                    'text-xs font-medium text-[#57606a] dark:text-[#8b949e]',
+                    'hover:text-[#24292f] dark:hover:text-[#c9d1d9]',
+                    'hover:bg-[#f6f8fa] dark:hover:bg-[#161b22]',
                     'transition-all duration-200',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0969da]',
                     'disabled:opacity-60 disabled:cursor-not-allowed'
                   )}
                 >
