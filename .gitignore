@@ -1,48 +1,49 @@
 ```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
 # Dependencies
+vendor/
 node_modules/
+composer.lock
 
-# Build artifacts
-dist/
-build/
-*.js.map
-*.tsbuildinfo
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
 
-# Environment variables
+# Environment
 .env
 .env.local
-*.env.*
+.env.*
 
-# IDE files
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# Logs
-*.log
+# Laravel/Lumen specific
+bootstrap/cache/
+storage/logs/
+storage/framework/
+public/storage/
 
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
-
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Temporary files
-*.tmp
-*.temp
+# Database
+*.sqlite
+*.db
 
 # OS generated files
 .DS_Store
 Thumbs.db
-
-# Testing
-.nyc_output/
-coverage/
-junit.xml
 ```
