@@ -153,6 +153,15 @@ public function isWishlisted($productId)
 {
     return $this->wishlists()->where('product_id', $productId)->exists();
 }
+
+/**
+ * Get all product alerts for this user
+ */
+public function alerts()
+{
+    return $this->hasMany(ProductAlert::class);
+}
+
 public function isOnline(): bool
 {
     return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) < 5;

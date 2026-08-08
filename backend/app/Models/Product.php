@@ -146,4 +146,12 @@ public function isWishlistedBy($userId)
 {
     return $this->wishlists()->where('user_id', $userId)->exists();
 }
+
+/**
+ * Get all product alerts for this product
+ */
+public function alerts()
+{
+    return $this->hasMany(ProductAlert::class);
+}
 }
