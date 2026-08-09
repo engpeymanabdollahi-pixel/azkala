@@ -1,41 +1,84 @@
-```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
-
 # Dependencies
-vendor/
 node_modules/
-composer.lock
+vendor/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
+# npm در جای اشتباه اجرا شده: پروژه فقط یک package.json دارد، در frontend/.
+# تا الان دو بار lockfile سرگردان وارد شده — یکی در ریشه، یکی در backend/ که
+# اصلاً پروژه‌ی PHP است.
+/package.json
+/package-lock.json
+backend/package.json
+backend/package-lock.json
 
-# Environment
+# Build outputs
+frontend/dist/
+frontend/build/
+
+# Environment files
 .env
 .env.local
 .env.*
+.env.*.local
+.env.testing
+backend/.env
+backend/.env.testing
 
-# Editors
+# Backup files
+*.bak
+*.backup
+
+# Discovery/dump reports (generated locally, never commit)
+/tree.txt
+/*-structure.txt
+/*-key-files.txt
+/*-files.txt
+/*-routes.txt
+/*-routes-list.txt
+/*-migrations-status.txt
+/*-models.txt
+/*-controllers.txt*
+/*-layouts.txt*
+/*-services.txt
+/*-stores.txt
+/project-structure.txt
+/collect_data.ps1.txt
+/docker-compose.yml.txt
+backend/*-tree.txt
+backend/composer-packages.txt
+backend/json_output.txt
+backend/middleware.txt
+backend/routes.txt
+backend/routes_before.txt
+backend/routes_after.txt
+frontend/*-tree.txt
+frontend/npm-audit.txt
+frontend/npm-packages.txt
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Laravel/Lumen specific
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+backend/storage/logs/*.log
+
+# Cache
+.phpunit.result.cache
+.phpunit.cache
+backend/bootstrap/cache/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
 bootstrap/cache/
-storage/logs/
 storage/framework/
 public/storage/
 
@@ -43,7 +86,14 @@ public/storage/
 *.sqlite
 *.db
 
-# OS generated files
-.DS_Store
-Thumbs.db
-```
+# Testing
+coverage/
+.nyc_output/
+backend/coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Laragon specific
+laragon/
