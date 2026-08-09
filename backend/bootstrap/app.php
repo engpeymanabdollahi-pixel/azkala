@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Middleware برای بروزرسانی last_seen
         $middleware->append(\App\Http\Middleware\UpdateLastSeen::class);
 
+        // هدرهای امنیتی پایه (X-Frame-Options، X-Content-Type-Options و…) روی همه‌ی پاسخ‌ها
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
         // ✅ اضافه کردن middleware های Stateful و CORS به گروه api
         $middleware->appendToGroup('api', [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
