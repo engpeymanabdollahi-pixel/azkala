@@ -151,9 +151,7 @@ export interface DeviceNewsWidgetProps {
   className?: string;
 }
 
-export interface MagazinePageProps {
-  // props اگر لازم شد
-}
+export type MagazinePageProps = Record<string, never>;
 
 // ==================== Query Params Types ====================
 
