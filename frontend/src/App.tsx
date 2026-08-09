@@ -102,6 +102,8 @@ const TermsPage = lazy(() => import('@/pages/TermsPage'));
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'));
 const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage'));
 const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage'));
+const MagazinePage = lazy(() => import('@/pages/MagazinePage'));
+const MagazineArticlePage = lazy(() => import('@/pages/MagazinePage/ArticlePage'));
 
 // ==========================================
 // کامپوننت محافظت از روت‌ها (Protected Route)
@@ -285,6 +287,8 @@ export default function App() {
               <Route path="/help" element={<HelpPage />} />
               <Route path="/guarantee" element={<GuaranteePage />} />
               <Route path="/terms" element={<TermsPage />} />
+              <Route path="/magazine" element={<MagazinePage />} />
+              <Route path="/magazine/:slug" element={<MagazineArticlePage />} />
               
               {/* ✅ روت صفحه عمومی فروشگاه (با هدر و فوتر اصلی سایت) */}
               <Route path="/seller/:slug" element={<SellerPage />} />
