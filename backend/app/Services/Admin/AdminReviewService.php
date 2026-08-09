@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\Review;
 use App\Repositories\AdminReviewRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
 class AdminReviewService
@@ -37,7 +38,7 @@ class AdminReviewService
                 'stats' => $stats,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminReviewService@getReviews: ' . $e->getMessage());
+            Log::error('AdminReviewService@getReviews: '.$e->getMessage());
             throw new \Exception('خطا در دریافت نظرات', 500);
         }
     }
@@ -49,16 +50,17 @@ class AdminReviewService
     {
         try {
             $review = $this->repository->findOrFail($id);
-            
+
             $validStatuses = ['pending', 'approved', 'rejected'];
-            if (!in_array($status, $validStatuses)) {
+            if (! in_array($status, $validStatuses)) {
                 throw new \Exception('وضعیت نامعتبر است', 422);
             }
 
             $this->repository->update($review, ['status' => $status]);
+
             return true;
         } catch (\Exception $e) {
-            Log::error('AdminReviewService@updateStatus: ' . $e->getMessage());
+            Log::error('AdminReviewService@updateStatus: '.$e->getMessage());
             throw $e;
         }
     }
@@ -79,8 +81,10 @@ class AdminReviewService
             ]);
 
             return true;
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('AdminReviewService@replyToReview: ' . $e->getMessage());
+            Log::error('AdminReviewService@replyToReview: '.$e->getMessage());
             throw new \Exception('خطا در ثبت پاسخ', 500);
         }
     }
@@ -104,7 +108,7 @@ class AdminReviewService
                 'message' => $messages[$action] ?? 'عملیات انجام شد',
             ];
         } catch (\Exception $e) {
-            Log::error('AdminReviewService@bulkAction: ' . $e->getMessage());
+            Log::error('AdminReviewService@bulkAction: '.$e->getMessage());
             throw new \Exception('خطا در عملیات', 500);
         }
     }
@@ -116,9 +120,12 @@ class AdminReviewService
     {
         try {
             $review = $this->repository->findOrFail($id);
+
             return $this->repository->delete($review);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('AdminReviewService@deleteReview: ' . $e->getMessage());
+            Log::error('AdminReviewService@deleteReview: '.$e->getMessage());
             throw new \Exception('خطا در حذف', 500);
         }
     }

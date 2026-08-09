@@ -89,6 +89,19 @@ class AdminReviewApiTest extends TestCase
         ]);
     }
 
+    /**
+     * ✅ قبلاً AdminReviewService::replyToReview داخل catch(\Exception) عمومی
+     * ModelNotFoundException را می‌گرفت و به یک Exception(500) عمومی تبدیل
+     * می‌کرد.
+     */
+    public function test_admin_cannot_reply_to_nonexistent_review(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/admin/reviews/9999/reply', ['reply' => 'متشکریم']);
+
+        $response->assertStatus(404);
+    }
+
     public function test_admin_can_bulk_approve_reviews(): void
     {
         $reviews = Review::factory()->count(3)->create(['status' => 'pending']);
@@ -111,6 +124,17 @@ class AdminReviewApiTest extends TestCase
 
         $response->assertStatus(200)->assertJsonPath('success', true);
         $this->assertSoftDeleted('reviews', ['id' => $review->id]);
+    }
+
+    /**
+     * ✅ همان الگوی رفع‌شده در replyToReview: deleteReview هم
+     * ModelNotFoundException را به یک Exception(500) عمومی تبدیل می‌کرد.
+     */
+    public function test_admin_cannot_delete_nonexistent_review(): void
+    {
+        $response = $this->actingAs($this->admin)->deleteJson('/api/v1/admin/reviews/9999');
+
+        $response->assertStatus(404);
     }
 
     public function test_admin_can_filter_reviews_by_status(): void

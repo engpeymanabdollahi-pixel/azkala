@@ -12,12 +12,13 @@ class BrandApiTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected User $customer;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->customer = User::factory()->create(['role' => 'customer']);
     }
@@ -140,7 +141,6 @@ class BrandApiTest extends TestCase
 
         $response = $this->actingAs($this->admin)
             ->getJson("/api/v1/admin/brands/{$brand->id}"); // ✅ اصلاح شد
-            dump($response->getContent()); // این خط را اضافه کنید
 
         $response->assertStatus(200)
             ->assertJsonPath('data.brand.id', $brand->id)
@@ -152,7 +152,7 @@ class BrandApiTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->getJson('/api/v1/admin/brands/9999');
 
-        $this->assertTrue(in_array($response->status(), [404, 500]));
+        $response->assertStatus(404);
     }
 
     // ==================== Create Brand Tests ====================
@@ -205,7 +205,7 @@ class BrandApiTest extends TestCase
 
     // ==================== Update Brand Tests ====================
 
-   public function test_admin_can_update_brand(): void
+    public function test_admin_can_update_brand(): void
     {
         $brand = Brand::factory()->create(['name' => 'Old Name']);
 
@@ -222,6 +222,12 @@ class BrandApiTest extends TestCase
         ]);
     }
 
+    /**
+     * ✅ قبلاً AdminBrandService::updateBrand داخل catch(\Exception) عمومی
+     * ModelNotFoundException را می‌گرفت و به یک Exception(500) عمومی تبدیل
+     * می‌کرد — این تست قبلاً هم 404 هم 500 را قبول می‌کرد که در واقع
+     * وجود باگ را مستند می‌کرد، نه رفتار درست را.
+     */
     public function test_admin_cannot_update_nonexistent_brand(): void
     {
         $response = $this->actingAs($this->admin)
@@ -229,12 +235,12 @@ class BrandApiTest extends TestCase
                 'name' => 'New Name',
             ]);
 
-        $this->assertTrue(in_array($response->status(), [404, 500]));
+        $response->assertStatus(404);
     }
 
     // ==================== Delete Brand Tests ====================
 
-        public function test_admin_can_delete_brand(): void
+    public function test_admin_can_delete_brand(): void
     {
         $brand = Brand::factory()->create(['products_count' => 0]);
 
@@ -246,7 +252,7 @@ class BrandApiTest extends TestCase
         $this->assertSoftDeleted('brands', ['id' => $brand->id]);
     }
 
-     public function test_admin_cannot_delete_brand_with_products(): void
+    public function test_admin_cannot_delete_brand_with_products(): void
     {
         $brand = Brand::factory()->create(['products_count' => 5]);
 
@@ -284,6 +290,26 @@ class BrandApiTest extends TestCase
 
         $brand->refresh();
         $this->assertNull($brand->verified_at);
+    }
+
+    /**
+     * ✅ همان الگوی رفع‌شده: verifyBrand/unverifyBrand هم ModelNotFoundException
+     * را داخل catch(\Exception) عمومی می‌گرفتند و به 500 تبدیل می‌کردند.
+     */
+    public function test_admin_cannot_verify_nonexistent_brand(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/admin/brands/9999/verify');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_admin_cannot_unverify_nonexistent_brand(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->postJson('/api/v1/admin/brands/9999/unverify');
+
+        $response->assertStatus(404);
     }
 
     // ==================== Bulk Action Tests ====================

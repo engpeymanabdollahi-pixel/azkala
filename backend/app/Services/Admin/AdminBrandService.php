@@ -4,9 +4,9 @@ namespace App\Services\Admin;
 
 use App\Models\Brand;
 use App\Repositories\AdminBrandRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException; // ✅ این خط را اضافه کنید
-
 
 class AdminBrandService
 {
@@ -41,12 +41,12 @@ class AdminBrandService
                 'countries' => $countries,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@getBrands: ' . $e->getMessage());
+            Log::error('AdminBrandService@getBrands: '.$e->getMessage());
             throw new \Exception('خطا در دریافت برندها', 500);
         }
     }
 
-            /**
+    /**
      * Get brand details with series and models
      */
     public function getBrandDetails(int $id): array
@@ -90,7 +90,7 @@ class AdminBrandService
             // Remove empty fields
             foreach ($data as $key => $value) {
                 if ($value === '' || $value === null) {
-                    if (!in_array($key, ['description', 'logo', 'country', 'website',
+                    if (! in_array($key, ['description', 'logo', 'country', 'website',
                         'meta_title', 'meta_description', 'meta_keywords',
                         'social_media', 'gallery', 'primary_color', 'secondary_color',
                         'founded_year'])) {
@@ -109,8 +109,8 @@ class AdminBrandService
 
             return $this->repository->create($data);
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@createBrand: ' . $e->getMessage());
-            throw new \Exception('خطا در ایجاد برند: ' . $e->getMessage(), 500);
+            Log::error('AdminBrandService@createBrand: '.$e->getMessage());
+            throw new \Exception('خطا در ایجاد برند: '.$e->getMessage(), 500);
         }
     }
 
@@ -138,9 +138,15 @@ class AdminBrandService
             }
 
             return $this->repository->update($brand, $data);
+        } catch (ModelNotFoundException $e) {
+            // ✅ قبلاً اینجا داخل catch(\Exception) عمومی گیر می‌افتاد و به یک
+            // Exception(500) عمومی تبدیل می‌شد — یعنی به‌روزرسانی برند ناموجود
+            // به‌جای پاسخ تمیز ۴۰۴ (که هندلر سراسری در bootstrap/app.php برای
+            // ModelNotFoundException می‌دهد)، ۵۰۰ برمی‌گرداند.
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@updateBrand: ' . $e->getMessage());
-            throw new \Exception('خطا در به‌روزرسانی برند: ' . $e->getMessage(), 500);
+            Log::error('AdminBrandService@updateBrand: '.$e->getMessage());
+            throw new \Exception('خطا در به‌روزرسانی برند: '.$e->getMessage(), 500);
         }
     }
 
@@ -153,7 +159,7 @@ class AdminBrandService
 
         $canDelete = $this->repository->canDelete($brand);
 
-        if (!$canDelete['can_delete']) {
+        if (! $canDelete['can_delete']) {
             // ✅ پرتاب استثنا استاندارد HTTP برای بازگشت کد 400
             throw new BadRequestHttpException($canDelete['reason']);
         }
@@ -168,9 +174,12 @@ class AdminBrandService
     {
         try {
             $brand = $this->repository->findOrFail($id);
+
             return $this->repository->verify($brand);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@verifyBrand: ' . $e->getMessage());
+            Log::error('AdminBrandService@verifyBrand: '.$e->getMessage());
             throw new \Exception('خطا در تأیید برند', 500);
         }
     }
@@ -182,9 +191,12 @@ class AdminBrandService
     {
         try {
             $brand = $this->repository->findOrFail($id);
+
             return $this->repository->unverify($brand);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@unverifyBrand: ' . $e->getMessage());
+            Log::error('AdminBrandService@unverifyBrand: '.$e->getMessage());
             throw new \Exception('خطا در لغو تأیید برند', 500);
         }
     }
@@ -210,7 +222,7 @@ class AdminBrandService
                 'message' => $messages[$action] ?? 'عملیات انجام شد',
             ];
         } catch (\Exception $e) {
-            Log::error('AdminBrandService@bulkAction: ' . $e->getMessage());
+            Log::error('AdminBrandService@bulkAction: '.$e->getMessage());
             throw new \Exception('خطا در عملیات گروهی', 500);
         }
     }

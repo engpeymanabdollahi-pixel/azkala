@@ -30,7 +30,6 @@ class RouteActionsExistTest extends TestCase
         'GET|HEAD api/v1/chat/conversations/{conversation}/suggestions',
         'POST api/v1/chat/conversations/{conversation}/suggest',
         'GET|HEAD api/v1/chat/conversations/{conversation}/sentiment',
-        'POST api/v1/chat/online-status',
         'GET|HEAD api/v1/admin/advanced-reports/chat-analytics',
     ];
 

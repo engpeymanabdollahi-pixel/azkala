@@ -9,9 +9,10 @@ use App\Repositories\ProductRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProductService
 {
@@ -30,7 +31,7 @@ class ProductService
                 $filters->per_page
             );
         } catch (\Exception $e) {
-            Log::error('ProductService@getProducts: ' . $e->getMessage());
+            Log::error('ProductService@getProducts: '.$e->getMessage());
             throw $e;
         }
     }
@@ -45,8 +46,13 @@ class ProductService
         try {
             $product = $this->productRepository->findBySlug($slug);
 
-            if (!$product) {
-                throw new \Exception('محصول یافت نشد', 404);
+            if (! $product) {
+                // ✅ قبلاً یک \Exception ساده با کد 404 پرتاب می‌شد؛ لاراول
+                // HttpExceptionInterface را برای تعیین کد HTTP بررسی می‌کند، نه
+                // getCode() یک Exception عادی را — یعنی هر اسلاگ ناموجود
+                // (چه از کاربر واقعی، چه از کراولر) به‌جای ۴۰۴ تمیز، ۵۰۰
+                // می‌گرفت (دقیقاً چیزی که در لاگ‌های واقعی ثبت شده بود).
+                throw new NotFoundHttpException('محصول یافت نشد');
             }
 
             // ✅ این خط حیاتی را اضافه کنید
@@ -67,12 +73,12 @@ class ProductService
                 $sellerData = [
                     'id' => $product->seller->id,
                     'shop_name' => $product->seller->shop_name ?? $product->seller->name ?? 'فروشنده ازکالا',
-                                        'slug' => $product->seller->slug, // ✅ این خط حیاتی را اضافه کنید
+                    'slug' => $product->seller->slug, // ✅ این خط حیاتی را اضافه کنید
                     'slug' => $product->seller->slug, // ✅ این خط حیاتی را اضافه کنید
                     'user_id' => $product->seller->id,
                     'rating' => (float) ($product->seller->seller_rating ?? 0),
                     'badge' => $product->seller->seller_badge ?? null,
-                    'is_verified' => !is_null($product->seller->seller_verified_at),
+                    'is_verified' => ! is_null($product->seller->seller_verified_at),
                     'total_sales' => $product->seller->total_sales ?? 0,
                     'products_count' => $product->seller->products_count ?? 0,
                     'bio' => $product->seller->bio ?? '',
@@ -106,15 +112,19 @@ class ProductService
                 'related_products' => $relatedProductsData,
             ];
 
+        } catch (NotFoundHttpException $e) {
+            // اسلاگ ناموجود یک خطای واقعی سرور نیست (کاربر لینک قدیمی زده یا
+            // کراولر اسلاگ اشتباه خوانده)؛ نباید هر بار لاگ ERROR اسپم کند.
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('ProductService@getProductBySlug: ' . $e->getMessage());
+            Log::error('ProductService@getProductBySlug: '.$e->getMessage());
             throw $e;
         }
     }
 
     public function getFeaturedProducts(int $limit = 10)
     {
-        return Cache::remember('featured_products_' . $limit, 3600, function () use ($limit) {
+        return Cache::remember('featured_products_'.$limit, 3600, function () use ($limit) {
             return Product::where('is_featured', true)
                 ->where('is_active', true)
                 // images و seller هم لازم‌اند چون ProductResource می‌خواندشان.
@@ -140,8 +150,8 @@ class ProductService
         try {
             // ✅ بررسی وجود مدل در جدول جدید device_models
             $model = DeviceModel::with('series.brand')->find($modelId);
-            
-            if (!$model) {
+
+            if (! $model) {
                 throw new \Exception('مدل گوشی یافت نشد', 404);
             }
 
@@ -156,7 +166,7 @@ class ProductService
             ];
 
         } catch (\Exception $e) {
-            Log::error('ProductService@getCompatibleProducts: ' . $e->getMessage());
+            Log::error('ProductService@getCompatibleProducts: '.$e->getMessage());
             throw $e;
         }
     }
@@ -171,7 +181,7 @@ class ProductService
         return $this->productRepository->getUserPurchasedProducts($userId, $perPage);
     }
 
-       /**
+    /**
      * ✅ اصلاح شده: دریافت مدل‌های سازگار با محصول (بدون ستون logo که وجود ندارد)
      */
     protected function getCompatibleModels(int $productId): \Illuminate\Support\Collection
@@ -183,7 +193,7 @@ class ProductService
         // خود join گذاشته شده تا اگر سری/برند حذف نرم شده باشد، مدل همچنان
         // برگردانده شود (با مقدار null) نه اینکه کل ردیف حذف شود.
         return DB::table('device_models')
-            ->join($pivotTable, 'device_models.id', '=', $pivotTable . '.device_model_id')
+            ->join($pivotTable, 'device_models.id', '=', $pivotTable.'.device_model_id')
             ->leftJoin('device_series', function ($join) {
                 $join->on('device_models.series_id', '=', 'device_series.id')
                     ->whereNull('device_series.deleted_at');
@@ -193,7 +203,7 @@ class ProductService
                     ->whereNull('device_brands.deleted_at');
             })
             ->whereNull('device_models.deleted_at')
-            ->where($pivotTable . '.product_id', $productId)
+            ->where($pivotTable.'.product_id', $productId)
             ->select(
                 'device_models.id',
                 'device_models.name',

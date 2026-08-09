@@ -7,6 +7,7 @@ use App\Services\Chat\ChatService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
 {
@@ -23,9 +24,11 @@ class ChatController extends Controller
             $userId = $request->user()->id;
             $filter = $request->get('filter', 'all');
             $conversations = $this->chatService->getUserConversations($userId, $filter);
+
             return response()->json(['success' => true, 'data' => $conversations]);
         } catch (\Exception $e) {
-            Log::error('ChatController@index: ' . $e->getMessage());
+            Log::error('ChatController@index: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'خطا در دریافت مکالمات'], 500);
         }
     }
@@ -47,11 +50,13 @@ class ChatController extends Controller
             }
 
             $conversation = $this->chatService->startConversation($userId, $sellerId, $productId);
+
             return response()->json(['success' => true, 'data' => $conversation]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {
-            Log::error('ChatController@startConversation: ' . $e->getMessage());
+            Log::error('ChatController@startConversation: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -62,9 +67,11 @@ class ChatController extends Controller
             $userId = $request->user()->id;
             $perPage = (int) $request->get('per_page', 50);
             $messages = $this->chatService->getMessages((int) $conversationId, $userId, $perPage);
+
             return response()->json(['success' => true, 'data' => $messages]);
         } catch (\Exception $e) {
-            Log::error('ChatController@getMessages: ' . $e->getMessage());
+            Log::error('ChatController@getMessages: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -96,7 +103,8 @@ class ChatController extends Controller
                 'data' => $message,
             ]);
         } catch (\Exception $e) {
-            Log::error('ChatController@sendMessage: ' . $e->getMessage());
+            Log::error('ChatController@sendMessage: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -128,9 +136,35 @@ class ChatController extends Controller
         try {
             $userId = $request->user()->id;
             $this->chatService->deleteConversation((int) $conversationId, $userId);
+
             return response()->json(['success' => true, 'message' => 'مکالمه حذف شد']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * وضعیت آنلاین/آخرین بازدید تعدادی از کاربران (طرف مقابل مکالمات).
+     * منطقش از قبل در ChatService::getOnlineStatuses بود و فقط همین
+     * سیم‌کشی کنترلر کم بود، برای همین روت ۵۰۰ می‌داد.
+     */
+    public function getOnlineStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'integer',
+        ]);
+
+        try {
+            $statuses = $this->chatService->getOnlineStatuses(array_map('intval', $validated['user_ids']));
+
+            return response()->json(['success' => true, 'data' => $statuses]);
+        } catch (ValidationException $e) {
+            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (\Exception $e) {
+            Log::error('ChatController@getOnlineStatus: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'خطا در دریافت وضعیت آنلاین'], 500);
         }
     }
 }

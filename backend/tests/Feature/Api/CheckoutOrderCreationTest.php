@@ -118,4 +118,23 @@ class CheckoutOrderCreationTest extends TestCase
         $this->assertDatabaseCount('orders', 0);
         $this->assertEquals(1, $product->fresh()->stock);
     }
+
+    /**
+     * ✅ قبلاً محصولات هنگام بررسی موجودی بدون lockForUpdate خوانده
+     * می‌شدند — یعنی دو سفارش همزمان برای آخرین واحد موجودی می‌توانستند
+     * هر دو از بررسی «موجودی کافی است» عبور کنند و stock منفی شود.
+     * تست همزمانی واقعی نیازمند ابزار جداگانه (چند اتصال/فرآیند) است؛
+     * این تست تضمین می‌کند که خودِ رفع باگ (قفل ردیف) در کد باقی می‌ماند
+     * و به‌صورت ناخواسته در بازنویسی‌های بعدی حذف نمی‌شود.
+     */
+    public function test_stock_check_locks_the_product_row_to_prevent_overselling(): void
+    {
+        $source = file_get_contents(app_path('Services/Order/OrderService.php'));
+
+        $this->assertStringContainsString(
+            'lockForUpdate()',
+            $source,
+            'validateAndPrepareItems باید محصولات را با lockForUpdate بخواند تا از فروش بیش از موجودی جلوگیری شود.'
+        );
+    }
 }

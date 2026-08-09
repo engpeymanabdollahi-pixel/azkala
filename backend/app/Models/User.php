@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -15,7 +16,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'shop_name',
-         'slug',               // ✅ اضافه شد
+        'slug',               // ✅ اضافه شد
         'banner',             // ✅ اضافه شد
         'followers_count',    // ✅ اضافه ش
         'email',
@@ -54,7 +55,7 @@ class User extends Authenticatable
         'seller_rating' => 'decimal:2',
         'total_sales' => 'decimal:2',
         'products_count' => 'integer',
-        'last_seen_at' => 'datetime',   
+        'last_seen_at' => 'datetime',
 
     ];
 
@@ -79,44 +80,44 @@ class User extends Authenticatable
     {
         return $this->hasOne(SellerRequest::class);
     }
-// Relations جدید
-public function sellerRatings()
-{
-    return $this->hasMany(SellerRating::class, 'seller_id');
-}
 
-// ✅ اضافه شد — برای شمارش واقعیِ سفارشاتی که آیتم‌هایی از این فروشنده
-// دارند (همان الگویی که SellerService::getSellerOrdersStats با
-// OrderItem::where('seller_id', ...) پیاده‌سازی کرده، اینجا هم لازم بود).
-public function orderItems()
-{
-    return $this->hasMany(OrderItem::class, 'seller_id');
-}
+    // Relations جدید
+    public function sellerRatings()
+    {
+        return $this->hasMany(SellerRating::class, 'seller_id');
+    }
 
-public function givenSellerRatings()
-{
-    return $this->hasMany(SellerRating::class, 'user_id');
-}
+    // ✅ اضافه شد — برای شمارش واقعیِ سفارشاتی که آیتم‌هایی از این فروشنده
+    // دارند (همان الگویی که SellerService::getSellerOrdersStats با
+    // OrderItem::where('seller_id', ...) پیاده‌سازی کرده، اینجا هم لازم بود).
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'seller_id');
+    }
 
-// محاسبه میانگین امتیاز فروشنده
-public function getAverageSellerRating()
-{
-    return $this->sellerRatings()->avg('overall_rating') ?? 0;
-}
+    public function givenSellerRatings()
+    {
+        return $this->hasMany(SellerRating::class, 'user_id');
+    }
 
-// بررسی آیا کاربر می‌تواند به این فروشنده امتیاز دهد
-public function canRateSeller($sellerId, $orderId)
-{
-    return Order::where('id', $orderId)
-        ->where('user_id', $this->id)
-        ->where('status', 'delivered')
-        ->where('payment_status', 'paid')
-        ->whereDoesntHave('sellerRating', function($q) use ($sellerId) {
-            $q->where('seller_id', $sellerId);
-        })
-        ->exists();
-}
+    // محاسبه میانگین امتیاز فروشنده
+    public function getAverageSellerRating()
+    {
+        return $this->sellerRatings()->avg('overall_rating') ?? 0;
+    }
 
+    // بررسی آیا کاربر می‌تواند به این فروشنده امتیاز دهد
+    public function canRateSeller($sellerId, $orderId)
+    {
+        return Order::where('id', $orderId)
+            ->where('user_id', $this->id)
+            ->where('status', 'delivered')
+            ->where('payment_status', 'paid')
+            ->whereDoesntHave('sellerRating', function ($q) use ($sellerId) {
+                $q->where('seller_id', $sellerId);
+            })
+            ->exists();
+    }
 
     // ==================== Scopes ====================
 
@@ -144,160 +145,177 @@ public function canRateSeller($sellerId, $orderId)
     {
         return $query->where('is_active', false);
     }
-public function wishlists()
-{
-    return $this->hasMany(Wishlist::class);
-}
 
-public function isWishlisted($productId)
-{
-    return $this->wishlists()->where('product_id', $productId)->exists();
-}
-
-/**
- * Get all product alerts for this user
- */
-public function alerts()
-{
-    return $this->hasMany(ProductAlert::class);
-}
-
-public function isOnline(): bool
-{
-    return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) < 5;
-}
-
-public function getLastSeenFormatted(): string
-{
-    if (!$this->last_seen_at) {
-        return 'نامشخص';
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
     }
-    
-    $minutes = $this->last_seen_at->diffInMinutes(now());
-    
-    if ($minutes < 1) return 'همین الان';
-    if ($minutes < 60) return "{$minutes} دقیقه پیش";
-    
-    $hours = $this->last_seen_at->diffInHours(now());
-    if ($hours < 24) return "{$hours} ساعت پیش";
-    
-    $days = $this->last_seen_at->diffInDays(now());
-    if ($days < 7) return "{$days} روز پیش";
-    
-    return $this->last_seen_at->format('Y/m/d');
-}
-public function blockedUsers()
-{
-    return $this->hasMany(BlockedUser::class);
-}
 
-public function blockedBy()
-{
-    return $this->hasMany(BlockedUser::class, 'blocked_user_id');
-}
+    public function isWishlisted($productId)
+    {
+        return $this->wishlists()->where('product_id', $productId)->exists();
+    }
 
-public function chatReports()
-{
-    return $this->hasMany(ChatReport::class, 'reporter_id');
-}
+    /**
+     * Get all product alerts for this user
+     */
+    public function alerts()
+    {
+        return $this->hasMany(ProductAlert::class);
+    }
 
-public function reportedIn()
-{
-    return $this->hasMany(ChatReport::class, 'reported_user_id');
-}
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) < 5;
+    }
 
-public function isBlocked($userId): bool
-{
-    return $this->blockedUsers()->where('blocked_user_id', $userId)->exists();
-}
+    public function getLastSeenFormatted(): string
+    {
+        if (! $this->last_seen_at) {
+            return 'نامشخص';
+        }
 
-public function blockUser($userId, $reason = null)
-{
-    return BlockedUser::firstOrCreate([
-        'user_id' => $this->id,
-        'blocked_user_id' => $userId,
-    ], ['reason' => $reason]);
-}
+        // ✅ diffInMinutes/diffInHours/diffInDays در Carbon مقدار float برمی‌گردانند
+        // (مثلاً 2.0028573666667) — قبلاً مستقیم داخل رشته جاگذاری می‌شد و برای
+        // هر کاربری که ۱ تا ۵۹ دقیقه پیش آنلاین بوده، متنی مثل
+        // «2.0028573666667 دقیقه پیش» به‌جای «۲ دقیقه پیش» نمایش داده می‌شد.
+        $minutes = (int) floor($this->last_seen_at->diffInMinutes(now()));
 
-public function unblockUser($userId)
-{
-    return BlockedUser::where('user_id', $this->id)
-        ->where('blocked_user_id', $userId)
-        ->delete();
-}
-/**
- * مکالمات به عنوان خریدار
- */
-public function conversationsAsBuyer()
-{
-    return $this->hasMany(Conversation::class, 'buyer_id');
-}
+        if ($minutes < 1) {
+            return 'همین الان';
+        }
+        if ($minutes < 60) {
+            return "{$minutes} دقیقه پیش";
+        }
 
-/**
- * مکالمات به عنوان فروشنده
- */
-public function conversationsAsSeller()
-{
-    return $this->hasMany(Conversation::class, 'seller_id');
-}
+        $hours = (int) floor($this->last_seen_at->diffInHours(now()));
+        if ($hours < 24) {
+            return "{$hours} ساعت پیش";
+        }
 
-/**
- * احساسات پیام‌های کاربر
- */
-public function sentiments()
-{
-    return $this->hasManyThrough(
-        MessageSentiment::class,
-        Message::class,
-        'sender_id', // Foreign key on messages table
-        'message_id', // Foreign key on message_sentiments table
-        'id', // Local key on users table
-        'id' // Local key on messages table
-    );
-}
+        $days = (int) floor($this->last_seen_at->diffInDays(now()));
+        if ($days < 7) {
+            return "{$days} روز پیش";
+        }
 
-/**
- * گزارش‌های ثبت شده علیه این کاربر
- */
-public function reported()
-{
-    return $this->hasMany(ChatReport::class, 'reported_user_id');
-}
-/**
- * تیکت‌های اختصاص داده شده به این کاربر
- */
-public function assignedTickets()
-{
-    return $this->hasMany(SupportTicket::class, 'assigned_to');
-}
+        return $this->last_seen_at->format('Y/m/d');
+    }
 
-/**
- * تیکت‌های ایجاد شده توسط این کاربر
- */
-public function createdTickets()
-{
-    return $this->hasMany(SupportTicket::class, 'user_id');
-}
-/**
- * رابطه یک‌به‌یک با سبد خرید
- */
-public function cart()
-{
-    return $this->hasOne(\App\Models\Cart::class);
-}
+    public function blockedUsers()
+    {
+        return $this->hasMany(BlockedUser::class);
+    }
+
+    public function blockedBy()
+    {
+        return $this->hasMany(BlockedUser::class, 'blocked_user_id');
+    }
+
+    public function chatReports()
+    {
+        return $this->hasMany(ChatReport::class, 'reporter_id');
+    }
+
+    public function reportedIn()
+    {
+        return $this->hasMany(ChatReport::class, 'reported_user_id');
+    }
+
+    public function isBlocked($userId): bool
+    {
+        return $this->blockedUsers()->where('blocked_user_id', $userId)->exists();
+    }
+
+    public function blockUser($userId, $reason = null)
+    {
+        return BlockedUser::firstOrCreate([
+            'user_id' => $this->id,
+            'blocked_user_id' => $userId,
+        ], ['reason' => $reason]);
+    }
+
+    public function unblockUser($userId)
+    {
+        return BlockedUser::where('user_id', $this->id)
+            ->where('blocked_user_id', $userId)
+            ->delete();
+    }
+
+    /**
+     * مکالمات به عنوان خریدار
+     */
+    public function conversationsAsBuyer()
+    {
+        return $this->hasMany(Conversation::class, 'buyer_id');
+    }
+
+    /**
+     * مکالمات به عنوان فروشنده
+     */
+    public function conversationsAsSeller()
+    {
+        return $this->hasMany(Conversation::class, 'seller_id');
+    }
+
+    /**
+     * احساسات پیام‌های کاربر
+     */
+    public function sentiments()
+    {
+        return $this->hasManyThrough(
+            MessageSentiment::class,
+            Message::class,
+            'sender_id', // Foreign key on messages table
+            'message_id', // Foreign key on message_sentiments table
+            'id', // Local key on users table
+            'id' // Local key on messages table
+        );
+    }
+
+    /**
+     * گزارش‌های ثبت شده علیه این کاربر
+     */
+    public function reported()
+    {
+        return $this->hasMany(ChatReport::class, 'reported_user_id');
+    }
+
+    /**
+     * تیکت‌های اختصاص داده شده به این کاربر
+     */
+    public function assignedTickets()
+    {
+        return $this->hasMany(SupportTicket::class, 'assigned_to');
+    }
+
+    /**
+     * تیکت‌های ایجاد شده توسط این کاربر
+     */
+    public function createdTickets()
+    {
+        return $this->hasMany(SupportTicket::class, 'user_id');
+    }
+
+    /**
+     * رابطه یک‌به‌یک با سبد خرید
+     */
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
     // ==================== Storefront Relationships ====================
-    
+
     public function followers()
     {
         return $this->belongsToMany(User::class, 'seller_follows', 'seller_id', 'user_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 
     public function followingSellers()
     {
         return $this->belongsToMany(User::class, 'seller_follows', 'user_id', 'seller_id')
-                    ->where('role', 'seller')
-                    ->withTimestamps();
+            ->where('role', 'seller')
+            ->withTimestamps();
     }
 
     public function isFollowingSeller($sellerId)
@@ -325,13 +343,14 @@ public function cart()
      */
     public static function generateUniqueSlug(string $base, ?int $excludeId = null): string
     {
-        $baseSlug = \Illuminate\Support\Str::slug($base) ?: 'shop-' . ($excludeId ?? uniqid());
+        $baseSlug = Str::slug($base) ?: 'shop-'.($excludeId ?? uniqid());
         $slug = $baseSlug;
         $count = 1;
         while (static::where('slug', $slug)->where('id', '!=', $excludeId ?? 0)->exists()) {
-            $slug = $baseSlug . '-' . $count;
+            $slug = $baseSlug.'-'.$count;
             $count++;
         }
+
         return $slug;
     }
 
@@ -347,7 +366,7 @@ public function cart()
             // نبود، وقتی بعداً finalApproveRequest واقعاً shop_name را پر
             // می‌کرد، این شرط (چون slug دیگر خالی نیست) دوباره اجرا نمی‌شد
             // و اسلاگ همیشه «shop-» بی‌معنی می‌ماند.
-            if ($user->isDirty('shop_name') && !empty($user->shop_name) && !$user->slug) {
+            if ($user->isDirty('shop_name') && ! empty($user->shop_name) && ! $user->slug) {
                 $user->slug = static::generateUniqueSlug($user->shop_name, $user->id);
             }
         });

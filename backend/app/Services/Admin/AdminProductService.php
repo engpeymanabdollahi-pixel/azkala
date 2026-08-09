@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\Product;
 use App\Repositories\AdminProductRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 
 class AdminProductService
@@ -51,6 +52,11 @@ class AdminProductService
             $product = $this->repository->findOrFail($id);
 
             return $this->repository->quickUpdate($product, $data);
+        } catch (ModelNotFoundException $e) {
+            // ✅ قبلاً اینجا داخل catch(\Exception) عمومی گیر می‌افتاد و به یک
+            // Exception(500) عمومی تبدیل می‌شد؛ اکنون هندلر سراسری در
+            // bootstrap/app.php آن را به پاسخ تمیز ۴۰۴ تبدیل می‌کند.
+            throw $e;
         } catch (\Exception $e) {
             Log::error('AdminProductService@quickUpdate: '.$e->getMessage());
             throw new \Exception('خطا در به‌روزرسانی: '.$e->getMessage(), 500);
@@ -92,6 +98,8 @@ class AdminProductService
             $product = $this->repository->findOrFail($id);
 
             return $this->repository->delete($product);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('AdminProductService@deleteProduct: '.$e->getMessage());
             throw new \Exception('خطا در حذف', 500);
@@ -113,6 +121,8 @@ class AdminProductService
                 'last_30_days' => $last30Days,
                 'performance_score' => $performanceScore,
             ];
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('AdminProductService@getProductStats: '.$e->getMessage());
             throw new \Exception('خطا', 500);

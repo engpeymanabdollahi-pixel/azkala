@@ -5,8 +5,10 @@ namespace App\Services\Order;
 use App\DTOs\Order\CreateOrderDTO;
 use App\Events\Order\OrderCreated;
 use App\Exceptions\OutOfStockException;
+use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Product;
+use App\Models\SellerTransaction;
 use App\Models\User;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
@@ -19,6 +21,7 @@ use Illuminate\Support\Str;
 class OrderService
 {
     protected OrderRepository $orderRepository;
+
     protected ProductRepository $productRepository;
 
     public function __construct(
@@ -38,17 +41,17 @@ class OrderService
     {
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
-        if (!$order) {
+        if (! $order) {
             throw new \Exception('سفارش یافت نشد', 404);
         }
 
         return $this->formatOrderData($order);
     }
 
-                public function createOrder(CreateOrderDTO $dto): Model
+    public function createOrder(CreateOrderDTO $dto): Model
     {
         $errors = $dto->validate();
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             throw new \Exception(implode(', ', $errors), 422);
         }
 
@@ -60,7 +63,7 @@ class OrderService
             // ✅ دریافت اطلاعات آدرس برای ذخیره در shipping_address (JSON)
             $addressData = [];
             if ($dto->address_id) {
-                $address = \App\Models\Address::find($dto->address_id);
+                $address = Address::find($dto->address_id);
                 if ($address) {
                     $addressData = [
                         'id' => $address->id,
@@ -96,7 +99,7 @@ class OrderService
             $this->clearUserCart($dto->user_id);
 
             Log::info("Order created: {$orderNumber} for user {$dto->user_id}");
-            
+
             OrderCreated::dispatch($order);
 
             return $order;
@@ -169,11 +172,11 @@ class OrderService
     {
         $order = $this->orderRepository->getOrderWithDetails($orderId, $userId);
 
-        if (!$order) {
+        if (! $order) {
             throw new \Exception('سفارش یافت نشد', 404);
         }
 
-        if (!in_array($order->status, ['pending', 'processing'])) {
+        if (! in_array($order->status, ['pending', 'processing'])) {
             throw new \Exception('این سفارش قابل لغو نیست', 400);
         }
 
@@ -192,20 +195,31 @@ class OrderService
         return $this->orderRepository->getUserStats($userId);
     }
 
-       protected function validateAndPrepareItems(array $items): array
+    protected function validateAndPrepareItems(array $items): array
     {
         $validatedItems = [];
         $productIds = array_column($items, 'product_id');
-        
-        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+        // ✅ قبلاً محصولات بدون lockForUpdate خوانده می‌شدند؛ هر دو
+        // فراخوان این متد (createOrder/createOrderFromCart) داخل
+        // DB::transaction هستند اما بدون قفل ردیف، دو سفارش همزمان برای
+        // آخرین واحد موجودی هر دو از بررسی «موجودی کافی است» عبور
+        // می‌کردند و stock منفی می‌شد (Race Condition واقعی، نه فرضی).
+        // orderBy('id') هم برای جلوگیری از Deadlock هنگام قفل چند محصول
+        // در سفارش‌های همزمان با ترتیب متفاوت است.
+        $products = Product::whereIn('id', $productIds)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
 
         foreach ($items as $item) {
             $product = $products->get($item['product_id']);
 
-            if (!$product) {
+            if (! $product) {
                 throw new \Exception("محصول با شناسه {$item['product_id']} یافت نشد", 404);
             }
-            if (!$product->is_active) {
+            if (! $product->is_active) {
                 throw new \Exception("محصول {$product->name} دیگر فعال نیست", 400);
             }
             if ($product->stock < $item['quantity']) {
@@ -244,13 +258,13 @@ class OrderService
             $itemTotal = $item['price'] * $item['quantity'];
             $subtotal += $itemTotal;
 
-            if (!empty($item['discount_percentage'])) {
+            if (! empty($item['discount_percentage'])) {
                 $discount += ($itemTotal * $item['discount_percentage']) / 100;
             }
         }
 
         $afterDiscount = $subtotal - $discount;
-        
+
         // ✅ اصلاح تایپو: azkla -> azkala
         $freeShippingThreshold = (float) config('azkala.free_shipping_threshold', 500000);
         $defaultShippingCost = (float) config('azkala.default_shipping_cost', 50000);
@@ -272,20 +286,20 @@ class OrderService
     protected function generateOrderNumber(): string
     {
         do {
-            $orderNumber = 'AZK-' . strtoupper(Str::random(8));
+            $orderNumber = 'AZK-'.strtoupper(Str::random(8));
             $exists = $this->orderRepository->findBy('order_number', $orderNumber);
         } while ($exists);
 
         return $orderNumber;
     }
 
-       protected function updateProductStock(array $items): void
+    protected function updateProductStock(array $items): void
     {
         foreach ($items as $item) {
             // ✅ اصلاح: استفاده مستقیم از کلاس Product به جای getModel()
             Product::where('id', $item['product_id'])
                 ->decrement('stock', $item['quantity']);
-            
+
             Product::where('id', $item['product_id'])
                 ->increment('sales_count', $item['quantity']);
         }
@@ -346,17 +360,21 @@ class OrderService
         DB::beginTransaction();
         try {
             foreach ($sellerItems as $sellerId => $items) {
-                if (!$sellerId) continue;
+                if (! $sellerId) {
+                    continue;
+                }
 
                 $seller = User::find($sellerId);
-                if (!$seller || $seller->role !== 'seller') continue;
+                if (! $seller || $seller->role !== 'seller') {
+                    continue;
+                }
 
                 $commissionRate = (float) ($seller->seller_commission_rate ?? $defaultCommissionRate);
-                $sellerOrderTotal = $items->sum(fn($item) => $item->price * $item->quantity);
+                $sellerOrderTotal = $items->sum(fn ($item) => $item->price * $item->quantity);
                 $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
                 $netAmount = $sellerOrderTotal - $commissionAmount;
 
-                \App\Models\SellerTransaction::create([
+                SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
                     'type' => 'commission_deduction',
@@ -365,7 +383,7 @@ class OrderService
                     'status' => 'completed',
                 ]);
 
-                \App\Models\SellerTransaction::create([
+                SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
                     'type' => 'payout',
@@ -381,7 +399,7 @@ class OrderService
             Log::info("Commission processed for order {$order->order_number}");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('خطا در پردازش کمیسیون: ' . $e->getMessage());
+            Log::error('خطا در پردازش کمیسیون: '.$e->getMessage());
             throw $e;
         }
     }
@@ -398,19 +416,23 @@ class OrderService
         DB::beginTransaction();
         try {
             foreach ($sellerItems as $sellerId => $items) {
-                if (!$sellerId) continue;
+                if (! $sellerId) {
+                    continue;
+                }
 
                 $seller = User::find($sellerId);
-                if (!$seller) continue;
+                if (! $seller) {
+                    continue;
+                }
 
                 $commissionRate = (float) ($seller->seller_commission_rate ?? $defaultCommissionRate);
-                $sellerOrderTotal = $items->sum(fn($item) => $item->price * $item->quantity);
+                $sellerOrderTotal = $items->sum(fn ($item) => $item->price * $item->quantity);
                 $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
                 $netAmount = $sellerOrderTotal - $commissionAmount;
 
                 $seller->increment('wallet_balance', $netAmount);
 
-                \App\Models\SellerTransaction::create([
+                SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
                     'type' => 'final_payout',
@@ -425,7 +447,7 @@ class OrderService
             Log::info("تسویه حساب نهایی سفارش {$order->order_number} با موفقیت انجام شد.");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('خطا در پردازش تسویه حساب نهایی: ' . $e->getMessage());
+            Log::error('خطا در پردازش تسویه حساب نهایی: '.$e->getMessage());
             throw $e;
         }
     }
