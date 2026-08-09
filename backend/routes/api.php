@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\UserDeviceController;
 use App\Http\Controllers\Api\UserTicketController;
 use App\Http\Controllers\Api\WishlistController;
 use App\Http\Controllers\Api\ProductAlertController;
+use App\Http\Controllers\Api\MagazineController;
+use App\Http\Controllers\Api\AdminMagazineController;
 
 // چت
 use App\Http\Controllers\Api\ChatController;
@@ -138,6 +140,23 @@ Route::prefix('v1')->group(function () {
           // ==========================================
     // مسیر عمومی دریافت تنظیمات ظاهری سایت (بدون نیاز به لاگین)
     // ==========================================
+    // ============================================================
+    // مجله ازکالا (Magazine) - Public endpoints
+    // ============================================================
+    Route::prefix('magazine')->name('magazine.')->group(function () {
+        // این routes باید قبل از {slug} باشند تا تداخل نکنند
+        Route::get('/featured', [MagazineController::class, 'featured'])->name('featured');
+        Route::get('/stats', [MagazineController::class, 'stats'])->name('stats');
+        Route::get('/category/{category}', [MagazineController::class, 'byCategory'])->name('category');
+        Route::get('/device/{modelId}/news', [MagazineController::class, 'deviceNews'])->name('device.news');
+        
+        // لیست مقالات (با pagination و فیلترها)
+        Route::get('/', [MagazineController::class, 'index'])->name('index');
+        
+        // جزئیات مقاله (باید آخر باشد چون {slug} همه چیز را match می‌کند)
+        Route::get('/{slug}', [MagazineController::class, 'show'])->name('show');
+    });
+
     Route::get('/site-settings', function () {
         try {
             $keys = [
@@ -483,6 +502,29 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::post('/{id}/verify', [AdminBrandController::class, 'verify'])->name('verify');       // ✅ تغییر به {id}
                 Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify'); // ✅ تغییر به {id}
                 Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
+            });
+
+            // ============================================================
+            // مدیریت مجله ازکالا (Admin Magazine)
+            // ============================================================
+            Route::prefix('magazine')->name('magazine.')->group(function () {
+                // این routes باید قبل از {article} باشند
+                Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
+                Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
+                
+                // لیست همه مقالات (شامل unpublished)
+                Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
+                
+                // ایجاد مقاله جدید
+                Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
+                
+                // جزئیات، ویرایش، حذف
+                Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
+                Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
+                Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
+                
+                // انتشار سریع
+                Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
             });
 
             Route::prefix('products')->name('products.')->group(function () {

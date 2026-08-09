@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -15,20 +16,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // تنظیم redirect برای کاربران غیر وارد شده
         $middleware->redirectUsersTo('/auth');
-        
+
         // Middleware برای بروزرسانی last_seen
         $middleware->append(\App\Http\Middleware\UpdateLastSeen::class);
-        
-        // ❌ حذف شده: $middleware->throttleApi();
-        // دلیل: این دستور در مرحله package:discover باعث خطای Facade می‌شود
-        // Rate limiting همچنان کار می‌کند چون در routes/api.php اعمال شده است
-        
-        // ✅ اضافه کردن میدلورهای Stateful و CORS به گروه api
+
+        // ✅ اضافه کردن middleware های Stateful و CORS به گروه api
         $middleware->appendToGroup('api', [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
-        
+
         // Middleware برای دسترسی ادمین
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminRole::class,
@@ -44,10 +41,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
-        
-        // رکورد پیدا نشد → ۴۰۴ (نه ۵۰۰). سرویس‌ها برای اعمال مالکیت از الگوی
-        // where('user_id', $userId)->firstOrFail() استفاده می‌کنند، پس «متعلق به
-        // کاربر دیگر» هم از همین مسیر می‌آید و نباید به‌صورت خطای سرور ظاهر شود.
+
+        // رکورد پیدا نشد → ۴۰۴ (نه ۵۰۰).
         $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -77,4 +72,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 429);
             }
         });
-    })->create();
+    })
+    // ==================== Scheduler ====================
+    ->withSchedule(function (Schedule $schedule) {
+        // جمع‌آوری اخبار فارسی - هر ۱ ساعت
+        $schedule->command('app:fetch-persian-news')
+                 ->hourly()
+                 ->withoutOverlapping()      // جلوگیری از اجرای همزمان
+                 ->runInBackground()         // اجرا در background
+                 ->name('fetch-persian-news')
+                 ->evenInMaintenanceMode();  // حتی در حالت maintenance هم اجرا شود
+        
+        // پاکسازی مقالات قدیمی (اختیاری) - هر روز ساعت ۳ صبح
+        // $schedule->call(function () {
+        //     \App\Models\MagazineArticle::where('published_at', '<', now()->subDays(90))
+        //         ->where('view_count', '<', 10)
+        //         ->forceDelete();
+        // })->dailyAt('03:00')->name('cleanup-old-articles');
+    })
+    ->create();

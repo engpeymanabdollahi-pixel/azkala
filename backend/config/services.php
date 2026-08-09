@@ -59,4 +59,15 @@ return [
         'api_key' => env('GHASEDAK_API_KEY'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | News Aggregation Services
+    |--------------------------------------------------------------------------
+    */
+
+    'newsdata' => [
+        'api_key' => env('NEWSDATA_API_KEY'),
+        'enabled' => env('NEWSDATA_ENABLED', false),
+    ],
+
 ];
