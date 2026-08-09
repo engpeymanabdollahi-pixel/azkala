@@ -40,6 +40,7 @@ import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi'; // ✅ تغییر به useWishlistApi
+import { ProductAlertButton } from '@/components/features/ProductAlertButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
@@ -854,6 +855,14 @@ export function ProductDetailPage() {
                 >
                   <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
                 </Button>
+                {/* ✅ دکمه هشدار محصول - خارج از دکمه Heart */}
+                {product && (
+                  <ProductAlertButton
+                    product={product}
+                    size="md"
+                    variant="icon"
+                  />
+                )}
               </div>
 
               <div className="flex items-center gap-2 p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800">

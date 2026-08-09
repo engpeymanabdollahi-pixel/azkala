@@ -142,7 +142,7 @@ export function Header() {
   return (
     <>
       <header className={cn(
-        "sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 transition-all duration-300",
+        "sticky top-0 z-[60] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 transition-all duration-300",
         isScrolled && scrollDirection === 'down' && 'shadow-lg',
         isScrolled && 'py-2',
         !isScrolled && 'py-0',

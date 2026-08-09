@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SellerRequestController;
 
+
 // کاربر
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\CartController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\UserDeviceController;
 use App\Http\Controllers\Api\UserTicketController;
 use App\Http\Controllers\Api\WishlistController;
+use App\Http\Controllers\Api\ProductAlertController;
 
 // چت
 use App\Http\Controllers\Api\ChatController;
@@ -217,7 +219,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
             Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
             Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
-            
+
             // لیست فروشندگان دنبال‌شده
             Route::get('/followed-sellers', [\App\Http\Controllers\Api\PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
         });
@@ -257,6 +259,16 @@ Route::prefix('v1')->group(function () {
             Route::delete('/{productId}', [WishlistController::class, 'destroy'])->name('destroy');
             Route::get('/check/{productId}', [WishlistController::class, 'check'])->name('check');
         });
+                  // 🚨 Product Alerts
+          Route::prefix('alerts')->name('alerts.')->group(function () {
+              Route::get('/', [ProductAlertController::class, 'index'])->name('index');
+              Route::post('/', [ProductAlertController::class, 'store'])->name('store');
+              Route::delete('/{alert}', [ProductAlertController::class, 'destroy'])->name('destroy');
+              Route::patch('/{alert}/toggle', [ProductAlertController::class, 'toggle'])->name('toggle');
+          });
+
+          Route::get('/products/{product}/alert-status', [ProductAlertController::class, 'status'])
+              ->name('products.alert-status');
 
         Route::prefix('addresses')->name('addresses.')->group(function () {
             Route::get('/', [AddressController::class, 'index'])->name('index');

@@ -529,6 +529,36 @@ export interface ReturnRequest {
   created_at: string;
   updated_at: string;
 }
+// ==================== Product Alerts ====================
+
+export type AlertType = 'restock' | 'price_drop' | 'target_price';
+export type AlertChannel = 'database' | 'email';
+
+export interface ProductAlert {
+  id: number;
+  user_id: number;
+  product_id: number;
+  type: AlertType;
+  target_price?: number;
+  discount_percentage?: number; // ✅ جدید: درصد تخفیف برای price_drop
+  original_price: number;
+  is_active: boolean;
+  is_triggered: boolean;
+  triggered_at?: string;
+  channels: AlertChannel[];
+  product?: Product;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+}
+
+export interface AlertStatusResponse {
+  has_alert: boolean;
+  alerts: ProductAlert[];
+  restock_alert: boolean;
+  price_drop_alert: boolean;
+  target_price_alert: boolean;
+}
 
 // ==================== API Helpers (Optional) ====================
 

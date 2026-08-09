@@ -1,0 +1,569 @@
+﻿src/components/admin/widgets/ChatStatsWidget.tsx(34,13): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/admin/widgets/ChatStatsWidget.tsx(82,11): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/admin/widgets/RecentChatActivityWidget.tsx(41,13): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/admin/widgets/RecentChatActivityWidget.tsx(73,11): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/admin/widgets/SentimentWidget.tsx(34,13): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/admin/widgets/SentimentWidget.tsx(84,11): error TS2322: Type '{ children: Element[]; variant: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/components/auth/AuthModal.tsx(18,3): error TS6133: 'Lock' is declared but its value is never read.
+src/components/auth/AuthModal.tsx(19,3): error TS6133: 'Mail' is declared but its value is never read.
+src/components/auth/AuthModal.tsx(20,3): error TS6133: 'UserPlus' is declared but its value is never read.
+src/components/auth/AuthModal.tsx(22,3): error TS6133: 'Sparkles' is declared but its value is never read.
+src/components/features/ProductCard.tsx(173,15): error TS2322: Type '{ children: string; size: "sm"; onClick: (e: MouseEvent<Element, MouseEvent>) => void; disabled: boolean; leftIcon: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/features/ProductCard.tsx(353,13): error TS2322: Type '{ children: string; size: "sm"; onClick: (e: MouseEvent<Element, MouseEvent>) => void; disabled: boolean; leftIcon: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/layout/SellerLayout.tsx(376,61): error TS2339: Property 'slug' does not exist on type 'User'.
+src/components/seller/RateSellerModal.tsx(193,15): error TS2322: Type '{ children: string; onClick: () => Promise<void>; isLoading: boolean; className: string; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/components/ui/ImageUploader.tsx(1,28): error TS6133: 'useEffect' is declared but its value is never read.
+src/features/admin/components/CrudTable/Checkbox.tsx(21,7): error TS2322: Type 'MouseEventHandler<HTMLInputElement>' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+  Type 'HTMLInputElement' is not assignable to type 'HTMLButtonElement'.
+    Types of property 'labels' are incompatible.
+      Type 'NodeListOf<HTMLLabelElement> | null' is not assignable to type 'NodeListOf<HTMLLabelElement>'.
+        Type 'null' is not assignable to type 'NodeListOf<HTMLLabelElement>'.
+src/features/admin/components/CrudTable/CrudTable.tsx(2,20): error TS6133: 'useMutation' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(8,24): error TS6133: 'Download' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(8,34): error TS6133: 'Trash2' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(8,42): error TS6133: 'Edit' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(8,48): error TS6133: 'Eye' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(212,9): error TS6133: 'totalColumns' is declared but its value is never read.
+src/features/admin/components/CrudTable/CrudTable.tsx(231,37): error TS2322: Type '{ children: string; onClick: () => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/admin/components/CrudTable/CrudTable.tsx(246,13): error TS2322: Type '{ placeholder: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/features/admin/components/CrudTable/CrudTable.tsx(290,17): error TS2322: Type '"primary" | "outline" | "secondary" | "ghost" | "danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/features/admin/components/CrudTable/CrudTable.tsx(385,31): error TS2322: Type '"primary" | "outline" | "secondary" | "ghost" | "danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/features/admin/components/CrudTable/CrudTable.tsx(386,31): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/features/admin/components/CrudTable/Pagination.tsx(55,9): error TS2322: Type '{ children: string; variant: "outline"; size: "sm"; onClick: () => void; disabled: boolean; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/admin/components/CrudTable/Pagination.tsx(67,17): error TS2322: Type '"primary" | "outline"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/features/admin/components/CrudTable/Pagination.tsx(84,9): error TS2322: Type '{ children: string; variant: "outline"; size: "sm"; onClick: () => void; disabled: boolean; rightIcon: Element; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'rightIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/admin/components/CrudTable/Select.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/features/admin/components/ModalForm/ModalForm.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/features/admin/components/ModalForm/ModalForm.tsx(12,8): error TS1149: File name 'C:/laragon/www/azkala/frontend/src/components/ui/dialog.tsx' differs from already included file name 'C:/laragon/www/azkala/frontend/src/components/ui/Dialog.tsx' only in casing.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/laragon/www/azkala/frontend/tsconfig.json'
+    Imported via '@/components/ui/dialog' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/ModalForm/ModalForm.tsx'
+src/features/admin/components/ModalForm/ModalForm.tsx(13,24): error TS1149: File name 'C:/laragon/www/azkala/frontend/src/components/ui/button.tsx' differs from already included file name 'C:/laragon/www/azkala/frontend/src/components/ui/Button.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/features/CartDrawer.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/chat/ChatWidget.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/ErrorBoundary.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/features/ProductCard.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDashboard.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminProductsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/admin/ExportButton.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminOrdersPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminUsersPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminReviewsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminBrandsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/CrudTable/CrudTable.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/CrudTable/Pagination.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminCategoriesPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceBrandsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceSeriesPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceModelsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminChatMonitorPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminSentimentDashboard.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminFaqManagementPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminMessageTemplatesPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminSuggestionManagementPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminChatReportsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminBlocksPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminCouponsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminSettingsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/ProductTemplates.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/components/TemplateCard.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/components/QuickViewModal.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/components/FilterPanel.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/ProfileSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/OrdersSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/seller/RateSellerModal.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/WishlistSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/AddressesSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/DevicesSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/SecuritySection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/NotificationsSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/TicketsSection.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerDashboard.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerProducts.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/ProductFormModal.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/ProductHistoryModal.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerOrders.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerOrderDetailModal.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerOrderDetail.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerPayouts.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/sellerLogin.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/seller/SellerSettings.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/HomePage/index.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/HomePage/components/ProductCardWithQuickView.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProductsPage/components/Toolbar.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProductsPage/components/MobileFilterDrawer.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProductsPage/components/DeviceSelector.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProductsPage/components/ProductGrid.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProductDetailPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/components/CheckoutForm.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/AuthPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/BrandsPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ContactPage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/OrderSuccessPage.tsx'
+    Matched by include pattern 'src' in 'C:/laragon/www/azkala/frontend/tsconfig.json'
+    Imported via '@/components/ui/button' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/ModalForm/ModalForm.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/ProfilePage.tsx'
+    Imported via '@/components/ui/Button' from file 'C:/laragon/www/azkala/frontend/src/pages/WishlistPage.tsx'
+src/features/admin/components/ModalForm/ModalForm.tsx(14,23): error TS1149: File name 'C:/laragon/www/azkala/frontend/src/components/ui/input.tsx' differs from already included file name 'C:/laragon/www/azkala/frontend/src/components/ui/Input.tsx' only in casing.
+  The file is in the program because:
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminBrandsPage.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/CrudTable/CrudTable.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceBrandsPage.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceSeriesPage.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/admin/AdminDeviceModelsPage.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/ProfileSection.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/dashboard/SecuritySection.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/ContactPage.tsx'
+    Matched by include pattern 'src' in 'C:/laragon/www/azkala/frontend/tsconfig.json'
+    Imported via '@/components/ui/input' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/ModalForm/ModalForm.tsx'
+    Imported via '@/components/ui/Input' from file 'C:/laragon/www/azkala/frontend/src/pages/ProfilePage.tsx'
+src/features/admin/components/ModalForm/ModalForm.tsx(15,23): error TS1149: File name 'C:/laragon/www/azkala/frontend/src/components/ui/label.tsx' differs from already included file name 'C:/laragon/www/azkala/frontend/src/components/ui/Label.tsx' only in casing.
+  The file is in the program because:
+    Matched by include pattern 'src' in 'C:/laragon/www/azkala/frontend/tsconfig.json'
+    Imported via '@/components/ui/label' from file 'C:/laragon/www/azkala/frontend/src/features/admin/components/ModalForm/ModalForm.tsx'
+src/features/admin/components/ModalForm/ModalForm.tsx(16,26): error TS2307: Cannot find module '@/components/ui/textarea' or its corresponding type declarations.
+src/features/admin/components/ModalForm/ModalForm.tsx(23,8): error TS2307: Cannot find module '@/components/ui/select' or its corresponding type declarations.
+src/features/admin/components/ModalForm/ModalForm.tsx(24,26): error TS2307: Cannot find module '@/components/ui/checkbox' or its corresponding type declarations.
+src/features/admin/components/ModalForm/ModalForm.tsx(69,5): error TS2322: Type 'Resolver<FieldValues, any, any>' is not assignable to type 'Resolver<output<T>, any, output<T>>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<output<T>>' is not assignable to type 'ResolverOptions<FieldValues>'.
+      Type 'FieldValues' is not assignable to type 'output<T>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(69,27): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(schema: Zod3Type<any, FieldValues>, schemaOptions?: ParseParams | undefined, resolverOptions?: NonRawResolverOptions | undefined): Resolver<...>', gave the following error.
+    Argument of type 'T' is not assignable to parameter of type 'Zod3Type<any, FieldValues>'.
+      Type 'ZodType<any, unknown, $ZodTypeInternals<any, unknown>>' is not assignable to type 'Zod3Type<any, FieldValues>'.
+        Types of property '_input' are incompatible.
+          Type 'unknown' is not assignable to type 'FieldValues'.
+  Overload 2 of 4, '(schema: Zod4Type<unknown, FieldValues>, schemaOptions?: ParseContext<$ZodIssue> | undefined, resolverOptions?: NonRawResolverOptions | undefined): Resolver<...>', gave the following error.
+    Argument of type 'T' is not assignable to parameter of type 'Zod4Type<unknown, FieldValues>'.
+      Type 'ZodType<any, unknown, $ZodTypeInternals<any, unknown>>' is not assignable to type 'Zod4Type<unknown, FieldValues>'.
+        The types of '_zod.input' are incompatible between these types.
+          Type 'unknown' is not assignable to type 'FieldValues'.
+src/features/admin/components/ModalForm/ModalForm.tsx(94,38): error TS2345: Argument of type '(data: z.infer<T>) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type 'output<T>'.
+      Type 'FieldValues' is not assignable to type 'output<T>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(108,34): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Path<output<T>>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(114,34): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Path<output<T>>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(121,34): error TS2345: Argument of type 'string' is not assignable to parameter of type 'Path<output<T>>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(125,21): error TS2322: Type 'string' is not assignable to type 'Path<output<T>>'.
+src/features/admin/components/ModalForm/ModalForm.tsx(147,21): error TS2322: Type 'string' is not assignable to type 'Path<output<T>>'.
+src/features/admin/hooks/useCrudTable.ts(106,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<unknown, Error, unknown, (string | number | Record<string, any>)[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Object literal may only specify known properties, and 'keepPreviousData' does not exist in type 'DefinedInitialDataOptions<unknown, Error, unknown, (string | number | Record<string, any>)[]>'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<CrudTableData<T>, Error, CrudTableData<T>, (string | number | Record<string, any>)[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Object literal may only specify known properties, and 'keepPreviousData' does not exist in type 'UndefinedInitialDataOptions<CrudTableData<T>, Error, CrudTableData<T>, (string | number | Record<string, any>)[]>'.
+  Overload 3 of 3, '(options: UseQueryOptions<CrudTableData<T>, Error, CrudTableData<T>, (string | number | Record<string, any>)[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Object literal may only specify known properties, and 'keepPreviousData' does not exist in type 'UseQueryOptions<CrudTableData<T>, Error, CrudTableData<T>, (string | number | Record<string, any>)[]>'.
+src/features/admin/hooks/useCrudTable.ts(147,21): error TS2339: Property 'data' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(148,33): error TS2339: Property 'data' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(148,42): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/features/admin/hooks/useCrudTable.ts(164,23): error TS2339: Property 'data' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(165,29): error TS2339: Property 'pagination' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(166,24): error TS2339: Property 'stats' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(167,24): error TS2339: Property 'extra' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(195,32): error TS2339: Property 'data' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(196,43): error TS2339: Property 'data' does not exist on type '{}'.
+src/features/admin/hooks/useCrudTable.ts(196,69): error TS2339: Property 'data' does not exist on type '{}'.
+src/hooks/api/useCartApi.ts(31,18): error TS2352: Conversion of type 'import("C:/laragon/www/azkala/frontend/src/services/api/cart.service").Product' to type 'import("C:/laragon/www/azkala/frontend/src/types/models").Product' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Product' is missing the following properties from type 'Product': seller_id, category_id, slug, description, and 6 more.
+src/hooks/api/useWishlistApi.ts(69,16): error TS2339: Property 'alreadyExists' does not exist on type '{ product: Product; isLocal: boolean; }'.
+src/hooks/api/useWishlistApi.ts(70,15): error TS2339: Property 'info' does not exist on type '{ (message: Message, opts?: Partial<Pick<Toast, "id" | "icon" | "duration" | "ariaProps" | "className" | "style" | "position" | "iconTheme" | "toasterId" | "removeDelay">> | undefined): string; ... 8 more ...; promise<T>(promise: Promise<...> | (() => Promise<...>), msgs: { ...; }, opts?: DefaultToastOptions | undef...'.
+src/hooks/api/useWishlistApi.ts(95,15): error TS2339: Property 'info' does not exist on type '{ (message: Message, opts?: Partial<Pick<Toast, "id" | "icon" | "duration" | "ariaProps" | "className" | "style" | "position" | "iconTheme" | "toasterId" | "removeDelay">> | undefined): string; ... 8 more ...; promise<T>(promise: Promise<...> | (() => Promise<...>), msgs: { ...; }, opts?: DefaultToastOptions | undef...'.
+src/hooks/useCategories.ts(3,32): error TS6133: 'Category' is declared but its value is never read.
+src/hooks/useHomeData.ts(87,69): error TS2339: Property 'products' does not exist on type '{ data: Product[]; current_page: number; last_page: number; per_page: number; total: number; }'.
+src/hooks/useHomeData.ts(88,40): error TS2339: Property 'products' does not exist on type '{ data: Product[]; current_page: number; last_page: number; per_page: number; total: number; }'.
+src/hooks/useHomeData.ts(97,69): error TS2339: Property 'data' does not exist on type 'never'.
+src/hooks/useHomeData.ts(98,42): error TS2339: Property 'data' does not exist on type 'never'.
+src/hooks/useHomeData.ts(99,69): error TS2339: Property 'categories' does not exist on type 'never'.
+src/hooks/useHomeData.ts(100,42): error TS2339: Property 'categories' does not exist on type 'never'.
+src/hooks/useHomeData.ts(109,69): error TS2339: Property 'data' does not exist on type 'never'.
+src/hooks/useHomeData.ts(110,38): error TS2339: Property 'data' does not exist on type 'never'.
+src/hooks/useHomeData.ts(111,69): error TS2339: Property 'brands' does not exist on type 'never'.
+src/hooks/useHomeData.ts(112,38): error TS2339: Property 'brands' does not exist on type 'never'.
+src/hooks/useHomeData.ts(117,59): error TS2339: Property 'is_featured' does not exist on type 'Product'.
+src/lib/echo.ts(6,8): error TS2339: Property 'Pusher' does not exist on type 'Window & typeof globalThis'.
+src/lib/echo.ts(12,3): error TS2322: Type 'string | number' is not assignable to type 'number | undefined'.
+  Type 'string' is not assignable to type 'number'.
+src/lib/echo.ts(13,3): error TS2322: Type 'string | number' is not assignable to type 'number | undefined'.
+  Type 'string' is not assignable to type 'number'.
+src/lib/echo.ts(16,51): error TS2322: Type '"eventsource"' is not assignable to type 'Transport'.
+src/lib/echo.ts(16,66): error TS2322: Type '"polling"' is not assignable to type 'Transport'.
+src/lib/echo.ts(18,3): error TS2322: Type '(channel: any, options: any) => { authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => void; }' is not assignable to type 'ChannelAuthorizerGenerator'.
+  Call signature return types '{ authorize: (socketId: string, callback: (error: boolean, data?: any) => void) => void; }' and 'DeprecatedChannelAuthorizer' are incompatible.
+    The types of 'authorize' are incompatible between these types.
+      Type '(socketId: string, callback: (error: boolean, data?: any) => void) => void' is not assignable to type '(socketId: string, callback: ChannelAuthorizationCallback) => void'.
+        Types of parameters 'callback' and 'callback' are incompatible.
+          Types of parameters 'error' and 'error' are incompatible.
+            Type 'boolean' is not assignable to type 'Error'.
+src/lib/echo.ts(18,30): error TS6133: 'options' is declared but its value is never read.
+src/lib/notification.ts(8,61): error TS2551: Property 'webkitAudioContext' does not exist on type 'Window & typeof globalThis'. Did you mean 'AudioContext'?
+src/main.tsx(49,22): error TS2322: Type '({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void; }) => Element' is not assignable to type 'ComponentType<FallbackProps> | undefined'.
+  Type '({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void; }) => Element' is not assignable to type 'FunctionComponent<FallbackProps>'.
+    Types of parameters '__0' and 'props' are incompatible.
+      Type 'FallbackProps' is not assignable to type '{ error: Error; resetErrorBoundary: () => void; }'.
+        Types of property 'error' are incompatible.
+          Type 'unknown' is not assignable to type 'Error'.
+src/pages/admin/AdminBrandsPage.tsx(3,30): error TS6133: 'Plus' is declared but its value is never read.
+src/pages/admin/AdminBrandsPage.tsx(4,43): error TS6133: 'RefreshCw' is declared but its value is never read.
+src/pages/admin/AdminBrandsPage.tsx(12,3): error TS6133: 'adminBrandService' is declared but its value is never read.
+src/pages/admin/AdminBrandsPage.tsx(17,1): error TS6133: 'toast' is declared but its value is never read.
+src/pages/admin/AdminBrandsPage.tsx(111,16): error TS6133: 'value' is declared but its value is never read.
+src/pages/admin/AdminBrandsPage.tsx(318,17): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(324,17): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(332,15): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(339,17): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(344,17): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(351,15): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(358,17): error TS2322: Type '{ label: string; type: "number"; value: number | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminBrandsPage.tsx(390,17): error TS2322: Type '{ children: string; onClick: () => void; isLoading: boolean; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminBrandsPage.tsx(395,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminBrandsPage.tsx(438,26): error TS2322: Type '"accent" | "secondary"' is not assignable to type '"success" | "error" | "primary" | "accent" | "warning" | "gray" | undefined'.
+  Type '"secondary"' is not assignable to type '"success" | "error" | "primary" | "accent" | "warning" | "gray" | undefined'.
+src/pages/admin/AdminBrandsPage.tsx(469,65): error TS2322: Type '{ children: string; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminBrandsPage.tsx(472,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminCategoriesPage.tsx(21,44): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/admin/AdminCategoriesPage.tsx(470,17): error TS2322: Type '"error"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminCategoriesPage.tsx(1460,13): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminCouponsPage.tsx(284,52): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/admin/AdminCouponsPage.tsx(610,17): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDashboard.tsx(5,50): error TS6133: 'TrendingDown' is declared but its value is never read.
+src/pages/admin/AdminDashboard.tsx(7,31): error TS6133: 'MessageCircle' is declared but its value is never read.
+src/pages/admin/AdminDeviceBrandsPage.tsx(2,30): error TS6133: 'Plus' is declared but its value is never read.
+src/pages/admin/AdminDeviceBrandsPage.tsx(9,3): error TS6133: 'adminDeviceBrandService' is declared but its value is never read.
+src/pages/admin/AdminDeviceBrandsPage.tsx(91,16): error TS6133: 'value' is declared but its value is never read.
+src/pages/admin/AdminDeviceBrandsPage.tsx(109,18): error TS2322: Type '"secondary"' is not assignable to type '"success" | "error" | "primary" | "accent" | "warning" | "gray" | undefined'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(183,22): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(184,22): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(209,46): error TS2322: Type '{ children: string; onClick: () => void; isLoading: boolean; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(212,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(247,65): error TS2322: Type '{ children: string; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceBrandsPage.tsx(248,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceModelsPage.tsx(2,25): error TS6133: 'Plus' is declared but its value is never read.
+src/pages/admin/AdminDeviceModelsPage.tsx(73,16): error TS6133: 'value' is declared but its value is never read.
+src/pages/admin/AdminDeviceModelsPage.tsx(157,20): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceModelsPage.tsx(158,20): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceModelsPage.tsx(159,20): error TS2322: Type '{ label: string; type: "number"; value: string | number | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceModelsPage.tsx(169,46): error TS2322: Type '{ children: string; onClick: () => void; isLoading: boolean; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceModelsPage.tsx(172,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceSeriesPage.tsx(2,25): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/admin/AdminDeviceSeriesPage.tsx(2,30): error TS6133: 'Plus' is declared but its value is never read.
+src/pages/admin/AdminDeviceSeriesPage.tsx(8,10): error TS6133: 'adminDeviceSeriesService' is declared but its value is never read.
+src/pages/admin/AdminDeviceSeriesPage.tsx(67,16): error TS6133: 'value' is declared but its value is never read.
+src/pages/admin/AdminDeviceSeriesPage.tsx(134,20): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceSeriesPage.tsx(135,20): error TS2322: Type '{ label: string; value: string | undefined; onChange: (e: ChangeEvent<HTMLInputElement>) => void; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/admin/AdminDeviceSeriesPage.tsx(145,46): error TS2322: Type '{ children: string; onClick: () => void; isLoading: boolean; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminDeviceSeriesPage.tsx(148,62): error TS2322: Type '{ children: string; variant: "outline"; onClick: () => void; fullWidth: true; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminOrdersPage.tsx(1017,13): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminProductsPage.tsx(322,17): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminProductsPage.tsx(826,13): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminReviewsPage.tsx(350,17): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminReviewsPage.tsx(533,29): error TS2322: Type '"primary" | "outline"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminReviewsPage.tsx(543,29): error TS2322: Type '"outline" | "danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminReviewsPage.tsx(676,17): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminSettingsPage.tsx(312,93): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminSettingsPage.tsx(366,76): error TS2322: Type '{ children: (string | Element)[]; onClick: () => void; disabled: boolean; isLoading: boolean; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/admin/AdminUsersPage.tsx(462,32): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ pending_initial: { color: string; label: string; bg: string; }; pending_documents: { color: string; label: string; bg: string; }; pending_final: { color: string; label: string; bg: string; }; approved: { ...; }; rejected: { ...; }; }'.
+src/pages/admin/AdminUsersPage.tsx(493,43): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminUsersPage.tsx(546,23): error TS2322: Type '"error"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminUsersPage.tsx(815,22): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/admin/AdminUsersPage.tsx(817,23): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/admin/AdminUsersPage.tsx(835,22): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/admin/AdminUsersPage.tsx(837,23): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/pages/admin/AdminUsersPage.tsx(859,25): error TS2322: Type '"error"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminUsersPage.tsx(870,23): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminUsersPage.tsx(876,25): error TS2322: Type '"error"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/admin/AdminUsersPage.tsx(879,25): error TS2322: Type '"success"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/AuthPage.tsx(233,117): error TS2322: Type '{ children: string; type: "submit"; disabled: boolean; className: string; size: "lg"; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/AuthPage.tsx(259,114): error TS2322: Type '{ children: string; type: "submit"; disabled: boolean; className: string; size: "lg"; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/AuthPage.tsx(292,94): error TS2322: Type '{ children: string; type: "submit"; disabled: boolean; className: string; size: "lg"; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/ContactPage.tsx(111,22): error TS2322: Type '{ label: string; placeholder: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ContactPage.tsx(124,37): error TS2322: Type '{ children: string; type: "submit"; isLoading: boolean; className: string; rightIcon: Element; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/dashboard/AddressesSection.tsx(119,17): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(164,46): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(229,43): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(236,21): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(247,19): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(289,60): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(293,17): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(295,17): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(529,56): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/AddressesSection.tsx(534,13): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(190,17): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(215,61): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(289,17): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(361,29): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(572,56): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/DevicesSection.tsx(575,13): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/NotificationsSection.tsx(43,39): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/OrdersSection.tsx(182,35): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/OrdersSection.tsx(196,61): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/OrdersSection.tsx(272,29): error TS2322: Type '"accent"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/dashboard/OrdersSection.tsx(364,27): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/OrdersSection.tsx(379,51): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/ProfileSection.tsx(300,45): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/ProfileSection.tsx(306,47): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/ProfileSection.tsx(313,29): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/ProfileSection.tsx(323,26): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(324,26): error TS2322: Type '{ label: string; type: "email"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(325,26): error TS2322: Type '{ label: string; type: "tel"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(393,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(394,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(395,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/ProfileSection.tsx(398,60): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/ProfileSection.tsx(399,42): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/SecuritySection.tsx(58,37): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/SecuritySection.tsx(76,19): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/dashboard/SecuritySection.tsx(76,36): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/SecuritySection.tsx(96,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/SecuritySection.tsx(97,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/SecuritySection.tsx(98,22): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/dashboard/SecuritySection.tsx(101,60): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/SecuritySection.tsx(102,42): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/WishlistSection.tsx(93,59): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/WishlistSection.tsx(116,15): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/WishlistSection.tsx(174,21): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/dashboard/WishlistSection.tsx(184,21): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/HomePage/components/AnimatedCounter.tsx(19,24): error TS2554: Expected 1 arguments, but got 0.
+src/pages/HomePage/hooks/useCountdown.ts(15,18): error TS2554: Expected 1 arguments, but got 0.
+src/pages/HomePage/hooks/useEmailValidation.ts(21,22): error TS2554: Expected 1 arguments, but got 0.
+src/pages/HomePage/hooks/useScrollProgress.ts(16,18): error TS2554: Expected 1 arguments, but got 0.
+src/pages/HomePage/index.tsx(54,20): error TS6133: 'apiSpecialOffers' is declared but its value is never read.
+src/pages/ProductDetailPage.tsx(831,19): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductDetailPage.tsx(840,19): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductDetailPage.tsx(841,19): error TS2322: Type '"accent"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/ProductDetailPage.tsx(851,19): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductDetailPage.tsx(1169,25): error TS2322: Type '{ children: (string | Element)[]; className: string; size: "sm"; onClick: () => void; disabled: boolean; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/ProductsPage/components/ProductGrid.tsx(77,50): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductsPage/components/ProductGrid.tsx(81,64): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductsPage/components/ProductGrid.tsx(86,81): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProductsPage/hooks/useProducts.ts(57,31): error TS2345: Argument of type 'Product[]' is not assignable to parameter of type 'ApiProductResponse[]'.
+  Type 'Product' is not assignable to type 'ApiProductResponse'.
+    Types of property 'compatible_models' are incompatible.
+      Type 'PhoneModel[] | undefined' is not assignable to type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }[] | undefined'.
+        Type 'PhoneModel[]' is not assignable to type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }[]'.
+          Type 'PhoneModel' is not assignable to type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+            Types of property 'specs' are incompatible.
+              Type 'PhoneSpecs | undefined' is not assignable to type 'Record<string, unknown> | undefined'.
+                Type 'PhoneSpecs' is not assignable to type 'Record<string, unknown>'.
+                  Index signature for type 'string' is missing in type 'PhoneSpecs'.
+src/pages/ProfilePage.tsx(6,24): error TS6133: 'Clock' is declared but its value is never read.
+src/pages/ProfilePage.tsx(7,40): error TS6133: 'Truck' is declared but its value is never read.
+src/pages/ProfilePage.tsx(7,47): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/pages/ProfilePage.tsx(8,16): error TS6133: 'Loader2' is declared but its value is never read.
+src/pages/ProfilePage.tsx(75,11): error TS2571: Object is of type 'unknown'.
+src/pages/ProfilePage.tsx(109,13): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(303,98): error TS2322: Type '{ children: (string | Element)[]; size: "sm"; onClick: () => void; disabled: boolean; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/ProfilePage.tsx(314,23): error TS2322: Type '{ label: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(321,23): error TS2322: Type '{ label: string; type: "email"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(329,23): error TS2322: Type '{ label: string; type: "tel"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; className: string; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(400,23): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(419,47): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(433,47): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(448,27): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/ProfilePage.tsx(448,44): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(490,17): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/ProfilePage.tsx(490,53): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(518,17): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(526,17): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(534,17): error TS2322: Type '{ label: string; type: "password"; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; leftIcon: Element; required: true; }' is not assignable to type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+  Property 'label' does not exist on type 'IntrinsicAttributes & InputProps & RefAttributes<HTMLInputElement>'.
+src/pages/ProfilePage.tsx(553,17): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/ProfilePage.tsx(564,17): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/components/FilterPanel.tsx(274,13): error TS2322: Type '{ children: string; onClick: () => void; variant: "outline"; fullWidth: true; size: "sm"; leftIcon: Element; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'fullWidth' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/seller/components/FilterPanel.tsx(282,13): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/components/QuickViewModal.tsx(187,13): error TS2322: Type '{ children: Element; onClick: () => void; disabled: boolean; isLoading: boolean; fullWidth: true; size: "lg"; className: string; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/seller/components/TemplateCard.tsx(185,13): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/components/TemplateCard.tsx(262,11): error TS2322: Type '"primary" | "secondary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/ProductTemplates.tsx(326,13): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/ProductTemplates.tsx(392,15): error TS2322: Type '"primary" | "outline"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+  Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/ProductTemplates.tsx(475,87): error TS2322: Type '"primary"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/ProductTemplates.tsx(482,23): error TS2322: Type '{ children: string; variant: "outline"; leftIcon: Element; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'leftIcon' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/seller/SellerDashboard.tsx(409,41): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerDashboard.tsx(466,43): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerDashboard.tsx(470,43): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerDashboard.tsx(490,39): error TS2339: Property 'slug' does not exist on type 'User'.
+src/pages/seller/SellerDashboard.tsx(545,41): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/sellerLogin.tsx(112,13): error TS2322: Type '{ children: (string | Element)[]; onClick: () => Promise<void>; disabled: boolean; className: string; size: "lg"; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/seller/SellerOrderDetail.tsx(657,13): error TS2322: Type '{ children: (string | Element)[]; className: string; size: "lg"; onClick: () => Promise<void>; disabled: boolean; isLoading: boolean; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'isLoading' does not exist on type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
+src/pages/seller/SellerOrderDetailModal.tsx(461,56): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrderDetailModal.tsx(466,13): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(332,53): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(338,31): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(349,37): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(399,47): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(404,25): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(412,31): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(469,56): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerOrders.tsx(474,13): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerPayouts.tsx(318,57): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerPayouts.tsx(360,49): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(6,21): error TS6133: 'ArrowUpDown' is declared but its value is never read.
+src/pages/seller/SellerProducts.tsx(14,1): error TS6133: 'cn' is declared but its value is never read.
+src/pages/seller/SellerProducts.tsx(275,18): error TS2339: Property 'is_active' does not exist on type 'Product'.
+src/pages/seller/SellerProducts.tsx(491,65): error TS2345: Argument of type 'import("C:/laragon/www/azkala/frontend/src/services/sellerProduct.service").Product' is not assignable to parameter of type 'import("C:/laragon/www/azkala/frontend/src/types/models").Product'.
+  Type 'Product' is missing the following properties from type 'Product': status, images
+src/pages/seller/SellerProducts.tsx(494,51): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(494,93): error TS2345: Argument of type 'Product' is not assignable to parameter of type 'SetStateAction<Product | null>'.
+  Type 'Product' is missing the following properties from type 'Product': status, images
+src/pages/seller/SellerProducts.tsx(497,51): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(501,51): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(506,53): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(511,124): error TS2345: Argument of type 'Product' is not assignable to parameter of type 'SetStateAction<Product | null>'.
+  Type 'Product' is missing the following properties from type 'Product': status, images
+src/pages/seller/SellerProducts.tsx(546,74): error TS2345: Argument of type 'import("C:/laragon/www/azkala/frontend/src/services/sellerProduct.service").Product' is not assignable to parameter of type 'import("C:/laragon/www/azkala/frontend/src/types/models").Product'.
+  Type 'Product' is missing the following properties from type 'Product': status, images
+src/pages/seller/SellerProducts.tsx(555,61): error TS2345: Argument of type 'Product' is not assignable to parameter of type 'SetStateAction<Product | null>'.
+  Type 'Product' is missing the following properties from type 'Product': status, images
+src/pages/seller/SellerProducts.tsx(616,118): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/pages/seller/SellerProducts.tsx(617,32): error TS2339: Property 'discount_price' does not exist on type 'Product'.
+src/pages/seller/SellerProducts.tsx(617,75): error TS2339: Property 'discount_price' does not exist on type 'Product'.
+src/pages/seller/SellerProducts.tsx(617,104): error TS2345: Argument of type 'number' is not assignable to parameter of type 'string'.
+src/pages/seller/SellerProducts.tsx(618,129): error TS2339: Property 'discount_price' does not exist on type 'Product'.
+src/pages/seller/SellerProducts.tsx(628,68): error TS2339: Property 'is_active' does not exist on type 'Product'.
+src/pages/seller/SellerProducts.tsx(660,21): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(678,21): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/SellerProducts.tsx(703,23): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/seller/SellerSettings.tsx(26,50): error TS2339: Property 'shop_name' does not exist on type 'User'.
+src/pages/seller/SellerSettings.tsx(27,40): error TS2339: Property 'bio' does not exist on type 'User'.
+src/pages/seller/SellerSettings.tsx(32,87): error TS2339: Property 'banner' does not exist on type 'User'.
+src/pages/seller/SellerSettings.tsx(48,40): error TS2339: Property 'slug' does not exist on type 'User'.
+src/pages/WishlistPage.tsx(147,19): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(156,19): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(378,25): error TS2322: Type '"xs"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(404,15): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(413,15): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(441,17): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/pages/WishlistPage.tsx(447,17): error TS2322: Type '"danger"' is not assignable to type '"link" | "default" | "destructive" | "outline" | "secondary" | "ghost" | null | undefined'.
+src/pages/WishlistPage.tsx(449,17): error TS2322: Type '"md"' is not assignable to type '"icon" | "default" | "sm" | "lg" | null | undefined'.
+src/schemas/orderSchema.ts(38,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(values: readonly ["online", "wallet"], params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Object literal may only specify known properties, and 'errorMap' does not exist in type '{ error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; }'.
+  Overload 2 of 2, '(entries: Readonly<Record<string, EnumValue>>, params?: string | { error?: string | $ZodErrorMap<$ZodIssueInvalidValue<unknown>> | undefined; message?: string | undefined; } | undefined): ZodEnum<...>', gave the following error.
+    Argument of type 'string[]' is not assignable to parameter of type 'Readonly<Record<string, EnumValue>>'.
+      Index signature for type 'string' is missing in type 'string[]'.
+src/services/api/adminDeviceSeries.service.ts(2,1): error TS6133: 'AdminDeviceBrand' is declared but its value is never read.
+src/services/api/adminProduct.service.ts(4,18): error TS2430: Interface 'AdminProduct' incorrectly extends interface 'Product'.
+  Types of property 'seller' are incompatible.
+    Type '{ id: number; name: string; shop_name: string; } | undefined' is not assignable to type 'Seller | undefined'.
+      Type '{ id: number; name: string; shop_name: string; }' is missing the following properties from type 'Seller': user_id, slug, status, health_score, and 2 more.
+src/services/api/quickReply.service.ts(14,46): error TS2339: Property 'get' does not exist on type '() => void'.
+src/services/api/quickReply.service.ts(19,46): error TS2339: Property 'post' does not exist on type '() => void'.
+src/services/api/quickReply.service.ts(24,46): error TS2339: Property 'delete' does not exist on type '() => void'.
+src/services/api/wishlist.service.ts(2,30): error TS2307: Cannot find module '@/types/product' or its corresponding type declarations.
+src/services/pwa/PushNotificationButton.tsx(4,37): error TS2307: Cannot find module '@/services/pwa/usePushNotification' or its corresponding type declarations.
+src/services/pwa/registerSW.ts(107,5): error TS2353: Object literal may only specify known properties, and 'vibrate' does not exist in type 'NotificationOptions'.
+src/services/pwa/registerSW.ts(239,15): error TS2339: Property 'outcome' does not exist on type '{ outcome: string; } | undefined'.
+src/services/pwa/registerSW.ts(275,11): error TS2339: Property 'outcome' does not exist on type '{ outcome: string; } | undefined'.
+src/store/cartStore.ts(261,19): error TS2322: Type '{ id: number; product_id: number; seller_id: number; quantity: number; price: number; total: number; product: Product; created_at: string; updated_at: string; }[]' is not assignable to type 'CartItem[]'.
+  Type '{ id: number; product_id: number; seller_id: number; quantity: number; price: number; total: number; product: Product; created_at: string; updated_at: string; }' is not assignable to type 'CartItem'.
+    Types of property 'product' are incompatible.
+      Type 'Product' is missing the following properties from type 'Product': seller_id, category_id, slug, description, and 6 more.
+src/utils/apiAdapter.ts(103,34): error TS2339: Property 'compatible_products_count' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(115,15): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(116,13): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(117,19): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(118,15): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(119,15): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(120,16): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(121,23): error TS2339: Property 'series' does not exist on type '{ id: number; series_id?: number | undefined; brand_id?: number | undefined; brand?: { id: number; name: string; slug?: string | undefined; logo?: string | null | undefined; } | undefined; ... 6 more ...; updated_at?: string | undefined; }'.
+src/utils/apiAdapter.ts(142,9): error TS2322: Type '{ id: number; user_id: number; shop_name: string; slug: string; status: string; health_score: number; rating: number; reviews_count: number; products_count: number; orders_count: number; created_at: string; updated_at: string; } | undefined' is not assignable to type 'Seller | undefined'.
+  Type '{ id: number; user_id: number; shop_name: string; slug: string; status: string; health_score: number; rating: number; reviews_count: number; products_count: number; orders_count: number; created_at: string; updated_at: string; }' is not assignable to type 'Seller'.
+    Types of property 'status' are incompatible.
+      Type 'string' is not assignable to type 'SellerStatus'.
+src/utils/apiAdapter.ts(173,5): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Record<string, string>'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'string'.
+src/utils/apiAdapter.ts(182,5): error TS2322: Type '{ id: number; parent_id: number | null | undefined; name: string; slug: string; icon: string; type: "mobile_accessory"; is_active: boolean; products_count: number; created_at: string; updated_at: string; } | undefined' is not assignable to type 'Category | undefined'.
+  Type '{ id: number; parent_id: number | null | undefined; name: string; slug: string; icon: string; type: "mobile_accessory"; is_active: boolean; products_count: number; created_at: string; updated_at: string; }' is not assignable to type 'Category'.
+    Types of property 'parent_id' are incompatible.
+      Type 'number | null | undefined' is not assignable to type 'number | null'.
+        Type 'undefined' is not assignable to type 'number | null'.
+src/utils/apiAdapter.ts(222,5): error TS2322: Type 'number | null | undefined' is not assignable to type 'number | null'.
+  Type 'undefined' is not assignable to type 'number | null'.
+src/utils/apiAdapter.ts(227,18): error TS2538: Type 'undefined' cannot be used as an index type.
+src/utils/exportHelper.ts(34,10): error TS2339: Property 'writeFile' does not exist on type 'XLSXLibrary'.

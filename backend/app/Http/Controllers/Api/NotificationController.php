@@ -53,4 +53,20 @@ class NotificationController extends Controller
             'message' => 'همه نوتیفیکیشن‌ها خوانده شدند',
         ]);
     }
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'user_id' => 'required|exists:users,id',
+        'type' => 'nullable|string',
+        'title' => 'required|string',
+        'message' => 'required|string',
+    ]);
+    
+    $notification = $this->notificationService->create($validated);
+    
+    return response()->json([
+        'success' => true,
+        'data' => $notification,
+    ], 201);
+}
 }

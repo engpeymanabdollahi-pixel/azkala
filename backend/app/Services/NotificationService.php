@@ -29,4 +29,13 @@ class NotificationService
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
     }
+    public function create(array $data): Notification
+{
+    return Notification::create([
+        'user_id' => $data['user_id'],
+        'type' => $data['type'] ?? 'default',
+        'title' => $data['title'],
+        'message' => $data['message'],
+    ]);
+}
 }

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
-  User, Package, Heart, MapPin, Shield, Bell, Smartphone,
+  User, Package, Heart, MapPin, Shield, Bell, BellRing, Smartphone,
   LogOut, Menu, X, Ticket,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
+import { useAlertApi } from '@/hooks/api/useAlertApi';
 
 const menuItems = [
   { path: '/dashboard/profile', label: 'پروفایل', icon: User, color: 'from-primary-500 to-primary-600' },
@@ -14,6 +15,7 @@ const menuItems = [
   { path: '/dashboard/wishlist', label: 'علاقه‌مندی‌ها', icon: Heart, color: 'from-error-500 to-error-600' },
   { path: '/dashboard/addresses', label: 'آدرس‌ها', icon: MapPin, color: 'from-success-500 to-success-600' },
   { path: '/dashboard/devices', label: 'دستگاه‌های من', icon: Smartphone, color: 'from-warning-500 to-warning-600' },
+  { path: '/dashboard/alerts', label: 'هشدارهای من', icon: BellRing, color: 'from-purple-500 to-pink-500' },
   { path: '/dashboard/tickets', label: 'تیکت‌های من', icon: Ticket, color: 'from-orange-500 to-red-500' },
   { path: '/dashboard/security', label: 'امنیت', icon: Shield, color: 'from-primary-500 to-accent-500' },
   { path: '/dashboard/notifications', label: 'اعلان‌ها', icon: Bell, color: 'from-accent-500 to-primary-500' },
@@ -23,6 +25,10 @@ export function UserDashboardLayout() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // دریافت تعداد هشدارهای فعال برای نمایش badge
+  const { alerts } = useAlertApi();
+  const activeAlertsCount = alerts.filter(a => a.is_active && !a.is_triggered).length;
 
   const handleLogout = () => {
     logout();
@@ -100,7 +106,15 @@ export function UserDashboardLayout() {
                       )}
                     >
                       <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <span className="flex-1">{item.label}</span>
+                      {item.path === '/dashboard/alerts' && activeAlertsCount > 0 && (
+                        <span className={cn(
+                          'px-1.5 py-0.5 rounded-full text-[10px] font-black',
+                          isActive ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                        )}>
+                          {activeAlertsCount}
+                        </span>
+                      )}
                     </NavLink>
                   );
                 })}
@@ -160,7 +174,15 @@ export function UserDashboardLayout() {
                           )}
                         >
                           <Icon className="w-4 h-4" />
-                          <span>{item.label}</span>
+                          <span className="flex-1">{item.label}</span>
+                          {item.path === '/dashboard/alerts' && activeAlertsCount > 0 && (
+                            <span className={cn(
+                              'px-1.5 py-0.5 rounded-full text-[10px] font-black',
+                              isActive ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                            )}>
+                              {activeAlertsCount}
+                            </span>
+                          )}
                         </NavLink>
                       );
                     })}

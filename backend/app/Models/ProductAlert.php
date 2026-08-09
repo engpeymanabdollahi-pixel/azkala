@@ -16,6 +16,7 @@ class ProductAlert extends Model
         'product_id',
         'type',
         'target_price',
+            'discount_percentage', // ← اضافه شود
         'original_price',
         'is_active',
         'is_triggered',
@@ -25,6 +26,7 @@ class ProductAlert extends Model
 
     protected $casts = [
         'target_price' => 'decimal:2',
+            'discount_percentage' => 'decimal:2', // ← اضافه شود
         'original_price' => 'decimal:2',
         'is_active' => 'boolean',
         'is_triggered' => 'boolean',
@@ -196,5 +198,70 @@ class ProductAlert extends Model
     public function activate(): void
     {
         $this->update(['is_active' => true]);
+    }
+        /**
+     * Alias for scopeReadyForProcessing
+     */
+    public function scopePending($query)
+    {
+        return $query->where('is_active', true)
+                     ->where('is_triggered', false);
+    }
+
+    /**
+     * Check if alert condition is met based on product state
+     */
+    public function isConditionMet(Product $product): bool
+    {
+        $finalPrice = $product->discount_price ?? $product->price;
+
+        return match($this->type) {
+            self::TYPE_RESTOCK => $product->stock > 0,
+            
+            // ✅ اصلاح شده: پشتیبانی از درصد تخفیف
+            self::TYPE_PRICE_DROP => $this->discount_percentage 
+                ? $this->calculateDiscountPercentage($product) >= $this->discount_percentage
+                : $finalPrice < $this->original_price,
+                
+            self::TYPE_TARGET_PRICE => $this->target_price && $finalPrice <= $this->target_price,
+            default => false,
+        };
+    }
+
+    /**
+     * Calculate current discount percentage
+     */
+    private function calculateDiscountPercentage(Product $product): float
+    {
+        $originalPrice = $product->price;
+        $finalPrice = $product->discount_price ?? $product->price;
+        
+        if ($originalPrice <= 0 || $finalPrice >= $originalPrice) {
+            return 0;
+        }
+        
+        return round((($originalPrice - $finalPrice) / $originalPrice) * 100, 2);
+    }
+
+    /**
+     * Get human-readable message for this alert
+     */
+    public function getMessage(): string
+    {
+        $product = $this->product;
+        $finalPrice = $product ? ($product->discount_price ?? $product->price) : 0;
+        $name = $product?->name ?? 'محصول';
+
+        return match($this->type) {
+            self::TYPE_RESTOCK => "📦 محصول «{$name}» دوباره موجود شد!",
+            
+            // ✅ اصلاح شده: نمایش درصد در صورت وجود
+            self::TYPE_PRICE_DROP => $this->discount_percentage
+                ? "💰 محصول «{$name}» " . number_format($this->discount_percentage) . "٪ تخفیف خورد! قیمت جدید: " . number_format($finalPrice) . " تومان"
+                : "💰 قیمت «{$name}» به " . number_format($finalPrice) . " تومان کاهش یافت",
+                
+            self::TYPE_TARGET_PRICE => "🎯 قیمت «{$name}» به محدوده دلخواه شما رسید: " . number_format($finalPrice) . " تومان",
+            default => 'هشدار محصول',
+        };
     }
 }

@@ -64,6 +64,7 @@ const OrdersSection = lazy(() => import('@/pages/dashboard/OrdersSection'));
 const WishlistSection = lazy(() => import('@/pages/dashboard/WishlistSection'));
 const AddressesSection = lazy(() => import('@/pages/dashboard/AddressesSection'));
 const DevicesSection = lazy(() => import('@/pages/dashboard/DevicesSection'));
+const AlertsSection = lazy(() => import('@/pages/dashboard/AlertsSection'));
 const SecuritySection = lazy(() => import('@/pages/dashboard/SecuritySection'));
 const NotificationsSection = lazy(() => import('@/pages/dashboard/NotificationsSection'));
 const TicketsSection = lazy(() => import('@/pages/dashboard/TicketsSection'));
@@ -305,7 +306,8 @@ export default function App() {
                 <Route path="wishlist" element={<WishlistSection />} />
                 <Route path="addresses" element={<AddressesSection />} />
                 <Route path="devices" element={<DevicesSection />} />
-                <Route path="security" element={<SecuritySection />} />
+<Route path="alerts" element={<AlertsSection />} />
+<Route path="security" element={<SecuritySection />} />
                 <Route path="notifications" element={<NotificationsSection />} />
                 <Route path="tickets" element={<TicketsSection />} />
               </Route>
