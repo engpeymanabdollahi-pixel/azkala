@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Jobs\SendOtpSms;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class OtpAuthenticationTest extends TestCase
@@ -21,6 +23,32 @@ class OtpAuthenticationTest extends TestCase
             ->assertJsonStructure(['data' => ['user_id']]);
 
         $this->assertDatabaseHas('users', ['phone' => $phone]);
+    }
+
+    /**
+     * ✅ قبلاً OtpService::generateAndCache کد را فقط در Log می‌نوشت؛
+     * SmsService (که همین پروژه برای کاوه‌نگار/ملی‌پیامک/قاصدک دارد) اصلاً
+     * صدا زده نمی‌شد — یعنی هیچ کاربر واقعی هیچ‌وقت کد تأیید را روی گوشی‌اش
+     * دریافت نمی‌کرد.
+     */
+    public function test_requesting_otp_queues_the_real_sms_job(): void
+    {
+        Queue::fake();
+
+        $phone = '09123456789';
+        $this->postJson('/api/v1/register', ['phone' => $phone])->assertStatus(200);
+
+        Queue::assertPushed(SendOtpSms::class, function (SendOtpSms $job) use ($phone) {
+            return $this->getPrivateProp($job, 'phone') === $phone;
+        });
+    }
+
+    private function getPrivateProp(object $obj, string $prop): mixed
+    {
+        $ref = new \ReflectionProperty($obj, $prop);
+        $ref->setAccessible(true);
+
+        return $ref->getValue($obj);
     }
 
     public function test_user_cannot_request_otp_too_frequently(): void
