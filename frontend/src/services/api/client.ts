@@ -8,7 +8,15 @@ import { logger } from '@/utils/logger';
 const client = axios.create({
   baseURL: API_V1_URL,
   timeout: 120000,
-    withCredentials: true, // ✅ این خط را حتماً اضافه کنید
+  withCredentials: true, // ✅ این خط را حتماً اضافه کنید
+  // ✅ بدون این، axios کوکی XSRF-TOKEN را فقط برای درخواست‌های هم‌مبدأ
+  // می‌خواند و در هدر X-XSRF-TOKEN می‌گذارد. فرانت‌اند (127.0.0.1:5173) و
+  // بک‌اند (127.0.0.1:8000) پورت متفاوت دارند یعنی از نظر مرورگر دو مبدأ
+  // جدا هستند — بدون این پرچم axios هیچ‌وقت هدر CSRF را نمی‌فرستد، هرچند
+  // بار fetchCsrfCookie() صدا زده شود یا retry شود؛ چون مشکل خواندن کوکی
+  // در axios است، نه نبودِ خودِ کوکی. همین باعث ۴۱۹ مکرر روی
+  // register/login/verify-otp می‌شد.
+  withXSRFToken: true,
   headers: {
     'Accept': 'application/json',
   },
@@ -101,12 +109,19 @@ client.interceptors.response.use(
         }
 
         const authState = useAuthStore.getState();
-        
+
         // ✅ اگر کاربر در حافظه هست ولی token از بین رفته، سعی کن از cookie استفاده کنی
         if (authState.isAuthenticated && authState.user && !authState.token) {
           try {
-            const { authService } = await import('@/services/api/auth.service');
-            const user = await authService.getUser();
+            // ✅ عمداً axios خام، نه authService.getUser() (که از همین client
+            // با همین interceptor استفاده می‌کند). قبلاً وقتی این پروب خودش هم
+            // ۴۰۱ می‌گرفت (کوکی نشست هم نامعتبر بود)، چون originalRequest آن
+            // تازه بود (._retry نداشت)، همین شاخه دوباره اجرا می‌شد و دوباره
+            // پروب می‌زد — یک حلقه‌ی بی‌نهایت از درخواست‌های GET /user که در
+            // عرض چند ثانیه مرورگر را کاملاً هنگ می‌کرد (صدها درخواست پشت سر
+            // هم، دیده‌شده مستقیم با Playwright).
+            const probeResponse = await axios.get(`${API_V1_URL}/user`, { withCredentials: true });
+            const user = probeResponse.data?.data;
             if (user) {
               // Cookie هنوز معتبر است، فقط state را به‌روز کن
               authState.updateUser(user as any);

@@ -33,6 +33,18 @@ class FrontendApiContractTest extends TestCase
         'GET /seller/payouts',
     ];
 
+    /**
+     * Frontend calls that map to a route which only registers when
+     * app()->environment('local') is true (routes/api.php, dev tools group).
+     * The test suite boots under APP_ENV=testing, so Route::getRoutes() never
+     * contains these — not because the backend is missing them, but because
+     * shipping dev-only tooling (instant OTP lookup, one-click admin login)
+     * under any other environment would itself be a real vulnerability.
+     */
+    private const KNOWN_DEV_ONLY = [
+        'POST /dev/admin-login',
+    ];
+
     private function frontendSrc(): string
     {
         return dirname(base_path()).'/frontend/src';
@@ -113,7 +125,9 @@ class FrontendApiContractTest extends TestCase
         foreach ($this->frontendCalls() as $call => $where) {
             [$method, $path] = explode(' ', $call, 2);
 
-            if (! $this->routeExists($method, $path) && ! in_array($call, self::KNOWN_UNBUILT, true)) {
+            if (! $this->routeExists($method, $path)
+                && ! in_array($call, self::KNOWN_UNBUILT, true)
+                && ! in_array($call, self::KNOWN_DEV_ONLY, true)) {
                 $missing[$call] = $where;
             }
         }
@@ -146,6 +160,24 @@ class FrontendApiContractTest extends TestCase
      * the apiClient helper is renamed, the test above would pass by finding
      * nothing at all.
      */
+    /**
+     * KNOWN_DEV_ONLY is only a safe allowlist as long as those routes really
+     * are still gated behind app()->environment('local'). Route::getRoutes()
+     * can't tell us that under APP_ENV=testing (the routes never register at
+     * all), so this checks the source directly — the same reason the gate
+     * exists to begin with must still be there.
+     */
+    public function test_the_dev_only_list_routes_are_still_environment_gated(): void
+    {
+        $routesSource = file_get_contents(base_path('routes/api.php'));
+
+        $this->assertMatchesRegularExpression(
+            '/environment\([\'"]local[\'"]\)\)\s*\{.*?admin-login/s',
+            $routesSource,
+            'POST /dev/admin-login is listed as KNOWN_DEV_ONLY but no longer looks environment-gated in routes/api.php.'
+        );
+    }
+
     public function test_the_parser_finds_the_frontend_call_sites(): void
     {
         $this->assertDirectoryExists($this->frontendSrc());

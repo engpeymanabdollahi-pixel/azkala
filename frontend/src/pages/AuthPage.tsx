@@ -36,10 +36,16 @@ export function AuthPage() {
     if (!/^09[0-9]{9}$/.test(phone)) {
       return toast.error('شماره موبایل نامعتبر است');
     }
-    
+
     setLoading(true);
     try {
-      const response = await client.post('/verify-otp', { phone });
+      // ✅ قبلاً اینجا هم /verify-otp صدا زده می‌شد — همان مسیری که فقط برای
+      // تأیید کد است، نه درخواست/ارسال آن. چون آن مسیر فیلد otp را الزامی
+      // می‌داند، هر تلاش برای «ارسال کد» بلافاصله ۴۲۲ («The otp field is
+      // required.») می‌گرفت و کاربر هرگز حتی به مرحله‌ی وارد کردن کد
+      // نمی‌رسید. مسیر درست برای شروع (ثبت‌نام یا درخواست کد) /register است —
+      // دقیقاً همان چیزی که AuthModal.tsx برای همین قدم استفاده می‌کند.
+      const response = await client.post('/register', { phone });
       if (response.data.success) {
         setDebugOtp(response.data.debug_otp || '');
         toast.success('کد تایید ارسال شد');

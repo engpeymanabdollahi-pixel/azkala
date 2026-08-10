@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UpdateProfileRequest;
-use App\Http\Requests\ChangePasswordRequest;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use App\Support\Digits;
@@ -52,12 +52,12 @@ class AuthController extends Controller
             $validated['name'] ?? null
         );
 
-       return response()->json([
-    'success' => true,
-    'message' => $result['message'],
-    'phone' => $validated['phone'], // ✅ در سطح ریشه
-    'data' => ['user_id' => $result['user_id']]
-], 200);
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'phone' => $validated['phone'], // ✅ در سطح ریشه
+            'data' => ['user_id' => $result['user_id']],
+        ], 200);
     }
 
     /**
@@ -72,26 +72,38 @@ class AuthController extends Controller
 
         $result = $this->authService->handleOtpLogin($validated['phone'], $validated['otp']);
 
+        // ✅ قبلاً اینجا فقط توکن Bearer برمی‌گشت، برخلاف login() که هم نشست
+        // کوکی‌محور می‌ساخت هم توکن. چون توکن فقط در حافظه‌ی Zustand می‌ماند
+        // (عمداً در localStorage ذخیره نمی‌شود)، با هر reload/تب جدید توکن از
+        // بین می‌رفت و هیچ کوکی نشست معتبری هم برای جایگزینی‌اش وجود نداشت —
+        // یعنی کاربری که با OTP وارد شده بود (مسیر اصلی AuthModal) با اولین
+        // رفرش کاملاً از دسترسی می‌افتاد، هرچند isAuthenticated/user در
+        // localStorage باقی مانده بودند. همان رفتار login() اینجا هم اعمال شد.
+        if ($request->hasSession()) {
+            Auth::guard('web')->login($result['user']);
+            $request->session()->regenerate();
+        }
+
         return response()->json([
             'success' => true,
             'message' => $result['message'],
             'data' => [
                 'user' => $result['user'],
                 'token' => $result['token'],
-            ]
+            ],
         ], 200);
     }
 
     /**
      * ورود با ایمیل و رمز عبور
      */
-        public function login(LoginRequest $request)
+    public function login(LoginRequest $request)
     {
         // ۱. پیدا کردن کاربر بر اساس شماره موبایل
         $user = User::where('phone', $request->phone)->first();
 
         // ۲. بررسی وجود کاربر و صحت رمز عبور
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'شماره موبایل یا رمز عبور اشتباه است.',
@@ -99,7 +111,7 @@ class AuthController extends Controller
         }
 
         // ۳. بررسی فعال بودن کاربر
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             return response()->json([
                 'success' => false,
                 'message' => 'حساب کاربری شما غیرفعال است.',
@@ -136,7 +148,7 @@ class AuthController extends Controller
             'data' => [
                 'user' => $user, // یا UserResource::make($user) اگر دارید
                 'token' => $token,
-            ]
+            ],
         ]);
     }
 
@@ -167,17 +179,18 @@ class AuthController extends Controller
             'message' => 'با موفقیت خارج شدید',
         ], 200);
     }
-        /**
+
+    /**
      * Refresh access token
-     * 
+     *
      * برای جلوگیری از logout ناگهانی وقتی token منقضی می‌شود
      */
     public function refresh(Request $request)
     {
         try {
             $user = $request->user();
-            
-            if (!$user) {
+
+            if (! $user) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthenticated',
@@ -185,7 +198,7 @@ class AuthController extends Controller
             }
 
             // بررسی فعال بودن کاربر
-            if (!$user->is_active) {
+            if (! $user->is_active) {
                 return response()->json([
                     'success' => false,
                     'message' => 'حساب کاربری غیرفعال است',
@@ -214,7 +227,8 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Token refresh failed: ' . $e->getMessage());
+            \Log::error('Token refresh failed: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در به‌روزرسانی نشست',
@@ -230,9 +244,10 @@ class AuthController extends Controller
         $user = $request->user();
 
         // 🛡️ لایه امنیتی ۲: اگر اکانت غیرفعال شد یا نقشش تغییر کرد، فوراً دسترسی قطع شود
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             return response()->json(['message' => 'حساب کاربری شما غیرفعال است.'], 403);
         }
+
         return response()->json([
             'success' => true,
             'data' => $request->user(),
