@@ -74,7 +74,7 @@ class AdminMagazineController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => MagazineSummaryResource::collection($articles),
+            'data' => MagazineResource::collection($articles),
             'meta' => [
                 'current_page' => $articles->currentPage(),
                 'last_page' => $articles->lastPage(),

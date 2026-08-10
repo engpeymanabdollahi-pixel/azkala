@@ -32,7 +32,7 @@ class MagazineResource extends JsonResource
             
             // منبع خبر
             'source' => [
-                'name' => $this->source_name,
+                'name' => $this->source_name ?? 'ازکالا',
                 'url' => $this->source_url,
                 'is_external' => !empty($this->source_url),
             ],
@@ -55,7 +55,7 @@ class MagazineResource extends JsonResource
             // منبع محتوا (admin / rss / ai)
             'content_source' => [
                 'key' => $this->content_source,
-                'label' => $this->content_source_label,
+                'label' => $this->getContentSourceLabel(),
                 'is_ai_rewritten' => $this->is_ai_rewritten,
             ],
             
@@ -77,5 +77,17 @@ class MagazineResource extends JsonResource
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
+    }
+        /**
+     * تبدیل content_source به label فارسی
+     */
+    private function getContentSourceLabel(): string
+    {
+        return match($this->content_source) {
+            'admin' => 'توسط ادمین',
+            'rss' => 'RSS (خودکار)',
+            'ai_generated' => 'تولید AI',
+            default => $this->content_source ?? 'نامشخص',
+        };
     }
 }

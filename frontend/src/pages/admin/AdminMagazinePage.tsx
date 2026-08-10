@@ -217,10 +217,10 @@ export default function AdminMagazinePage() {
       excerpt: article.excerpt || '',
       content: article.content || '',
       featured_image: article.featured_image || '',
-      category: article.category.key,
-      content_source: article.content_source.key,
-      source_name: article.source.name || 'ازکالا',
-      source_url: article.source.url || '',
+      category: article.category?.key || 'news',
+      content_source: article.content_source?.key || 'rss',
+      source_name: article.source?.name || article.source_name || 'ازکالا',
+      source_url: article.source?.url || '',
       is_published: article.is_published,
       device_ids: article.devices?.map((d) => d.id) || [],
     });
@@ -703,23 +703,25 @@ function ArticleRow({
           <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug">
             {article.title}
           </h3>
-          {article.source.name && (
-            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              {article.source.is_external && <ExternalLink className="w-3 h-3" />}
-              {article.source.name} • {article.published_at_human}
-            </p>
-          )}
+          {article.source?.name && (
+  <span className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+    {article.source.is_external && <ExternalLink className="w-3 h-3" />}
+    {article.source.name} • {article.published_at_human}
+  </span>
+)}
         </div>
       </div>
 
       {/* Category + Source */}
       <div className="lg:col-span-2 flex items-start gap-2 flex-wrap">
         <span className={cn('px-2 py-1 rounded-lg text-xs font-bold', catColor)}>
-          {article.category.label}
+          {article.category?.label || article.category}
         </span>
-        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
-          {article.content_source.label}
-        </span>
+        {article.content_source?.label && (
+          <span className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
+            {article.content_source.label}
+          </span>
+        )}
       </div>
 
       {/* Devices count */}

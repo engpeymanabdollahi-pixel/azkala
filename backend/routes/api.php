@@ -532,6 +532,17 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify'); // ✅ تغییر به {id}
                 Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
             });
+                        // ============================================================
+            // مدیریت تبلیغات (Admin Ads)
+            // ============================================================
+            Route::prefix('ads')->name('ads.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'index'])->name('index');
+                Route::post('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'store'])->name('store');
+                Route::get('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'show'])->name('show');
+                Route::put('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'update'])->name('update');
+                Route::delete('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'destroy'])->name('destroy');
+                Route::post('/{ad}/toggle', [\App\Http\Controllers\Admin\AdminAdController::class, 'toggle'])->name('toggle');
+            });
 
             // ============================================================
             // مدیریت مجله ازکالا (Admin Magazine)
