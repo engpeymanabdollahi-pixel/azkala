@@ -3,9 +3,10 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
-  Tag, FolderTree, Menu, X, LogOut, ChevronLeft,
-  Settings, Bell, BarChart3, MessageCircle, Newspaper, Megaphone,
+  Tag, FolderTree, X, LogOut, ChevronLeft,
+  Settings, BarChart3, MessageCircle, Newspaper, Megaphone,
 } from 'lucide-react';
+import AdminHeader from '@/components/admin/AdminHeader';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
 import apiClient from '@/services/api/client';
@@ -221,43 +222,8 @@ export function AdminLayout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 md:px-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-            >
-              <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* ✅ قبلاً یک نقطه‌ی قرمز absolute بدون هیچ داده‌ای همیشه نشان
-                داده می‌شد؛ حالا فقط وقتی گزارش تخلفِ واقعاً در انتظاری وجود
-                دارد نمایش داده می‌شود و کلیک به صفحه‌ی گزارش‌ها می‌برد. */}
-            <button
-              onClick={() => navigate('/admin/reports')}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg relative"
-              title="گزارش‌های تخلف"
-            >
-              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              {pendingReports > 0 && (
-                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5 bg-error-500 rounded-full flex items-center justify-center text-[9px] font-black text-white">
-                  {pendingReports > 9 ? '9+' : pendingReports}
-                </span>
-              )}
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-accent-500 to-accent-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                {user?.name?.charAt(0) || 'A'}
-              </div>
-              <span className="hidden md:block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                {user?.name || 'ادمین'}
-              </span>
-            </div>
-          </div>
-        </header>
+                {/* Top Bar - Modern Design */}
+        <AdminHeader onMenuClick={() => setMobileMenuOpen(true)} />
 
         {/* Page Content */}
         <main className="flex-1 p-4 md:p-6 overflow-auto">
