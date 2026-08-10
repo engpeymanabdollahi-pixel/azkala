@@ -54,7 +54,7 @@ client.interceptors.request.use(
     // فقط برای درخواست‌هایی که قبلاً retry نشده‌اند (جلوگیری از حلقه).
     const method = config.method?.toLowerCase();
     const needsCsrf = ['post', 'put', 'patch', 'delete'].includes(method || '');
-    
+
     if (needsCsrf && !(config as any)._csrfFetched) {
       try {
         await fetchCsrfCookie();
@@ -62,6 +62,19 @@ client.interceptors.request.use(
       } catch (csrfError) {
         logger.warn('Failed to fetch CSRF cookie:', csrfError);
         // ادامه می‌دهیم حتی اگر CSRF fail شد - شاید درخواست public باشد
+      }
+    }
+
+    // 4.۵ ✅ هدر X-XSRF-TOKEN را دستی می‌سازیم، نه با تکیه بر withXSRFToken.
+    // withXSRFToken:true روی axios باید همین کار را خودکار انجام بدهد، ولی
+    // در محیط واقعی (Windows/Laragon) با همان کوکی موجود همچنان ۴۱۹ دیده شد
+    // — یعنی رفتار خواندن خودکار کوکیِ axios به‌اندازه‌ی کافی قابل‌اتکا
+    // نیست تا رویش حساب کرد. خواندن مستقیم document.cookie و ست کردن هدر
+    // اینجا هیچ ابهامی در مورد نسخه‌ی axios یا تشخیص هم‌مبدأ باقی نمی‌گذارد.
+    if (needsCsrf && config.headers) {
+      const xsrfToken = readCookie('XSRF-TOKEN');
+      if (xsrfToken) {
+        config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrfToken);
       }
     }
 
@@ -186,14 +199,27 @@ client.interceptors.response.use(
  * CSRF را اجباری می‌کند. بدون این فراخوانی، هر POST از مرورگر ۴۱۹ می‌گیرد.
  *
  * مسیرش زیر api/v1 نیست، پس از API_ORIGIN استفاده می‌شود نه baseURL کلاینت.
- * axios خودش کوکی XSRF-TOKEN را می‌خواند و در هدر X-XSRF-TOKEN می‌گذارد؛ فقط
- * باید کوکی وجود داشته باشد.
  *
  * باید پیش از هر عملیات ورود/ثبت‌نام صدا زده شود.
  */
 export const fetchCsrfCookie = async (): Promise<void> => {
   await axios.get(`${API_ORIGIN}/sanctum/csrf-cookie`, { withCredentials: true });
 };
+
+/**
+ * مقدار خام یک کوکی را از document.cookie می‌خواند.
+ *
+ * ✅ قبلاً برای خواندن XSRF-TOKEN فقط به withXSRFToken/رفتار داخلی axios
+ * تکیه می‌شد. روی این پروژه در یک محیط واقعی (Windows/Laragon) با همان
+ * پرچم فعال، هدر همچنان فرستاده نمی‌شد و ۴۱۹ ادامه داشت — یعنی رفتار
+ * خودکار axios به‌قدر کافی قابل‌اتکا نبود که رویش حساب شود. خواندن مستقیم
+ * کوکی اینجا هیچ وابستگی‌ای به نسخه‌ی axios یا تشخیص هم‌مبدأ ندارد.
+ */
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+
+  return match ? match[1] : null;
+}
 
 // ✅ تابع Dummy برای جلوگیری از خطای import در ۳ فایل دیگر
 export const cancelAllRequests = (): void => {
