@@ -1,3 +1,89 @@
-﻿User-agent: *
+# robots.txt برای ازکالا
+# آخرین بروزرسانی: 2026-08-10
+
+User-agent: *
+
+# اجازه دسترسی به صفحات عمومی
 Allow: /
+Allow: /products
+Allow: /products/*
+Allow: /brands
+Allow: /brands/*
+Allow: /magazine
+Allow: /magazine/*
+Allow: /seller/*
+Allow: /about
+Allow: /contact
+Allow: /help
+Allow: /guarantee
+Allow: /terms
+
+# مسدود کردن بخش‌های خصوصی
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /seller-panel
+Disallow: /seller-panel/*
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /profile
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /auth
+Disallow: /auth/*
+Disallow: /api/
+Disallow: /api/*
+
+# مسدود کردن query parameters غیرضروری برای خزیدن
+Disallow: /*?sort=
+Disallow: /*?filter=
+Disallow: /*?page=
+Disallow: /*?*ref=
+Disallow: /*?*utm_
+
+# جلوگیری از crawl شدن فایل‌های استاتیک غیرضروری
+Disallow: /*.json$
+Disallow: /*.xml$
+Allow: /sitemap.xml
+Allow: /sitemap-*.xml
+
+# Crawl-delay برای کاهش فشار روی سرور (اختیاری)
+# Crawl-delay: 1
+
+# Sitemap (مهم‌ترین خط برای SEO!)
 Sitemap: https://azkala.com/sitemap.xml
+
+# ============================================================
+# قوانین ویژه برای Google
+# ============================================================
+User-agent: Googlebot
+Allow: /
+Allow: /*.js$
+Allow: /*.css$
+
+# ============================================================
+# قوانین ویژه برای Bing
+# ============================================================
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# ============================================================
+# مسدود کردن AI Crawlers (اختیاری - اگر نخواستید محتوای شما 
+# برای training AI استفاده شود)
+# ============================================================
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /

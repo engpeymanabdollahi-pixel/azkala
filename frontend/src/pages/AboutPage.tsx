@@ -1,5 +1,6 @@
 // src/pages/AboutPage.tsx
 import { Shield, Truck, Headphones, Award, Users, Target, Heart, Zap, Package } from 'lucide-react';
+import Seo from '@/components/Seo';
 
 export function AboutPage() {
   const features = [
@@ -21,6 +22,13 @@ export function AboutPage() {
 
   return (
     <div className="bg-gray-50 dark:bg-slate-900 min-h-screen">
+      <Seo
+        title="درباره ازکالا"
+        description="ازکالا اولین مارکت‌پلیس تخصصی لوازم جانبی موبایل و تبلت در ایران با قانون هوشمند سازگاری. بیش از ۱۰,۰۰۰ محصول و ۵۰۰ فروشنده معتبر."
+        canonical="/about"
+        keywords={['ازکالا', 'لوازم جانبی موبایل', 'مارکت‌پلیس', 'خرید قاب گوشی', 'گارانتی اصالت', 'فروشگاه آنلاین']}
+      />
+      
       {/* هدر */}
       <div className="bg-gradient-to-r from-blue-700 to-blue-800 text-white py-16">
         <div className="container mx-auto px-4 text-center">

@@ -1,5 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import Seo from '@/components/Seo';
+import {
+  generateArticleSchema,
+  generateBreadcrumbSchema,
+} from '@/lib/seo-schemas';
 import {
   Clock, Eye, ExternalLink, ChevronLeft, Smartphone,
   User, ArrowRight, Newspaper,

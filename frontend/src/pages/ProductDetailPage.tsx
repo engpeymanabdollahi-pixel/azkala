@@ -45,7 +45,32 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SafeImage } from '@/components/ui/SafeImage';
-import { DynamicMeta } from '@/components/seo/DynamicMeta';
+<Seo
+  title={productData.name}
+  description={productData.short_description || productData.meta_description || `${productData.name} - ${productData.brand?.name || ''} - خرید با بهترین قیمت از ازکالا`}
+  canonical={`/products/${productData.slug}`}
+  image={productData.main_image || productData.images?.[0]}
+  type="product"
+  keywords={[
+    productData.name,
+    productData.brand?.name,
+    productData.category?.name,
+    'خرید',
+    'قیمت',
+    'ازکالا',
+  ].filter(Boolean) as string[]}
+  jsonLd={[
+    generateProductSchema(productData),
+    generateBreadcrumbSchema([
+      { name: 'خانه', url: '/' },
+      { name: 'محصولات', url: '/products' },
+      ...(productData.category?.name
+        ? [{ name: productData.category.name, url: `/products?category=${productData.category.slug || productData.category.id}` }]
+        : []),
+      { name: productData.name, url: `/products/${productData.slug}` },
+    ]),
+  ]}
+/>
 import { formatPrice } from '@/utils/format';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';

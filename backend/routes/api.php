@@ -67,6 +67,7 @@ use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Admin\SentimentDashboardController;
 use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\SuggestionManagementController;
+use App\Http\Controllers\Api\AdminAiArticleController;
 
 // ============================================================
 // ✅ نسخه‌بندی API: تمام روت‌ها درون پیشوند v1 قرار می‌گیرند
@@ -170,6 +171,12 @@ Route::prefix('v1')->group(function () {
         // جزئیات مقاله (باید آخر باشد چون {slug} همه چیز را match می‌کند)
         Route::get('/{slug}', [MagazineController::class, 'show'])->name('show');
     });
+
+    // ============================================================
+    // تبلیغات ازکالا (Ads) - Public endpoints
+    // ✅ مستقل از magazine - منطقاً به مجله ربطی ندارد
+    // ============================================================
+    Route::get('/ads/active', [AdController::class, 'active'])->name('ads.active');
 
     Route::get('/site-settings', function () {
         try {
@@ -368,17 +375,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
             
-                        // ============================================================
-            // مدیریت تبلیغات (Admin Ads)
-            // ============================================================
-            Route::prefix('ads')->name('ads.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'index'])->name('index');
-                Route::post('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'store'])->name('store');
-                Route::get('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'show'])->name('show');
-                Route::put('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'update'])->name('update');
-                Route::delete('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'destroy'])->name('destroy');
-                Route::post('/{ad}/toggle', [\App\Http\Controllers\Admin\AdminAdController::class, 'toggle'])->name('toggle');
-            });
+            // ✅ seller/ads حذف شد چون AdminAdController در seller معنا ندارد
+            // اگر در آینده SellerAdController ساخته شد، اینجا اضافه می‌شود
+            
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
@@ -548,24 +547,23 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
             // مدیریت مجله ازکالا (Admin Magazine)
             // ============================================================
             Route::prefix('magazine')->name('magazine.')->group(function () {
-                // این routes باید قبل از {article} باشند
-                Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
-                Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
-                
-                // لیست همه مقالات (شامل unpublished)
-                Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
-                
-                // ایجاد مقاله جدید
-                Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
-                
-                // جزئیات، ویرایش، حذف
-                Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
-                Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
-                Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
-                
-                // انتشار سریع
-                Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
-            });
+    Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
+    Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
+    
+    Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
+    Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
+    Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
+    Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
+    Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
+    Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
+    
+    // ✨ AI Routes
+    Route::prefix('ai')->name('ai.')->group(function () {
+        Route::post('/generate', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'generate'])->name('generate');
+        Route::post('/rewrite', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'rewrite'])->name('rewrite');
+        Route::post('/suggest-title', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'suggestTitle'])->name('suggest-title');
+    });
+});
 
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [AdminProductController::class, 'index'])->name('index');

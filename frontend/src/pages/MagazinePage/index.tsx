@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import Seo from '@/components/Seo';
+import { generateCollectionPageSchema } from '@/lib/seo-schemas';
 import { Newspaper, Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useMagazineArticles, useMagazineStats } from '@/hooks/api/useMagazineApi';
 import AdSidebar from '@/components/magazine/AdSidebar';
 import type { MagazineCategoryFilter } from '@/types/magazine.types';
+import { MAGAZINE_CATEGORIES } from '@/types/magazine.types';
 import CategoryTabs from '@/components/magazine/CategoryTabs';
 import ArticleGrid, { ArticleGridSkeleton } from '@/components/magazine/ArticleGrid';
 import ArticleCard from '@/components/magazine/ArticleCard';
@@ -69,8 +72,68 @@ export default function MagazinePage() {
     setActiveCategory(category);
   }, []);
 
+  // ============ SEO Data ============
+  const currentCategoryLabel = activeCategory === 'all'
+    ? null
+    : MAGAZINE_CATEGORIES[activeCategory as keyof typeof MAGAZINE_CATEGORIES]?.label;
+
+  const pageTitle = currentCategoryLabel
+    ? `${currentCategoryLabel} - مجله ازکالا`
+    : 'مجله ازکالا';
+
+  const pageDescription = currentCategoryLabel
+    ? `جدیدترین مقالات ${currentCategoryLabel} در مجله ازکالا | اخبار، بررسی و راهنمای خرید دنیای فناوری`
+    : 'مجله ازکالا | آخرین اخبار، بررسی‌ها، مقایسه‌ها و راهنمای خرید دنیای فناوری از منابع معتبر فارسی';
+
+  const canonicalUrl = (() => {
+    const params = new URLSearchParams();
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    const qs = params.toString();
+    return qs ? `/magazine?${qs}` : '/magazine';
+  })();
+
+  // Pagination hints برای Google
+  const prevPage = currentPage > 1 ? (() => {
+    const p = new URLSearchParams();
+    if (activeCategory !== 'all') p.set('category', activeCategory);
+    if (currentPage - 1 > 1) p.set('page', String(currentPage - 1));
+    if (debouncedSearch) p.set('search', debouncedSearch);
+    const qs = p.toString();
+    return qs ? `/magazine?${qs}` : '/magazine';
+  })() : undefined;
+
+  const nextPage = meta && currentPage < meta.last_page ? (() => {
+    const p = new URLSearchParams();
+    if (activeCategory !== 'all') p.set('category', activeCategory);
+    p.set('page', String(currentPage + 1));
+    if (debouncedSearch) p.set('search', debouncedSearch);
+    return `/magazine?${p.toString()}`;
+  })() : undefined;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <Seo
+        title={pageTitle}
+        description={pageDescription}
+        canonical={canonicalUrl}
+        type="website"
+        keywords={[
+          'مجله ازکالا',
+          'اخبار فناوری',
+          'بررسی موبایل',
+          'مقایسه گوشی',
+          'راهنمای خرید',
+          ...(currentCategoryLabel ? [currentCategoryLabel] : []),
+        ]}
+        prev={prevPage}
+        next={nextPage}
+        jsonLd={[
+          generateCollectionPageSchema(pageTitle, pageDescription, canonicalUrl),
+        ]}
+      />
+
       {/* ===== Page Header - بنر مدرن ===== */}
       <div className="relative overflow-hidden bg-slate-900">
         {/* بلورهای متحرک */}

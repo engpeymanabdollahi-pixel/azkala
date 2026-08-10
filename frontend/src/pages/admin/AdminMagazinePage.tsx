@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Newspaper, Search, Filter, RefreshCw, Plus, Edit2, Trash2,
-  Eye, EyeOff, CheckCircle, XCircle, ExternalLink, Loader2,
-  BarChart3, TrendingUp, Clock, FileText, AlertCircle, X
+  Newspaper, Search, RefreshCw, Plus, Edit2, Trash2,
+  Eye, EyeOff, CheckCircle, ExternalLink, Loader2,
+  BarChart3, TrendingUp, Clock, FileText, AlertCircle, X, Sparkles
 } from 'lucide-react';
+import AiArticleModal from '@/components/magazine/AiArticleModal';
 import { adminMagazineService } from '@/services/api/adminMagazine.service';
 import type {
   AdminMagazineArticle,
@@ -95,6 +96,7 @@ export default function AdminMagazinePage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showAiModal, setShowAiModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<AdminMagazineArticle | null>(null);
   const [deletingArticle, setDeletingArticle] = useState<AdminMagazineArticle | null>(null);
   const [formData, setFormData] = useState<AdminArticleFormData>(emptyForm);
@@ -219,7 +221,7 @@ export default function AdminMagazinePage() {
       featured_image: article.featured_image || '',
       category: article.category?.key || 'news',
       content_source: article.content_source?.key || 'rss',
-      source_name: article.source?.name || article.source_name || 'ازکالا',
+      source_name: article.source?.name || 'ازکالا',
       source_url: article.source?.url || '',
       is_published: article.is_published,
       device_ids: article.devices?.map((d) => d.id) || [],
@@ -284,12 +286,19 @@ export default function AdminMagazinePage() {
             تازه‌سازی
           </button>
           <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-500/20 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            مقاله جدید
-          </button>
+  onClick={() => setShowAiModal(true)}
+  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-purple-500/20"
+>
+  <Sparkles className="w-4 h-4" />
+  تولید با AI
+</button>
+<button
+  onClick={openCreate}
+  className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-primary-500/20"
+>
+  <Plus className="w-4 h-4" />
+  مقاله جدید
+</button>
         </div>
       </div>
 
@@ -587,6 +596,31 @@ export default function AdminMagazinePage() {
           isDeleting={deleteMutation.isPending}
         />
       )}
+
+      {/* ===== AI Article Modal ===== */}
+      {showAiModal && (
+        <AiArticleModal
+          isOpen={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onGenerate={(data) => {
+            setFormData({
+              title: data.title,
+              slug: '',
+              excerpt: data.excerpt,
+              content: data.content,
+              featured_image: '',
+              category: (data.suggested_category as any) || 'news',
+              content_source: 'ai_generated',
+              source_name: 'هوش مصنوعی ازکالا',
+              source_url: '',
+              is_published: false,
+              device_ids: [],
+            });
+            setShowAiModal(false);
+            setShowCreateModal(true);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -715,7 +749,9 @@ function ArticleRow({
       {/* Category + Source */}
       <div className="lg:col-span-2 flex items-start gap-2 flex-wrap">
         <span className={cn('px-2 py-1 rounded-lg text-xs font-bold', catColor)}>
-          {article.category?.label || article.category}
+          {typeof article.category === 'object' 
+            ? article.category?.label 
+            : article.category}
         </span>
         {article.content_source?.label && (
           <span className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300">
