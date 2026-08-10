@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import client from '@/services/api/client';
+import { devService } from '@/services/api/dev.service';
 import {
   Smartphone,
   Shield,
@@ -49,6 +50,37 @@ export function AuthPage() {
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       toast.error(axiosError.response?.data?.message || 'خطا در ارتباط با سرور');
+    } finally {
+      setLoading(false);
+    }
+  };
+    // 🛠️ Dev Tools: دریافت خودکار OTP
+  const handleGetDevOtp = async () => {
+    if (!phone || phone.length !== 11) {
+      toast.error('ابتدا شماره موبایل را وارد کنید');
+      return;
+    }
+    try {
+      setLoading(true);
+      const { otp } = await devService.getOtp(phone);
+      setOtp(otp);
+      toast.success(`کد OTP: ${otp} (محیط توسعه)`);
+    } catch (error: any) {
+      toast.error(error.message || 'ابتدا کد را درخواست کنید');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🛠️ Dev Tools: Login سریع ادمین
+  const handleDevAdminLogin = async () => {
+    try {
+      setLoading(true);
+      const { user, token } = await devService.adminLogin();
+      await login({ user, token });
+      toast.success('ورود ادمین (dev mode)');
+    } catch (error: any) {
+      toast.error('فقط در محیط local فعال است');
     } finally {
       setLoading(false);
     }
@@ -235,6 +267,30 @@ export function AuthPage() {
                 </Button>
               </form>
             )}
+                          {/* 🛠️ Dev Tools - فقط در محیط توسعه نمایش داده می‌شود */}
+              {import.meta.env.DEV && (
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-xs font-bold text-yellow-800 dark:text-yellow-300 mb-2">
+                    🛠️ ابزار توسعه (فقط dev)
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleGetDevOtp}
+                      className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      📩 دریافت OTP خودکار
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDevAdminLogin}
+                      className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                      👑 Login ادمین سریع
+                    </button>
+                  </div>
+                </div>
+              )}
 
             {authMethod === 'otp' && otpStep === 2 && (
               <form onSubmit={handleVerifyOtp} className="space-y-6">

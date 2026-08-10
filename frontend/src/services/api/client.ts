@@ -16,7 +16,7 @@ const client = axios.create({
 
 // ==================== Request Interceptor ====================
 client.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  async (config: InternalAxiosRequestConfig) => {
     // 1. افزودن Token
     const token = useAuthStore.getState().token;
     if (token && config.headers) {
@@ -40,7 +40,24 @@ client.interceptors.request.use(
       }
     }
 
-    // 4. Logging در Development
+    // 4. ✅ دریافت خودکار CSRF Cookie برای متدهای stateful
+    // لاراول برای POST/PUT/PATCH/DELETE با Sanctum توکن CSRF می‌خواهد.
+    // به جای اصلاح تک‌تک سرویس‌ها، اینجا به‌صورت مرکزی مدیریت می‌کنیم.
+    // فقط برای درخواست‌هایی که قبلاً retry نشده‌اند (جلوگیری از حلقه).
+    const method = config.method?.toLowerCase();
+    const needsCsrf = ['post', 'put', 'patch', 'delete'].includes(method || '');
+    
+    if (needsCsrf && !(config as any)._csrfFetched) {
+      try {
+        await fetchCsrfCookie();
+        (config as any)._csrfFetched = true;
+      } catch (csrfError) {
+        logger.warn('Failed to fetch CSRF cookie:', csrfError);
+        // ادامه می‌دهیم حتی اگر CSRF fail شد - شاید درخواست public باشد
+      }
+    }
+
+    // 5. Logging در Development
     if (import.meta.env.DEV) {
       logger.debug(`Request: ${config.method?.toUpperCase()} ${config.url}`, 
         config.data instanceof FormData ? 'FormData (File Upload)' : config.data);
@@ -76,20 +93,56 @@ client.interceptors.response.use(
       if (status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
 
-        // ✅ اگر درخواست مربوط به بررسی‌های پس‌زمینه (مثل can-review) است، کاربر را بیرون نانداز
-        if (originalRequest.url?.includes('can-review') || originalRequest.url?.includes('/reviews')) {
+        // درخواست‌های پس‌زمینه را نادیده بگیر
+        if (originalRequest.url?.includes('can-review') || 
+            originalRequest.url?.includes('/reviews') ||
+            originalRequest.url?.includes('notifications')) {
           return Promise.reject(error);
         }
 
-        // در غیر این صورت، اگر واقعاً نشست اصلی منقضی شده باشد، کاربر را خارج کن
         const authState = useAuthStore.getState();
+        
+        // ✅ اگر کاربر در حافظه هست ولی token از بین رفته، سعی کن از cookie استفاده کنی
+        if (authState.isAuthenticated && authState.user && !authState.token) {
+          try {
+            const { authService } = await import('@/services/api/auth.service');
+            const user = await authService.getUser();
+            if (user) {
+              // Cookie هنوز معتبر است، فقط state را به‌روز کن
+              authState.updateUser(user as any);
+              // Retry با cookie
+              return client(originalRequest);
+            }
+          } catch {
+            // Cookie هم منقضی شده
+          }
+        }
+
+        // در غیر این صورت، واقعاً logout کن
         if (authState.isAuthenticated) {
           authState.logout();
-          toast.error('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', { icon: '🔒', duration: 4000 });
+          toast.error('نشست شما منقضی شده است. لطفاً دوباره وارد شوید', { 
+            icon: '🔒', 
+            duration: 4000 
+          });
         }
         
         return Promise.reject(error);
       }
+          // ✅ مدیریت هوشمند خطای ۴۱۹ (CSRF Token Mismatch)
+    // اگر CSRF cookie منقضی شده باشد، یک بار دوباره دریافت کن و retry کن
+    if (status === 419 && !(originalRequest as any)._csrfRetry) {
+      (originalRequest as any)._csrfRetry = true;
+      
+      try {
+        await fetchCsrfCookie();
+        // Retry همان request با cookie جدید
+        return client(originalRequest);
+      } catch (csrfError) {
+        logger.error('Failed to refresh CSRF cookie:', csrfError);
+        toast.error('مشکل امنیتی. لطفاً صفحه را رفرش کنید', { icon: '🔒', duration: 4000 });
+      }
+    }
 
     // مدیریت ۴۲۲ - Validation Errors
     if (status === 422 && errorData?.errors) {

@@ -8,6 +8,7 @@ export { orderService } from './order.service';
 export { deviceService } from './device.service';
 export { magazineService } from './magazine.service';
 export { adminMagazineService } from './adminMagazine.service';
+export { adService } from './ad.service';
 
 export * from './auth.service';
 export * from './product.service';
@@ -20,3 +21,6 @@ export * from './magazine.service';
 export * from './device.service';
 export * from './magazine.service';
 export * from './adminMagazine.service';
+export * from './magazine.service';
+export * from './adminMagazine.service';
+export * from './ad.service';

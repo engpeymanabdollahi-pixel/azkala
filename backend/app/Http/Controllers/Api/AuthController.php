@@ -167,6 +167,60 @@ class AuthController extends Controller
             'message' => 'با موفقیت خارج شدید',
         ], 200);
     }
+        /**
+     * Refresh access token
+     * 
+     * برای جلوگیری از logout ناگهانی وقتی token منقضی می‌شود
+     */
+    public function refresh(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated',
+                ], 401);
+            }
+
+            // بررسی فعال بودن کاربر
+            if (!$user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حساب کاربری غیرفعال است',
+                ], 403);
+            }
+
+            // حذف token قدیمی (فقط اگر PersonalAccessToken باشد)
+            $currentToken = $user->currentAccessToken();
+            if ($currentToken instanceof PersonalAccessToken) {
+                $currentToken->delete();
+            }
+
+            // ساخت token جدید
+            $newToken = $user->createToken('auth_token')->plainTextToken;
+
+            // به‌روزرسانی last_login_at
+            $user->update(['last_login_at' => now()]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token refreshed successfully',
+                'data' => [
+                    'token' => $newToken,
+                    'user' => $user,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Token refresh failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'خطا در به‌روزرسانی نشست',
+            ], 500);
+        }
+    }
 
     /**
      * دریافت اطلاعات کاربر فعلی

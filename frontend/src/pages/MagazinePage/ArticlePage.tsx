@@ -239,6 +239,7 @@ export default function ArticlePage() {
             </a>
           </div>
         )}
+      </div>
 
       {/* Related Articles */}
       {related.length > 0 && (

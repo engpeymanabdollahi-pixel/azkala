@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
   Tag, FolderTree, Menu, X, LogOut, ChevronLeft,
-  Settings, Bell, BarChart3, MessageCircle, Newspaper,
+  Settings, Bell, BarChart3, MessageCircle, Newspaper, Megaphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { cn } from '@/utils/cn';
@@ -20,6 +20,7 @@ const menuItems = [
   { path: '/admin/users', icon: Users, label: 'کاربران' },
   { path: '/admin/reviews', icon: MessageSquare, label: 'نظرات' },
   { path: '/admin/magazine', icon: Newspaper, label: 'مجله' },
+    { path: '/admin/ads', icon: Megaphone, label: 'تبلیغات' },
   { path: '/admin/catalog', icon: FolderTree, label: 'کاتالوگ' }, // ✅ تجمیع شده
   { path: '/admin/coupons', icon: Tag, label: 'کدهای تخفیف' },
 

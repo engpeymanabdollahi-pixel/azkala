@@ -53,6 +53,8 @@ const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 // که هیچ‌جای این فایل در یک <Route> استفاده نمی‌شد (همه‌شان از طریق ایمپورت
 // مستقیمِ خودِ AdminCommunicationPage رندر می‌شوند) — کد کاملاً مرده بود.
 const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage'));
+const AdminMagazinePage = lazy(() => import('@/pages/admin/AdminMagazinePage'));
+const AdminAdsPage = lazy(() => import('@/pages/admin/AdminAdsPage'));
 const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
 
 // ==========================================
@@ -358,7 +360,9 @@ export default function App() {
                 <Route path="catalog" element={<AdminCatalogPage />} />
                 <Route path="device-brands" element={<AdminDeviceBrandsPage />} />
                 <Route path="device-series" element={<AdminDeviceSeriesPage />} />
-                <Route path="device-models" element={<AdminDeviceModelsPage />} /> 
+                <Route path="device-models" element={<AdminDeviceModelsPage />} />
+                <Route path="magazine" element={<AdminMagazinePage />} /> 
+                                <Route path="ads" element={<AdminAdsPage />} />
                 
                 {/* ریدایرکت‌های ادمین */}
                 <Route path="categories" element={<Navigate to="/admin/catalog" replace />} />

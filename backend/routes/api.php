@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SellerRequestController;
+use App\Http\Controllers\Api\AdController;
 
 
 // کاربر
@@ -25,6 +26,7 @@ use App\Http\Controllers\Api\WishlistController;
 use App\Http\Controllers\Api\ProductAlertController;
 use App\Http\Controllers\Api\MagazineController;
 use App\Http\Controllers\Api\AdminMagazineController;
+use App\Http\Controllers\Api\DevController;
 
 // چت
 use App\Http\Controllers\Api\ChatController;
@@ -75,6 +77,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/test', function () {
         return response()->json(['success' => true, 'message' => 'Azkala API v1 is working!', 'timestamp' => now()->toDateTimeString()]);
     })->name('test');
+
+    // ============================================================
+    // 🛠️ ابزارهای توسعه (فقط در APP_ENV=local فعال است)
+    // ============================================================
+    if (app()->environment('local')) {
+        Route::prefix('dev')->name('dev.')->group(function () {
+            // دریافت OTP برای یک شماره (بدون نیاز به پیامک)
+            Route::get('/otp/{phone}', [DevController::class, 'getOtp'])->name('otp');
+            // Login سریع ادمین (بدون نیاز به OTP)
+            Route::post('/admin-login', [DevController::class, 'adminLogin'])->name('admin-login');
+        });
+    }
 
     Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy'])->name('devices.hierarchy');
 
@@ -220,7 +234,11 @@ Route::prefix('v1')->group(function () {
         // این closure نسخه‌ی خودش از logout را داشت و AuthController::logout را
         // کاملاً دور می‌زد — یعنی هر اصلاحی روی کنترلر بی‌اثر بود. حالا هر دو یک
         // مسیر دارند و منطق خروج فقط یک جا زندگی می‌کند.
+                // خروج از حساب
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        
+        // ✅ اضافه شد: Refresh token برای جلوگیری از logout ناگهانی
+        Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
 
         // روت‌های مربوط به کاربر
         Route::prefix('user')->name('user.')->group(function () {
@@ -350,6 +368,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
             
+                        // ============================================================
+            // مدیریت تبلیغات (Admin Ads)
+            // ============================================================
+            Route::prefix('ads')->name('ads.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'index'])->name('index');
+                Route::post('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'store'])->name('store');
+                Route::get('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'show'])->name('show');
+                Route::put('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'update'])->name('update');
+                Route::delete('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'destroy'])->name('destroy');
+                Route::post('/{ad}/toggle', [\App\Http\Controllers\Admin\AdminAdController::class, 'toggle'])->name('toggle');
+            });
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');

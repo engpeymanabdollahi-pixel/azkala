@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Newspaper, Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useMagazineArticles, useMagazineStats } from '@/hooks/api/useMagazineApi';
+import AdSidebar from '@/components/magazine/AdSidebar';
 import type { MagazineCategoryFilter } from '@/types/magazine.types';
 import CategoryTabs from '@/components/magazine/CategoryTabs';
 import ArticleGrid, { ArticleGridSkeleton } from '@/components/magazine/ArticleGrid';
@@ -20,6 +21,7 @@ const PER_PAGE = 12;
  * - جستجو با debounce
  * - Pagination
  * - Featured article در بالای صفحه اول
+ * - AdSidebar در ستون کناری
  */
 export default function MagazinePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -69,7 +71,7 @@ export default function MagazinePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-            {/* Page Header - بنر مدرن */}
+      {/* ===== Page Header - بنر مدرن ===== */}
       <div className="relative overflow-hidden bg-slate-900">
         {/* بلورهای متحرک */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-600/30 rounded-full blur-3xl animate-pulse" />
@@ -90,25 +92,35 @@ export default function MagazinePage() {
             <div className="text-center md:text-right">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-primary-300 text-xs font-bold mb-5">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse" />
+                <span>به‌روزرسانی خودکار هر ساعت</span>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 leading-tight">
                 مجله{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary-400 to-accent-400">
+                <span className="text-transparent bg-clip-text bg-gradient-to-l from-primary-400 via-accent-400 to-primary-400">
                   ازکالا
                 </span>
               </h1>
-              <p className="text-gray-400 text-sm md:text-base max-w-xl leading-relaxed">
-                آخرین اخبار، بررسی‌ها و راهنمای خرید دنیای فناوری 
+              <p className="text-gray-400 text-sm md:text-base max-w-xl leading-relaxed mx-auto md:mx-0">
+                آخرین اخبار، بررسی‌ها و راهنمای خرید دنیای فناوری از منابع معتبر فارسی
               </p>
             </div>
 
             {/* آمار زنده */}
             {stats && (
-              <div className="flex items-center gap-4">
-               
-                <div className="text-center bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-6 py-4">
-                  <p className="text-3xl font-black text-white">{stats.total_views}</p>
-                  <p className="text-xs text-gray-400 mt-1">مجموع بازدید</p>
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 hover:bg-white/10 transition-all hover:scale-105 group">
+                  <p className="text-3xl md:text-4xl font-black text-white group-hover:text-primary-300 transition-colors">
+                    {stats.total_articles}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 font-medium">مقاله</p>
+                </div>
+                <div className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-5 hover:bg-white/10 transition-all hover:scale-105 group">
+                  <p className="text-3xl md:text-4xl font-black text-white group-hover:text-accent-300 transition-colors">
+                    {stats.total_views > 1000 
+                      ? `${Math.round(stats.total_views / 1000)}K` 
+                      : stats.total_views}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1 font-medium">بازدید</p>
                 </div>
               </div>
             )}
@@ -116,139 +128,155 @@ export default function MagazinePage() {
         </div>
       </div>
 
+      {/* ===== Main Content ===== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative max-w-xl">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="جستجو در مقالات..."
-              className="w-full pr-12 pl-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-            />
-          </div>
-        </div>
-
-        {/* Category Tabs */}
-        <CategoryTabs
-          activeCategory={activeCategory}
-          onCategoryChange={handleCategoryChange}
-          className="mb-8"
-        />
-
-        {/* Content States */}
-        {isLoading ? (
-          <ArticleGridSkeleton count={6} />
-        ) : error ? (
-          <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
-            <div className="text-5xl mb-3">⚠️</div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-              خطا در بارگذاری مقالات
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              لطفاً اتصال اینترنت خود را بررسی کنید
-            </p>
-            <button
-              onClick={() => refetch()}
-              className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
-            >
-              تلاش مجدد
-            </button>
-          </div>
-        ) : articles.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
-            <div className="text-6xl mb-3">📭</div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              مقاله‌ای یافت نشد
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              فیلتر دیگری را امتحان کنید یا عبارت جستجو را تغییر دهید
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Featured Article (فقط صفحه اول بدون فیلتر) */}
-            {currentPage === 1 && !debouncedSearch && activeCategory === 'all' && articles.length > 1 && (
-              <div className="mb-8">
-                <ArticleCard article={articles[0]} variant="featured" />
+        {/* Grid Layout: Main Content + Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          
+          {/* ===== Main Content - 3 columns ===== */}
+          <div className="lg:col-span-3">
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-xl">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="جستجو در مقالات..."
+                  className="w-full pr-12 pl-4 py-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                />
               </div>
-            )}
+            </div>
 
-            {/* Articles Grid */}
-            <ArticleGrid
-              articles={
-                currentPage === 1 && !debouncedSearch && activeCategory === 'all' && articles.length > 1
-                  ? articles.slice(1)
-                  : articles
-              }
-              columns={3}
+            {/* Category Tabs */}
+            <CategoryTabs
+              activeCategory={activeCategory}
+              onCategoryChange={handleCategoryChange}
+              className="mb-8"
             />
 
-            {/* Pagination */}
-            {hasPagination && meta && (
-              <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
+            {/* Content States */}
+            {isLoading ? (
+              <ArticleGridSkeleton count={6} />
+            ) : error ? (
+              <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                <div className="text-5xl mb-3">⚠️</div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  خطا در بارگذاری مقالات
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  لطفاً اتصال اینترنت خود را بررسی کنید
+                </p>
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className={cn(
-                    'flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-colors',
-                    currentPage === 1
-                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
-                      : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-primary-400'
-                  )}
+                  onClick={() => refetch()}
+                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
                 >
-                  <ChevronRight className="w-4 h-4" />
-                  <span>قبلی</span>
+                  تلاش مجدد
                 </button>
+              </div>
+            ) : articles.length === 0 ? (
+              <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700">
+                <div className="text-6xl mb-3">📭</div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                  مقاله‌ای یافت نشد
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  فیلتر دیگری را امتحان کنید یا عبارت جستجو را تغییر دهید
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Featured Article (فقط صفحه اول بدون فیلتر) */}
+                {currentPage === 1 && !debouncedSearch && activeCategory === 'all' && articles.length > 1 && (
+                  <div className="mb-8">
+                    <ArticleCard article={articles[0]} variant="featured" />
+                  </div>
+                )}
 
-                {/* Page Numbers */}
-                {Array.from({ length: Math.min(5, meta.last_page) }).map((_, i) => {
-                  let pageNum: number;
-                  if (meta.last_page <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= meta.last_page - 2) {
-                    pageNum = meta.last_page - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
+                {/* Articles Grid */}
+                <ArticleGrid
+                  articles={
+                    currentPage === 1 && !debouncedSearch && activeCategory === 'all' && articles.length > 1
+                      ? articles.slice(1)
+                      : articles
                   }
+                  columns={3}
+                />
 
-                  return (
+                {/* Pagination */}
+                {hasPagination && meta && (
+                  <div className="flex items-center justify-center gap-2 mt-10 flex-wrap">
                     <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
                       className={cn(
-                        'w-10 h-10 rounded-lg font-medium transition-colors',
-                        pageNum === currentPage
-                          ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
+                        'flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-colors',
+                        currentPage === 1
+                          ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
                           : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-primary-400'
                       )}
                     >
-                      {pageNum}
+                      <ChevronRight className="w-4 h-4" />
+                      <span>قبلی</span>
                     </button>
-                  );
-                })}
 
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(meta.last_page, p + 1))}
-                  disabled={currentPage === meta.last_page}
-                  className={cn(
-                    'flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-colors',
-                    currentPage === meta.last_page
-                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
-                      : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-primary-400'
-                  )}
-                >
-                  <span>بعدی</span>
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </div>
+                    {/* Page Numbers */}
+                    {Array.from({ length: Math.min(5, meta.last_page) }).map((_, i) => {
+                      let pageNum: number;
+                      if (meta.last_page <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= meta.last_page - 2) {
+                        pageNum = meta.last_page - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={cn(
+                            'w-10 h-10 rounded-lg font-medium transition-colors',
+                            pageNum === currentPage
+                              ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
+                              : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-primary-400'
+                          )}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(meta.last_page, p + 1))}
+                      disabled={currentPage === meta.last_page}
+                      className={cn(
+                        'flex items-center gap-1 px-4 py-2 rounded-lg font-medium transition-colors',
+                        currentPage === meta.last_page
+                          ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 cursor-not-allowed'
+                          : 'bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 hover:border-primary-400'
+                      )}
+                    >
+                      <span>بعدی</span>
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </div>
+
+          {/* ===== Sidebar - 1 column ===== */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 space-y-6">
+              <AdSidebar position="sidebar" limit={5} />
+            </div>
+          </div>
+          
+        </div>
       </div>
     </div>
   );

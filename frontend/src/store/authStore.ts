@@ -12,12 +12,12 @@ interface AuthState {
   isAuthenticated: boolean;
   seller: Seller | null;
   
-  login: (response: AuthResponse) => Promise<void>;
+   login: (response: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
-  /** تأیید نشست از روی کوکی هنگام بالا آمدن اپ */
   checkAuth: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setSeller: (seller: Seller | null) => void;
+  setToken: (token: string | null) => void;
   
   isSeller: () => boolean;
   isApprovedSeller: () => boolean;
@@ -112,24 +112,28 @@ export const useAuthStore = create<AuthState>()(
        * حالا از سرور می‌پرسیم. کوکی نشست خودکار همراه درخواست می‌رود؛ اگر معتبر
        * باشد کاربرِ تازه برمی‌گردد، وگرنه حالت بدون‌ورود پاک‌سازی می‌شود.
        */
-      checkAuth: async () => {
-        // اگر هرگز واردی در کار نبوده، درخواستی هم لازم نیست.
-        if (!get().isAuthenticated && !get().user) {
+            checkAuth: async () => {
+        const state = get();
+        
+        // اگر هیچ سابقه‌ای از ورود نیست، رد شو
+        if (!state.isAuthenticated && !state.user) {
           return;
         }
 
         try {
           const { authService } = await import('@/services/api/auth.service');
-          // auth.service نسخه‌ی سبک‌تری از User را اعلام می‌کند (بدون created_at
-          // و updated_at). منبع واقعی همان چیزی است که API می‌دهد؛ store روی
-          // نوع کامل types/models کار می‌کند.
           const user = (await authService.getUser()) as unknown as User;
-
-          set({ user, isAuthenticated: true });
-        } catch {
-          // ۴۰۱ یعنی کوکی نبود یا منقضی شده. بی‌صدا پاک می‌کنیم؛ اینجا toast
-          // «نشست منقضی شد» نشان نمی‌دهیم چون بازدیدکننده‌ای که فقط localStorage
-          // کهنه دارد کار اشتباهی نکرده است.
+          
+          // ✅ به‌روزرسانی user + isAuthenticated
+          // token را تغییر نمی‌دهیم چون ممکن است از cookie احراز شده باشیم
+          set({ 
+            user, 
+            isAuthenticated: true,
+            // اگر useradmin است و seller قبلاً null بوده، seller را هم null نگه دار
+          });
+        } catch (error) {
+          // ۴۰۱ یعنی هم cookie و هم token نامعتبرند
+          console.warn('[checkAuth] Session expired, clearing state');
           set({ user: null, token: null, isAuthenticated: false, seller: null });
         }
       },
@@ -143,6 +147,10 @@ export const useAuthStore = create<AuthState>()(
 
       setSeller: (seller: Seller | null) => {
         set({ seller });
+      },
+
+      setToken: (token: string | null) => {
+        set({ token });
       },
 
       isSeller: () => get().user?.role === 'seller',
