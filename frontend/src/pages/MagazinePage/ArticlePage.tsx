@@ -96,9 +96,41 @@ export default function ArticlePage() {
 
   const categoryColorClass = MAGAZINE_CATEGORY_COLORS[article.category.key];
 
+  // ============ Schema.org (JSON-LD) ============
+  const articleJsonLd = [
+    generateArticleSchema(article),
+    generateBreadcrumbSchema([
+      { name: 'خانه', url: '/' },
+      { name: 'مجله', url: '/magazine' },
+      ...(article.category?.label
+        ? [{ name: article.category.label, url: `/magazine?category=${article.category.key}` }]
+        : []),
+      { name: article.title, url: `/magazine/${article.slug}` },
+    ]),
+  ];
+
   // ============ Main Render ============
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <Seo
+        title={article.title}
+        description={article.excerpt || `مقاله ${article.title} در مجله ازکالا`}
+        canonical={`/magazine/${article.slug}`}
+        image={article.featured_image || undefined}
+        type="article"
+        publishedTime={article.published_at}
+        author={article.author?.name}
+        section={article.category?.label}
+        keywords={[
+          article.title,
+          article.category?.label,
+          article.source?.name,
+          'مجله ازکالا',
+          'اخبار فناوری',
+        ].filter(Boolean) as string[]}
+        jsonLd={articleJsonLd}
+      />
+
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Breadcrumb */}

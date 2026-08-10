@@ -45,32 +45,11 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SafeImage } from '@/components/ui/SafeImage';
-<Seo
-  title={productData.name}
-  description={productData.short_description || productData.meta_description || `${productData.name} - ${productData.brand?.name || ''} - خرید با بهترین قیمت از ازکالا`}
-  canonical={`/products/${productData.slug}`}
-  image={productData.main_image || productData.images?.[0]}
-  type="product"
-  keywords={[
-    productData.name,
-    productData.brand?.name,
-    productData.category?.name,
-    'خرید',
-    'قیمت',
-    'ازکالا',
-  ].filter(Boolean) as string[]}
-  jsonLd={[
-    generateProductSchema(productData),
-    generateBreadcrumbSchema([
-      { name: 'خانه', url: '/' },
-      { name: 'محصولات', url: '/products' },
-      ...(productData.category?.name
-        ? [{ name: productData.category.name, url: `/products?category=${productData.category.slug || productData.category.id}` }]
-        : []),
-      { name: productData.name, url: `/products/${productData.slug}` },
-    ]),
-  ]}
-/>
+import Seo from '@/components/Seo';
+import {
+  generateProductSchema,
+  generateBreadcrumbSchema,
+} from '@/lib/seo-schemas';
 import { formatPrice } from '@/utils/format';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
@@ -468,16 +447,35 @@ export function ProductDetailPage() {
   // ==================== Main Render ====================
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-10">
-      {/* ✅ فیکس واقعی: قبلاً این تگ به‌عنوان یک عبارت JSX سرگردان داخل
-          useEffect (بعد از fetch) نوشته می‌شد — نه return می‌شد و نه هیچ‌جا
-          رندر — پس هیچ‌وقت اجرا نمی‌شد و تگ‌های متای هر محصول (title،
-          description، og:image واقعی) هیچ‌وقت روی صفحه اعمال نمی‌شدند. */}
-      <DynamicMeta
+      {/* ✅ SEO: Product Schema و BreadcrumbList Schema به‌صورت JSON-LD
+          تولید می‌شوند و meta tags کامل در <head> قرار می‌گیرند.
+          این باعث می‌شود Google قیمت، ستاره‌ها، موجودی و مسیر ناوبری
+          را در نتایج جستجو نمایش دهد (Rich Snippets). */}
+      <Seo
         title={product.name}
-        description={product.short_description || product.description?.substring(0, 150) || `خرید ${product.name} با بهترین قیمت از ازکالا`}
-        image={product.main_image || '/images/placeholder.png'}
-        url={`https://azkala.com/products/${product.slug}`}
+        description={product.short_description || product.meta_description || `${product.name} - ${product.brand?.name || ''} - خرید با بهترین قیمت از ازکالا`}
+        canonical={`/products/${product.slug}`}
+        image={product.main_image || product.images?.[0]}
         type="product"
+        keywords={[
+          product.name,
+          product.brand?.name,
+          product.category?.name,
+          'خرید',
+          'قیمت',
+          'ازکالا',
+        ].filter(Boolean) as string[]}
+        jsonLd={[
+          generateProductSchema(product),
+          generateBreadcrumbSchema([
+            { name: 'خانه', url: '/' },
+            { name: 'محصولات', url: '/products' },
+            ...(product.category?.name
+              ? [{ name: product.category.name, url: `/products?category=${product.category.slug || product.category.id}` }]
+              : []),
+            { name: product.name, url: `/products/${product.slug}` },
+          ]),
+        ]}
       />
 
       <div className="container mx-auto px-3 md:px-4 py-4 max-w-7xl">

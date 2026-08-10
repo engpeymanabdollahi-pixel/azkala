@@ -68,11 +68,12 @@ export function generateProductSchema(product: Product): Record<string, any> {
     };
   }
 
-  // اضافه کردن seller
-  if (product.seller?.name) {
+  // اضافه کردن seller (Seller interface ازکالا فیلد shop_name دارد، نه name)
+  const sellerName = (product.seller as any)?.shop_name || (product.seller as any)?.name;
+  if (sellerName) {
     offers.seller = {
       '@type': 'Organization',
-      name: product.seller.name,
+      name: sellerName,
     };
   }
 
