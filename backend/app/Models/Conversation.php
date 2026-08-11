@@ -16,6 +16,8 @@ class Conversation extends Model
         'product_id',
         'is_active',
         'last_message_at',
+        'updated_at',  // ✅ اضافه شد - برای touch() در chatservice
+        'created_at',  // ✅ اضافه شد - برای اطمینان
     ];
 
     protected $casts = [

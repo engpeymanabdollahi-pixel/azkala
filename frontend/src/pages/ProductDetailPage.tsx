@@ -43,8 +43,9 @@ import { useWishlistApi } from '@/hooks/api/useWishlistApi'; // ✅ تغییر �
 import { ProductAlertButton } from '@/components/features/ProductAlertButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ProductCard } from '@/components/features/ProductCard';
+import { ProductCard } from '@/components/marketplace';
 import { SafeImage } from '@/components/ui/SafeImage';
+import { DeviceCompatibility } from '@/components/marketplace';
 import Seo from '@/components/Seo';
 import {
   generateProductSchema,
@@ -220,7 +221,10 @@ export function ProductDetailPage() {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['product-reviews', product?.id] });
       queryClient.invalidateQueries({ queryKey: ['can-review', product?.id] });
-      toast.success(response.message || 'نظر شما با موفقیت ثبت شد', { icon: '⭐' });
+      toast.success(
+  response.message || 'نظر شما ثبت شد و پس از بررسی منتشر می‌شود',
+  { icon: '⭐', duration: 4000 }
+);
       setShowReviewForm(false);
       setReviewForm({ rating: 0, title: '', comment: '' });
     },
@@ -327,8 +331,8 @@ export function ProductDetailPage() {
       toast.error('لطفاً امتیاز خود را انتخاب کنید');
       return;
     }
-    if (reviewForm.comment.length < 10) {
-      toast.error('متن نظر باید حداقل ۱۰ کاراکتر باشد');
+    if (reviewForm.comment.trim().length < 4) {
+      toast.error('متن نظر باید حداقل ۴ کاراکتر باشد');
       return;
     }
     createReviewMutation.mutate({
@@ -618,6 +622,17 @@ export function ProductDetailPage() {
               <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-gray-100 leading-tight mb-2">
                 {product.name}
               </h1>
+
+              {/* ✅ Inline Compatibility Badge - نمایش سریع سازگاری با دستگاه انتخابی */}
+              {selectedModel && product.compatible_models && product.compatible_models.length > 0 && (
+                <DeviceCompatibility
+                  devices={product.compatible_models}
+                  selectedDevice={selectedModel}
+                  variant="inline"
+                  className="mb-2"
+                />
+              )}
+
               {rating > 0 && (
                 <div className="flex items-center gap-3 flex-wrap text-sm">
                   <div className="flex items-center gap-1.5">
@@ -979,35 +994,19 @@ export function ProductDetailPage() {
             )}
 
             {activeTab === 'compatibility' && (
-              <div>
-                {product.compatible_models && product.compatible_models.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {product.compatible_models.map((model) => (
-                      <div key={model.id} className="flex items-center gap-2 p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-success-300 dark:hover:border-success-700 hover:shadow-sm transition-all">
-                        <div className="w-9 h-9 bg-gradient-to-br from-success-500 to-success-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <CheckCircle className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">{model.name}</p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{model.brand?.name}</p>
-                        </div>
-                        <Badge variant="success" size="sm">سازگار</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Smartphone className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">این محصول سازگاری با مدل خاصی ندارد</p>
-                  </div>
-                )}
-              </div>
+              <DeviceCompatibility
+                devices={product.compatible_models}
+                selectedDevice={selectedModel}
+                variant="list"
+              />
             )}
 
             {/* 🆕 Reviews Tab - بهبود یافته */}
             {activeTab === 'reviews' && (
               <div className="space-y-4">
                 
+
+
                 {/* Rating Summary - Compact */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-gradient-to-br from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl p-4 text-center border border-primary-100 dark:border-primary-800">
@@ -1054,28 +1053,11 @@ export function ProductDetailPage() {
                   </div>
                 </div>
 
-                {/* Write Review Button */}
-                {isAuthenticated && canReview && !hasReviewed && (
-                  <div className="bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl p-3 text-white">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <h4 className="font-black text-sm mb-0.5">نظر خود را ثبت کنید</h4>
-                        <p className="text-white/90 text-xs">
-                          {hasPurchased ? 'تجربه خود را به اشتراک بگذارید' : 'به دیگر کاربران کمک کنید'}
-                        </p>
-                      </div>
-                      <Button 
-                        variant="secondary" 
-                        size="sm"
-                        onClick={() => setShowReviewForm(!showReviewForm)}
-                      >
-                        <MessageCircle className="w-3.5 h-3.5 ml-1" />
-                        {showReviewForm ? 'بستن' : 'ثبت نظر'}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                                {/* Write Review Button - ساده شده (بدون محدودیت خرید) */}
 
+                               {/* Write Review Button - ساده شده (بدون محدودیت خرید) */}
+
+                {/* حالت ۱: کاربر لاگین نکرده */}
                 {!isAuthenticated && (
                   <div className="bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
                     <MessageCircle className="w-8 h-8 text-gray-400 dark:text-gray-600 mx-auto mb-1.5" />
@@ -1090,9 +1072,31 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* ✅ کاربری که قبلاً نظر داده، این پیام واقعی has_reviewed را
-                    می‌بیند به‌جای اینکه فرم را دوباره ببیند و فقط بعد از ارسال
-                    با خطا مواجه شود. */}
+                {/* حالت ۲: کاربر لاگین کرده و قبلاً نظر نداده - می‌تواند نظر بدهد */}
+                {isAuthenticated && !hasReviewed && (
+                  <div className="bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl p-3 text-white">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <h4 className="font-black text-sm mb-0.5">نظر خود را ثبت کنید</h4>
+                        <p className="text-white/90 text-xs">
+                          {hasPurchased
+                            ? 'تجربه خرید خود را با دیگران به اشتراک بگذارید'
+                            : 'نظر شما به دیگر کاربران کمک می‌کند'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowReviewForm(!showReviewForm)}
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 ml-1" />
+                        {showReviewForm ? 'بستن' : 'ثبت نظر'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* حالت ۳: کاربر قبلاً نظر داده */}
                 {isAuthenticated && hasReviewed && (
                   <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-center">
                     <p className="text-gray-600 dark:text-gray-400 text-xs flex items-center justify-center gap-1.5">
@@ -1102,8 +1106,8 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* 🆕 Review Form - بهبود یافته */}
-                {showReviewForm && canReview && (
+                {/* 🆕 Review Form - بهبود یافته (بدون محدودیت خرید) */}
+                {showReviewForm && isAuthenticated && !hasReviewed && (
                   <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 animate-fade-in">
                     <h4 className="font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-1.5 text-sm">
                       <MessageCircle className="w-4 h-4 text-primary-600 dark:text-primary-400" />
@@ -1126,10 +1130,10 @@ export function ProductDetailPage() {
                             >
                               <Star
                                 className={cn(
-                                  'w-8 h-8 transition-all duration-200',
+                                  'w-8 h-8 transition-all duration-200 stroke-2',
                                   star <= (hoverRating || reviewForm.rating)
-                                    ? 'text-warning-400 fill-warning-400 drop-shadow-[0_2px_4px_rgba(251,191,36,0.5)]'
-                                    : 'text-gray-300 dark:text-gray-600 hover:text-warning-200 dark:hover:text-warning-800'
+                                    ? 'text-yellow-400 fill-yellow-400 drop-shadow-[0_2px_6px_rgba(250,204,21,0.6)]'
+                                    : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300 dark:hover:text-yellow-700'
                                 )}
                               />
                             </button>
@@ -1167,11 +1171,19 @@ export function ProductDetailPage() {
                         placeholder="تجربه خود از استفاده این محصول را بنویسید..."
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500 resize-none"
-                        minLength={10}
+                        minLength={4}
                         maxLength={2000}
                       />
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                        حداقل ۱۰ کاراکتر • {reviewForm.comment.length}/2000
+                      <p className={cn(
+                        'text-[10px] mt-1',
+                        reviewForm.comment.trim().length < 4
+                          ? 'text-error-500'
+                          : 'text-gray-500 dark:text-gray-400'
+                      )}>
+                        {reviewForm.comment.trim().length < 4
+                          ? `حداقل ۴ کاراکتر • ${reviewForm.comment.length}/2000`
+                          : `${reviewForm.comment.length}/2000`
+                        }
                       </p>
                     </div>
 
@@ -1196,7 +1208,7 @@ export function ProductDetailPage() {
                         disabled={
                           createReviewMutation.isPending ||
                           reviewForm.rating === 0 ||
-                          reviewForm.comment.length < 10
+                          reviewForm.comment.trim().length < 4
                         }
                         isLoading={createReviewMutation.isPending}
                       >
@@ -1293,6 +1305,12 @@ export function ProductDetailPage() {
                                       <Badge variant="success" size="sm" className="text-[9px]">
                                         <BadgeCheck className="w-2.5 h-2.5 ml-0.5" />
                                         خریدار
+                                      </Badge>
+                                    )}
+                                    {review.is_pending && (
+                                      <Badge variant="warning" size="sm" className="text-[9px]">
+                                        <Clock className="w-2.5 h-2.5 ml-0.5" />
+                                        در انتظار تأیید
                                       </Badge>
                                     )}
                                   </div>
@@ -1392,11 +1410,16 @@ export function ProductDetailPage() {
               </Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-              {relatedProducts.map((p) => (
-                <ProductCard 
-                  key={p.id} 
-                  product={p} 
-                  onClick={() => navigate(`/products/${p.slug}`)} 
+              {relatedProducts.map((p, index) => (
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  variant="compact"
+                  showCompatibility={false}
+                  showSeller={false}
+                  showRating={true}
+                  onClick={() => navigate(`/products/${p.slug}`)}
+                  index={index}
                 />
               ))}
             </div>

@@ -1,4 +1,4 @@
-import { ProductCard } from '@/components/features/ProductCard';
+import { ProductCard } from '@/components/marketplace';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { Search, Smartphone, Package, X } from 'lucide-react';

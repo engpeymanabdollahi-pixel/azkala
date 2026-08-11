@@ -6,7 +6,7 @@ import {
   AlertCircle, CheckCircle2, Settings, MessageCircle, Grid3x3, Info, MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { ProductCard } from '@/components/features/ProductCard';
+import { ProductCard } from '@/components/marketplace';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { STORAGE_URL } from '@/lib/apiConfig';

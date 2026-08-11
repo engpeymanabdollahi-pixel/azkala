@@ -305,7 +305,16 @@ const handleConvertToTicket = async () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 left-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden">
+        <>
+          {/* Backdrop شفاف - کلیک بیرون = بستن چت */}
+          <div
+            className="fixed inset-0 z-40"
+            onClick={closeChat}
+            aria-hidden="true"
+          />
+
+          {/* مودال چت - با max-h محدود تا زیر header نرود */}
+          <div className="fixed bottom-6 left-6 w-96 max-h-[calc(100vh-6rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4 text-white flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -844,7 +853,8 @@ const handleConvertToTicket = async () => {
     </div>
   </div>
 )}
-        </div>
+          </div>
+        </>
       )}
     </>
   );

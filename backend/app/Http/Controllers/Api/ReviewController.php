@@ -22,17 +22,16 @@ class ReviewController extends Controller
     /**
      * لیست نظرات یک محصول
      */
-    public function index(Request $request, $productId)
+        public function index(Request $request, $productId)
     {
         try {
-            // ✅ قبلاً پارامتر rating اصلاً به سرویس پاس داده نمی‌شد — دکمه‌های
-            // فیلتر ستاره در فرانت فقط همان یک صفحهٔ بارگذاری‌شده را در سمت
-            // کلاینت فیلتر می‌کردند، نه کل نظرات محصول.
             $rating = $request->filled('rating') ? (int) $request->input('rating') : null;
-            $reviews = $this->reviewService->getApprovedReviewsPaginated((int) $productId, $rating);
-
-            // محاسبه توزیع امتیازات
-            $ratingDistribution = $this->reviewService->getRatingDistribution((int) $productId);
+            $currentUserId = $request->user()?->id;
+            
+            // ✅ حالا هر سه متد $currentUserId را قبول می‌کنند
+            $reviews = $this->reviewService->getApprovedReviewsPaginated((int) $productId, $rating, $currentUserId);
+            $ratingDistribution = $this->reviewService->getRatingDistribution((int) $productId, $currentUserId);
+            $averageRating = $this->reviewService->getAverageRating((int) $productId, $currentUserId);
 
             // تکمیل توزیع با صفرها
             $distribution = [];
@@ -43,13 +42,10 @@ class ReviewController extends Controller
                 ];
             }
 
-            // میانگین امتیاز
-            $averageRating = $this->reviewService->getAverageRating((int) $productId);
-
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'reviews' => $reviews->map(function ($review) {
+                    'reviews' => $reviews->map(function ($review) use ($currentUserId) {
                         return [
                             'id' => $review->id,
                             'user' => [
@@ -61,9 +57,11 @@ class ReviewController extends Controller
                             'comment' => $review->comment,
                             'rating' => $review->rating,
                             'is_verified' => $review->is_verified,
+                            // ✅ فیلدهای جدید برای نمایش وضعیت pending
+                            'is_pending' => $review->status === 'pending',
+                            'is_own_review' => $currentUserId && $review->user_id === $currentUserId,
+                            'status' => $review->status,
                             'helpful_count' => $review->helpful_count,
-                            // ✅ قبلاً پاسخ ادمین (که واقعاً در پنل مدیریت ثبت
-                            // می‌شود) هیچ‌وقت در پاسخ عمومی نمایش داده نمی‌شد.
                             'admin_reply' => $review->admin_reply,
                             'replied_at' => $review->replied_at?->format('Y-m-d'),
                             'created_at' => $review->created_at->format('Y-m-d'),
@@ -103,7 +101,7 @@ class ReviewController extends Controller
                 'product_id' => 'required|integer|exists:products,id',
                 'rating' => 'required|integer|min:1|max:5',
                 'title' => 'nullable|string|max:255',
-                'comment' => 'required|string|min:10|max:2000',
+                'comment' => 'required|string|min:4|max:2000',
             ]);
 
             $review = $this->reviewService->createReview($request->user()->id, $validated);

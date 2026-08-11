@@ -15,11 +15,28 @@ class ReviewService
     // ✅ قبلاً هیچ پارامتر فیلتر امتیازی وجود نداشت — دکمه‌های فیلتر ستاره
     // در فرانت فقط روی همان یک صفحهٔ بارگذاری‌شده در سمت کلاینت فیلتر
     // می‌کردند، نه کل نظرات محصول. حالا فیلتر واقعاً در دیتابیس اعمال می‌شود.
-    public function getApprovedReviewsPaginated(int $productId, ?int $rating = null): LengthAwarePaginator
+    /**
+     * ✅ لیست نظرات تأیید شده + نظرات pending خود کاربر
+     * 
+     * منطق: همه کاربران نظرات approved را می‌بینند،
+     * اما کاربر لاگین شده نظرات pending خودش را هم می‌بیند (با badge "در انتظار تأیید")
+     */
+    public function getApprovedReviewsPaginated(int $productId, ?int $rating = null, ?int $currentUserId = null): LengthAwarePaginator
     {
         $query = Review::with('user:id,name')
             ->where('product_id', $productId)
-            ->where('status', 'approved');
+            ->where(function ($q) use ($currentUserId) {
+                // همه نظرات تأیید شده (برای همه کاربران)
+                $q->where('status', 'approved');
+                
+                // نظرات pending خود کاربر (فقط برای خود کاربر)
+                if ($currentUserId) {
+                    $q->orWhere(function ($subQ) use ($currentUserId) {
+                        $subQ->where('user_id', $currentUserId)
+                             ->where('status', 'pending');
+                    });
+                }
+            });
 
         if ($rating !== null) {
             $query->where('rating', $rating);
@@ -28,20 +45,42 @@ class ReviewService
         return $query->orderByDesc('created_at')->paginate(10);
     }
 
-    public function getRatingDistribution(int $productId): array
+    /**
+     * ✅ توزیع امتیازات: approved ها + pending های خود کاربر
+     */
+    public function getRatingDistribution(int $productId, ?int $currentUserId = null): array
     {
         return Review::where('product_id', $productId)
-            ->where('status', 'approved')
+            ->where(function ($q) use ($currentUserId) {
+                $q->where('status', 'approved');
+                if ($currentUserId) {
+                    $q->orWhere(function ($subQ) use ($currentUserId) {
+                        $subQ->where('user_id', $currentUserId)
+                             ->where('status', 'pending');
+                    });
+                }
+            })
             ->selectRaw('rating, COUNT(*) as count')
             ->groupBy('rating')
             ->pluck('count', 'rating')
             ->toArray();
     }
 
-    public function getAverageRating(int $productId): ?float
+    /**
+     * ✅ میانگین امتیاز: approved ها + pending های خود کاربر
+     */
+    public function getAverageRating(int $productId, ?int $currentUserId = null): ?float
     {
         return Review::where('product_id', $productId)
-            ->where('status', 'approved')
+            ->where(function ($q) use ($currentUserId) {
+                $q->where('status', 'approved');
+                if ($currentUserId) {
+                    $q->orWhere(function ($subQ) use ($currentUserId) {
+                        $subQ->where('user_id', $currentUserId)
+                             ->where('status', 'pending');
+                    });
+                }
+            })
             ->avg('rating');
     }
 
