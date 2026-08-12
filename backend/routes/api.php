@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SellerRequestController;
 use App\Http\Controllers\Api\AdController;
-
+use App\Http\Controllers\Api\DebugController;
 
 // کاربر
 use App\Http\Controllers\Api\AddressController;
@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\UserTicketController;
 use App\Http\Controllers\Api\WishlistController;
 use App\Http\Controllers\Api\ProductAlertController;
 use App\Http\Controllers\Api\MagazineController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\AdminMagazineController;
 use App\Http\Controllers\Api\DevController;
 
@@ -151,6 +152,16 @@ Route::prefix('v1')->group(function () {
             ->name('my-products');
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
+    // ==================== Search API (ازکالا Marketplace) ====================
+Route::prefix('search')->name('search.')->group(function () {
+   Route::get('/global', [SearchController::class, 'global'])->name('global');
+Route::get('/devices', [SearchController::class, 'devices'])->name('devices');
+Route::get('/popular', [SearchController::class, 'popular'])->name('popular');
+});
+// Debug endpoint (فقط در development)
+if (app()->environment('local')) {
+    Route::get('/debug/stats', [Api\DebugController::class, 'stats'])->name('debug.stats');
+}
        
           // ==========================================
     // مسیر عمومی دریافت تنظیمات ظاهری سایت (بدون نیاز به لاگین)
