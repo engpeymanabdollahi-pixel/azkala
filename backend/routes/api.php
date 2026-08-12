@@ -1,64 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Admin\AdminAdController;
 // عمومی
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BrandController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\DeviceController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ReviewController;
-use App\Http\Controllers\Api\SellerRequestController;
-use App\Http\Controllers\Api\AdController;
-use App\Http\Controllers\Api\DebugController;
-
-// کاربر
-use App\Http\Controllers\Api\AddressController;
-use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\CouponController;
-use App\Http\Controllers\Api\ImageUploadController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\PushSubscriptionController;
-use App\Http\Controllers\Api\UserDeviceController;
-use App\Http\Controllers\Api\UserTicketController;
-use App\Http\Controllers\Api\WishlistController;
-use App\Http\Controllers\Api\ProductAlertController;
-use App\Http\Controllers\Api\MagazineController;
-use App\Http\Controllers\Api\SearchController;
-use App\Http\Controllers\Api\AdminMagazineController;
-use App\Http\Controllers\Api\DevController;
-
-// چت
-use App\Http\Controllers\Api\ChatController;
-use App\Http\Controllers\Api\ChatFaqController;
-use App\Http\Controllers\Api\ChatModerationController;
-
-// فروشنده
-use App\Http\Controllers\Api\SellerDashboardController;
-use App\Http\Controllers\Api\SellerOrderController;
-use App\Http\Controllers\Api\SellerProductController;
-use App\Http\Controllers\Api\SellerQuickReplyController;
-use App\Http\Controllers\Api\SellerRatingController;
-
-// ادمین
-use App\Http\Controllers\Api\AdminBrandController;
-use App\Http\Controllers\Api\AdminCategoryController;
-use App\Http\Controllers\Api\AdminDashboardController;
-use App\Http\Controllers\Api\AdminOrderController;
-use App\Http\Controllers\Api\AdminProductController;
-use App\Http\Controllers\Api\AdminReportController;
-use App\Http\Controllers\Api\AdminAdvancedReportController;
-use App\Http\Controllers\Api\AdminReviewController;
-use App\Http\Controllers\Api\AdminSettingController;
-use App\Http\Controllers\Api\AdminUserController;
-use App\Http\Controllers\Api\AdminDeviceBrandController;
-use App\Http\Controllers\Api\AdminDeviceSeriesController;
-use App\Http\Controllers\Api\AdminDeviceModelController;
-
-
-
-// ادمین (ویژه)
 use App\Http\Controllers\Admin\BlockManagementController;
 use App\Http\Controllers\Admin\ChatMonitorController;
 use App\Http\Controllers\Admin\FaqManagementController;
@@ -66,9 +9,63 @@ use App\Http\Controllers\Admin\MessageTemplateController;
 use App\Http\Controllers\Admin\ReportController as AdminChatReportController;
 use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Admin\SentimentDashboardController;
-use App\Http\Controllers\Admin\SupportTicketController;
 use App\Http\Controllers\Admin\SuggestionManagementController;
+// کاربر
+use App\Http\Controllers\Admin\SupportTicketController;
+use App\Http\Controllers\Api\AdController;
+use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\AdminAdvancedReportController;
 use App\Http\Controllers\Api\AdminAiArticleController;
+use App\Http\Controllers\Api\AdminBrandController;
+use App\Http\Controllers\Api\AdminCategoryController;
+use App\Http\Controllers\Api\AdminDashboardController;
+use App\Http\Controllers\Api\AdminDeviceBrandController;
+use App\Http\Controllers\Api\AdminDeviceModelController;
+use App\Http\Controllers\Api\AdminDeviceSeriesController;
+use App\Http\Controllers\Api\AdminMagazineController;
+use App\Http\Controllers\Api\AdminOrderController;
+use App\Http\Controllers\Api\AdminProductController;
+// چت
+use App\Http\Controllers\Api\AdminReportController;
+use App\Http\Controllers\Api\AdminReviewController;
+use App\Http\Controllers\Api\AdminSettingController;
+// فروشنده
+use App\Http\Controllers\Api\AdminUserController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\CategoryController;
+// ادمین
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ChatFaqController;
+use App\Http\Controllers\Api\ChatModerationController;
+use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Api\DevController;
+use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\ImageUploadController;
+use App\Http\Controllers\Api\MagazineController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\ProductAlertController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\PublicSellerController;
+// ادمین (ویژه)
+use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SellerDashboardController;
+use App\Http\Controllers\Api\SellerOrderController;
+use App\Http\Controllers\Api\SellerProductController;
+use App\Http\Controllers\Api\SellerQuickReplyController;
+use App\Http\Controllers\Api\SellerRatingController;
+use App\Http\Controllers\Api\SellerRequestController;
+use App\Http\Controllers\Api\SellerSettingsController;
+use App\Http\Controllers\Api\UserDeviceController;
+use App\Http\Controllers\Api\UserTicketController;
+use App\Http\Controllers\Api\WishlistController;
+use App\Models\Setting;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 
 // ============================================================
 // ✅ نسخه‌بندی API: تمام روت‌ها درون پیشوند v1 قرار می‌گیرند
@@ -92,7 +89,7 @@ Route::prefix('v1')->group(function () {
         });
     }
 
-    Route::get('/devices/hierarchy', [App\Http\Controllers\Api\DeviceController::class, 'getHierarchy'])->name('devices.hierarchy');
+    Route::get('/devices/hierarchy', [DeviceController::class, 'getHierarchy'])->name('devices.hierarchy');
 
     // throttle:auth (۱۰ درخواست در دقیقه به ازای هر IP، مشترک بین این سه مسیر)
     // نه throttle:10,1 که سهمیه را برای هر مسیر جدا حساب می‌کند و عملاً سقف را
@@ -110,12 +107,12 @@ Route::prefix('v1')->group(function () {
     Route::prefix('sellers')->name('sellers.')->group(function () {
         // /top باید قبل از /{slug} ثبت شود — وگرنه به‌عنوان اسلاگ یک فروشنده
         // تفسیر می‌شود و همیشه ۴۰۴ می‌دهد.
-        Route::get('/top', [\App\Http\Controllers\Api\PublicSellerController::class, 'top'])->name('top');
-        Route::get('/{slug}', [\App\Http\Controllers\Api\PublicSellerController::class, 'show'])->name('show');
-        Route::get('/{slug}/products', [\App\Http\Controllers\Api\PublicSellerController::class, 'products'])->name('products');
+        Route::get('/top', [PublicSellerController::class, 'top'])->name('top');
+        Route::get('/{slug}', [PublicSellerController::class, 'show'])->name('show');
+        Route::get('/{slug}/products', [PublicSellerController::class, 'products'])->name('products');
         // ✅ اضافه شد — تب «نظرات» صفحه‌ی عمومی فروشگاه قبلاً کاملاً placeholder
         // بود؛ seller_ratings واقعی وجود دارد ولی هیچ روتی آن را expose نمی‌کرد.
-        Route::get('/{slug}/reviews', [\App\Http\Controllers\Api\PublicSellerController::class, 'reviews'])->name('reviews');
+        Route::get('/{slug}/reviews', [PublicSellerController::class, 'reviews'])->name('reviews');
     });
 
     Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -153,17 +150,21 @@ Route::prefix('v1')->group(function () {
         Route::get('/{product}', [ProductController::class, 'show'])->name('show');
     });
     // ==================== Search API (ازکالا Marketplace) ====================
-Route::prefix('search')->name('search.')->group(function () {
-   Route::get('/global', [SearchController::class, 'global'])->name('global');
-Route::get('/devices', [SearchController::class, 'devices'])->name('devices');
-Route::get('/popular', [SearchController::class, 'popular'])->name('popular');
-});
-// Debug endpoint (فقط در development)
-if (app()->environment('local')) {
-    Route::get('/debug/stats', [Api\DebugController::class, 'stats'])->name('debug.stats');
-}
-       
-          // ==========================================
+    // ✅ قبلاً هیچ throttle روی این گروه نبود؛ /global خودش چند جدول
+    // (products/categories/brands/device_models/users) را با LIKE می‌گردد،
+    // بدون محدودیت نرخ یعنی هرکس می‌توانست بدون هیچ سقفی این کوئری‌های
+    // نسبتاً سنگین را پشت سر هم بزند.
+    Route::prefix('search')->name('search.')->middleware('throttle:search')->group(function () {
+        Route::get('/global', [SearchController::class, 'global'])->name('global');
+        Route::get('/devices', [SearchController::class, 'devices'])->name('devices');
+        Route::get('/popular', [SearchController::class, 'popular'])->name('popular');
+    });
+    // Debug endpoint (فقط در development)
+    if (app()->environment('local')) {
+        Route::get('/debug/stats', [Api\DebugController::class, 'stats'])->name('debug.stats');
+    }
+
+    // ==========================================
     // مسیر عمومی دریافت تنظیمات ظاهری سایت (بدون نیاز به لاگین)
     // ==========================================
     // ============================================================
@@ -175,10 +176,10 @@ if (app()->environment('local')) {
         Route::get('/stats', [MagazineController::class, 'stats'])->name('stats');
         Route::get('/category/{category}', [MagazineController::class, 'byCategory'])->name('category');
         Route::get('/device/{modelId}/news', [MagazineController::class, 'deviceNews'])->name('device.news');
-        
+
         // لیست مقالات (با pagination و فیلترها)
         Route::get('/', [MagazineController::class, 'index'])->name('index');
-        
+
         // جزئیات مقاله (باید آخر باشد چون {slug} همه چیز را match می‌کند)
         Route::get('/{slug}', [MagazineController::class, 'show'])->name('show');
     });
@@ -200,46 +201,47 @@ if (app()->environment('local')) {
                 // بدون‌کد که ادعای غیرقابل‌استعلام محسوب می‌شود).
                 'enamad_code', 'samandehi_code',
             ];
-            
-            $settings = \App\Models\Setting::whereIn('key', $keys)->get();
-            
+
+            $settings = Setting::whereIn('key', $keys)->get();
+
             $result = [];
             foreach ($settings as $setting) {
                 if (in_array($setting->key, ['site_logo', 'site_favicon']) && $setting->value) {
                     // ✅ اصلاح حیاتی: فقط اسلش‌های ابتدایی را حذف می‌کنیم، نه کاراکترهای خاص
                     $cleanPath = ltrim($setting->value, '/');
-                    
+
                     // ساخت آدرس کامل و صحیح
-                    $result[$setting->key] = asset('storage/' . $cleanPath);
+                    $result[$setting->key] = asset('storage/'.$cleanPath);
                 } else {
                     $result[$setting->key] = $setting->value;
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
-                'data' => $result
+                'data' => $result,
             ]);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Site Settings Error: ' . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Site Settings Error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'data' => []], 500);
         }
     });
-    
+
     // ============================================================
     // ۲. مسیرهای محافظت‌شده (Auth)
     // ============================================================
     Route::middleware('auth:sanctum')->group(function () {
 
-        Route::post('/upload/images', [App\Http\Controllers\Api\ImageUploadController::class, 'upload'])->name('upload.images');
-        
+        Route::post('/upload/images', [ImageUploadController::class, 'upload'])->name('upload.images');
+
         // درخواست‌های فروشندگی
         // این تنها تعریف هر کدام از این مسیرهاست؛ قبلاً بخشی از آن‌ها در
         // routes/api_v1.php هم تکرار شده بود و چون هر دو فایل mount می‌شدند،
         // آخرین تعریف برنده می‌شد و معلوم نبود کدام کنترلر واقعاً اجرا می‌شود.
-        Route::get('/user/seller-request-status', [\App\Http\Controllers\Api\SellerRequestController::class, 'getStatus']);
-        Route::post('/seller-requests', [\App\Http\Controllers\Api\SellerRequestController::class, 'store'])->name('seller-requests.store');
-        Route::post('/seller-requests/{sellerRequest}/upload-documents', [\App\Http\Controllers\Api\SellerRequestController::class, 'uploadDocuments'])->name('seller-requests.upload-documents');
+        Route::get('/user/seller-request-status', [SellerRequestController::class, 'getStatus']);
+        Route::post('/seller-requests', [SellerRequestController::class, 'store'])->name('seller-requests.store');
+        Route::post('/seller-requests/{sellerRequest}/upload-documents', [SellerRequestController::class, 'uploadDocuments'])->name('seller-requests.upload-documents');
         // ✅ PUT .../complete حذف شد — controller method متناظرش (SellerRequestController::complete)
         // کد مرده و هیچ‌وقت از فرانت‌اند صدا زده نمی‌شد (رجوع به کامنت آن‌جا).
 
@@ -252,9 +254,9 @@ if (app()->environment('local')) {
         // این closure نسخه‌ی خودش از logout را داشت و AuthController::logout را
         // کاملاً دور می‌زد — یعنی هر اصلاحی روی کنترلر بی‌اثر بود. حالا هر دو یک
         // مسیر دارند و منطق خروج فقط یک جا زندگی می‌کند.
-                // خروج از حساب
+        // خروج از حساب
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-        
+
         // ✅ اضافه شد: Refresh token برای جلوگیری از logout ناگهانی
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
 
@@ -271,18 +273,18 @@ if (app()->environment('local')) {
             });
 
             // نوتیفیکیشن‌ها
-            Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->name('notifications.index');
-            Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('notifications.read');
-            Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+            Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
 
             // لیست فروشندگان دنبال‌شده
-            Route::get('/followed-sellers', [\App\Http\Controllers\Api\PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
+            Route::get('/followed-sellers', [PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
         });
 
         // روت‌های RESTful دنبال کردن فروشندگان
         Route::prefix('sellers')->group(function () {
-            Route::post('/{id}/follow', [\App\Http\Controllers\Api\PublicSellerController::class, 'follow'])->name('sellers.follow');
-            Route::delete('/{id}/follow', [\App\Http\Controllers\Api\PublicSellerController::class, 'unfollow'])->name('sellers.unfollow');
+            Route::post('/{id}/follow', [PublicSellerController::class, 'follow'])->name('sellers.follow');
+            Route::delete('/{id}/follow', [PublicSellerController::class, 'unfollow'])->name('sellers.unfollow');
         });
 
         // سایر روت‌های کاربری
@@ -314,16 +316,16 @@ if (app()->environment('local')) {
             Route::delete('/{productId}', [WishlistController::class, 'destroy'])->name('destroy');
             Route::get('/check/{productId}', [WishlistController::class, 'check'])->name('check');
         });
-                  // 🚨 Product Alerts
-          Route::prefix('alerts')->name('alerts.')->group(function () {
-              Route::get('/', [ProductAlertController::class, 'index'])->name('index');
-              Route::post('/', [ProductAlertController::class, 'store'])->name('store');
-              Route::delete('/{alert}', [ProductAlertController::class, 'destroy'])->name('destroy');
-              Route::patch('/{alert}/toggle', [ProductAlertController::class, 'toggle'])->name('toggle');
-          });
+        // 🚨 Product Alerts
+        Route::prefix('alerts')->name('alerts.')->group(function () {
+            Route::get('/', [ProductAlertController::class, 'index'])->name('index');
+            Route::post('/', [ProductAlertController::class, 'store'])->name('store');
+            Route::delete('/{alert}', [ProductAlertController::class, 'destroy'])->name('destroy');
+            Route::patch('/{alert}/toggle', [ProductAlertController::class, 'toggle'])->name('toggle');
+        });
 
-          Route::get('/products/{product}/alert-status', [ProductAlertController::class, 'status'])
-              ->name('products.alert-status');
+        Route::get('/products/{product}/alert-status', [ProductAlertController::class, 'status'])
+            ->name('products.alert-status');
 
         Route::prefix('addresses')->name('addresses.')->group(function () {
             Route::get('/', [AddressController::class, 'index'])->name('index');
@@ -340,7 +342,7 @@ if (app()->environment('local')) {
             Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('destroy');
             Route::post('/{review}/helpful', [ReviewController::class, 'helpful'])->name('helpful');
         });
-        
+
         Route::get('/products/{productId}/can-review', [ReviewController::class, 'canReview'])->name('products.can-review');
         Route::get('/products/my-products', [ProductController::class, 'myProducts'])->name('products.my-products');
 
@@ -381,18 +383,18 @@ if (app()->environment('local')) {
             Route::post('/{ticket}/message', [UserTicketController::class, 'sendMessage'])->name('send-message');
         });
 
-                // 🏪 فروشنده (داخل گروه auth)
+        // 🏪 فروشنده (داخل گروه auth)
         Route::prefix('seller')->middleware('throttle:seller')->name('seller.')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
-            
+
             // ✅ seller/ads حذف شد چون AdminAdController در seller معنا ندارد
             // اگر در آینده SellerAdController ساخته شد، اینجا اضافه می‌شود
-            
+
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
-                Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
+                Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
                 Route::post('/copy-template/{templateId}', [SellerProductController::class, 'copyFromTemplate'])->name('copy-template');
                 Route::get('/{id}/history', [SellerProductController::class, 'getHistory'])->name('history');
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
@@ -414,13 +416,13 @@ if (app()->environment('local')) {
             });
 
             // ✅ روت جدید برای به‌روزرسانی تنظیمات فروشگاه
-            Route::post('/settings', [\App\Http\Controllers\Api\SellerSettingsController::class, 'update'])->name('settings.update');
-            
+            Route::post('/settings', [SellerSettingsController::class, 'update'])->name('settings.update');
+
         }); // ✅ پایان گروه seller (همه چیز حالا درست داخل این گروه است)
 
         // 👨‍💼 ادمین (داخل گروه auth)
         Route::prefix('admin')->middleware('admin')->name('admin.')->group(function () {
-            
+
             Route::prefix('dashboard')->name('dashboard.')->group(function () {
                 Route::get('/stats', [AdminDashboardController::class, 'stats'])->name('stats');
                 Route::get('/chat-stats', [AdminDashboardController::class, 'chatStats'])->name('chat-stats');
@@ -431,27 +433,27 @@ if (app()->environment('local')) {
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
             // الزامی است؛ بدون آن هر سه گروه نام‌های یکسانِ admin.index/store/update/
             // destroy می‌گیرند و آخرین ثبت، قبلی‌ها را از جدولِ نام‌ها بیرون می‌کند.
-Route::prefix('device-brands')->name('device-brands.')->group(function () {
-    Route::get('/', [AdminDeviceBrandController::class, 'index'])->name('index');
-    Route::post('/', [AdminDeviceBrandController::class, 'store'])->name('store');
-    Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->name('update');
-    Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->name('destroy');
-});
-Route::prefix('device-series')->name('device-series.')->group(function () {
-    Route::get('/', [AdminDeviceSeriesController::class, 'index'])->name('index');
-    Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->name('brands.dropdown'); // برای دراپ‌داون
-    Route::post('/', [AdminDeviceSeriesController::class, 'store'])->name('store');
-    Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->name('update');
-    Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->name('destroy');
-});
-Route::prefix('device-models')->name('device-models.')->group(function () {
-    Route::get('/', [AdminDeviceModelController::class, 'index'])->name('index');
-    Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->name('series.dropdown');
-    Route::post('/', [AdminDeviceModelController::class, 'store'])->name('store');
-    Route::put('/{id}', [AdminDeviceModelController::class, 'update'])->name('update');
-    Route::delete('/{id}', [AdminDeviceModelController::class, 'destroy'])->name('destroy');
-});
-            
+            Route::prefix('device-brands')->name('device-brands.')->group(function () {
+                Route::get('/', [AdminDeviceBrandController::class, 'index'])->name('index');
+                Route::post('/', [AdminDeviceBrandController::class, 'store'])->name('store');
+                Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->name('update');
+                Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->name('destroy');
+            });
+            Route::prefix('device-series')->name('device-series.')->group(function () {
+                Route::get('/', [AdminDeviceSeriesController::class, 'index'])->name('index');
+                Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->name('brands.dropdown'); // برای دراپ‌داون
+                Route::post('/', [AdminDeviceSeriesController::class, 'store'])->name('store');
+                Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->name('update');
+                Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->name('destroy');
+            });
+            Route::prefix('device-models')->name('device-models.')->group(function () {
+                Route::get('/', [AdminDeviceModelController::class, 'index'])->name('index');
+                Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->name('series.dropdown');
+                Route::post('/', [AdminDeviceModelController::class, 'store'])->name('store');
+                Route::put('/{id}', [AdminDeviceModelController::class, 'update'])->name('update');
+                Route::delete('/{id}', [AdminDeviceModelController::class, 'destroy'])->name('destroy');
+            });
+
             Route::prefix('settings')->name('settings.')->group(function () {
                 Route::get('/', [AdminSettingController::class, 'index'])->name('index');
                 Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults'])->name('seed-defaults');
@@ -532,7 +534,7 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->name('bulk-action');
             });
 
-                       Route::prefix('brands')->name('brands.')->group(function () {
+            Route::prefix('brands')->name('brands.')->group(function () {
                 Route::get('/', [AdminBrandController::class, 'index'])->name('index');
                 Route::post('/', [AdminBrandController::class, 'store'])->name('store');
                 Route::get('/{id}', [AdminBrandController::class, 'show'])->name('show');          // ✅ تغییر به {id}
@@ -542,46 +544,46 @@ Route::prefix('device-models')->name('device-models.')->group(function () {
                 Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify'); // ✅ تغییر به {id}
                 Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
             });
-                        // ============================================================
+            // ============================================================
             // مدیریت تبلیغات (Admin Ads)
             // ============================================================
             Route::prefix('ads')->name('ads.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'index'])->name('index');
-                Route::post('/', [\App\Http\Controllers\Admin\AdminAdController::class, 'store'])->name('store');
-                Route::get('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'show'])->name('show');
-                Route::put('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'update'])->name('update');
-                Route::delete('/{ad}', [\App\Http\Controllers\Admin\AdminAdController::class, 'destroy'])->name('destroy');
-                Route::post('/{ad}/toggle', [\App\Http\Controllers\Admin\AdminAdController::class, 'toggle'])->name('toggle');
+                Route::get('/', [AdminAdController::class, 'index'])->name('index');
+                Route::post('/', [AdminAdController::class, 'store'])->name('store');
+                Route::get('/{ad}', [AdminAdController::class, 'show'])->name('show');
+                Route::put('/{ad}', [AdminAdController::class, 'update'])->name('update');
+                Route::delete('/{ad}', [AdminAdController::class, 'destroy'])->name('destroy');
+                Route::post('/{ad}/toggle', [AdminAdController::class, 'toggle'])->name('toggle');
             });
 
             // ============================================================
             // مدیریت مجله ازکالا (Admin Magazine)
             // ============================================================
             Route::prefix('magazine')->name('magazine.')->group(function () {
-    Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
-    Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
-    
-    Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
-    Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
-    Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
-    Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
-    Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
-    Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
-    
-    // ✨ AI Routes
-    Route::prefix('ai')->name('ai.')->group(function () {
-        Route::post('/generate', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'generate'])->name('generate');
-        Route::post('/rewrite', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'rewrite'])->name('rewrite');
-        Route::post('/suggest-title', [\App\Http\Controllers\Api\AdminAiArticleController::class, 'suggestTitle'])->name('suggest-title');
-    });
-});
+                Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
+                Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
+
+                Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
+                Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
+                Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
+                Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
+                Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
+                Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
+
+                // ✨ AI Routes
+                Route::prefix('ai')->name('ai.')->group(function () {
+                    Route::post('/generate', [AdminAiArticleController::class, 'generate'])->name('generate');
+                    Route::post('/rewrite', [AdminAiArticleController::class, 'rewrite'])->name('rewrite');
+                    Route::post('/suggest-title', [AdminAiArticleController::class, 'suggestTitle'])->name('suggest-title');
+                });
+            });
 
             Route::prefix('products')->name('products.')->group(function () {
                 Route::get('/', [AdminProductController::class, 'index'])->name('index');
                 // باید قبل از /{product} ثبت شود؛ در routes/api_v1.php بعد از آن
                 // تعریف شده بود و در عمل هرگز match نمی‌شد (implicit binding روی
                 // «templates» محصولی پیدا نمی‌کرد و ۴۰۴ می‌داد).
-                Route::get('/templates', [\App\Http\Controllers\Api\ProductController::class, 'getTemplates'])->name('templates');
+                Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
                 // stats() آمارِ یک محصول را برمی‌گرداند (getProductStats($id) صدا
                 // می‌زند) ولی به /stats بدون پارامتر وصل بود، و /{product}/stats به
                 // متدِ ناموجودِ productStats اشاره می‌کرد. فرانت‌اند هم همین دومی را

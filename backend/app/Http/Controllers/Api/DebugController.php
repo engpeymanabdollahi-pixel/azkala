@@ -8,7 +8,6 @@ use App\Models\DeviceBrand;
 use App\Models\DeviceModel;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Http\Request;
 
 class DebugController extends Controller
 {
@@ -18,17 +17,22 @@ class DebugController extends Controller
      */
     public function stats()
     {
-        if (!app()->environment('local')) {
+        if (! app()->environment('local')) {
             abort(403, 'Only available in local environment');
         }
 
+        // ✅ قبلاً همه جا 'status' بود؛ این ستون روی جدول products وجود
+        // ندارد (فقط is_active بولین دارد). چون Laravel برای SQLite
+        // شناسه‌ها را با کوتیشن دوتایی می‌گذارد، "status" = ? به‌جای خطای
+        // «no such column» به‌عنوان رشته‌ی لفظی مقایسه می‌شد و همیشه false
+        // بود (۰ نتیجه، بدون خطا)؛ روی MySQL همین خط ۵۰۰ واقعی می‌داد.
         return response()->json([
             'products' => [
                 'total' => Product::count(),
-                'active' => Product::where('status', 'active')->count(),
-                'inactive' => Product::where('status', '!=', 'active')->count(),
+                'active' => Product::where('is_active', true)->count(),
+                'inactive' => Product::where('is_active', false)->count(),
                 'with_seller' => Product::whereNotNull('seller_id')->count(),
-                'sample' => Product::first()?->only(['id', 'name', 'status', 'seller_id']),
+                'sample' => Product::first()?->only(['id', 'name', 'is_active', 'seller_id']),
             ],
             'sellers' => [
                 'total' => User::where('role', 'seller')->count(),
@@ -48,9 +52,9 @@ class DebugController extends Controller
                 'sample_model' => DeviceModel::with('series.brand')->first()?->toArray(),
             ],
             'search_tests' => [
-                'products_cab_fa' => Product::where('status', 'active')->where('name', 'like', '%قاب%')->count(),
-                'products_samsung' => Product::where('status', 'active')->where('name', 'like', '%سامسونگ%')->count(),
-                'products_iphone' => Product::where('status', 'active')->where('name', 'like', '%آیفون%')->count(),
+                'products_cab_fa' => Product::where('is_active', true)->where('name', 'like', '%قاب%')->count(),
+                'products_samsung' => Product::where('is_active', true)->where('name', 'like', '%سامسونگ%')->count(),
+                'products_iphone' => Product::where('is_active', true)->where('name', 'like', '%آیفون%')->count(),
             ],
         ]);
     }

@@ -53,8 +53,15 @@ class SearchController extends Controller
         $limit = min((int) ($validated['limit'] ?? 8), 20);
 
         // ==================== 1. Products Search ====================
+        // ✅ قبلاً 'status' بود؛ این ستون اصلاً روی جدول products وجود
+        // ندارد (فقط is_active بولین دارد). چون Laravel برای SQLite
+        // شناسه‌ها را با کوتیشن دوتایی می‌گذارد، "status" = ? به‌جای خطای
+        // «no such column» به‌عنوان رشته‌ی لفظی «status» با ورودی مقایسه
+        // می‌شد و همیشه false بود — یعنی جستجو همیشه صفر نتیجه برمی‌گرداند،
+        // بدون هیچ خطایی. روی MySQL (که شناسه را با بک‌تیک می‌گذارد) همین
+        // خط ۵۰۰ واقعی می‌داد.
         $productsQuery = Product::query()
-            ->where('status', 'active')
+            ->where('is_active', true)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                     ->orWhere('description', 'like', "%{$query}%")
@@ -66,47 +73,51 @@ class SearchController extends Controller
                     });
             });
 
-       // Device-aware filtering (ویژگی منحصر به ازکالا)
-if ($deviceModelId) {
-    $productsQuery->whereHas('deviceModels', function ($q) use ($deviceModelId) {
-        $q->where('device_models.id', $deviceModelId);
-    });
-}
+        // Device-aware filtering (ویژگی منحصر به ازکالا)
+        if ($deviceModelId) {
+            $productsQuery->whereHas('deviceModels', function ($q) use ($deviceModelId) {
+                $q->where('device_models.id', $deviceModelId);
+            });
+        }
 
         // Category filtering
         if ($categoryId) {
             $productsQuery->where('category_id', $categoryId);
         }
 
+        // ✅ قبلاً 'compatibleModels' بود — این رابطه اصلاً روی Product تعریف
+        // نشده (نام واقعی‌اش deviceModels است، همان چیزی که ProductResource
+        // هم برای compatible_models/device_models انتظار دارد)؛ نتیجه‌اش
+        // «Call to undefined relationship» و ۵۰۰ روی هر جستجوی موفق بود.
         $products = $productsQuery
-            ->with(['seller', 'category', 'brand', 'compatibleModels'])
+            ->with(['seller', 'category', 'brand', 'deviceModels'])
             ->orderByDesc('sales_count')
             ->limit($limit)
             ->get();
 
-       // ==================== 2. Devices Search (منحصر به ازکالا) ====================
-// جستجو در DeviceBrands (مستقیم)
-$deviceBrands = DeviceBrand::where('is_active', true)
-    ->where(function ($q) use ($query) {
-        $q->where('name', 'like', "%{$query}%")
-            ->orWhere('slug', 'like', "%{$query}%");
-    })
-    ->limit(5)
-    ->get(['id', 'name', 'slug', 'type']);
+        // ==================== 2. Devices Search (منحصر به ازکالا) ====================
+        // جستجو در DeviceBrands (مستقیم)
+        $deviceBrands = DeviceBrand::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%");
+            })
+            ->limit(5)
+            ->get(['id', 'name', 'slug', 'type']);
 
-// جستجو در DeviceModels (از طریق series.brand)
-$deviceModels = DeviceModel::where('is_active', true)
-    ->where(function ($q) use ($query) {
-        $q->where('name', 'like', "%{$query}%")
-            ->orWhere('slug', 'like', "%{$query}%")
-            // جستجو در نام برند از طریق series
-            ->orWhereHas('series.brand', function ($subQ) use ($query) {
-                $subQ->where('name', 'like', "%{$query}%");
-            });
-    })
-    ->with(['series.brand:id,name,slug,type'])
-    ->limit(8)
-    ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
+        // جستجو در DeviceModels (از طریق series.brand)
+        $deviceModels = DeviceModel::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%")
+                    // جستجو در نام برند از طریق series
+                    ->orWhereHas('series.brand', function ($subQ) use ($query) {
+                        $subQ->where('name', 'like', "%{$query}%");
+                    });
+            })
+            ->with(['series.brand:id,name,slug,type'])
+            ->limit(8)
+            ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
 
         // ==================== 3. Categories Search ====================
         $categories = Category::where('is_active', true)
@@ -128,7 +139,7 @@ $deviceModels = DeviceModel::where('is_active', true)
         // attach real counts برای sellers (مثل PublicSellerService)
         foreach ($sellers as $seller) {
             $seller->products_count = Product::where('seller_id', $seller->id)
-                ->where('status', 'active')
+                ->where('is_active', true)
                 ->count();
             $seller->rating = (float) ($seller->seller_rating ?? 0);
             $seller->followers_count = DB::table('seller_follows')
@@ -168,60 +179,60 @@ $deviceModels = DeviceModel::where('is_active', true)
      * جستجوی دستگاه‌ها (مخصوص DeviceSelector)
      * GET /api/v1/search/devices?q=iPhone
      */
-   public function devices(Request $request)
-{
-    $validated = $request->validate([
-        'q' => 'required|string|min:2|max:100',
-        'type' => 'nullable|string|in:mobile,laptop,tablet,accessory',
-        'limit' => 'nullable|integer|min:1|max:20',
-    ]);
+    public function devices(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => 'required|string|min:2|max:100',
+            'type' => 'nullable|string|in:mobile,laptop,tablet,accessory',
+            'limit' => 'nullable|integer|min:1|max:20',
+        ]);
 
-    $query = trim($validated['q']);
-    $type = $validated['type'] ?? null;
-    $limit = min((int) ($validated['limit'] ?? 10), 20);
+        $query = trim($validated['q']);
+        $type = $validated['type'] ?? null;
+        $limit = min((int) ($validated['limit'] ?? 10), 20);
 
-    // Brands (DeviceBrand مستقیم)
-    $brandsQuery = DeviceBrand::where('is_active', true)
-        ->where(function ($q) use ($query) {
-            $q->where('name', 'like', "%{$query}%")
-                ->orWhere('slug', 'like', "%{$query}%");
-        });
+        // Brands (DeviceBrand مستقیم)
+        $brandsQuery = DeviceBrand::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%");
+            });
 
-    if ($type) {
-        $brandsQuery->where('type', $type);
+        if ($type) {
+            $brandsQuery->where('type', $type);
+        }
+
+        $brands = $brandsQuery->limit($limit)->get(['id', 'name', 'slug', 'type']);
+
+        // Models (از طریق series.brand)
+        $modelsQuery = DeviceModel::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%")
+                    ->orWhereHas('series.brand', function ($subQ) use ($query) {
+                        $subQ->where('name', 'like', "%{$query}%");
+                    });
+            });
+
+        if ($type) {
+            $modelsQuery->whereHas('series.brand', function ($subQ) use ($type) {
+                $subQ->where('type', $type);
+            });
+        }
+
+        $models = $modelsQuery
+            ->with(['series.brand:id,name,slug,type'])
+            ->limit($limit * 2)
+            ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'brands' => $brands,
+                'models' => $models,
+            ],
+        ]);
     }
-
-    $brands = $brandsQuery->limit($limit)->get(['id', 'name', 'slug', 'type']);
-
-    // Models (از طریق series.brand)
-    $modelsQuery = DeviceModel::where('is_active', true)
-        ->where(function ($q) use ($query) {
-            $q->where('name', 'like', "%{$query}%")
-                ->orWhere('slug', 'like', "%{$query}%")
-                ->orWhereHas('series.brand', function ($subQ) use ($query) {
-                    $subQ->where('name', 'like', "%{$query}%");
-                });
-        });
-
-    if ($type) {
-        $modelsQuery->whereHas('series.brand', function ($subQ) use ($type) {
-            $subQ->where('type', $type);
-        });
-    }
-
-    $models = $modelsQuery
-        ->with(['series.brand:id,name,slug,type'])
-        ->limit($limit * 2)
-        ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
-
-    return response()->json([
-        'success' => true,
-        'data' => [
-            'brands' => $brands,
-            'models' => $models,
-        ],
-    ]);
-}
 
     /**
      * Popular Suggestions (از API به جای hardcoded)

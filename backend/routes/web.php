@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SitemapController;
+use Illuminate\Support\Facades\Route;
 
 // ============================================================
 // صفحه اصلی Backend (فقط برای اطمینان از کارکرد سرور)
@@ -20,7 +20,7 @@ Route::get('/', function () {
 // Redirect Login به Frontend (برای middleware auth)
 // ============================================================
 Route::get('/login', function () {
-    return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/auth');
+    return redirect(env('FRONTEND_URL', 'http://localhost:5173').'/auth');
 })->name('login');
 
 // ============================================================
@@ -35,6 +35,9 @@ Route::get('/sitemap-articles.xml', [SitemapController::class, 'articles'])->nam
 Route::get('/sitemap-taxonomies.xml', [SitemapController::class, 'taxonomies'])->name('sitemap.taxonomies');
 
 // Endpoint برای پاک کردن دستی cache sitemap (اختیاری)
+//
+// ✅ قبلاً فقط auth:sanctum بود، یعنی هر کاربر لاگین‌شده (نه فقط ادمین)
+// می‌توانست این را صدا بزند و cache سایت‌مپ را پاک/بازتولید کند.
 Route::post('/sitemap/clear-cache', [SitemapController::class, 'clearCache'])
     ->name('sitemap.clear-cache')
-    ->middleware('auth:sanctum'); // فقط کاربر لاگین شده
+    ->middleware(['auth:sanctum', 'admin']);

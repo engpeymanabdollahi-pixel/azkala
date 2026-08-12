@@ -112,8 +112,10 @@ class ReviewApiTest extends TestCase
             ->postJson('/api/v1/reviews', $this->validPayload(['rating' => 9]))
             ->assertStatus(422);
 
+        // ✅ حداقل طول comment از ۱۰ به ۴ کاهش پیدا کرد (برای نظرات کوتاه
+        // مثل «عالی بود»)؛ این تست باید همان مرز جدید را بسنجد، نه مرز قبلی.
         $this->actingAs($this->user)
-            ->postJson('/api/v1/reviews', $this->validPayload(['comment' => 'کوتاه']))
+            ->postJson('/api/v1/reviews', $this->validPayload(['comment' => 'کم']))
             ->assertStatus(422);
     }
 
