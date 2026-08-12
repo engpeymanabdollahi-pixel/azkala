@@ -63,16 +63,17 @@ class PublicSellerService
      * جوین اضافه روی چند ردیف اجرا می‌شود. فروشگاه بدون محصول فعال حذف
      * می‌شود — نمایاندنش در «فروشگاه‌های برتر» فقط به یک ویترین خالی می‌رسد.
      */
-    public function getTopSellers(int $limit = 8)
-    {
-        return User::where('role', 'seller')
-            ->where('is_active', true)
-            ->where('products_count', '>', 0)
-            ->orderByDesc('seller_rating')
-            ->orderByDesc('followers_count')
-            ->limit($limit)
-            ->get();
-    }
+   public function getTopSellers(int $limit = 8)
+{
+    return User::where('role', 'seller')
+        ->where('is_active', true)
+        ->has('products') // ✅ به جای where('products_count', '>', 0)
+        ->withCount('products') // ✅ اضافه کردن products_count واقعی
+        ->orderByDesc('products_count') // ✅ ابتدا تعداد محصولات واقعی
+        ->orderByDesc('followers_count') // سپس followers
+        ->limit($limit)
+        ->get();
+}
 
     public function getSellerProducts(User $seller, array $filters): LengthAwarePaginator
     {

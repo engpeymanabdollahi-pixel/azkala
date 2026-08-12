@@ -39,6 +39,8 @@ export function OrdersSection() {
   // States برای امتیازدهی
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [orderToRate, setOrderToRate] = useState<Order | null>(null);
+  const [selectedSellerId, setSelectedSellerId] = useState<number>(0);
+  const [selectedSellerName, setSelectedSellerName] = useState<string>('');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['my-orders'],
@@ -57,24 +59,31 @@ export function OrdersSection() {
   });
 
   // Handlers امتیازدهی
-  const handleOpenRateModal = useCallback((order: Order) => {
+  const handleOpenRateModal = useCallback((order: Order, sellerId: number, sellerName: string) => {
     setOrderToRate(order);
+    setSelectedSellerId(sellerId);
+    setSelectedSellerName(sellerName);
     setRateModalOpen(true);
   }, []);
 
   const handleCloseRateModal = useCallback(() => {
     setRateModalOpen(false);
     setOrderToRate(null);
+    setSelectedSellerId(0);
+    setSelectedSellerName('');
   }, []);
 
   const handleRateSuccess = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['my-orders'] });
   }, [queryClient]);
 
-  // ✅ قبلاً (order.items[0] as any).seller_id بود — OrderItem از قبل
-  // seller_id: number | null را در تایپ دارد، این کست اصلاً لازم نبود.
+  // ✅ قبلاً فقط items[0] را چک می‌کرد که ممکن بود seller_id=NULL داشته باشد.
+  // حالا همه items را می‌گردد تا اولین seller_id معتبر را پیدا کند.
+  // این کار برای سفارش‌های چندفروشنده‌ای هم درست کار می‌کند.
   const getSellerIdFromOrder = useCallback((order: Order): number => {
-    return order.items?.[0]?.seller_id || 0;
+    if (!order.items || order.items.length === 0) return 0;
+    const firstWithSeller = order.items.find((item) => item.seller_id && item.seller_id > 0);
+    return firstWithSeller?.seller_id || 0;
   }, []);
 
   // ✅ دکمه‌ی «خرید مجدد» قبلاً هیچ onClick ای نداشت — فقط یک دکمه‌ی
@@ -202,8 +211,27 @@ export function OrdersSection() {
       ) : (
         <div className="space-y-2.5">
           {filteredOrders.map((order) => {
-            const sellerId = getSellerIdFromOrder(order);
-            const canRate = order.status === 'delivered' && sellerId > 0;
+                           // ✅ استخراج همه seller_id های منحصر به فرد از items این سفارش
+                // (Marketplace Pattern: یک سفارش می‌تواند از چند فروشنده باشد)
+                                // ✅ استخراج فروشندگان منحصر به فرد با جزئیات
+                const orderSellers = order.items
+                  ? Array.from(
+                      new Map(
+                        order.items
+                          .filter((item) => item.seller_id && item.seller_id > 0)
+                          .map((item) => [
+                            item.seller_id!,
+                            {
+                              id: item.seller_id!,
+                              name: (item as any).seller?.shop_name || (item as any).seller?.name || `فروشنده ${item.seller_id}`,
+                              itemCount: order.items!.filter((i) => i.seller_id === item.seller_id).reduce((sum, i) => sum + (i.quantity || 1), 0),
+                            },
+                          ])
+                      ).values()
+                    )
+                  : [];
+                
+                const canRate = order.status === 'delivered' && orderSellers.length > 0;
 
             return (
               <div key={order.id} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all">
@@ -254,32 +282,42 @@ export function OrdersSection() {
                 {selectedOrder?.id === order.id && (
                   <div className="p-3 bg-gradient-to-b from-white to-gray-50/30 dark:from-slate-800 dark:to-slate-900/30">
                     {/* Banner امتیازدهی */}
-                    {canRate && (
-                      <div className="mb-3 bg-gradient-to-r from-warning-50 via-accent-50 to-primary-50 dark:from-warning-900/20 dark:via-accent-900/20 dark:to-primary-900/20 border-2 border-warning-200 dark:border-warning-800 rounded-xl p-3">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-warning-400 to-warning-500 rounded-xl flex items-center justify-center shadow-md">
-                              <Star className="w-5 h-5 text-white fill-white" />
-                            </div>
-                            <div>
-                              <p className="font-black text-gray-900 dark:text-gray-100 text-sm">تجربه خرید خود را به اشتراک بگذارید</p>
-                              <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5">
-                                با امتیازدهی به فروشنده، به دیگران کمک کنید
+                                            {canRate && (
+                          <div className="mb-3 bg-gradient-to-r from-warning-50 via-accent-50 to-primary-50 dark:from-warning-900/20 dark:via-accent-900/20 dark:to-primary-900/20 border-2 border-warning-200 dark:border-warning-800 rounded-xl p-3">
+                            <div className="mb-2">
+                              <p className="text-xs font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5 mb-1">
+                                <Star className="w-3.5 h-3.5 fill-warning-400 text-warning-400" />
+                                به فروشندگان این سفارش امتیاز دهید
+                              </p>
+                              <p className="text-[10px] text-gray-600 dark:text-gray-400">
+                                {orderSellers.length} فروشنده در این سفارش
                               </p>
                             </div>
+                            
+                            <div className="space-y-2">
+                              {orderSellers.map((seller) => (
+                                <div key={seller.id} className="flex items-center justify-between gap-2 bg-white dark:bg-slate-800 rounded-lg p-2.5 border border-gray-100 dark:border-slate-700 hover:border-warning-300 dark:hover:border-warning-700 transition-colors">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                                      {seller.name}
+                                    </p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                                      {seller.itemCount} کالا از این فروشنده
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="xs"
+                                    onClick={() => handleOpenRateModal(order, seller.id, seller.name)}
+                                    className="gap-1 shadow-sm text-[10px] flex-shrink-0"
+                                  >
+                                    <Star className="w-3 h-3 fill-white" />
+                                    ثبت نظر
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <Button
-                            variant="accent"
-                            size="sm"
-                            onClick={() => handleOpenRateModal(order)}
-                            className="gap-1.5 shadow-md"
-                          >
-                            <Star className="w-3.5 h-3.5 fill-white" />
-                            امتیاز به فروشنده
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                        )}
 
                     {/* Tracking Number — اگر بک‌اند برایش مقدار ثبت کرده باشد */}
                     {order.tracking_number && (
@@ -391,15 +429,16 @@ export function OrdersSection() {
       )}
 
       {/* Modal امتیازدهی به فروشنده */}
-      {orderToRate && (
-        <RateSellerModal
-          isOpen={rateModalOpen}
-          onClose={handleCloseRateModal}
-          orderId={orderToRate.id}
-          sellerId={getSellerIdFromOrder(orderToRate)}
-          onSuccess={handleRateSuccess}
-        />
-      )}
+                {orderToRate && selectedSellerId > 0 && (
+            <RateSellerModal
+              isOpen={rateModalOpen}
+              onClose={handleCloseRateModal}
+              orderId={orderToRate.id}
+              sellerId={selectedSellerId}
+              sellerName={selectedSellerName}
+              onSuccess={handleRateSuccess}
+            />
+          )}
     </div>
   );
 }

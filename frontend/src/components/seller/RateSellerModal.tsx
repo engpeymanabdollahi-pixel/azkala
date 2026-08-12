@@ -10,7 +10,8 @@ interface RateSellerModalProps {
   onClose: () => void;
   orderId: number;
   sellerId: number;
-  onSuccess?: () => void;
+  sellerName?: string;
+  onSuccess: () => void;
 }
 
 export function RateSellerModal({
@@ -18,6 +19,7 @@ export function RateSellerModal({
   onClose,
   orderId,
   sellerId,
+  sellerName,
   onSuccess,
 }: RateSellerModalProps) {
   const [productQuality, setProductQuality] = useState(0);

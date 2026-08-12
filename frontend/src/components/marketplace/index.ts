@@ -9,6 +9,8 @@
 // Device-First Components (هویت اصلی ازکالا)
 export { DeviceCompatibility } from './DeviceCompatibility';
 export type { CompatibilityVariant } from './DeviceCompatibility';
+export { ProductGallery } from './ProductGallery';
+export { ProductPrice } from './ProductPrice';
 
 export { DeviceSelector } from './DeviceSelector';
 export type { DeviceSelectorVariant } from './DeviceSelector';
@@ -19,3 +21,5 @@ export type { ProductCardProps, ProductCardVariant } from './ProductCard';
 // Seller Components
 export { SellerCard } from './SellerCard';
 export type { SellerCardProps, SellerCardVariant, SellerData } from './SellerCard';
+// Compare Components
+export { CompareBar } from './CompareBar';

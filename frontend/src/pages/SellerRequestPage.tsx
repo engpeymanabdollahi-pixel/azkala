@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -7,18 +7,13 @@ import {
   ArrowLeft, Upload, FileText, CreditCard, MapPin, Briefcase, XCircle, AlertCircle, RefreshCw
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, type NavigateFunction } from 'react-router-dom';
+import { useNavigate, type NavigateFunction, Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import apiClient from '@/services/api/client';
 import { useAuthStore } from '@/store/authStore';
 import { toLatinDigits } from '@/utils/digits';
 
-// ==================== 0. خطای واقعی بک‌اند ====================
-// ✅ قبلاً همه‌جا onError: (error: any) => toast.error(error.message) بود —
-// error.message برای خطای axios چیزی مثل «Request failed with status code
-// 422» است، نه پیام واقعی بک‌اند («کد ملی باید دقیقاً ۱۰ رقم باشد»،
-// «شما قبلاً درخواست فروشندگی ثبت کرده‌اید» و...). کاربر همیشه یک پیام
-// ژنریک و بی‌فایده می‌دید.
+// ==================== 0. Helper: Extract Backend Error ====================
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && 'response' in err) {
     const response = (err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } }).response;
@@ -34,7 +29,6 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 // ==================== 1. Schema Definitions ====================
 const initialSchema = z.object({
   full_name: z.string().min(3, 'حداقل ۳ کاراکتر وارد کنید'),
-  // یکسان‌سازی پیش از بررسی الگو، وگرنه ورودی با ارقام فارسی رد می‌شود
   national_code: z
     .string()
     .transform(toLatinDigits)
@@ -47,22 +41,20 @@ const initialSchema = z.object({
   city: z.string().min(1, 'لطفاً شهر را انتخاب کنید'),
   proposed_shop_name: z.string().min(3, 'حداقل ۳ کاراکتر وارد کنید'),
   business_activity: z.string().min(10, 'لطفاً توضیحات کامل‌تری ارائه دهید (حداقل ۱۰ کاراکتر)'),
+  accepted_terms: z.boolean().refine((val) => val === true, {
+    message: 'پذیرش قوانین و مقررات ازکالا الزامی است',
+  }),
 });
 
 const documentsSchema = z.object({
   bank_account: z.string().min(10, 'شماره شبا یا حساب معتبر نیست (حداقل ۱۰ کاراکتر)'),
-  // ✅ قبلاً هیچ‌جای این فرم بانک را نمی‌پرسید (فقط شماره حساب) — بک‌اند
-  // حالا ستون واقعی bank_name دارد.
   bank_name: z.string().min(2, 'نام بانک را وارد کنید'),
-  // ✅ نام مستعار دلخواه برای آدرس عمومی فروشگاه (/seller/:slug) —
-  // اختیاری؛ اگر خالی بماند، اسلاگ خودکار از نام فروشگاه ساخته می‌شود.
   shop_alias: z
     .string()
     .regex(/^[a-z0-9-]*$/, 'فقط حروف انگلیسی کوچک، عدد و خط تیره مجاز است')
     .max(50, 'حداکثر ۵۰ کاراکتر')
     .optional()
     .or(z.literal('')),
-  // ✅ اعتبارسنجی دقیق فایل: باید FileList باشد و حداقل یک فایل داشته باشد
   id_card_image: z.custom<FileList>((files) => files instanceof FileList && files.length > 0, 'بارگذاری تصویر کارت ملی الزامی است'),
   business_license_image: z.custom<FileList | undefined>().optional(),
 });
@@ -70,7 +62,7 @@ const documentsSchema = z.object({
 type InitialFormData = z.infer<typeof initialSchema>;
 type DocumentsFormData = z.infer<typeof documentsSchema>;
 
-// ✅ شکل واقعی پاسخ GET /user/seller-request-status
+// ==================== 2. Types ====================
 interface SellerRequestStatusData {
   id: number;
   status: 'pending_initial' | 'pending_documents' | 'pending_final' | 'approved' | 'rejected';
@@ -79,8 +71,37 @@ interface SellerRequestStatusData {
   rejection_reason?: string | null;
 }
 
-// ==================== 2. Helper: Status Mapping ====================
-const getStatusConfig = (status: string) => {
+interface StatusConfig {
+  step: number;
+  title: string;
+  desc: string;
+  color: string;
+  bg: string;
+  border: string;
+  icon: typeof Clock;
+}
+
+interface InitialFormProps {
+  selectedProvince: string;
+  setSelectedProvince: (province: string) => void;
+  onSubmit: (data: InitialFormData) => void;
+  isPending: boolean;
+}
+
+interface DocumentsFormProps {
+  onSubmit: (data: DocumentsFormData) => void;
+  isPending: boolean;
+}
+
+interface StatusViewProps {
+  config: StatusConfig;
+  requestData: SellerRequestStatusData | null | undefined;
+  navigate: NavigateFunction;
+  onResubmit?: () => void;
+}
+
+// ==================== 3. Helper: Status Mapping ====================
+const getStatusConfig = (status: string): StatusConfig => {
   switch (status) {
     case 'pending_initial':
       return { step: 1, title: 'در انتظار بررسی اولیه', desc: 'درخواست شما ثبت شد و در صف بررسی کارشناسان قرار دارد.', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', icon: Clock };
@@ -97,10 +118,7 @@ const getStatusConfig = (status: string) => {
   }
 };
 
-// ==================== 3. Provinces & Cities Data ====================
-// ✅ قبلاً فقط ۸ استان از ۳۱ استان واقعی ایران بود — فروشنده‌ای از کردستان،
-// هرمزگان، یزد، همدان و ۱۹ استان دیگر اصلاً نمی‌توانست استان خودش را
-// انتخاب کند.
+// ==================== 4. Provinces & Cities Data ====================
 const provinces = [
   { id: 'east_azerbaijan', name: 'آذربایجان شرقی', cities: ['تبریز', 'مراغه', 'مرند', 'میانه', 'اهر'] },
   { id: 'west_azerbaijan', name: 'آذربایجان غربی', cities: ['ارومیه', 'خوی', 'مهاباد', 'بوکان', 'سلماس'] },
@@ -135,23 +153,13 @@ const provinces = [
   { id: 'yazd', name: 'یزد', cities: ['یزد', 'میبد', 'اردکان', 'بافق'] },
 ];
 
-// ==================== 4. Main Component ====================
+// ==================== 5. Main Component ====================
 export default function SellerRequestPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [selectedProvince, setSelectedProvince] = useState('');
-  // ✅ قبلاً درخواستِ ردشده یک بن‌بست دائمی بود: currentStatus همیشه
-  // 'rejected' می‌ماند و InitialForm دیگر هیچ‌وقت رندر نمی‌شد، با اینکه
-  // بک‌اند (findActiveRequest) واقعاً اجازه‌ی ثبت درخواست تازه بعد از رد
-  // را می‌دهد. این state با کلیک روی «درخواست مجدد» فرم اولیه را دوباره
-  // نشان می‌دهد.
   const [isResubmitting, setIsResubmitting] = useState(false);
-
-  // getToken حذف شد: کلید 'token' در localStorage نوشته نمی‌شد، پس هر سه
-  // درخواست این صفحه پیش از ارسال با «وارد حساب شوید» رد می‌شدند — حتی برای
-  // کاربری که واقعاً وارد شده بود. نشست حالا روی کوکی است و apiClient خودش
-  // آن را می‌فرستد.
 
   // دریافت وضعیت درخواست
   const { data: requestData, isLoading } = useQuery({
@@ -168,14 +176,24 @@ export default function SellerRequestPage() {
     retry: false,
   });
 
+  // ✅ دریافت URL تصویر پس‌زمینه از تنظیمات سایت
+  const { data: siteSettings } = useQuery({
+    queryKey: ['site-settings'],
+    queryFn: async () => {
+      const res = await apiClient.get('/site-settings');
+      return res.data?.data || res.data || {};
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  const bgImageUrl = (siteSettings as any)?.seller_request_bg_image || '/images/iran-aerial.jpg';
+
   const currentStatus = isResubmitting ? 'no_request' : requestData?.status || 'no_request';
   const statusConfig = getStatusConfig(currentStatus);
 
-  // --- Mutation 1: فرم ثبت‌نام اولیه ---
+  // Mutation 1: فرم ثبت‌نام اولیه
   const initialMutation = useMutation({
     mutationFn: async (data: InitialFormData) => {
       if (!isAuthenticated) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
-
       const res = await apiClient.post('/seller-requests', data);
       return res.data;
     },
@@ -187,7 +205,7 @@ export default function SellerRequestPage() {
     onError: (error: unknown) => toast.error(extractErrorMessage(error, 'خطا در ثبت درخواست')),
   });
 
-  // --- Mutation 2: فرم بارگذاری مدارک (نسخه ضدگلوله) ---
+  // Mutation 2: فرم بارگذاری مدارک
   const documentsMutation = useMutation({
     mutationFn: async (data: DocumentsFormData) => {
       if (!isAuthenticated) throw new Error('لطفاً ابتدا وارد حساب کاربری خود شوید.');
@@ -198,7 +216,6 @@ export default function SellerRequestPage() {
       formData.append('bank_name', data.bank_name);
       if (data.shop_alias) formData.append('shop_alias', data.shop_alias);
 
-      // ✅ استخراج ایمن و دقیق فایل از FileList
       const idCardFiles = data.id_card_image;
       if (idCardFiles && idCardFiles.length > 0) {
         formData.append('id_card_image', idCardFiles[0]);
@@ -209,13 +226,7 @@ export default function SellerRequestPage() {
         formData.append('business_license_image', licenseFiles[0]);
       }
 
-      // apiClient وقتی بدنه FormData باشد هدر Content-Type را حذف می‌کند تا
-      // مرورگر خودش boundary درست را بگذارد.
-      const res = await apiClient.post(
-        `/seller-requests/${requestData.id}/upload-documents`,
-        formData
-      );
-
+      const res = await apiClient.post(`/seller-requests/${requestData.id}/upload-documents`, formData);
       return res.data;
     },
     onSuccess: () => {
@@ -227,7 +238,7 @@ export default function SellerRequestPage() {
     },
   });
 
-  // ==================== Render Helpers ====================
+  // Loading State
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-slate-900">
@@ -238,15 +249,25 @@ export default function SellerRequestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 dark:from-slate-900 dark:to-slate-900 flex items-center justify-center p-4 sm:p-6 relative" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative" dir="rtl">
+      {/* ✅ پس‌زمینه هوایی ایران */}
+      <div
+        key={bgImageUrl}
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat pointer-events-none transition-opacity duration-500"
+        style={{ backgroundImage: `url(${bgImageUrl})` }}
+        aria-hidden="true"
+      />
+      {/* Overlay برای خوانایی محتوا */}
+      <div className="fixed inset-0 bg-white/85 dark:bg-slate-900/90 pointer-events-none backdrop-blur-[2px]" aria-hidden="true" />
+
       <button
         onClick={() => navigate('/')}
-        className="absolute top-6 right-6 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium bg-white/80 dark:bg-slate-800/80 backdrop-blur px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md border border-gray-100 dark:border-slate-700"
+        className="absolute top-6 right-6 flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-sm font-medium bg-white/80 dark:bg-slate-800/80 backdrop-blur px-4 py-2.5 rounded-xl shadow-sm hover:shadow-md border border-gray-100 dark:border-slate-700 z-10"
       >
         <Home className="w-4 h-4" /> <span>صفحه اصلی</span>
       </button>
 
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/30 border border-gray-100 dark:border-slate-700 p-6 sm:p-10">
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/30 border border-gray-100 dark:border-slate-700 p-6 sm:p-10 relative z-10">
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Store className="w-8 h-8" />
@@ -327,19 +348,20 @@ export default function SellerRequestPage() {
   );
 }
 
-// ==================== 5. Sub-Components ====================
-
-interface InitialFormProps {
-  selectedProvince: string;
-  setSelectedProvince: (province: string) => void;
-  onSubmit: (data: InitialFormData) => void;
-  isPending: boolean;
-}
+// ==================== 6. Sub-Components ====================
 
 function InitialForm({ setSelectedProvince, onSubmit, isPending }: InitialFormProps) {
+  const { user } = useAuthStore();
+  
   const { register, handleSubmit, formState: { errors }, watch, setValue } = useForm<InitialFormData>({
-    resolver: zodResolver(initialSchema)
+    resolver: zodResolver(initialSchema),
   });
+
+  // ✅ پر کردن مقادیر پیش‌فرض بعد از mount
+  useEffect(() => {
+    if (user?.phone) setValue('phone', user.phone);
+    if (user?.name) setValue('full_name', user.name);
+  }, [user, setValue]);
 
   const watchedProvince = watch('province');
   const selectedProvinceData = provinces.find((p) => p.id === watchedProvince);
@@ -404,6 +426,42 @@ function InitialForm({ setSelectedProvince, onSubmit, isPending }: InitialFormPr
         {errors.business_activity && <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {errors.business_activity.message}</p>}
       </div>
 
+      {/* ✅ چک‌باکس قوانین و مقررات ازکالا */}
+      <div className="flex items-start gap-3 p-4 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl">
+        <input
+          type="checkbox"
+          id="accepted_terms"
+          {...register('accepted_terms')}
+          className="mt-1 w-5 h-5 rounded border-gray-300 dark:border-slate-600 text-primary-600 focus:ring-primary-500 cursor-pointer flex-shrink-0"
+        />
+        <label htmlFor="accepted_terms" className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed cursor-pointer select-none">
+          اینجانب{' '}
+          <Link
+            to="/terms"
+            target="_blank"
+            className="text-primary-600 dark:text-primary-400 font-bold hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            قوانین و مقررات ازکالا
+          </Link>
+          {' '}و{' '}
+          <Link
+            to="/terms#privacy"
+            target="_blank"
+            className="text-primary-600 dark:text-primary-400 font-bold hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            سیاست حفظ حریم خصوصی
+          </Link>
+          {' '}را مطالعه کرده و می‌پذیرم.
+        </label>
+      </div>
+      {errors.accepted_terms && (
+        <p className="text-red-500 dark:text-red-400 text-xs flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" /> {errors.accepted_terms.message}
+        </p>
+      )}
+
       <button type="submit" disabled={isPending} className="w-full bg-blue-600 dark:bg-blue-500 text-white py-3.5 rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 mt-2 font-bold transition-all flex items-center justify-center gap-2 text-base disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30">
         {isPending ? <><Loader2 className="w-5 h-5 animate-spin" /> در حال ارسال...</> : <>ارسال درخواست اولیه <ArrowLeft className="w-5 h-5" /></>}
       </button>
@@ -411,21 +469,14 @@ function InitialForm({ setSelectedProvince, onSubmit, isPending }: InitialFormPr
   );
 }
 
-interface DocumentsFormProps {
-  onSubmit: (data: DocumentsFormData) => void;
-  isPending: boolean;
-}
-
 function DocumentsForm({ onSubmit, isPending }: DocumentsFormProps) {
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<DocumentsFormData>({
     resolver: zodResolver(documentsSchema)
   });
 
-  // ✅ استیت برای نگهداری پیش‌نمایش تصاویر
   const [idCardPreview, setIdCardPreview] = useState<string | null>(null);
   const [licensePreview, setLicensePreview] = useState<string | null>(null);
 
-  // ✅ هندلرهای انتخاب فایل برای ساخت پیش‌نمایش
   const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     setValue('id_card_image', files ?? undefined as unknown as FileList);
@@ -487,7 +538,6 @@ function DocumentsForm({ onSubmit, isPending }: DocumentsFormProps) {
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">فرمت‌های مجاز: JPG, PNG (حداکثر ۵ مگابایت)</p>
           </div>
         </div>
-        {/* ✅ نمایش پیش‌نمایش عکس انتخاب شده */}
         {idCardPreview && (
           <div className="mt-3 relative inline-block">
             <img src={idCardPreview} alt="پیش‌نمایش کارت ملی" className="h-32 rounded-lg object-cover border border-blue-200 dark:border-blue-800 shadow-sm" />
@@ -517,7 +567,6 @@ function DocumentsForm({ onSubmit, isPending }: DocumentsFormProps) {
             <p className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 font-medium">برای انتخاب تصویر جواز کسب کلیک کنید</p>
           </div>
         </div>
-        {/* ✅ نمایش پیش‌نمایش عکس انتخاب شده */}
         {licensePreview && (
           <div className="mt-3 relative inline-block">
             <img src={licensePreview} alt="پیش‌نمایش جواز کسب" className="h-32 rounded-lg object-cover border border-blue-200 dark:border-blue-800 shadow-sm" />
@@ -537,23 +586,6 @@ function DocumentsForm({ onSubmit, isPending }: DocumentsFormProps) {
       </button>
     </form>
   );
-}
-
-interface StatusConfig {
-  step: number;
-  title: string;
-  desc: string;
-  color: string;
-  bg: string;
-  border: string;
-  icon: typeof Clock;
-}
-
-interface StatusViewProps {
-  config: StatusConfig;
-  requestData: SellerRequestStatusData | null | undefined;
-  navigate: NavigateFunction;
-  onResubmit?: () => void;
 }
 
 function StatusView({ config, requestData, navigate, onResubmit }: StatusViewProps) {

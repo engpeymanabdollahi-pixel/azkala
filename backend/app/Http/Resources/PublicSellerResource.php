@@ -16,7 +16,9 @@ class PublicSellerResource extends JsonResource
             'shop_name' => $shopName,
             'slug' => $this->slug,
             'display_title' => "شعبه آنلاین {$shopName}",
-            'logo' => $this->avatar,
+            'logo' => $this->avatar 
+    ? asset('storage/' . $this->avatar) 
+    : null,
             'banner' => $this->banner,
             'description' => $this->bio,
             'status' => $this->role === 'seller' && $this->is_active ? 'active' : 'pending',

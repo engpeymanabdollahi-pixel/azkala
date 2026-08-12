@@ -1,11 +1,11 @@
 ﻿/**
- * ع©ط§ظ…ظ¾ظˆظ†ظ†طھ FilterPanel - ظ¾ظ†ظ„ ظپغŒظ„طھط± ظ¾غŒط´ط±ظپطھظ‡
- * ظˆغŒعکع¯غŒâ€Œظ‡ط§:
- * - ظپغŒظ„طھط± ط¨ط± ط§ط³ط§ط³ ط¯ط³طھظ‡â€Œط¨ظ†ط¯غŒ (Dropdown ع†ظ†ط¯ ط§ظ†طھط®ط§ط¨غŒ)
- * - ظپغŒظ„طھط± ط¨ط± ط§ط³ط§ط³ ط¨ط±ظ†ط¯ (Searchable Dropdown)
- * - ط±ظ†ط¬ ظ‚غŒظ…طھ (Price Range Slider)
- * - ظپغŒظ„طھط± ظ…ظˆط¬ظˆط¯غŒ (Checkbox)
- * - ط¯ع©ظ…ظ‡ ط±غŒط³طھ ظپغŒظ„طھط±ظ‡ط§
+ * کامپوننت FilterPanel - پنل فیلتر پیشرفته
+ * ویژگی‌ها:
+ * - فیلتر بر اساس دسته‌بندی (Dropdown چند انتخابی)
+ * - فیلتر بر اساس برند (Searchable Dropdown)
+ * - رنج قیمت (Price Range Slider)
+ * - فیلتر موجودی (Checkbox)
+ * - دکمه ریست فیلترها
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -50,13 +50,13 @@ export function FilterPanel({
   const isFirstRender = useRef(true);
   const [brandSearch, setBrandSearch] = useState('');
 
-  // ظ‡ظ…ع¯ط§ظ…â€Œط³ط§ط²غŒ ط¨ط§ ظپغŒظ„طھط±ظ‡ط§غŒ ظˆط§ظ„ط¯.
+  // همگام‌سازی با فیلترهای والد.
   //
-  // ط¨ط§ط²غŒط§ط¨غŒ ط§ط² LocalStorage ط¹ظ…ط¯ط§ظ‹ ط§غŒظ†ط¬ط§ ظ†غŒط³طھطŒ ط¯ط± ProductTemplates.tsx ط§ط³طھ:
-  // ط¯ط± ظ…ظˆط¨ط§غŒظ„ ط§غŒظ† ظ¾ظ†ظ„ ظ‡ط± ط¨ط§ط± ع©ظ‡ ع©ط´ظˆ ط¨ط§ط² ظ…غŒâ€Œط´ظˆط¯ ط¯ظˆط¨ط§ط±ظ‡ mount ظ…غŒâ€Œط´ظˆط¯طŒ ظ¾ط³ ط§ع¯ط±
-  // ط¨ط§ط²غŒط§ط¨غŒ ط§غŒظ†ط¬ط§ ط¨ظˆط¯طŒ ظ‡ط± ط¨ط§ط± localFilters ط±ط§ ط¨ط§ ظ†ط³ط®ظ‡â€ŒغŒ ط°ط®غŒط±ظ‡â€Œط´ط¯ظ‡ ط¨ط§ط²ظ†ظˆغŒط³غŒ
-  // ظ…غŒâ€Œع©ط±ط¯ â€” ط­طھغŒ ط§ع¯ط± filters (ظˆط§ظ„ط¯) ط§ط² ظ‚ط¨ظ„ ع†غŒط² ط¯غŒع¯ط±غŒ ط¨ظˆط¯ â€” ظˆ ع†ظˆظ† onFilterChange
-  // طµط¯ط§ ط²ط¯ظ‡ ظ†ظ…غŒâ€Œط´ط¯طŒ ع†ع©â€Œط¨ط§ع©ط³â€Œظ‡ط§ غŒع© ع†غŒط² ظ†ط´ط§ظ† ظ…غŒâ€Œط¯ط§ط¯ظ†ط¯ ظˆ ظ†طھط§غŒط¬ ع†غŒط² ط¯غŒع¯ط±غŒ.
+  // بازیابی از LocalStorage عمداً اینجا نیست، در ProductTemplates.tsx است:
+  // در موبایل این پنل هر بار که کشو باز می‌شود دوباره mount می‌شود، پس اگر
+  // بازیابی اینجا بود، هر بار localFilters را با نسخه‌ی ذخیره‌شده بازنویسی
+  // می‌کرد — حتی اگر filters (والد) از قبل چیز دیگری بود — و چون onFilterChange
+  // صدا زده نمی‌شد، چک‌باکس‌ها یک چیز نشان می‌دادند و نتایج چیز دیگری.
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -110,7 +110,7 @@ export function FilterPanel({
     brand.name.toLowerCase().includes(brandSearch.toLowerCase())
   );
 
-  // ظ…ط­ط§ط³ط¨ظ‡ طھط¹ط¯ط§ط¯ ظپغŒظ„طھط±ظ‡ط§غŒ ظپط¹ط§ظ„
+  // محاسبه تعداد فیلترهای فعال
   const activeFiltersCount = 
     localFilters.categories.length +
     localFilters.brands.length +
@@ -122,14 +122,14 @@ export function FilterPanel({
       "bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden",
       "transition-all duration-300"
     )}>
-      {/* ظ‡ط¯ط± ظ¾ظ†ظ„ ظپغŒظ„طھط± */}
+      {/* هدر پنل فیلتر */}
       <div className="p-4 bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-          <h3 className="font-black text-gray-900 dark:text-gray-100">ظپغŒظ„طھط±ظ‡ط§غŒ ظ¾غŒط´ط±ظپطھظ‡</h3>
+          <h3 className="font-black text-gray-900 dark:text-gray-100 font-sans">فیلترهای پیشرفته</h3>
           {activeFiltersCount > 0 && (
-            <Badge variant="primary" size="sm">
-              {activeFiltersCount} ظپغŒظ„طھط± ظپط¹ط§ظ„
+            <Badge variant="primary" size="sm" className="font-sans">
+              {activeFiltersCount} فیلتر فعال
             </Badge>
           )}
         </div>
@@ -138,41 +138,41 @@ export function FilterPanel({
             onClick={onClose}
             className="lg:hidden p-2 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             type="button"
-            aria-label="ط¨ط³طھظ† ظپغŒظ„طھط±ظ‡ط§"
+            aria-label="بستن فیلترها"
           >
             <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
         )}
       </div>
 
-      {/* ظ…ط­طھظˆط§غŒ ظپغŒظ„طھط±ظ‡ط§ */}
+      {/* محتوای فیلترها */}
       <div className="p-4 space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
-        {/* ط¬ط³طھط¬ظˆ */}
+        {/* جستجو */}
         <div className="space-y-2">
-          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">ط¬ط³طھط¬ظˆ</label>
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block font-sans">جستجو</label>
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
               value={localFilters.search}
               onChange={(e) => setLocalFilters(prev => ({ ...prev, search: e.target.value }))}
-              placeholder="ظ†ط§ظ… ظ…ط­طµظˆظ„طŒ ط¨ط±ظ†ط¯ غŒط§ ط¯ط³طھظ‡â€Œط¨ظ†ط¯غŒ..."
-              className="w-full pr-10 pl-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/40 transition-all text-sm"
+              placeholder="نام محصول، برند یا دسته‌بندی..."
+              className="w-full pr-10 pl-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:focus:ring-primary-900/40 transition-all text-sm font-sans"
             />
           </div>
         </div>
 
-        {/* ط¯ط³طھظ‡â€Œط¨ظ†ط¯غŒâ€Œظ‡ط§ */}
+        {/* دسته‌بندی‌ها */}
         {categories.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">ط¯ط³طھظ‡â€Œط¨ظ†ط¯غŒâ€Œظ‡ط§</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block font-sans">دسته‌بندی‌ها</label>
             <div className="flex flex-wrap gap-2">
               {categories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => toggleCategory(cat.id)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2",
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 font-sans",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
                     localFilters.categories.includes(cat.id)
                       ? "bg-primary-500 border-primary-500 text-white shadow-md"
@@ -187,18 +187,18 @@ export function FilterPanel({
           </div>
         )}
 
-        {/* ط¨ط±ظ†ط¯ظ‡ط§ */}
+        {/* برندها */}
         {brands.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">ط¨ط±ظ†ط¯ظ‡ط§</label>
+            <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block font-sans">برندها</label>
             <div className="relative mb-2">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
-                placeholder="ط¬ط³طھط¬ظˆغŒ ط¨ط±ظ†ط¯..."
-                className="w-full pr-10 pl-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm"
+                placeholder="جستجوی برند..."
+                className="w-full pr-10 pl-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm font-sans"
               />
             </div>
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
@@ -207,7 +207,7 @@ export function FilterPanel({
                   key={brand.id}
                   onClick={() => toggleBrand(brand.id)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2",
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border-2 font-sans",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500",
                     localFilters.brands.includes(brand.id)
                       ? "bg-accent-500 border-accent-500 text-white shadow-md"
@@ -222,37 +222,37 @@ export function FilterPanel({
           </div>
         )}
 
-        {/* ط±ظ†ط¬ ظ‚غŒظ…طھ */}
+        {/* رنج قیمت */}
         <div className="space-y-3">
-          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block">ظ…ط­ط¯ظˆط¯ظ‡ ظ‚غŒظ…طھ</label>
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 block font-sans">محدوده قیمت</label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="template-min-price" className="text-xs text-gray-500 dark:text-gray-400 block mb-1">ط­ط¯ط§ظ‚ظ„</label>
+              <label htmlFor="template-min-price" className="text-xs text-gray-500 dark:text-gray-400 block mb-1 font-sans">حداقل</label>
               <input
                 id="template-min-price"
                 type="number"
                 value={localFilters.minPrice}
                 onChange={(e) => setLocalFilters(prev => ({ ...prev, minPrice: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr font-sans"
               />
             </div>
             <div>
-              <label htmlFor="template-max-price" className="text-xs text-gray-500 dark:text-gray-400 block mb-1">ط­ط¯ط§ع©ط«ط±</label>
+              <label htmlFor="template-max-price" className="text-xs text-gray-500 dark:text-gray-400 block mb-1 font-sans">حداکثر</label>
               <input
                 id="template-max-price"
                 type="number"
                 value={localFilters.maxPrice}
                 onChange={(e) => setLocalFilters(prev => ({ ...prev, maxPrice: Number(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500 text-sm text-left dir-ltr font-sans"
               />
             </div>
           </div>
-          <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            ط§ط² {formatPrice(localFilters.minPrice)} طھط§ {formatPrice(localFilters.maxPrice)} طھظˆظ…ط§ظ†
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-center font-sans">
+            از {formatPrice(localFilters.minPrice)} تا {formatPrice(localFilters.maxPrice)} تومان
           </div>
         </div>
 
-        {/* ظپغŒظ„طھط± ظ…ظˆط¬ظˆط¯غŒ */}
+        {/* فیلتر موجودی */}
         <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
           <input
             type="checkbox"
@@ -261,12 +261,12 @@ export function FilterPanel({
             onChange={(e) => setLocalFilters(prev => ({ ...prev, inStockOnly: e.target.checked }))}
             className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-primary-500 focus:ring-primary-500"
           />
-          <label htmlFor="inStockOnly" className="text-sm font-semibold text-gray-700 dark:text-gray-200 cursor-pointer flex-1">
-            ظپظ‚ط· ظ…ط­طµظˆظ„ط§طھ ظ…ظˆط¬ظˆط¯
+          <label htmlFor="inStockOnly" className="text-sm font-semibold text-gray-700 dark:text-gray-200 cursor-pointer flex-1 font-sans">
+            فقط محصولات موجود
           </label>
         </div>
 
-        {/* ط¯ع©ظ…ظ‡â€Œظ‡ط§غŒ ط§ع©ط´ظ† */}
+        {/* دکمه‌های اکشن */}
         <div className="flex gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
           <Button
             onClick={handleReset}
@@ -274,16 +274,18 @@ export function FilterPanel({
             fullWidth
             size="sm"
             leftIcon={<RotateCcw className="w-4 h-4" />}
+            className="font-sans"
           >
-            ط­ط°ظپ ظ‡ظ…ظ‡ ظپغŒظ„طھط±ظ‡ط§
+            حذف همه فیلترها
           </Button>
           <Button
             onClick={handleApplyFilters}
             variant="primary"
             fullWidth
             size="sm"
+            className="font-sans"
           >
-            ط§ط¹ظ…ط§ظ„ ظپغŒظ„طھط±ظ‡ط§
+            اعمال فیلترها
           </Button>
         </div>
       </div>
@@ -293,4 +295,3 @@ export function FilterPanel({
 
 // Export types
 export type { FilterState, FilterOption };
-

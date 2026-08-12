@@ -35,6 +35,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\BulkProductController;
+use App\Http\Controllers\Api\DebugController;
 // ادمین
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ChatFaqController;
@@ -161,7 +163,7 @@ Route::prefix('v1')->group(function () {
     });
     // Debug endpoint (فقط در development)
     if (app()->environment('local')) {
-        Route::get('/debug/stats', [Api\DebugController::class, 'stats'])->name('debug.stats');
+        Route::get('/debug/stats', [DebugController::class, 'stats'])->name('debug.stats');
     }
 
     // ==========================================
@@ -247,7 +249,7 @@ Route::prefix('v1')->group(function () {
 
         // امتیاز و نظر به فروشنده
         Route::post('/seller-ratings', [SellerRatingController::class, 'store']);
-        Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'index']);
+        Route::get('/seller-ratings/seller/{sellerId}', [SellerRatingController::class, 'getSellerRatings']);
         Route::get('/seller-ratings/can-rate/{orderId}', [SellerRatingController::class, 'canRate']);
 
         // خروج از حساب
@@ -392,6 +394,10 @@ Route::prefix('v1')->group(function () {
             // اگر در آینده SellerAdController ساخته شد، اینجا اضافه می‌شود
 
             Route::prefix('products')->name('products.')->group(function () {
+                // Bulk Product Upload
+Route::get('/bulk/template', [BulkProductController::class, 'downloadTemplate'])->name('bulk.template');
+Route::post('/bulk/validate', [BulkProductController::class, 'validateFile'])->name('bulk.validate');
+Route::post('/bulk/commit', [BulkProductController::class, 'commit'])->name('bulk.commit');
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
                 Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');

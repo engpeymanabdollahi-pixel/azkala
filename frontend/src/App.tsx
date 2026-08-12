@@ -107,6 +107,15 @@ const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage'));
 const MagazinePage = lazy(() => import('@/pages/MagazinePage'));
 const MagazineArticlePage = lazy(() => import('@/pages/MagazinePage/ArticlePage'));
 
+// ✅ CompareBar - نوار مقایسه محصولات (Lazy Loaded)
+// فقط وقتی کاربر محصولی به مقایسه اضافه کند نمایش داده می‌شود.
+// State از طریق zustand persist در localStorage نگه‌داری می‌شود.
+const CompareBar = lazy(() => import('@/components/marketplace/CompareBar').then(m => ({ default: m.CompareBar })));
+
+// ✅ ComparePage - صفحه مقایسه محصولات (Lazy Loaded)
+// جدول مقایسه specifications، سازگاری دستگاه، و قیمت محصولات انتخاب شده
+const ComparePage = lazy(() => import('@/pages/ComparePage'));
+
 // ==========================================
 // کامپوننت محافظت از روت‌ها (Protected Route)
 // ==========================================
@@ -276,6 +285,9 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
+              {/* ✅ صفحه مقایسه محصولات - از CompareBar قابل دسترسی
+                  مطابق سند مرجع ازکالا بخش ۸ Marketplace Components */}
+              <Route path="/compare" element={<ComparePage />} />
               <Route path="/brands" element={<BrandsPage />} />
               {/* ✅ قبلاً این صفحه کامل احراز هویت (OTP + ایمیل/رمز) در App.tsx
                   ایمپورت شده بود ولی هیچ <Route> ای برایش تعریف نشده بود؛
@@ -398,6 +410,16 @@ export default function App() {
         <ChatWidget />
         {/* یک نمونه برای کل اپ: هر صفحه‌ای با useRequireAuth بازش می‌کند */}
         <AuthModal />
+
+        {/* ✅ CompareBar - نوار مقایسه محصولات (فقط در صفحات عمومی)
+            - در admin، seller private و auth pages مخفی می‌شود
+            - خودش بررسی می‌کند که products.length > 0 باشد
+            - position: fixed bottom، پس در هر viewport دیده می‌شود */}
+        {!hideLayout && (
+          <Suspense fallback={null}>
+            <CompareBar />
+          </Suspense>
+        )}
       </div>
     </AppErrorBoundary>
   );

@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, Store } from 'lucide-react';
+import { ShoppingCart, Star, CheckCircle, Heart, Eye, Flame, Award, Store, Scale } from 'lucide-react';
 import { useModelStore, useCartStore } from '@/store';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
+import { useCompareStore } from '@/store/compareStore';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { SafeImage } from '@/components/ui/SafeImage';
@@ -62,6 +63,8 @@ export const ProductCard = memo(function ProductCard({
   const { isInWishlist, toggleWishlist, prefetchProduct } = useWishlistApi();
 
   const isWishlisted = isInWishlist(product.id);
+    const { isCompared, toggleProduct } = useCompareStore();
+  const inCompare = isCompared(product.id);
 
   const isCompatible = selectedModel
     ? product.compatible_models?.some((m) => m.id === selectedModel.id) ?? false
@@ -314,6 +317,40 @@ export const ProductCard = memo(function ProductCard({
           aria-label="افزودن به علاقه‌مندی‌ها"
         >
           <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
+        </button>
+
+        {/* دکمه مقایسه - کنار دکمه علاقه‌مندی (top-left) */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleProduct({
+              id: product.id,
+              name: product.name,
+              slug: product.slug,
+              price: product.price,
+              compare_price: product.compare_price,
+              main_image: product.main_image,
+              rating: product.rating,
+              reviews_count: product.reviews_count,
+              specifications: product.specifications,
+              compatible_models: product.compatible_models,
+              seller: product.seller,
+              category: product.category,
+            });
+          }}
+          className={cn(
+            'absolute top-2 left-12 w-9 h-9 rounded-full flex items-center justify-center z-20',
+            'opacity-0 group-hover:opacity-100 transition-all duration-300',
+            'bg-white dark:bg-gray-800 shadow-lg hover:scale-110 active:scale-95',
+            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+            inCompare
+              ? 'text-primary-500 opacity-100'
+              : 'text-gray-400 hover:text-primary-500 dark:text-gray-500 dark:hover:text-primary-400'
+          )}
+          aria-label={inCompare ? 'حذف از مقایسه' : 'افزودن به مقایسه'}
+          title={inCompare ? 'حذف از مقایسه' : 'افزودن به مقایسه'}
+        >
+          <Scale className={cn('w-4 h-4', inCompare && 'fill-current')} />
         </button>
 
         {/* دکمه مشاهده سریع */}

@@ -6,6 +6,29 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+/* ==================== Design System Tokens ==================== */
+@theme {
+  /* Font Family - Vazirmatn برای RTL */
+  --font-sans: 'Vazirmatn', 'Tahoma', 'Arial', sans-serif;
+  
+  /* Border Radius - مطابق Design System ازکالا */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  
+  /* Spacing - مطابق Design System */
+  --spacing-4: 1rem;    /* 16px */
+  --spacing-5: 1.25rem; /* 20px */
+  --spacing-6: 1.5rem;  /* 24px */
+  --spacing-8: 2rem;    /* 32px */
+}
+
+/* Utility class برای font */
+@utility font-sans {
+  font-family: var(--font-sans);
+}
 
 /* کلاس‌های animate-in / slide-in-from-* / zoom-in در ۱۶ جای کد استفاده
    می‌شوند ولی این پلاگین هیچ‌وقت ثبت نشده بود، پس هیچ CSSی تولید نمی‌کردند.

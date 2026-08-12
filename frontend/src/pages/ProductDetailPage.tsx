@@ -1,49 +1,20 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ShoppingCart,
-ShoppingBag,
-  Star,
-  CheckCircle,
-  Shield,
-  Truck,
-  Heart,
-  ChevronLeft,
-  ChevronRight,
-  Store,
-  Package,
-  Plus,
-  Minus,
-  Zap,
-  Award,
-  BadgeCheck,
-  Smartphone,
-  MessageCircle,
-  Clock,
-  Gift,
-  X,
-  Maximize2,
-  AlertCircle,
-  ThumbsUp,
-  Sparkles,
-  Flame,
-  Crown,
-  Home,
-  Search,
-  RefreshCw,
-  Reply,
+  ShoppingCart, ShoppingBag, Star, CheckCircle, Shield, Truck, Heart,
+  ChevronLeft, ChevronRight, Store, Package, Plus, Minus, Zap, Award,
+  BadgeCheck, Smartphone, MessageCircle, Clock, X,
+  AlertCircle, ThumbsUp, Sparkles, Flame, Crown, Home, Search,
+  RefreshCw, Reply, Scale,
 } from 'lucide-react';
 
-import { useCartStore } from '@/store/cartStore';
-import { useModelStore } from '@/store/modelStore';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
-import { useWishlistApi } from '@/hooks/api/useWishlistApi'; // ✅ تغییر به useWishlistApi
+import { useChatStore } from '@/store/chatStore';
+import { useProductDetail } from '@/hooks/useProductDetail';
 import { ProductAlertButton } from '@/components/features/ProductAlertButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { ProductCard } from '@/components/marketplace';
+import { ProductCard, ProductGallery, ProductPrice } from '@/components/marketplace';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { DeviceCompatibility } from '@/components/marketplace';
 import Seo from '@/components/Seo';
@@ -52,296 +23,66 @@ import {
   generateBreadcrumbSchema,
 } from '@/lib/seo-schemas';
 import { formatPrice } from '@/utils/format';
-import { productService } from '@/services/api/product.service';
-import { reviewService, type Review } from '@/services/api/review.service';
 import type { Product } from '@/types/models';
 import { cn } from '@/utils/cn';
-import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
-import { useChatStore } from '@/store/chatStore';
 
 type TabType = 'description' | 'specifications' | 'compatibility' | 'reviews';
 
 export function ProductDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();  
+  const { isAuthenticated } = useAuthStore();
   const openAuthModal = useAuthModalStore((state) => state.open);
-     const { openChat, startConversation } = useChatStore();
+  const { openChat, startConversation } = useChatStore();
+  const navigate = useNavigate();
 
-
-  const { addItem } = useCartStore();
-  const { selectedModel } = useModelStore();
-  const { toggleWishlist, isInWishlist } = useWishlistApi(); // ✅ تغییر به useWishlistApi
-
-  // ==================== State ====================
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabType>('description');
-  const [isZoomed, setIsZoomed] = useState(false);
-  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // نظرات
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({
-    rating: 0,
-    title: '',
-    comment: '',
-  });
-  const [hoverRating, setHoverRating] = useState(0);
-  const [reviewsPage, setReviewsPage] = useState(1);
-  const [reviewFilter, setReviewFilter] = useState<number | 'all'>('all');
-
-  // ✅ فیلتر ستاره قبلاً فقط همان یک صفحهٔ بارگذاری‌شده را در سمت کلاینت
-  // فیلتر می‌کرد؛ حالا با تغییر فیلتر، صفحه‌بندی نظرات هم به صفحه ۱ برمی‌گردد
-  // (هماهنگ با الگوی مشابه در SellerPage.tsx).
-  useEffect(() => {
-    setReviewsPage(1);
-  }, [reviewFilter]);
-
-   // ==================== Data Fetching ====================
-  useEffect(() => {
-    let isMounted = true; // 🛡️ جلوگیری از آپدیت state در صورت آن‌مونت شدن کامپوننت
-
-    const loadProduct = async () => {
-      if (!slug) {
-        if (isMounted) {
-          setError('شناسه محصول نامعتبر است');
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      if (isMounted) {
-        setIsLoading(true);
-        setError(null);
-      }
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      try {
-        const response = await productService.getProductBySlug(slug);
-        
-        if (!isMounted) return; // 🛡️ اگر کامپوننت حین درخواست بسته شد، ادامه نده
-
-        // ساختار جدید API: داده‌ها در response.data قرار دارند و product یکی از کلیدهای آن است
-        const rawData = response.data;
-        const productData = rawData?.product || rawData; // پشتیبانی از هر دو ساختار قدیم و جدید
-
-        if (!productData || !productData.id) {
-          throw new Error('داده‌های محصول یافت نشد');
-        }
-
-                // 🛡️ نرمال‌سازی داده‌ها برای جلوگیری از خطاهای undefined در UI
-        const safeProduct = {
-          ...productData,
-          // اطمینان از وجود آبجکت brand و category
-          brand: productData.brand || { id: 0, name: 'نامشخص', slug: '' },
-          category: productData.category || { id: 0, name: 'نامشخص', slug: '' },
-          // اطمینان از آرایه بودن images
-          images: Array.isArray(productData.images) ? productData.images : (productData.main_image ? [productData.main_image] : []),
-          // تبدیل قیمت به عدد
-          price: Number(productData.price) || 0,
-          compare_price: Number(productData.compare_price) || 0,
-          
-          // ✅ اصلاح حیاتی: نگاشت صریح compatible_models از ریشه پاسخ به داخل آبجکت محصول
-          // (این فیلد واقعاً در ریشه‌ی پاسخ ProductService::getProductBySlug است،
-          // نه داخل خودِ product — به همین دلیل باید صریح map شود)
-          compatible_models: rawData?.compatible_models || [],
-        };
-
-        if (isMounted) {
-          setProduct(safeProduct as Product);
-
-          // لود محصولات مرتبط (اگر در پاسخ API وجود داشته باشد)
-          if (rawData.related_products && Array.isArray(rawData.related_products)) {
-            setRelatedProducts(rawData.related_products);
-          }
-        }
-
-      } catch (err) {
-        if (!isMounted) return;
-
-        const errorObj = err as { name?: string; code?: string; message?: string; response?: { data?: { message?: string } } };
-
-        // 🛡️ نادیده گرفتن خطای CanceledError ناشی از React 18 Strict Mode
-        if (errorObj.name === 'CanceledError' || errorObj.code === 'ERR_CANCELED' || errorObj.message === 'canceled') {
-          console.log('⚠️ درخواست قبلی توسط React کنسل شد (این رفتار طبیعی است و نادیده گرفته می‌شود)');
-          return; // خارج شدن از تابع بدون تنظیم state خطا
-        }
-
-        console.error('❌ خطا واقعی در دریافت محصول:', err);
-        if (isMounted) {
-          setError(errorObj.response?.data?.message || errorObj.message || 'خطا در بارگذاری محصول');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadProduct();
-
-    // Cleanup function
-    return () => {
-      isMounted = false;
-    };
-  }, [slug]);
-
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
-    queryKey: ['product-reviews', product?.id, reviewsPage, reviewFilter],
-    queryFn: () => reviewService.getReviews(product!.id, reviewsPage, reviewFilter === 'all' ? undefined : reviewFilter),
-    enabled: !!product,
-  });
-
-  const reviews = reviewsData?.data?.reviews || [];
-  const reviewsSummary = reviewsData?.data?.summary;
-  const reviewsPagination = reviewsData?.data?.pagination;
-
-  const { data: canReviewData } = useQuery({
-    queryKey: ['can-review', product?.id],
-    queryFn: () => reviewService.canReview(product!.id),
-    enabled: !!product && isAuthenticated,
-  });
-
-  const canReview = canReviewData?.data?.can_review ?? false;
-  const hasReviewed = canReviewData?.data?.has_reviewed ?? false;
-  const hasPurchased = canReviewData?.data?.has_purchased ?? false;
-
-  const createReviewMutation = useMutation({
-    mutationFn: reviewService.createReview,
-    // ✅ قبلاً پیام واقعی بکند (که یادآوری می‌کند نظر پس از تأیید نمایش
-    // داده می‌شود) نادیده گرفته می‌شد و یک پیام عمومی هاردکد نشان داده
-    // می‌شد.
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['product-reviews', product?.id] });
-      queryClient.invalidateQueries({ queryKey: ['can-review', product?.id] });
-      toast.success(
-  response.message || 'نظر شما ثبت شد و پس از بررسی منتشر می‌شود',
-  { icon: '⭐', duration: 4000 }
-);
-      setShowReviewForm(false);
-      setReviewForm({ rating: 0, title: '', comment: '' });
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error && 'response' in error
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-        : undefined;
-      toast.error(message || 'خطا در ثبت نظر');
-    },
-  });
-
-  const helpfulMutation = useMutation({
-    mutationFn: reviewService.markHelpful,
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['product-reviews', product?.id] });
-      toast.success(response.message, { icon: '👍' });
-    },
-  });
-
-  // ==================== Computed Values ====================
-  const images = useMemo(() => {
-    if (!product) return [];
-    return product.images?.length > 0 ? product.images : [product.main_image];
-  }, [product]);
-
-  const rating = useMemo(() => {
-    if (!product?.rating) return 0;
-    return parseFloat(String(product.rating));
-  }, [product]);
-
-  const isWishlisted = product ? isInWishlist(product.id) : false;
-
-  const isCompatible = useMemo(() => {
-    if (!selectedModel || !product) return true;
-    return product.compatible_models?.some((m) => m.id === selectedModel.id) ?? false;
-  }, [selectedModel, product]);
-
-  // نام کامل دستگاه انتخابی برای پیام سازگاری — «لپ‌تاپ ایسوس ZenBook 14»،
-  // نه فرضِ همیشگیِ «گوشی». اگر کاربر برای تبلت یا لپ‌تاپش دستگاه انتخاب کرده
-  // باشد، پیام قبلی («سازگار با گوشی شما») گمراه‌کننده بود.
-  const selectedDeviceName = useMemo(() => {
-    if (!selectedModel) return '';
-    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand?.type);
-  }, [selectedModel]);
-
-  const SelectedDeviceIcon = getDeviceTypeIcon(selectedModel?.brand?.type);
-
-  const discountPercent = useMemo(() => {
-    if (!product) return 0;
-    if (product.compare_price && product.compare_price > product.price) {
-      return Math.round(((product.compare_price - product.price) / product.compare_price) * 100);
-    }
-    return 0;
-  }, [product]);
-
-  const finalPrice = useMemo(() => {
-    if (!product) return 0;
-    return product.price * (1 - discountPercent / 100);
-  }, [product, discountPercent]);
-
-  const averageRating = reviewsSummary?.average_rating ?? rating;
-
-  const ratingDistribution = useMemo(() => {
-    const distribution = reviewsSummary?.distribution || [];
-    const total = reviewsSummary?.total_reviews || 0;
-    return [5, 4, 3, 2, 1].map((r) => {
-      const item = distribution.find(d => d.rating === r);
-      const count = item?.count || 0;
-      return { rating: r, count, percentage: total > 0 ? (count / total) * 100 : 0 };
-    });
-  }, [reviewsSummary]);
-
-  const totalReviews = reviewsSummary?.total_reviews || 0;
-
-  // ==================== Handlers ====================
-  const handleAddToCart = useCallback(() => {
-    if (!product) return;
-    addItem(product, quantity);
-    toast.success(`${product.name} به سبد خرید اضافه شد`, { icon: '🛒' });
-  }, [product, quantity, addItem]);
-
-  const handleQuickBuy = useCallback(() => {
-    if (!product) return;
-    addItem(product, quantity);
-    navigate('/checkout');
-  }, [product, quantity, addItem, navigate]);
-
-  const handleWishlistToggle = useCallback(() => {
-    if (!product) return;
-    toggleWishlist(product); // ✅ Optimistic UI با react-query
-  }, [product, toggleWishlist]);
-
-  const handleImageZoom = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setZoomPosition({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
-    });
-  }, []);
-
-  const handleSubmitReview = () => {
-    if (!product) return;
-    if (reviewForm.rating === 0) {
-      toast.error('لطفاً امتیاز خود را انتخاب کنید');
-      return;
-    }
-    if (reviewForm.comment.trim().length < 4) {
-      toast.error('متن نظر باید حداقل ۴ کاراکتر باشد');
-      return;
-    }
-    createReviewMutation.mutate({
-      product_id: product.id,
-      rating: reviewForm.rating,
-      title: reviewForm.title || undefined,
-      comment: reviewForm.comment,
-    });
-  };
+  // ✅ همه state، fetching، computed و handlers از hook
+  const {
+    product,
+    relatedProducts,
+    reviews,
+    reviewsSummary,
+    reviewsPagination,
+        quantity,
+    activeTab,
+            isLoading,
+    error,
+    showReviewForm,
+    reviewForm,
+    hoverRating,
+    reviewsPage,
+    reviewFilter,
+    hasReviewed,
+    hasPurchased,
+    reviewsLoading,
+    images,
+    rating,
+    isWishlisted,
+    inCompare,
+    isCompatible,
+    selectedDeviceName,
+    SelectedDeviceIcon,
+    discountPercent,
+    finalPrice,
+    averageRating,
+    ratingDistribution,
+    totalReviews,
+    selectedModel,
+    createReviewMutation,
+    helpfulMutation,
+        setQuantity,
+    setActiveTab,
+        setShowReviewForm,
+    setReviewForm,
+    setHoverRating,
+    setReviewsPage,
+    setReviewFilter,
+    handleAddToCart,
+    handleQuickBuy,
+    handleWishlistToggle,
+    handleCompareToggle,
+    
+    handleSubmitReview,
+  } = useProductDetail();
 
   // ==================== Loading State ====================
   if (isLoading) {
@@ -451,10 +192,7 @@ export function ProductDetailPage() {
   // ==================== Main Render ====================
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-10">
-      {/* ✅ SEO: Product Schema و BreadcrumbList Schema به‌صورت JSON-LD
-          تولید می‌شوند و meta tags کامل در <head> قرار می‌گیرند.
-          این باعث می‌شود Google قیمت، ستاره‌ها، موجودی و مسیر ناوبری
-          را در نتایج جستجو نمایش دهد (Rich Snippets). */}
+      {/* ✅ SEO: Product Schema و BreadcrumbList Schema */}
       <Seo
         title={product.name}
         description={product.short_description || product.meta_description || `${product.name} - ${product.brand?.name || ''} - خرید با بهترین قیمت از ازکالا`}
@@ -508,97 +246,12 @@ export function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
           
           {/* ============ Image Gallery - Compact ============ */}
-          <div className="space-y-2.5">
-            <div
-              className={cn(
-                'relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-md group',
-                isZoomed && 'cursor-zoom-out'
-              )}
-              onMouseEnter={() => setIsZoomed(true)}
-              onMouseLeave={() => setIsZoomed(false)}
-              onMouseMove={handleImageZoom}
-            >
-              <div className="aspect-square relative overflow-hidden">
-                <SafeImage
-                  src={images[selectedImage]}
-                  alt={product.name}
-                  className={cn(
-                    'w-full h-full object-contain p-4 transition-transform duration-300',
-                    isZoomed && 'scale-150'
-                  )}
-                  style={isZoomed ? { transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%` } : {}}
-                  fallbackEmoji="📦"
-                  showEmojiOnError={true}
-                />
-
-                {discountPercent > 0 && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <Badge variant="error" className="shadow-lg">
-                      <Flame className="w-3.5 h-3.5 ml-1" />
-                      {discountPercent}٪
-                    </Badge>
-                  </div>
-                )}
-
-                <div className="absolute top-3 left-3 z-10">
-                  {product.stock > 0 ? (
-                    <Badge variant="success" className="shadow-md">
-                      <CheckCircle className="w-3 h-3 ml-0.5" />
-                      موجود
-                    </Badge>
-                  ) : (
-                    <Badge variant="error" className="shadow-md">
-                      <X className="w-3 h-3 ml-0.5" />
-                      ناموجود
-                    </Badge>
-                  )}
-                </div>
-
-                {!isZoomed && images[selectedImage] && (
-                  <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <Maximize2 className="w-3 h-3" />
-                    زوم
-                  </div>
-                )}
-
-                {images.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev - 1 + images.length) % images.length)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-900/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
-                    >
-                      <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-200" />
-                    </button>
-                    <button
-                      onClick={() => setSelectedImage((prev) => (prev + 1) % images.length)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-900/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-10"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-200" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedImage(idx)}
-                    className={cn(
-                      'w-16 h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 bg-white dark:bg-gray-800',
-                      selectedImage === idx
-                        ? 'border-primary-500 shadow-md scale-105'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700'
-                    )}
-                  >
-                    <SafeImage src={img} alt="" className="w-full h-full object-contain p-1" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+<ProductGallery
+  images={images}
+  productName={product.name}
+  discountPercent={discountPercent}
+  inStock={product.stock > 0}
+/>
 
           {/* ============ Product Info - Compact ============ */}
           <div className="space-y-3">
@@ -623,7 +276,7 @@ export function ProductDetailPage() {
                 {product.name}
               </h1>
 
-              {/* ✅ Inline Compatibility Badge - نمایش سریع سازگاری با دستگاه انتخابی */}
+              {/* ✅ Inline Compatibility Badge */}
               {selectedModel && product.compatible_models && product.compatible_models.length > 0 && (
                 <DeviceCompatibility
                   devices={product.compatible_models}
@@ -692,155 +345,133 @@ export function ProductDetailPage() {
             )}
 
             {/* 🔧 Price Box - Compact */}
-            <div className="bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-primary-950/40 dark:via-gray-800 dark:to-accent-950/40 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-3 shadow-md">
-              {discountPercent > 0 && product.compare_price && (
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm text-gray-400 dark:text-gray-500 line-through">{formatPrice(product.compare_price)}</span>
-                  <Badge variant="error" className="text-[10px]">{discountPercent}٪ تخفیف</Badge>
-                </div>
-              )}
-              <div className="flex items-baseline gap-1.5 mb-1">
-                <span className="text-2xl md:text-3xl font-black text-primary-700 dark:text-primary-400">{formatPrice(finalPrice)}</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">تومان</span>
-              </div>
-              {discountPercent > 0 && product.compare_price && (
-                <div className="flex items-center gap-1.5 text-xs text-success-600 dark:text-success-400 font-semibold bg-success-50 dark:bg-success-900/20 px-2 py-1 rounded-lg border border-success-200 dark:border-success-800">
-                  <Gift className="w-3 h-3" />
-                  صرفه‌جویی: {formatPrice(product.compare_price - finalPrice)}
-                </div>
-              )}
-            </div>
+<ProductPrice
+  price={finalPrice}
+  comparePrice={product.compare_price}
+  discountPercent={discountPercent}
+/>
 
-                  {/* 🔧 Seller Info - Enhanced */}
-          {/* ✅ product.seller قبلاً مستقیم داخل چند closure (onClick) دوباره
-              خوانده می‌شد؛ چون TypeScript نمی‌تواند narrowing یک ملک روی یک
-              متغیر captured را در مرزهای closure تضمین کند، این چند خط با
-              (product as any) کست دور زده می‌شدند. اینجا با یک const محلی
-              seller، هم تایپ درست است و هم نیازی به هیچ any/! نیست. */}
-          {product.seller && (() => {
-            const seller = product.seller;
-            return (
-            <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
-              <div className="flex items-start gap-3 mb-3">
-                {/* آواتار فروشنده (قابل کلیک) */}
-                <button
-                  onClick={() => navigate(`/seller/${seller.slug}`)}
-                  className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden hover:scale-105 transition-transform group"
-                >
-                  {seller.avatar ? (
-                    <img
-                      src={seller.avatar}
-                      alt={seller.shop_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Store className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
-                  )}
-                </button>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    {/* ✅ نام فروشنده حالا قابل کلیک است و به صفحه شعبه هدایت می‌شود */}
+            {/* 🔧 Seller Info - Enhanced */}
+            {product.seller && (() => {
+              const seller = product.seller;
+              return (
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-900 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all">
+                  <div className="flex items-start gap-3 mb-3">
+                    {/* آواتار فروشنده (قابل کلیک) */}
                     <button
                       onClick={() => navigate(`/seller/${seller.slug}`)}
-                      className="font-black text-gray-900 dark:text-gray-100 text-base truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1 group text-right"
+                      className="w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-accent-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 overflow-hidden hover:scale-105 transition-transform group"
                     >
-                      {seller.shop_name}
-                      <ChevronLeft className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-600 dark:text-primary-400" />
+                      {seller.avatar ? (
+                        <img
+                          src={seller.avatar}
+                          alt={seller.shop_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Store className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+                      )}
                     </button>
 
-                    {seller.is_verified && (
-                      <Badge variant="success" size="sm" className="text-[10px]">
-                        <BadgeCheck className="w-3 h-3 ml-0.5" />
-                        تأیید شده
-                      </Badge>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <button
+                          onClick={() => navigate(`/seller/${seller.slug}`)}
+                          className="font-black text-gray-900 dark:text-gray-100 text-base truncate hover:text-primary-600 dark:hover:text-primary-400 transition-colors flex items-center gap-1 group text-right"
+                        >
+                          {seller.shop_name}
+                          <ChevronLeft className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-primary-600 dark:text-primary-400" />
+                        </button>
+
+                        {seller.is_verified && (
+                          <Badge variant="success" size="sm" className="text-[10px]">
+                            <BadgeCheck className="w-3 h-3 ml-0.5" />
+                            تأیید شده
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* آمار فروشنده */}
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <Star className="w-3.5 h-3.5 text-warning-400 fill-warning-400" />
+                            <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                              {(seller.rating ?? 0).toFixed(1)}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">امتیاز</p>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <Package className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" />
+                            <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                              {seller.products_count ?? 0}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">محصول</p>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
+                          <div className="flex items-center justify-center gap-1 mb-0.5">
+                            <ShoppingBag className="w-3.5 h-3.5 text-success-500 dark:text-success-400" />
+                            <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
+                              {seller.total_sales ?? 0}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">فروش</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* آمار فروشنده */}
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <Star className="w-3.5 h-3.5 text-warning-400 fill-warning-400" />
-                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
-                          {(seller.rating ?? 0).toFixed(1)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">امتیاز</p>
-                    </div>
+                  {/* دکمه‌های Action */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        if (!isAuthenticated) {
+                          openAuthModal({
+                            reason: 'برای گفتگو با فروشنده وارد شوید.',
+                            onSuccess: () => void startConversation(seller.id, product.id),
+                          });
+                          return;
+                        }
+                        try {
+                          await startConversation(seller.id, product.id);
+                          openChat();
+                          toast.success('چت با فروشنده باز شد', { icon: '💬' });
+                        } catch {
+                          toast.error('خطا در شروع چت');
+                        }
+                      }}
+                      className="font-bold gap-1.5"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      چت با فروشنده
+                    </Button>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <Package className="w-3.5 h-3.5 text-primary-500 dark:text-primary-400" />
-                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
-                          {seller.products_count ?? 0}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">محصول</p>
-                    </div>
-
-                    <div className="bg-white dark:bg-slate-900 rounded-lg p-2 border border-gray-100 dark:border-slate-700 text-center">
-                      <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <ShoppingBag className="w-3.5 h-3.5 text-success-500 dark:text-success-400" />
-                        <span className="font-black text-gray-900 dark:text-gray-100 text-sm">
-                          {seller.total_sales ?? 0}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">فروش</p>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (seller.slug) {
+                          navigate(`/seller/${seller.slug}`);
+                        } else {
+                          toast.error('صفحه فروشگاه این فروشنده هنوز راه‌اندازی نشده است');
+                        }
+                      }}
+                      className="font-bold gap-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all"
+                    >
+                      <Store className="w-4 h-4" />
+                      مشاهده شعبه
+                    </Button>
                   </div>
                 </div>
-              </div>
-
-             {/* دکمه‌های Action */}
-<div className="grid grid-cols-2 gap-2">
-  <Button
-    size="sm"
-    variant="outline"
-    onClick={async () => {
-      if (!isAuthenticated) {
-        // مودال همین‌جا باز می‌شود و پس از ورود، خودِ گفتگو شروع می‌شود —
-        // کاربر از صفحه‌ی محصول بیرون نمی‌رود و دکمه را دوباره نمی‌زند.
-        openAuthModal({
-          reason: 'برای گفتگو با فروشنده وارد شوید.',
-          onSuccess: () => void startConversation(seller.id, product.id),
-        });
-        return;
-      }
-      try {
-        await startConversation(seller.id, product.id);
-        openChat();
-        toast.success('چت با فروشنده باز شد', { icon: '💬' });
-      } catch {
-        toast.error('خطا در شروع چت');
-      }
-    }}
-    className="font-bold gap-1.5"
-  >
-    <MessageCircle className="w-4 h-4" />
-    چت با فروشنده
-  </Button>
-
-  {/* ✅ دکمه مشاهده شعبه با بررسی امنیتی */}
-  <Button
-    size="sm"
-    variant="outline"
-    onClick={() => {
-      if (seller.slug) {
-        navigate(`/seller/${seller.slug}`);
-      } else {
-        toast.error('صفحه فروشگاه این فروشنده هنوز راه‌اندازی نشده است');
-      }
-    }}
-    className="font-bold gap-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-400 hover:border-primary-200 dark:hover:border-primary-700 transition-all"
-  >
-    <Store className="w-4 h-4" />
-    مشاهده شعبه
-  </Button>
-</div>
-            </div>
-            );
-          })()}
+              );
+            })()}
 
             {/* 🔧 Quantity & Actions - Compact */}
             <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 space-y-2.5">
@@ -890,10 +521,25 @@ export function ProductDetailPage() {
                   size="md"
                   onClick={handleWishlistToggle}
                   className={cn('transition-all', isWishlisted && 'text-error-500 border-error-300 bg-error-50')}
+                  aria-label={isWishlisted ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
                 >
                   <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
                 </Button>
-                {/* ✅ دکمه هشدار محصول - خارج از دکمه Heart */}
+
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={handleCompareToggle}
+                  className={cn(
+                    'transition-all',
+                    inCompare && 'text-primary-500 border-primary-300 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-700'
+                  )}
+                  aria-label={inCompare ? 'حذف از مقایسه' : 'افزودن به مقایسه'}
+                  title={inCompare ? 'حذف از مقایسه' : 'افزودن به مقایسه'}
+                >
+                  <Scale className={cn('w-4 h-4', inCompare && 'fill-current')} />
+                </Button>
+
                 {product && (
                   <ProductAlertButton
                     product={product}
@@ -1001,12 +647,9 @@ export function ProductDetailPage() {
               />
             )}
 
-            {/* 🆕 Reviews Tab - بهبود یافته */}
+            {/* 🆕 Reviews Tab */}
             {activeTab === 'reviews' && (
               <div className="space-y-4">
-                
-
-
                 {/* Rating Summary - Compact */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-gradient-to-br from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl p-4 text-center border border-primary-100 dark:border-primary-800">
@@ -1053,10 +696,6 @@ export function ProductDetailPage() {
                   </div>
                 </div>
 
-                                {/* Write Review Button - ساده شده (بدون محدودیت خرید) */}
-
-                               {/* Write Review Button - ساده شده (بدون محدودیت خرید) */}
-
                 {/* حالت ۱: کاربر لاگین نکرده */}
                 {!isAuthenticated && (
                   <div className="bg-gray-50 dark:bg-gray-900 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center">
@@ -1072,7 +711,7 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* حالت ۲: کاربر لاگین کرده و قبلاً نظر نداده - می‌تواند نظر بدهد */}
+                {/* حالت ۲: کاربر لاگین کرده و قبلاً نظر نداده */}
                 {isAuthenticated && !hasReviewed && (
                   <div className="bg-gradient-to-r from-primary-500 to-accent-500 rounded-xl p-3 text-white">
                     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1106,7 +745,7 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* 🆕 Review Form - بهبود یافته (بدون محدودیت خرید) */}
+                {/* 🆕 Review Form */}
                 {showReviewForm && isAuthenticated && !hasReviewed && (
                   <div className="bg-white dark:bg-gray-800 border-2 border-primary-200 dark:border-primary-800 rounded-xl p-4 animate-fade-in">
                     <h4 className="font-black text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-1.5 text-sm">
@@ -1114,7 +753,6 @@ export function ProductDetailPage() {
                       ثبت نظر جدید
                     </h4>
 
-                    {/* 🆕 ستاره‌های رنگی بهبود یافته */}
                     <div className="mb-3">
                       <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">امتیاز شما</label>
                       <div className="flex items-center gap-2">
@@ -1147,7 +785,6 @@ export function ProductDetailPage() {
                       </div>
                     </div>
 
-                    {/* Title */}
                     <div className="mb-2.5">
                       <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">عنوان نظر (اختیاری)</label>
                       <input
@@ -1160,7 +797,6 @@ export function ProductDetailPage() {
                       />
                     </div>
 
-                    {/* Comment */}
                     <div className="mb-3">
                       <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                         متن نظر <span className="text-error-500">*</span>
@@ -1187,7 +823,6 @@ export function ProductDetailPage() {
                       </p>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -1197,7 +832,7 @@ export function ProductDetailPage() {
                           setShowReviewForm(false);
                           setReviewForm({ rating: 0, title: '', comment: '' });
                         }}
-                        disabled={createReviewMutation.isPending}
+                        disabled={createReviewMutation?.isPending}
                       >
                         انصراف
                       </Button>
@@ -1206,11 +841,11 @@ export function ProductDetailPage() {
                         size="sm"
                         onClick={handleSubmitReview}
                         disabled={
-                          createReviewMutation.isPending ||
+                          createReviewMutation?.isPending ||
                           reviewForm.rating === 0 ||
                           reviewForm.comment.trim().length < 4
                         }
-                        isLoading={createReviewMutation.isPending}
+                        isLoading={createReviewMutation?.isPending}
                       >
                         <MessageCircle className="w-3.5 h-3.5 ml-1" />
                         ثبت نظر
@@ -1219,7 +854,7 @@ export function ProductDetailPage() {
                   </div>
                 )}
 
-                {/* 🆕 Reviews List با فیلتر */}
+                {/* 🆕 Reviews List */}
                 <div>
                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                     <h4 className="font-black text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1.5">
@@ -1227,9 +862,6 @@ export function ProductDetailPage() {
                       نظرات کاربران ({totalReviews})
                     </h4>
 
-                    {/* 🆕 فیلتر بر اساس امتیاز — قبلاً فقط همان یک صفحهٔ
-                        بارگذاری‌شده را در سمت کلاینت فیلتر می‌کرد، حالا از
-                        بکند واقعاً فیلتر می‌شود. */}
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setReviewFilter('all')}
@@ -1288,7 +920,7 @@ export function ProductDetailPage() {
                   ) : (
                     <>
                       <div className="space-y-2">
-                        {reviews.map((review: Review) => (
+                        {reviews.map((review) => (
                           <div
                             key={review.id}
                             className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 hover:border-primary-200 dark:hover:border-primary-800 hover:shadow-sm transition-all"
@@ -1341,8 +973,6 @@ export function ProductDetailPage() {
 
                             <p className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed mb-2">{review.comment}</p>
 
-                            {/* ✅ پاسخ ادمین — قبلاً این فیلد واقعی هیچ‌وقت از بکند
-                                نمی‌آمد و نمایش داده نمی‌شد. */}
                             {review.admin_reply && (
                               <div className="mb-2 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg p-2.5">
                                 <p className="flex items-center gap-1 text-[10px] font-bold text-primary-700 dark:text-primary-400 mb-1">
@@ -1356,7 +986,7 @@ export function ProductDetailPage() {
                             <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                               <button
                                 onClick={() => helpfulMutation.mutate(review.id)}
-                                disabled={helpfulMutation.isPending}
+                                disabled={helpfulMutation?.isPending}
                                 className="flex items-center gap-1 text-[10px] text-gray-600 dark:text-gray-400 hover:text-success-600 dark:hover:text-success-400 transition-colors disabled:opacity-50"
                               >
                                 <ThumbsUp className="w-3 h-3" />
@@ -1414,7 +1044,7 @@ export function ProductDetailPage() {
                 <ProductCard
                   key={p.id}
                   product={p}
-                  variant="compact"
+                  variant="grid"
                   showCompatibility={false}
                   showSeller={false}
                   showRating={true}
@@ -1429,4 +1059,5 @@ export function ProductDetailPage() {
     </div>
   );
 }
+
 export default ProductDetailPage;

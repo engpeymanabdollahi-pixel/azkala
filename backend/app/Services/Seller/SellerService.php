@@ -370,21 +370,68 @@ class SellerService
         /**
      * ثبت نظر و امتیاز جدید برای فروشنده
      */
-    public function createRating(int $userId, array $data)
-    {
-        // بررسی اینکه آیا کاربر قبلاً به این سفارش نظر داده یا خیر
-        $existingRating = \App\Models\SellerRating::where('order_id', $data['order_id'])->first();
-        if ($existingRating) {
-            throw new \Exception('شما قبلاً برای این سفارش نظر ثبت کرده‌اید.', 400);
-        }
-
-        // محاسبه میانگین کلی
-        $data['overall_rating'] = round(
-            ($data['product_quality'] + $data['shipping_speed'] + $data['communication']) / 3, 
-            1
-        );
-        $data['user_id'] = $userId;
-
-        return \App\Models\SellerRating::create($data);
+   public function createRating(int $userId, array $data)
+{
+    // ✅ بررسی اینکه آیا کاربر قبلاً به این سفارش نظر داده یا خیر
+    $existingRating = \App\Models\SellerRating::where('order_id', $data['order_id'])->first();
+    if ($existingRating) {
+        throw new \Exception('شما قبلاً برای این سفارش نظر ثبت کرده‌اید.', 400);
     }
+
+    // ✅ بررسی مالکیت سفارش و وضعیت delivered
+    $order = \App\Models\Order::where('id', $data['order_id'])
+        ->where('user_id', $userId)
+        ->first();
+
+    if (!$order) {
+        throw new \Exception('سفارش یافت نشد یا متعلق به شما نیست.', 404);
+    }
+
+    if ($order->status !== 'delivered') {
+        throw new \Exception('فقط برای سفارش‌های تحویل‌داده‌شده می‌توانید نظر ثبت کنید.', 400);
+    }
+
+    // ✅ محاسبه overall_rating از میانگین سه معیار
+    $data['overall_rating'] = round(
+        ($data['product_quality'] + $data['shipping_speed'] + $data['communication']) / 3,
+        1
+    );
+    $data['user_id'] = $userId;
+
+    // ✅ ثبت امتیاز در seller_ratings
+    $rating = \App\Models\SellerRating::create($data);
+
+    // 🔥 **Fix کلیدی**: محاسبه و آپدیت میانگین seller_rating در users table
+    $this->updateSellerRating((int) $data['seller_id']);
+
+    // ✅ پاک کردن cache پروفایل فروشنده
+    try {
+        $seller = \App\Models\User::find($data['seller_id']);
+        if ($seller && $seller->slug) {
+            \Illuminate\Support\Facades\Cache::forget("public_seller_profile_{$seller->slug}");
+        }
+    } catch (\Exception $e) {
+        // cache clear نباید مانع ثبت امتیاز شود
+        Log::warning('Failed to clear seller cache: ' . $e->getMessage());
+    }
+
+    return $rating;
+}
+
+/**
+ * محاسبه و آپدیت میانگین امتیاز فروشنده در users.seller_rating
+ *
+ * این متد بعد از هر ثبت/حذف امتیاز صدا زده می‌شود تا
+ * ستون denormalized users.seller_rating همیشه به‌روز باشد.
+ * این باعث می‌شود SellerCard، ProductDetail، SellerPage و TopSellersSection
+ * همه بدون محاسبه مجدد، امتیاز دقیق را نمایش دهند.
+ */
+public function updateSellerRating(int $sellerId): void
+{
+    $avg = \App\Models\SellerRating::where('seller_id', $sellerId)->avg('overall_rating');
+
+    \App\Models\User::where('id', $sellerId)->update([
+        'seller_rating' => $avg ? round($avg, 2) : 0,
+    ]);
+}
     }

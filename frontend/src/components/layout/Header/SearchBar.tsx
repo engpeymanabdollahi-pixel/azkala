@@ -461,9 +461,8 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
         )}
 
         {/* Search Input */}
-        <div className="relative flex-1">
+               <div className="relative flex-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" aria-hidden="true" />
-
           <input
             type="text"
             placeholder={placeholder}
@@ -509,138 +508,6 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
           )}
-          
-
-          {/* Search Suggestions Dropdown */}
-          {isSearchFocused && (
-            <div
-              id="search-suggestions"
-              className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 z-[9999] animate-slide-down max-h-[80vh] overflow-y-auto"
-              role="listbox"
-              aria-label="نتایج جستجو"
-              style={{ minWidth: '100%' }}
-            >
-              {/* 🔍 Live Results Section */}
-              {shouldShowLiveResults && (
-                <>
-                  {isLiveSearching ? (
-                    renderLiveResultsSkeleton()
-                  ) : hasLiveResults ? (
-                    <div className="py-2">
-                      {renderProductsSection()}
-                      {renderDevicesSection()}
-                      {renderCategoriesSection()}
-                      {renderSellersSection()}
-
-                      {/* Device-aware Hint */}
-                      {deviceModel && liveResults && liveResults.products.count > 0 && (
-                        <div className="px-4 py-2 bg-primary-50/50 dark:bg-primary-900/10 border-t border-primary-100 dark:border-primary-900/30">
-                          <p className="text-[10px] text-primary-700 dark:text-primary-300 flex items-center gap-1">
-                            <Smartphone className="w-3 h-3" />
-                            نتایج فیلتر شده برای: <strong>{deviceModel.name}</strong>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : debouncedQuery.length >= 2 ? (
-                    renderNoResults()
-                  ) : null}
-                </>
-              )}
-
-              {/* 🕒 Fallback: History + Popular (وقتی query خالی است) */}
-              {shouldShowFallback && (
-                <>
-                  {/* Smart Suggestions */}
-                  {smartSuggestions.length > 0 && (
-                    <>
-                      <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800">
-                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary-500" />
-                          جستجوهای قبلی شما
-                        </p>
-                      </div>
-                      <div className="max-h-40 overflow-y-auto">
-                        {smartSuggestions.map((suggestion, index) => (
-                          <button
-                            key={`history-${index}`}
-                            onClick={() => handleSuggestionClick(suggestion)}
-                            className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
-                          >
-                            <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                              <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            </div>
-                            <span className="flex-1 text-right">{suggestion}</span>
-                            <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Recent Searches */}
-                  {searchHistory.length > 0 && (
-                    <>
-                      <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
-                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-primary-500" />
-                          جستجوهای اخیر شما
-                        </p>
-                        <button
-                          onClick={clearSearchHistory}
-                          className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400 transition-colors focus:outline-none"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          پاک کردن
-                        </button>
-                      </div>
-                      <div className="max-h-40 overflow-y-auto">
-                        {searchHistory.slice(0, 5).map((item) => (
-                          <button
-                            key={item.query}
-                            onClick={() => handleSuggestionClick(item.query)}
-                            className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
-                          >
-                            <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                              <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            </div>
-                            <span className="flex-1 text-right">{item.query}</span>
-                            <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Popular Suggestions */}
-                  <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
-                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
-                      جستجوهای پرطرفدار
-                    </p>
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500">این هفته</span>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {POPULAR_SUGGESTIONS.map((suggestion, index) => (
-                      <button
-                        key={`popular-${index}`}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
-                      >
-                        <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-                          <span className="text-xs font-black text-gray-500 dark:text-gray-400">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <span className="flex-1 text-right">{suggestion}</span>
-                        <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Search Button */}
@@ -659,6 +526,133 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
           )}
         </button>
       </div>
+
+      {/* ✅ Search Suggestions Dropdown - OUTSIDE overflow-hidden container */}
+      {isSearchFocused && (
+        <div
+          id="search-suggestions"
+          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 z-[9999] max-h-[80vh] overflow-y-auto"
+          role="listbox"
+          aria-label="نتایج جستجو"
+          style={{ minWidth: '100%' }}
+        >
+          {/* 🔍 Live Results Section */}
+          {shouldShowLiveResults && (
+            <>
+              {isLiveSearching ? (
+                renderLiveResultsSkeleton()
+              ) : hasLiveResults ? (
+                <div className="py-2">
+                  {renderProductsSection()}
+                  {renderDevicesSection()}
+                  {renderCategoriesSection()}
+                  {renderSellersSection()}
+
+                  {deviceModel && liveResults && liveResults.products.count > 0 && (
+                    <div className="px-4 py-2 bg-primary-50/50 dark:bg-primary-900/10 border-t border-primary-100 dark:border-primary-900/30">
+                      <p className="text-[10px] text-primary-700 dark:text-primary-300 flex items-center gap-1">
+                        <Smartphone className="w-3 h-3" />
+                        نتایج فیلتر شده برای: <strong>{deviceModel.name}</strong>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : debouncedQuery.length >= 2 ? (
+                renderNoResults()
+              ) : null}
+            </>
+          )}
+
+          {/* 🕒 Fallback: History + Popular */}
+          {shouldShowFallback && (
+            <>
+              {smartSuggestions.length > 0 && (
+                <>
+                  <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800">
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-primary-500" />
+                      جستجوهای قبلی شما
+                    </p>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto">
+                    {smartSuggestions.map((suggestion, index) => (
+                      <button
+                        key={`history-${index}`}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        <span className="flex-1 text-right">{suggestion}</span>
+                        <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {searchHistory.length > 0 && (
+                <>
+                  <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
+                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-primary-500" />
+                      جستجوهای اخیر شما
+                    </p>
+                    <button
+                      onClick={clearSearchHistory}
+                      className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400 transition-colors focus:outline-none"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      پاک کردن
+                    </button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto">
+                    {searchHistory.slice(0, 5).map((item) => (
+                      <button
+                        key={item.query}
+                        onClick={() => handleSuggestionClick(item.query)}
+                        className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
+                      >
+                        <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        </div>
+                        <span className="flex-1 text-right">{item.query}</span>
+                        <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-r from-primary-50 to-white dark:from-primary-900/20 dark:to-slate-800 flex items-center justify-between">
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-primary-500" />
+                  جستجوهای پرطرفدار
+                </p>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">این هفته</span>
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {POPULAR_SUGGESTIONS.map((suggestion, index) => (
+                  <button
+                    key={`popular-${index}`}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="w-full px-4 py-2.5 text-right text-sm text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors flex items-center gap-3 group focus:outline-none"
+                  >
+                    <div className="w-8 h-8 bg-gray-100 dark:bg-slate-700 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+                      <span className="text-xs font-black text-gray-500 dark:text-gray-400">
+                        {index + 1}
+                      </span>
+                    </div>
+                    <span className="flex-1 text-right">{suggestion}</span>
+                    <ArrowLeft className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" />
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 });

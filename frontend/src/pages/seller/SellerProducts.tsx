@@ -3,7 +3,7 @@ import {
   Package, Plus, Search, Edit, Trash2, Eye, MoreVertical, History,
   AlertCircle, CheckCircle, XCircle, X, Grid3x3, List,
   DollarSign, Loader2, Download, CheckSquare, Square,
-  RefreshCw, Flame, ArrowUpDown, Copy, ExternalLink,
+  RefreshCw, Flame, ArrowUpDown, Copy, ExternalLink, Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 import { useSellerProducts, useDeleteProduct } from '@/hooks/api/useSellerProducts';
 import { ProductFormModal } from './ProductFormModal'; 
 import { ProductHistoryModal } from './ProductHistoryModal';
+import { BulkUploadModal } from './components/BulkUploadModal';
 import { useParams, useNavigate } from 'react-router-dom';
 
 type ViewMode = 'grid' | 'table';
@@ -77,7 +78,7 @@ export function SellerProducts() {
   const navigate = useNavigate();
   const { productId } = useParams<{ productId: string }>();
   
-  const { data: productsData, isLoading, error, isRefetching } = useSellerProducts(1, 100);
+  const { data: productsData, isLoading, error, isRefetching, refetch } = useSellerProducts(1, 100);
   const deleteProductMutation = useDeleteProduct();
 
   const products = useMemo(() => productsData?.data || [], [productsData]);
@@ -98,6 +99,7 @@ export function SellerProducts() {
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showQuickView, setShowQuickView] = useState<Product | null>(null);
   const [showDropdown, setShowDropdown] = useState<number | null>(null);
 
@@ -226,6 +228,11 @@ export function SellerProducts() {
     }
   }, [deleteProductMutation, products]);
 
+  const handleBulkUploadSuccess = useCallback(() => {
+  // Refetch products list after bulk upload
+  refetch();
+}, [refetch]);
+
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedProducts);
     try {
@@ -319,14 +326,21 @@ export function SellerProducts() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">مدیریت موجودی، قیمت‌گذاری و وضعیت محصولات فروشگاه</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportCSV} disabled={products.length === 0} className="gap-2">
-            <Download className="w-4 h-4" /><span className="hidden sm:inline">خروجی CSV</span>
-          </Button>
-          <Button onClick={handleOpenCreateModal} className="gap-2 shadow-lg shadow-primary-500/20">
-            <Plus className="w-4 h-4" />افزودن محصول جدید
-          </Button>
-        </div>
+       <div className="flex gap-2 flex-wrap">
+  <Button variant="outline" onClick={handleExportCSV} disabled={products.length === 0} className="gap-2">
+    <Download className="w-4 h-4" /><span className="hidden sm:inline">خروجی CSV</span>
+  </Button>
+  <Button
+    variant="outline"
+    onClick={() => setShowBulkUploadModal(true)}
+    className="gap-2 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+  >
+    <Upload className="w-4 h-4" /><span className="hidden sm:inline">افزودن دسته‌ای</span>
+  </Button>
+  <Button onClick={handleOpenCreateModal} className="gap-2 shadow-lg shadow-primary-500/20">
+    <Plus className="w-4 h-4" />افزودن محصول جدید
+  </Button>
+</div>
       </div>
 
       {/* 2. Stats Cards */}
@@ -599,6 +613,12 @@ export function SellerProducts() {
         productId={historyProductId || 0}
         productName={historyProductName}
       />
+      {/* 6.5. Bulk Upload Modal */}
+<BulkUploadModal
+  isOpen={showBulkUploadModal}
+  onClose={() => setShowBulkUploadModal(false)}
+  onSuccess={handleBulkUploadSuccess}
+/>
 
       {/* 7. Quick View Modal */}
       {showQuickView && (
