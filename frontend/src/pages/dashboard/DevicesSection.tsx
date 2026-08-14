@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Smartphone, Plus, X, Trash2, Package, ShoppingCart,
+  Smartphone, Plus, X, Trash2, Package, ShoppingCart, Pencil,
   Zap, Sparkles, ChevronLeft, Star, CheckCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +14,9 @@ import { cn } from '@/utils/cn';
 import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
 import apiClient from '@/services/api/client';
-import type { Product, Brand, PhoneSeries, PhoneModel } from '@/types/models';
+import type { Product } from '@/types/models';
 import { useModelStore } from '@/store/modelStore';
+import { useUserDevices } from '@/hooks/useUserDevices';
 
 interface UserDevice {
   id: number;
@@ -30,18 +31,11 @@ interface UserDevice {
   };
 }
 
-// ✅ ProductController::compatible() یک آبجکت کامل Product خام برمی‌گرداند
-// (بدون ProductResource wrapping)، پس اینجا از تایپ واقعی Product استفاده
-// می‌شود — قبلاً یک اینترفیس محلی و ناقص (بدون seller_id و...) بود که
-// افزودن واقعی به سبد خرید را غیرممکن می‌کرد.
 type CompatibleProduct = Product & {
   discount_price: number | null;
   is_special_offer: boolean;
 };
 
-// ✅ سه شکل واقعیِ /devices/brands، /devices/brands/{id}/series،
-// /devices/series/{id}/models (DeviceController) — قبلاً brand/s/m: any
-// بودند.
 interface DeviceBrandOption {
   id: number;
   name: string;
@@ -64,104 +58,32 @@ interface DeviceModelOption {
   release_year: number | null;
 }
 
-const fetchUserDevices = async (): Promise<{ success: boolean; data: UserDevice[] }> => {
-  try {
-    const response = await apiClient.get('/user/devices');
-    return response.data;
-  } catch {
-    return { success: false, data: [] };
-  }
-};
-
-const fetchCompatibleProducts = async (modelId: number): Promise<{ success: boolean; data: CompatibleProduct[] }> => {
+// ==================== Helper Fetch Functions ====================
+const fetchCompatibleProducts = async (modelId: number): Promise<CompatibleProduct[]> => {
   try {
     const response = await apiClient.get(`/products/compatible/${modelId}`);
-    return response.data;
+    return response.data?.data || response.data || [];
   } catch {
-    return { success: false, data: [] };
+    return [];
   }
 };
-
-const addUserDevice = async (phoneModelId: number, nickname?: string) => {
-  const response = await apiClient.post('/user/devices', {
-    phone_model_id: phoneModelId,
-    nickname,
-  });
-  return response.data;
-};
-
-const deleteUserDevice = async (deviceId: number) => {
-  const response = await apiClient.delete(`/user/devices/${deviceId}`);
-  return response.data;
-};
-
-// ✅ سناریو B+C: تبدیل یک UserDevice ذخیره‌شده به شکلی که useModelStore
-// (همان store ای که هدر برای نمایش «دستگاه شما» می‌خواند) انتظار دارد.
-// فیلدهایی که این endpoint اصلاً نمی‌فرستد (slug واقعی، تاریخ‌ها و...) با
-// مقدار خنثی پر می‌شوند — دقیقاً همان الگویی که ModelSelectorModal.tsx
-// برای همین کار استفاده می‌کند.
-function buildStoreSelectionFromDevice(device: UserDevice): {
-  brand: Brand;
-  series: PhoneSeries | null;
-  model: PhoneModel;
-} | null {
-  const pm = device.phone_model;
-  if (!pm || !pm.brand) return null;
-
-  const brand: Brand = {
-    id: pm.brand.id,
-    name: pm.brand.name,
-    slug: '',
-    logo: null,
-    is_active: true,
-    created_at: '',
-    updated_at: '',
-  };
-
-  const series: PhoneSeries | null = pm.series
-    ? {
-        id: pm.series.id,
-        brand_id: brand.id,
-        name: pm.series.name,
-        slug: '',
-        brand,
-        created_at: '',
-        updated_at: '',
-      }
-    : null;
-
-  const model: PhoneModel = {
-    id: pm.id,
-    series_id: series?.id || 0,
-    brand_id: brand.id,
-    name: pm.name,
-    slug: '',
-    image: null,
-    is_active: true,
-    brand,
-    series: series || undefined,
-    created_at: '',
-    updated_at: '',
-  };
-
-  return { brand, series, model };
-}
 
 const fetchBrands = async (): Promise<DeviceBrandOption[]> => {
   const response = await apiClient.get('/devices/brands');
-  return response.data.data;
+  return response.data?.data || [];
 };
 
 const fetchSeries = async (brandId: number): Promise<DeviceSeriesOption[]> => {
   const response = await apiClient.get(`/devices/brands/${brandId}/series`);
-  return response.data.data;
+  return response.data?.data || [];
 };
 
 const fetchModels = async (seriesId: number): Promise<DeviceModelOption[]> => {
   const response = await apiClient.get(`/devices/series/${seriesId}/models`);
-  return response.data.data;
+  return response.data?.data || [];
 };
 
+// ==================== Main Component ====================
 export function DevicesSection() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -169,51 +91,41 @@ export function DevicesSection() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<UserDevice | null>(null);
   const [nickname, setNickname] = useState('');
+  const [editingDevice, setEditingDevice] = useState<UserDevice | null>(null);
+  const [editNickname, setEditNickname] = useState('');
 
-  // ✅ سناریو B+C: sync دو طرفه با هدر — انتخاب یک دستگاه از این لیست همان
-  // «دستگاه شما»ی هدر را هم به‌روز می‌کند.
-  const { selectedModel: headerSelectedModel, setSelectedBrand, setSelectedSeries, setSelectedModel, clearSelection } = useModelStore();
+  // ✅ Hook مشترک - sync خودکار با Header
+  const {
+    devices,
+    isLoading,
+    addDevice,
+    removeDevice,
+    isAdding,
+  } = useUserDevices();
 
-  const { data: devicesData, isLoading } = useQuery({
-    queryKey: ['user-devices'],
-    queryFn: fetchUserDevices,
-  });
-
-  const devices = devicesData?.data || [];
-
-  const { data: productsData, isLoading: productsLoading } = useQuery({
+  // ✅ Query محصولات سازگار با دستگاه انتخابی
+  const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ['compatible-products', selectedDevice?.phone_model_id],
     queryFn: () => fetchCompatibleProducts(selectedDevice!.phone_model_id),
     enabled: !!selectedDevice,
   });
 
-  const products = productsData?.data || [];
-
-  const addMutation = useMutation({
-    mutationFn: ({ modelId, nickname }: { modelId: number; nickname?: string }) =>
-      addUserDevice(modelId, nickname),
+  // ✅ Mutation ویرایش نام دستگاه
+  const updateMutation = useMutation({
+    mutationFn: async ({ deviceId, nickname }: { deviceId: number; nickname?: string }) => {
+      const response = await apiClient.put(`/user/devices/${deviceId}`, { nickname });
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-devices'] });
-      setShowAddModal(false);
-      setNickname('');
-      toast.success('دستگاه اضافه شد', { icon: '📱' });
+      setEditingDevice(null);
+      setEditNickname('');
+      toast.success('نام دستگاه به‌روزرسانی شد', { icon: '✏️' });
     },
-    onError: () => toast.error('خطا در افزودن دستگاه'),
+    onError: () => toast.error('خطا در به‌روزرسانی دستگاه'),
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteUserDevice,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-devices'] });
-      setSelectedDevice(null);
-      toast.success('دستگاه حذف شد', { icon: '🗑️' });
-    },
-    onError: () => toast.error('خطا در حذف دستگاه'),
-  });
-
-  // ✅ دکمه‌ی افزودن به سبد قبلاً هیچ‌کاری واقعی نمی‌کرد — فقط toast
-  // «به سبد اضافه شد» نشان می‌داد بدون این‌که محصول واقعاً به useCartStore
-  // اضافه شود.
+  // ✅ افزودن به سبد خرید واقعی
   const handleAddToCart = (product: CompatibleProduct) => {
     if (product.stock === 0) {
       toast.error('محصول موجود نیست');
@@ -223,6 +135,17 @@ export function DevicesSection() {
     toast.success('به سبد اضافه شد', { icon: '🛒' });
   };
 
+  // ✅ حذف دستگاه (با استفاده از hook مشترک)
+  const handleRemoveDevice = async (deviceId: number) => {
+    if (window.confirm('آیا از حذف این دستگاه مطمئن هستید؟')) {
+      const success = await removeDevice(deviceId);
+      if (success && selectedDevice?.id === deviceId) {
+        setSelectedDevice(null);
+      }
+    }
+  };
+
+  // ==================== Loading State ====================
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -234,8 +157,10 @@ export function DevicesSection() {
     );
   }
 
+  // ==================== Main Render ====================
   return (
     <div className="space-y-3">
+      {/* Header Card */}
       <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-3">
         <div>
           <h3 className="font-black text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1.5">
@@ -250,6 +175,7 @@ export function DevicesSection() {
         </Button>
       </div>
 
+      {/* Info Card */}
       <div className="bg-gradient-to-l from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 border border-primary-100 dark:border-primary-800 rounded-xl p-3">
         <div className="flex items-start gap-2">
           <Sparkles className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0 mt-0.5" />
@@ -262,6 +188,7 @@ export function DevicesSection() {
         </div>
       </div>
 
+      {/* Empty State یا List */}
       {devices.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700">
           <EmptyState
@@ -287,23 +214,7 @@ export function DevicesSection() {
                   ? 'border-primary-500 shadow-md'
                   : 'border-gray-100 dark:border-slate-700 hover:border-primary-200 dark:hover:border-primary-700'
               )}
-              onClick={() => {
-                const willSelect = selectedDevice?.id !== device.id;
-                setSelectedDevice(willSelect ? device : null);
-
-                // ✅ سناریو B+C: با انتخاب یک دستگاه از این لیست، همان
-                // دستگاه در هدر (useModelStore) هم فعال می‌شود — اگر کاربر
-                // deselect کند (willSelect=false)، عمداً هدر پاک نمی‌شود؛
-                // فقط این لیست حالت انتخاب‌شده‌ی محلی‌اش را برمی‌دارد.
-                if (willSelect) {
-                  const built = buildStoreSelectionFromDevice(device);
-                  if (built) {
-                    setSelectedBrand(built.brand);
-                    if (built.series) setSelectedSeries(built.series);
-                    setSelectedModel(built.model);
-                  }
-                }
-              }}
+              onClick={() => setSelectedDevice(selectedDevice?.id === device.id ? null : device)}
             >
               <div className="flex items-start gap-2.5">
                 <div className="w-11 h-11 bg-gradient-to-br from-warning-500 to-warning-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
@@ -320,23 +231,29 @@ export function DevicesSection() {
                     <p className="text-[10px] text-gray-500 dark:text-gray-400">سری: {device.phone_model.series.name}</p>
                   )}
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (window.confirm('آیا از حذف این دستگاه مطمئن هستید؟')) {
-                      // ✅ اگر دستگاهی که حذف می‌شود همان دستگاه فعال هدر
-                      // است، انتخاب هدر هم پاک شود — وگرنه هدر به یک
-                      // دستگاه حذف‌شده اشاره می‌کرد.
-                      if (headerSelectedModel?.id === device.phone_model_id) {
-                        clearSelection();
-                      }
-                      deleteMutation.mutate(device.id);
-                    }
-                  }}
-                  className="p-1.5 hover:bg-error-50 dark:hover:bg-error-900/20 rounded-lg text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingDevice(device);
+                      setEditNickname(device.nickname || '');
+                    }}
+                    className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    title="ویرایش نام دستگاه"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveDevice(device.id);
+                    }}
+                    className="p-1.5 hover:bg-error-50 dark:hover:bg-error-900/20 rounded-lg text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400 transition-colors"
+                    title="حذف دستگاه"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <div className="mt-2 pt-2 border-t border-gray-100 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
@@ -352,6 +269,7 @@ export function DevicesSection() {
         </div>
       )}
 
+      {/* Compatible Products Section */}
       {selectedDevice && (
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="p-3 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-l from-primary-50/50 to-white dark:from-primary-900/10 dark:to-slate-800">
@@ -459,19 +377,39 @@ export function DevicesSection() {
         </div>
       )}
 
+      {/* Edit Device Modal */}
+      {editingDevice && (
+        <EditDeviceModal
+          device={editingDevice}
+          nickname={editNickname}
+          setNickname={setEditNickname}
+          onClose={() => { setEditingDevice(null); setEditNickname(''); }}
+          onSave={() => updateMutation.mutate({ deviceId: editingDevice.id, nickname: editNickname.trim() || undefined })}
+          isPending={updateMutation.isPending}
+        />
+      )}
+
+      {/* Add Device Modal */}
       {showAddModal && (
         <AddDeviceModal
           onClose={() => { setShowAddModal(false); setNickname(''); }}
-          onAdd={(modelId) => addMutation.mutate({ modelId, nickname: nickname || undefined })}
+          onAdd={async (modelId) => {
+            const success = await addDevice(modelId, nickname || undefined);
+            if (success) {
+              setShowAddModal(false);
+              setNickname('');
+            }
+          }}
           nickname={nickname}
           setNickname={setNickname}
-          isPending={addMutation.isPending}
+          isPending={isAdding}
         />
       )}
     </div>
   );
 }
 
+// ==================== AddDeviceModal ====================
 function AddDeviceModal({
   onClose,
   onAdd,
@@ -485,18 +423,33 @@ function AddDeviceModal({
   setNickname: (v: string) => void;
   isPending: boolean;
 }) {
-  // ✅ سناریو C: اگر کاربر از قبل در هدر دستگاهی انتخاب کرده، همان‌جا این
-  // مودال با آن دستگاه پیش‌انتخاب باز می‌شود — چون مودال هر بار که
-  // showAddModal true می‌شود از نو mount می‌شود، خواندن useModelStore در
-  // مقداردهی اولیه‌ی state (نه useEffect) کافی و ساده‌تر است.
-  const { selectedBrand: headerBrand, selectedSeries: headerSeries, selectedModel: headerModel } = useModelStore();
+  // ✅ Pre-select از Header
+  const storeSelectedBrand = useModelStore((s) => s.selectedBrand);
+  const storeSelectedSeries = useModelStore((s) => s.selectedSeries);
+  const storeSelectedModel = useModelStore((s) => s.selectedModel);
 
   const [step, setStep] = useState<'brand' | 'series' | 'model'>(
-    headerModel ? 'model' : headerSeries ? 'series' : 'brand'
+    storeSelectedModel ? 'model' : storeSelectedSeries ? 'series' : 'brand'
   );
-  const [selectedBrand, setSelectedBrand] = useState<number | null>(headerBrand?.id ?? null);
-  const [selectedSeries, setSelectedSeries] = useState<number | null>(headerSeries?.id ?? null);
-  const [selectedModel, setSelectedModel] = useState<number | null>(headerModel?.id ?? null);
+  const [selectedBrand, setSelectedBrand] = useState<number | null>(storeSelectedBrand?.id ?? null);
+  const [selectedSeries, setSelectedSeries] = useState<number | null>(storeSelectedSeries?.id ?? null);
+  const [selectedModel, setSelectedModel] = useState<number | null>(storeSelectedModel?.id ?? null);
+
+  // Sync با store وقتی تغییر کرد
+  useEffect(() => {
+    if (storeSelectedBrand?.id && selectedBrand === null) {
+      setSelectedBrand(storeSelectedBrand.id);
+      if (step === 'brand') setStep('series');
+    }
+    if (storeSelectedSeries?.id && selectedSeries === null) {
+      setSelectedSeries(storeSelectedSeries.id);
+      if (step === 'brand' || step === 'series') setStep('model');
+    }
+    if (storeSelectedModel?.id && selectedModel === null) {
+      setSelectedModel(storeSelectedModel.id);
+      setStep('model');
+    }
+  }, [storeSelectedBrand, storeSelectedSeries, storeSelectedModel]);
 
   const { data: brands, isLoading: brandsLoading } = useQuery({
     queryKey: ['device-brands'],
@@ -672,4 +625,64 @@ function AddDeviceModal({
     </div>
   );
 }
+
+// ==================== EditDeviceModal ====================
+function EditDeviceModal({
+  device,
+  nickname,
+  setNickname,
+  onClose,
+  onSave,
+  isPending
+}: {
+  device: UserDevice;
+  nickname: string;
+  setNickname: (v: string) => void;
+  onClose: () => void;
+  onSave: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-slate-700">
+          <h3 className="text-base font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+            <Pencil className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            ویرایش دستگاه
+          </h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg">
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div className="p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
+            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              {device.phone_model?.brand?.name} {device.phone_model?.name}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">نام دلخواه دستگاه</label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="مثلاً: گوشی من"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-primary-500"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-gray-100 dark:border-slate-700 flex gap-2">
+          <Button variant="outline" className="flex-1" size="md" onClick={onClose}>انصراف</Button>
+          <Button className="flex-1" size="md" onClick={onSave} disabled={isPending}>
+            {isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default DevicesSection;

@@ -277,9 +277,10 @@ Route::prefix('v1')->group(function () {
             Route::post('/change-password', [AuthController::class, 'changePassword'])->name('change-password');
 
             Route::prefix('devices')->name('devices.')->group(function () {
-                Route::get('/', [UserDeviceController::class, 'index'])->name('index');
-                Route::post('/', [UserDeviceController::class, 'store'])->name('store');
-                Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('destroy');
+               Route::get('/', [UserDeviceController::class, 'index'])->name('index');
+Route::post('/', [UserDeviceController::class, 'store'])->name('store');
+Route::put('/{deviceId}', [UserDeviceController::class, 'update'])->name('update');
+Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('destroy');
             });
 
             // نوتیفیکیشن‌ها

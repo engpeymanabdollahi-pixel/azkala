@@ -82,4 +82,32 @@ class UserDeviceController extends Controller
             return response()->json(['success' => false, 'message' => 'خطا'], 500);
         }
     }
+        /**
+     * ✅ PUT /user/devices/{deviceId} — ویرایش نام دستگاه
+     */
+    public function update(Request $request, $deviceId)
+    {
+        $validated = $request->validate([
+            'nickname' => 'nullable|string|max:50',
+        ]);
+
+        try {
+            $device = $this->userDeviceService->updateDevice(
+                (int) $deviceId,
+                $request->user()->id,
+                $validated['nickname'] ?? null
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $device,
+                'message' => 'نام دستگاه با موفقیت به‌روزرسانی شد',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'دستگاه یافت نشد یا دسترسی غیرمجاز است',
+            ], 404);
+        }
+    }
 }

@@ -138,7 +138,9 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
 
     const savedDevice = getDeviceByModelId(selectedModel.id);
     if (savedDevice) {
-      await removeDevice(savedDevice.id);
+      if (window.confirm('این دستگاه از «دستگاه‌های من» حذف شود؟')) {
+        await removeDevice(savedDevice.id);
+      }
     } else {
       await addDevice(selectedModel.id);
     }
@@ -353,18 +355,25 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
         {/* Save Button */}
         {selectedModel && isAuthenticated && (
           <button
-            onClick={handleToggleSave}
-            disabled={isAdding}
-            className={cn(
-              'flex items-center gap-1 px-2 py-2 rounded-lg text-xs font-bold transition-all',
-              isCurrentSaved
-                ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-400 hover:bg-success-100'
-                : 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 hover:bg-primary-100'
-            )}
-            title={isCurrentSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
-          >
-            {isCurrentSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
-          </button>
+  onClick={handleToggleSave}
+  disabled={isAdding}
+  className={cn(
+    'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-black transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5',
+    isCurrentSaved
+      ? 'bg-success-600 hover:bg-success-700 text-white'
+      : 'bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900'
+  )}
+  title={isCurrentSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
+>
+  {isAdding ? (
+    <Loader2 className="w-4 h-4 animate-spin" />
+  ) : isCurrentSaved ? (
+    <BookmarkCheck className="w-5 h-5" />
+  ) : (
+    <BookmarkPlus className="w-5 h-5" />
+  )}
+  <span>{isCurrentSaved ? 'ذخیره شد' : 'افزودن به دستگاه‌های من'}</span>
+</button>
         )}
 
         {/* Clear Button */}

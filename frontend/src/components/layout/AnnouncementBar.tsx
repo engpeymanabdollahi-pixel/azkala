@@ -89,24 +89,14 @@ export function AnnouncementBar() {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-10 text-xs md:text-sm">
-          {/* Desktop: Segments */}
-          <div className="hidden md:flex items-center gap-6">
-            {segments.map((segment, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                {getIcon(segment)}
-                <span className="font-medium">{segment}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile: Marquee */}
-          <div className="md:hidden flex-1 overflow-hidden">
-            <div className="flex items-center gap-6 animate-marquee whitespace-nowrap">
+          {/* ✅ Marquee یکپارچه برای Mobile و Desktop */}
+          <div className="flex-1 overflow-hidden">
+            <div className="flex items-center gap-6 md:gap-10 animate-marquee whitespace-nowrap w-max">
               {[...segments, ...segments].map((segment, idx) => (
-                <span key={idx} className="flex items-center gap-2">
+                <div key={idx} className="flex items-center gap-2">
                   {getIcon(segment)}
                   <span className="font-medium">{segment}</span>
-                </span>
+                </div>
               ))}
             </div>
           </div>

@@ -15,7 +15,7 @@ import { DEFAULT_LAYOUT_MODE, SKELETON_COUNT, DEFAULT_PRICE_RANGE } from './cons
 // Hooks
 import { useProducts } from './hooks/useProducts';
 import { useProductFilters } from './hooks/useProductFilters';
-import { useUserDevices } from './hooks/useUserDevices';
+import { useUserDevices } from '@/hooks/useUserDevices';
 
 // Components
 import { Toolbar } from './components/Toolbar';

@@ -40,6 +40,19 @@ class UserDeviceService
 
         $device->delete();
     }
+        /**
+     * ✅ به‌روزرسانی نام دلخواه دستگاه
+     */
+    public function updateDevice(int $deviceId, int $userId, ?string $nickname): UserDevice
+    {
+        $device = UserDevice::where('id', $deviceId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        $device->update(['nickname' => $nickname]);
+
+        return $device->load('phoneModel.brand', 'phoneModel.series');
+    }
 
     /**
      * ✅ DeviceModel برخلاف PhoneModel قدیمی، brand را مستقیم ندارد — فقط

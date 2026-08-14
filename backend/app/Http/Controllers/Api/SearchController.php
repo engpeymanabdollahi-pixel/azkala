@@ -39,16 +39,29 @@ class SearchController extends Controller
      */
     public function global(Request $request)
     {
-        $validated = $request->validate([
-            'q' => 'required|string|min:2|max:100',
-            'device_model_id' => 'nullable|integer|exists:device_models,id',
-            'category_id' => 'nullable|integer|exists:categories,id',
-            'limit' => 'nullable|integer|min:1|max:20',
-        ]);
+       $validated = $request->validate([
+    'q' => 'required|string|min:2|max:100',
+    // ✅ loosening: اگر device_model_id وجود نداشت، نادیده بگیر (نه 422)
+    'device_model_id' => 'nullable|integer',
+    'category_id' => 'nullable|integer',
+    'limit' => 'nullable|integer|min:1|max:20',
+]);
 
-        $query = trim($validated['q']);
-        $deviceModelId = $validated['device_model_id'] ?? null;
-        $categoryId = $validated['category_id'] ?? null;
+$query = trim($validated['q']);
+
+// ✅ نرمال‌سازی: اگر device_model_id در دیتابیس نبود، null کن
+$deviceModelId = null;
+if (!empty($validated['device_model_id'])) {
+    $exists = \App\Models\DeviceModel::where('id', $validated['device_model_id'])->exists();
+    $deviceModelId = $exists ? (int) $validated['device_model_id'] : null;
+}
+
+// ✅ نرمال‌سازی: اگر category_id در دیتابیس نبود، null کن
+$categoryId = null;
+if (!empty($validated['category_id'])) {
+    $exists = \App\Models\Category::where('id', $validated['category_id'])->exists();
+    $categoryId = $exists ? (int) $validated['category_id'] : null;
+}
         $limit = min((int) ($validated['limit'] ?? 8), 20);
 
         // ==================== 1. Products Search ====================

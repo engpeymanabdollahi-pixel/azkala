@@ -8,7 +8,7 @@ import {
 import { cn } from '@/utils/cn';
 import { useSearch, POPULAR_SUGGESTIONS } from './hooks/useSearch';
 import { useVoiceSearch } from './hooks/useVoiceSearch';
-import { useCategories } from '@/hooks/useCategories';
+
 import { searchService } from '@/services/api/search.service';
 import { useModelStore } from '@/store/modelStore';
 import type { ModelData } from './types';
@@ -46,8 +46,7 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
     setSearchQuery,
     isSearchFocused,
     setIsSearchFocused,
-    selectedCategory,
-    setSelectedCategory,
+
     searchHistory,
     smartSuggestions,
     isSearching,
@@ -59,13 +58,14 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
   } = useSearch();
 
   const { isListening, isSupported, toggleVoiceSearch } = useVoiceSearch(setSearchQuery);
-  const { data: categories } = useCategories();
+  
   const searchRef = useRef<HTMLDivElement>(null);
 
   // ==================== Live Search State ====================
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
   // 🔧 Debounce 300ms برای جلوگیری از request های زیاد
+   // 🔧 Debounce 300ms برای جلوگیری از request های زیاد
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery.trim());
@@ -73,27 +73,71 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // ✅ Click Outside Handler (قوی‌تر) - بستن dropdown با کلیک بیرون
+  useEffect(() => {
+    if (!isSearchFocused) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      // بررسی دقیق‌تر: target نباید داخل searchRef باشد
+      if (searchRef.current && !searchRef.current.contains(target)) {
+        // کمی تاخیر برای اینکه input فرصت blur شدن داشته باشد
+        requestAnimationFrame(() => {
+          setIsSearchFocused(false);
+        });
+      }
+    };
+
+    // ESC key برای بستن
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSearchFocused(false);
+        // input را blur کن
+        const input = searchRef.current?.querySelector('input');
+        input?.blur();
+      }
+    };
+
+    // کمی تاخیر قبل از فعال کردن listener (جلوگیری از trigger با همان کلیک)
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isSearchFocused, setIsSearchFocused]);
+
   // ==================== Live Search Query ====================
+  // ✅ بررسی معتبر بودن device_model_id قبل از ارسال
+  // اگر deviceModel.id عدد مثبت نباشد، اصلاً ارسال نکن
+  const validDeviceModelId = 
+    deviceModel?.id && typeof deviceModel.id === 'number' && deviceModel.id > 0
+      ? deviceModel.id
+      : undefined;
+
   const {
     data: liveResults,
     isLoading: isLiveSearching,
   } = useQuery({
-    queryKey: ['search-live', debouncedQuery, deviceModel?.id],
+    queryKey: ['search-live', debouncedQuery, validDeviceModelId],
     queryFn: () =>
       searchService.globalSearch(debouncedQuery, {
-        device_model_id: deviceModel?.id,
+        device_model_id: validDeviceModelId,
         limit: 5,
       }),
     enabled: debouncedQuery.length >= 2 && isSearchFocused,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
+    // ✅ اگر backend خطا داد، cache را invalidate نکن
+    retry: 1,
   });
 
   // ==================== Computed Values ====================
-  const searchCategories = [
-    { id: 'all', name: 'همه دسته‌ها', slug: '' },
-    ...(categories || []).map(c => ({ id: c.slug, name: c.name, slug: c.slug }))
-  ];
+ 
 
   const placeholder = selectedModel
     ? `جستجو در لوازم جانبی ${selectedModel.name}...`
@@ -417,25 +461,7 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
             : 'border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
         )}
       >
-        {/* Category Select - Desktop Only */}
-        {!isScrolled && !isMobile && (
-          <div className="relative flex-shrink-0 hidden lg:block">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className={cn(
-                'h-full bg-transparent dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-700 focus:outline-none appearance-none cursor-pointer border-l-2 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white',
-                isScrolled ? 'px-3 text-xs min-w-[100px]' : 'px-4 text-sm min-w-[140px]'
-              )}
-              aria-label="انتخاب دسته‌بندی جستجو"
-            >
-              {searchCategories.map((cat) => (
-                <option key={cat.id} value={cat.slug}>{cat.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-        )}
+
 
         {/* Search Input */}
                <div className="relative flex-1">
