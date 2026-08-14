@@ -11,7 +11,6 @@ use App\Models\DeviceModel;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * SearchController - Global Search API برای ازکالا
@@ -126,6 +125,13 @@ class SearchController extends Controller
             ->get(['id', 'name', 'slug', 'icon', 'parent_id']);
 
         // ==================== 4. Sellers Search ====================
+        // ✅ قبلاً برای هر فروشنده (تا ۵ تا) در یک حلقه دو کوئری COUNT جدا زده
+        // می‌شد (products_count و followers_count) — یعنی تا ۱۰ کوئری اضافه
+        // روی هر درخواست جستجو، فقط برای بخش فروشندگان. withCount همه را در
+        // همان یک کوئری اصلی با LEFT JOIN COUNT محاسبه می‌کند. rating و
+        // verified_at هم حذف شدند چون PublicSellerResource خودش این‌ها را
+        // مستقیماً از seller_rating/seller_verified_at می‌خواند — ست کردنشان
+        // اینجا کد مرده بود.
         $sellers = User::where('role', 'seller')
             ->where('is_active', true)
             ->where(function ($q) use ($query) {
@@ -133,20 +139,12 @@ class SearchController extends Controller
                     ->orWhere('name', 'like', "%{$query}%")
                     ->orWhere('slug', 'like', "%{$query}%");
             })
+            ->withCount([
+                'products' => fn ($q) => $q->where('is_active', true),
+                'followers',
+            ])
             ->limit(5)
             ->get();
-
-        // attach real counts برای sellers (مثل PublicSellerService)
-        foreach ($sellers as $seller) {
-            $seller->products_count = Product::where('seller_id', $seller->id)
-                ->where('is_active', true)
-                ->count();
-            $seller->rating = (float) ($seller->seller_rating ?? 0);
-            $seller->followers_count = DB::table('seller_follows')
-                ->where('seller_id', $seller->id)
-                ->count();
-            $seller->verified_at = $seller->seller_verified_at;
-        }
 
         // ==================== Response ====================
         return response()->json([

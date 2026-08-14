@@ -67,11 +67,8 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
 
   // 🔧 Debounce 300ms برای جلوگیری از request های زیاد
   useEffect(() => {
-    console.log('🔍 [SearchBar] searchQuery changed:', searchQuery);
     const timer = setTimeout(() => {
-      const trimmed = searchQuery.trim();
-      console.log('🔍 [SearchBar] Setting debouncedQuery to:', trimmed);
-      setDebouncedQuery(trimmed);
+      setDebouncedQuery(searchQuery.trim());
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -80,37 +77,17 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
   const {
     data: liveResults,
     isLoading: isLiveSearching,
-    isFetching,
-    error: liveSearchError,
   } = useQuery({
     queryKey: ['search-live', debouncedQuery, deviceModel?.id],
-    queryFn: async () => {
-      console.log('🔍 [SearchBar] queryFn executing for:', debouncedQuery);
-      const result = await searchService.globalSearch(debouncedQuery, {
+    queryFn: () =>
+      searchService.globalSearch(debouncedQuery, {
         device_model_id: deviceModel?.id,
         limit: 5,
-      });
-      console.log('🔍 [SearchBar] queryFn result:', result);
-      return result;
-    },
+      }),
     enabled: debouncedQuery.length >= 2 && isSearchFocused,
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
   });
-
-  // 🔍 Debug: نمایش وضعیت live search
-  useEffect(() => {
-    console.log('🔍 [SearchBar] State snapshot:', {
-      searchQuery,
-      debouncedQuery,
-      isSearchFocused,
-      isLiveSearching,
-      isFetching,
-      hasResults: !!liveResults,
-      productsCount: liveResults?.products?.count,
-      error: liveSearchError,
-    });
-  }, [searchQuery, debouncedQuery, isSearchFocused, liveResults, isLiveSearching, isFetching, liveSearchError]);
 
   // ==================== Computed Values ====================
   const searchCategories = [
