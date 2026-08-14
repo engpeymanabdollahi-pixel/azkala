@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   X, ChevronRight, Smartphone, Search, Check,
   Sparkles, TrendingUp, Award, Loader2, Laptop, Tablet,
-  BookmarkCheck,
+  BookmarkCheck, BookmarkPlus,
 } from 'lucide-react';
 import { useModelStore } from '@/store/modelStore';
 import { Modal } from '@/components/ui/Modal';
@@ -636,15 +636,20 @@ export function ModelSelectorModal() {
                           onClick={(e) => handleToggleSaveModel(e, model)}
                           disabled={isAdding}
                           className={cn(
-                            'absolute top-1 left-1 w-5 h-5 rounded-md flex items-center justify-center transition-all',
+                            // ✅ رنگ warning هم‌سو با دکمه‌ی مشابه در هدر
+                            // (Header/ModelSelector.tsx) شد — همان کنش، همان
+                            // زبان بصری. قبلاً همیشه آیکون BookmarkCheck
+                            // («ذخیره‌شده») نشان داده می‌شد، حتی برای مدل‌های
+                            // ذخیره‌نشده — گمراه‌کننده بود.
+                            'absolute top-1 left-1 w-6 h-6 rounded-md flex items-center justify-center transition-all',
                             saved
-                              ? 'text-success-600 dark:text-success-400 bg-white/90 dark:bg-gray-900/90'
-                              : 'text-gray-300 dark:text-gray-600 bg-white/70 dark:bg-gray-900/70 opacity-0 group-hover:opacity-100 hover:text-success-500'
+                              ? 'text-white bg-gradient-to-br from-warning-400 to-warning-500 shadow-sm'
+                              : 'text-warning-500 dark:text-warning-400 bg-white/90 dark:bg-gray-900/90 border border-warning-200 dark:border-warning-800 opacity-0 group-hover:opacity-100 hover:bg-warning-50 dark:hover:bg-warning-900/40'
                           )}
                           type="button"
                           title={saved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
                         >
-                          <BookmarkCheck className="w-3 h-3" />
+                          {saved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
                         </button>
                       )}
                     </div>

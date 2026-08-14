@@ -89,19 +89,26 @@ export const ModelSelector = memo(({
             onClick={handleToggleSave}
             disabled={isAdding || isRemoving}
             className={cn(
-              'flex items-center justify-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-success-500',
-              isScrolled ? 'w-6 h-6' : 'w-7 h-7',
+              // ✅ قبلاً این دکمه فقط یک آیکون کوچک هم‌رنگ با پس‌زمینه‌ی
+              // success بود (خاکستری کم‌رنگ در حالت ذخیره‌نشده) که عملاً در
+              // کنار نشان بزرگ CheckCircle دیده نمی‌شد. طبق درخواست کاربر
+              // («مشهورتر و رنگش متفاوتر»)، رنگ warning (طلایی/کهربایی —
+              // همان زبان بصری آیکون بوکمارک/ستاره در بقیه‌ی پروژه) و اندازه‌ی
+              // بزرگ‌تر با پس‌زمینه‌ی توپر انتخاب شد تا از success (تایید
+              // انتخاب دستگاه) و primary (CTA اصلی) کاملاً متمایز باشد.
+              'flex items-center justify-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-warning-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed',
+              isScrolled ? 'w-8 h-8' : 'w-9 h-9',
               isSaved
-                ? 'text-success-600 dark:text-success-400 hover:bg-success-100 dark:hover:bg-success-900/40'
-                : 'text-gray-400 dark:text-gray-500 hover:text-success-600 dark:hover:text-success-400 hover:bg-white/60 dark:hover:bg-white/10'
+                ? 'bg-gradient-to-br from-warning-400 to-warning-500 text-white shadow-sm shadow-warning-500/40 hover:from-warning-500 hover:to-warning-600 hover:scale-105'
+                : 'bg-warning-50 dark:bg-warning-900/30 text-warning-600 dark:text-warning-400 border border-warning-200 dark:border-warning-800 hover:bg-warning-100 dark:hover:bg-warning-900/50 hover:scale-105 animate-pulse-soft'
             )}
             aria-label={isSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
             title={isSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
           >
             {isSaved ? (
-              <BookmarkCheck className={isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <BookmarkCheck className={isScrolled ? 'w-4 h-4' : 'w-4.5 h-4.5'} />
             ) : (
-              <BookmarkPlus className={isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <BookmarkPlus className={isScrolled ? 'w-4 h-4' : 'w-4.5 h-4.5'} />
             )}
           </button>
         )}
