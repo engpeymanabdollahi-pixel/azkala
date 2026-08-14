@@ -82,12 +82,11 @@ export function Footer({ className }: FooterProps) {
               © {COPYRIGHT_YEAR} <span className="text-primary-400 font-semibold">ازکالا</span> - تمام حقوق محفوظ است
             </p>
             <div className="flex items-center gap-6 text-xs text-gray-500">
-              {/* ✅ قبلاً هر دو دکمه («حریم خصوصی» و «قوانین و مقررات») به
-                  همان /terms می‌رفتند و فرقی نمی‌گذاشتند؛ حالا «حریم
-                  خصوصی» مستقیم به بخش مربوطه در همان صفحه لنگر می‌اندازد
-                  (/terms#privacy). */}
+              {/* ✅ قبلاً «حریم خصوصی» به /terms#privacy می‌رفت — یک لنگر
+                  داخل صفحه‌ی قوانین که فقط یک جمله‌ی کلی داشت، نه یک سیاست
+                  حریم خصوصی واقعی. حالا به صفحه‌ی مستقل /privacy می‌رود. */}
               <button
-                onClick={() => handleNavigate('/terms#privacy')}
+                onClick={() => handleNavigate('/privacy')}
                 className="hover:text-primary-400 transition-colors"
               >
                 حریم خصوصی

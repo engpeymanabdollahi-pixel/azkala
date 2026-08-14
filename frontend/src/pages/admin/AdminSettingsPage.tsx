@@ -482,13 +482,16 @@ function SettingRow({
         );
 
       case 'textarea':
+        // ✅ فیلدهای حقوقی (terms_text/privacy_text/warranty_text/
+        // seller_terms_text) می‌توانند کل متن یک سند طولانی باشند —
+        // rows={3} و resize-none قبلی برای این نوع محتوا کاملاً ناکافی بود.
         return (
           <textarea
             value={textValue(currentValue)}
             onChange={(e) => onChange(e.target.value)}
             disabled={setting.is_locked}
-            rows={3}
-            className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 resize-none disabled:opacity-50 transition-all"
+            rows={setting.group === 'legal' ? 10 : 3}
+            className="w-full px-3 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-slate-800 resize-y disabled:opacity-50 transition-all"
           />
         );
 

@@ -69,6 +69,19 @@ export function GuaranteePage() {
             <li>• داشتن فاکتور خرید</li>
             <li>• کالاهای مصرفی و شخصی (مانند هدفون، ایرباد) فقط در صورت نقص فنی قابل بازگشت هستند</li>
           </ul>
+          {/* ✅ ارجاع متقابل به صفحاتی که این ممیزی اضافه کرد — هزینه‌ی
+              ارسال و شرایط کامل حقوقیِ خرید در همین صفحه تکرار نمی‌شود. */}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+            برای هزینه و روش‌های ارسال به{' '}
+            <a href="/shipping" className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
+              روش‌ها و هزینه‌ی ارسال
+            </a>{' '}
+            و برای شرایط کامل خرید به{' '}
+            <a href="/terms" className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
+              قوانین و مقررات
+            </a>{' '}
+            مراجعه کنید.
+          </p>
         </div>
       </div>
     </div>

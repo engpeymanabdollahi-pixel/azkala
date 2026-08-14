@@ -46,13 +46,18 @@ export const QUICK_LINKS: QuickLink[] = [
 
 // ==================== Customer Service Links ====================
 
+// ✅ قبلاً «حریم خصوصی» به /terms می‌رفت (صفحه‌ی مستقلی نبود) و لینکی به
+// روش‌های ارسال یا شرایط فروشندگان اصلاً وجود نداشت — با اضافه‌شدن
+// PrivacyPage/ShippingPage/SellerAgreementPage، این‌جا هم به‌روز شد.
 export const SERVICE_LINKS: ServiceLink[] = [
   { label: 'راهنمای خرید', path: '/help' },
   { label: 'شرایط بازگشت کالا', path: '/guarantee' },
+  { label: 'روش‌ها و هزینه‌ی ارسال', path: '/shipping' },
   { label: 'سوالات متداول', path: '/help' },
   { label: 'تماس با پشتیبانی', path: '/contact' },
   { label: 'ثبت شکایات', path: '/contact' },
-  { label: 'حریم خصوصی', path: '/terms' },
+  { label: 'حریم خصوصی', path: '/privacy' },
+  { label: 'شرایط فروشندگان', path: '/seller-agreement' },
 ];
 
 // ✅ TRUST_CERTIFICATES (اینماد/ساماندهی/زرین‌پال به‌صورت نمادهای ثابت و

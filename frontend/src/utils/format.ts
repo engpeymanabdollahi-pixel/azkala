@@ -9,6 +9,19 @@ export function formatDiscount(originalPrice: number, discountedPrice: number): 
   return Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
 }
 
+// ==================== Settings Helpers ====================
+
+/**
+ * تنظیمات boolean-مانند (مثل announcement_enabled، free_shipping_enabled)
+ * از بک‌اند به شکل string ('1'/'0') یا boolean واقعی می‌آیند. مقایسه‌ی
+ * مستقیم با true هیچ‌وقت برای رشته کار نمی‌کند (خطای TS2367)، و یک رشته‌ی
+ * غیرخالی مثل '0' هم truthy است. این تابع مشترک همان الگویی است که قبلاً
+ * جداگانه در AnnouncementBar.tsx نوشته شده بود.
+ */
+export function isSettingEnabled(value: string | boolean | undefined): boolean {
+  return value === true || (typeof value === 'string' && value !== '0' && value !== '');
+}
+
 // ==================== Number Formatting ====================
 
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];

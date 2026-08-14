@@ -111,6 +111,11 @@ const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const HelpPage = lazy(() => import('@/pages/HelpPage'));
 const GuaranteePage = lazy(() => import('@/pages/GuaranteePage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
+// ✅ صفحات جدید ممیزی حقوقی/اعتماد: حریم خصوصی، ارسال و شرایط فروشندگان
+// قبلاً اصلاً وجود نداشتند.
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const ShippingPage = lazy(() => import('@/pages/ShippingPage'));
+const SellerAgreementPage = lazy(() => import('@/pages/SellerAgreementPage'));
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'));
 const UserTicketsPage = lazy(() => import('@/pages/user/UserTicketsPage'));
 const SellerRequestPage = lazy(() => import('@/pages/SellerRequestPage'));
@@ -311,6 +316,9 @@ export default function App() {
               <Route path="/help" element={<HelpPage />} />
               <Route path="/guarantee" element={<GuaranteePage />} />
               <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/shipping" element={<ShippingPage />} />
+              <Route path="/seller-agreement" element={<SellerAgreementPage />} />
               <Route path="/magazine" element={<MagazinePage />} />
               <Route path="/magazine/:slug" element={<MagazineArticlePage />} />
               

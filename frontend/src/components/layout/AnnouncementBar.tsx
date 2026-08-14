@@ -3,6 +3,7 @@ import { Truck, ShieldCheck, Headphones, Sparkles } from 'lucide-react';
 import { siteSettingsService } from '@/services/api/siteSettings.service';
 import { AnimatedCounter } from '@/pages/HomePage/components/AnimatedCounter';
 import { cn } from '@/utils/cn';
+import { isSettingEnabled } from '@/utils/format';
 
 /**
  * AnnouncementBar - نوار اطلاع‌رسانی بالای هدر
@@ -18,27 +19,14 @@ export function AnnouncementBar() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // ✅ نوع واقعی این فیلد (SiteSettings) فقط string | boolean است — مقایسه‌ی
-  // قبلی با عدد 1 هیچ‌وقت true نمی‌شد (خطای TS2367). رشته‌ی '0' هم باید
-  // «غیرفعال» حساب شود، وگرنه چون یک رشته‌ی غیرخالی است truthy می‌شد.
-  const isEnabled =
-    settings?.announcement_enabled === true ||
-    (typeof settings?.announcement_enabled === 'string' &&
-      settings.announcement_enabled !== '0' &&
-      settings.announcement_enabled !== '');
-
-  if (!settings || !isEnabled) return null;
+  if (!settings || !isSettingEnabled(settings.announcement_enabled)) return null;
 
   const text =
     settings?.announcement_text ||
     'ارسال رایگان بالای ۵۰۰ هزار تومان | ضمانت اصالت کالا | پشتیبانی ۷ روز هفته';
   const link = settings?.announcement_link || '';
   const bgColor = settings?.announcement_bg_color || 'gradient';
-  const showLiveUsers =
-    settings?.announcement_show_live_users === true ||
-    (typeof settings?.announcement_show_live_users === 'string' &&
-      settings.announcement_show_live_users !== '0' &&
-      settings.announcement_show_live_users !== '');
+  const showLiveUsers = isSettingEnabled(settings.announcement_show_live_users);
 
   // Parse متن (با | جدا شده)
   const segments = text

@@ -5,12 +5,18 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 import apiClient from '@/services/api/client';
 import toast from 'react-hot-toast';
 
 export function ContactPage() {
   const { isAuthenticated } = useAuthStore();
   const openAuthModal = useAuthModalStore((state) => state.open);
+  // ✅ قبلاً تلفن/ایمیل/آدرس اینجا مستقل و هاردکد بودند (۰۲۱-۱۲۳۴۵۶۷۸،
+  // support@azkala.ir — حتی با fallback واقعیِ فوتر support@azkala.com هم
+  // یکی نبود). حالا از همان تنظیمات واقعی و قابل‌ویرایش از پنل ادمین
+  // می‌خواند که Footer/ContactInfo.tsx هم استفاده می‌کند — یک منبع واحد.
+  const { data: settings } = useSiteSettings();
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -79,11 +85,11 @@ export function ContactPage() {
             </h2>
             <div className="space-y-5">
               {[
-                { icon: Phone, title: 'تلفن پشتیبانی', value: '۰۲۱-۱۲۳۴۵۶۷۸', desc: 'شنبه تا پنجشنبه ۹ صبح تا ۶ عصر' },
-                { icon: Mail, title: 'ایمیل', value: 'support@azkala.ir', desc: 'پاسخگویی ظرف ۲۴ ساعت' },
-                { icon: MapPin, title: 'آدرس', value: 'تهران، خیابان ولیعصر، پلاک ۱۲۳', desc: 'طبقه سوم، واحد ۵' },
-                { icon: Clock, title: 'ساعات کاری', value: 'شنبه تا چهارشنبه: ۹-۱۸', desc: 'پنجشنبه: ۹-۱۴' },
-              ].map((item, i) => {
+                { icon: Phone, title: 'تلفن پشتیبانی', value: settings?.support_phone, desc: null },
+                { icon: Mail, title: 'ایمیل', value: settings?.support_email, desc: 'پاسخگویی ظرف ۲۴ ساعت' },
+                { icon: MapPin, title: 'آدرس', value: settings?.address, desc: null },
+                { icon: Clock, title: 'ساعات کاری', value: settings?.working_hours, desc: null },
+              ].filter((item) => item.value).map((item, i) => {
                 const Icon = item.icon;
                 return (
                   <div key={i} className="flex gap-3 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl">
@@ -93,11 +99,16 @@ export function ContactPage() {
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{item.title}</p>
                       <p className="text-gray-800 dark:text-gray-200">{item.value}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{item.desc}</p>
+                      {item.desc && <p className="text-xs text-gray-400 dark:text-gray-500">{item.desc}</p>}
                     </div>
                   </div>
                 );
               })}
+              {!settings?.support_phone && !settings?.support_email && !settings?.address && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                  اطلاعات تماس هنوز در تنظیمات سایت ثبت نشده است.
+                </p>
+              )}
             </div>
           </div>
 
@@ -128,12 +139,17 @@ export function ContactPage() {
           </div>
         </div>
 
-        {/* نقشه (نمادین) */}
-        <div className="mt-12 bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-slate-700">
-          <div className="h-64 bg-gray-200 dark:bg-slate-700 rounded-xl flex items-center justify-center text-gray-400 dark:text-gray-500">
-            نقشه تعاملی گوگل مپ (آدرس: تهران، خیابان ولیعصر، پلاک ۱۲۳)
+        {/* ✅ قبلاً اینجا یک باکس خاکستری ثابت بود که ادعا می‌کرد «نقشه‌ی
+            تعاملی گوگل مپ» است — در حالی که هیچ نقشه‌ی واقعی‌ای پیاده‌سازی
+            نشده بود و آدرس هم هاردکد بود. تا زمانی که نقشه‌ی واقعی وصل
+            نشده، فقط آدرس واقعی (در صورت ثبت در تنظیمات) نمایش داده
+            می‌شود، بدون ادعای قابلیتی که وجود ندارد. */}
+        {settings?.address && (
+          <div className="mt-12 bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 flex items-center gap-3">
+            <MapPin className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <p className="text-gray-700 dark:text-gray-300">{settings.address}</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

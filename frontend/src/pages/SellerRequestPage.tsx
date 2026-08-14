@@ -444,9 +444,23 @@ function InitialForm({ setSelectedProvince, onSubmit, isPending }: InitialFormPr
           >
             قوانین و مقررات ازکالا
           </Link>
+          ،{' '}
+          {/* ✅ قبلاً فروشنده فقط به قوانین عمومیِ خریداران و حریم خصوصی
+              متعهد می‌شد — سندی که هیچ تعهدی درباره‌ی کمیسیون، تسویه،
+              کالای ممنوعه یا نقض مالکیت فکری فروشنده نداشت. حالا صراحتاً
+              به «شرایط و ضوابط فروشندگان» (/seller-agreement) هم متعهد
+              می‌شود. */}
+          <Link
+            to="/seller-agreement"
+            target="_blank"
+            className="text-primary-600 dark:text-primary-400 font-bold hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            شرایط و ضوابط فروشندگان
+          </Link>
           {' '}و{' '}
           <Link
-            to="/terms#privacy"
+            to="/privacy"
             target="_blank"
             className="text-primary-600 dark:text-primary-400 font-bold hover:underline"
             onClick={(e) => e.stopPropagation()}
