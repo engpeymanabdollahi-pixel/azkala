@@ -193,16 +193,24 @@ Route::prefix('v1')->group(function () {
     Route::get('/ads/active', [AdController::class, 'active'])->name('ads.active');
 
     Route::get('/site-settings', function () {
-        try {
-            $keys = [
-                'site_name', 'site_logo', 'site_favicon',
-                'support_phone', 'support_email', 'address', 'working_hours',
-                'instagram_url', 'telegram_url', 'twitter_url', 'about_text',
-                // ✅ کد اینماد/ساماندهی — فوتر فقط وقتی این‌ها واقعاً تنظیم
-                // شده باشند نماد اعتماد نمایش می‌دهد (نه یک نماد ثابت و
-                // بدون‌کد که ادعای غیرقابل‌استعلام محسوب می‌شود).
-                'enamad_code', 'samandehi_code',
-            ];
+    try {
+        $keys = [
+            // General
+            'site_name', 'site_logo', 'site_favicon',
+            'support_phone', 'support_email', 'address', 'working_hours',
+            // Social
+            'instagram_url', 'telegram_url', 'twitter_url', 'about_text',
+            // Legal
+            'enamad_code', 'samandehi_code',
+            // ✅ Marketing - Announcement Bar
+            'announcement_enabled',
+            'announcement_text',
+            'announcement_link',
+            'announcement_bg_color',
+            'announcement_show_live_users',
+            // ✅ Seller Request
+            'seller_request_bg_image',
+        ];
 
             $settings = Setting::whereIn('key', $keys)->get();
 

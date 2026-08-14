@@ -18,6 +18,7 @@ import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
 import toast from 'react-hot-toast';
 import { useHomeData } from '@/hooks/useHomeData';
+import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 
 // Import separated components
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -30,6 +31,12 @@ import { TopSellersSection } from './components/TopSellersSection';
 // Import separated hooks
 import { useCountdown } from './hooks/useCountdown';
 import { useScrollProgress } from './hooks/useScrollProgress';
+import Seo from '@/components/Seo';
+import {
+  generateWebSiteSchema,
+  generateOrganizationSchema,
+  generateStoreSchema,
+} from '@/lib/seo-schemas';
 import { useRecentlyViewed } from './hooks/useRecentlyViewed';
 import { useEmailValidation } from './hooks/useEmailValidation';
 
@@ -171,23 +178,9 @@ export function HomePage() {
         />
       </div>
 
-      {/* 1. Announcement Bar */}
+            {/* 1. Announcement Bar - Dynamic از Site Settings */}
       <SectionErrorBoundary sectionName="Announcement Bar">
-        <section className="bg-gradient-to-r from-primary-900 via-primary-800 to-accent-900 text-white overflow-hidden">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-10 text-xs md:text-sm">
-              <div className="hidden md:flex items-center gap-6">
-                <div className="flex items-center gap-2"><Truck className="w-3.5 h-3.5 text-accent-400" /><span className="font-medium">ارسال رایگان بالای ۵۰۰ هزار تومان</span></div>
-                <div className="flex items-center gap-2"><ShieldCheck className="w-3.5 h-3.5 text-success-400" /><span className="font-medium">ضمانت اصالت و سلامت کالا</span></div>
-                <div className="flex items-center gap-2"><Headphones className="w-3.5 h-3.5 text-primary-400" /><span className="font-medium">پشتیبانی ۷ روز هفته</span></div>
-              </div>
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full border border-white/20">
-                <div className="w-2 h-2 bg-success-400 rounded-full animate-pulse" />
-                <span className="font-semibold text-xs"><AnimatedCounter value={150} /> کاربر در حال مشاهده</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <AnnouncementBar />
       </SectionErrorBoundary>
 
       {/* 2. Hero Section (Device-Aware) */}

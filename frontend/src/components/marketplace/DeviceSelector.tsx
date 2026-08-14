@@ -6,6 +6,9 @@ import { useModelStore } from '@/store/modelStore';
 import { Button } from '@/components/ui/Button';
 import type { Brand, PhoneSeries, PhoneModel } from '@/types/models';
 import { cn } from '@/utils/cn';
+import { Plus, Check, BookmarkPlus, BookmarkCheck } from 'lucide-react';
+import { useUserDevices } from '@/hooks/useUserDevices';
+import { useAuthStore } from '@/store/authStore';
 
 /**
  * DeviceSelector Component - Standalone
@@ -110,6 +113,33 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
     openModal,
     closeModal,
   } = useModelStore();
+
+  // ✅ سناریو B: hook مشترک برای My Devices
+  const {
+    devices,
+    addDevice,
+    removeDevice,
+    isDeviceSaved,
+    getDeviceByModelId,
+    isAdding,
+  } = useUserDevices();
+
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // ✅ Helper: ذخیره/حذف device فعلی از My Devices
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedModel || !isAuthenticated) return;
+
+    const savedDevice = getDeviceByModelId(selectedModel.id);
+    if (savedDevice) {
+      await removeDevice(savedDevice.id);
+    } else {
+      await addDevice(selectedModel.id);
+    }
+  };
+
+  const isCurrentSaved = selectedModel ? isDeviceSaved(selectedModel.id) : false;
 
   const [mobileStep, setMobileStep] = useState<'brand' | 'series' | 'model'>('brand');
 

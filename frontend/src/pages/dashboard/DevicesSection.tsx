@@ -15,6 +15,8 @@ import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
 import apiClient from '@/services/api/client';
 import type { Product } from '@/types/models';
+import { useEffect } from 'react';
+import { useModelStore } from '@/store/modelStore';
 
 interface UserDevice {
   id: number;
