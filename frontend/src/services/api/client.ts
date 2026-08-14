@@ -103,11 +103,22 @@ client.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const status = error.response?.status;
     const url = originalRequest?.url || 'unknown';
-    const errorData = error.response?.data as { message?: string; errors?: Record<string, string[]> } | undefined;
+    const errorData = error.response?.data as { message?: string; code?: string; errors?: Record<string, string[]> } | undefined;
+
+    // ✅ این interceptor قبلاً هر پاسخ غیر-2xx را (حتی وقتی کد بالادست
+    // کاملاً درست مدیریتش می‌کرد، مثل 409 «قبلاً در wishlist هست») با
+    // logger.error چاپ می‌کرد — یعنی در کنسول قرمز دیده می‌شد در حالی که
+    // رفتار واقعی برنامه درست بود. برای این حالت‌های شناخته‌شده و بی‌خطر
+    // (نه یک باگ واقعی) سطح لاگ به debug کاهش پیدا می‌کند.
+    const isBenignConflict = status === 409 && errorData?.code === 'ALREADY_WISHLISTED';
 
     if (import.meta.env.DEV) {
-      logger.error(`Response Error: ${status || 'Network'} ${url}`, 
-        errorData || error.message);
+      if (isBenignConflict) {
+        logger.debug(`Response (expected conflict): ${status} ${url}`, errorData);
+      } else {
+        logger.error(`Response Error: ${status || 'Network'} ${url}`,
+          errorData || error.message);
+      }
     }
 
           // مدیریت هوشمند خطای ۴۰۱
