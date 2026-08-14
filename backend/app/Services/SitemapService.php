@@ -75,7 +75,12 @@ class SitemapService
                 ['loc' => '/help', 'priority' => '0.5', 'changefreq' => 'monthly'],
                 ['loc' => '/guarantee', 'priority' => '0.4', 'changefreq' => 'yearly'],
                 ['loc' => '/terms', 'priority' => '0.3', 'changefreq' => 'yearly'],
-                
+                // ✅ صفحات جدید ممیزی حقوقی — بدون دلیل خاصی نباید noindex
+                // باشند؛ مثل بقیه‌ی صفحات اعتماد/اطلاعات به سایت‌مپ اضافه شدند.
+                ['loc' => '/privacy', 'priority' => '0.3', 'changefreq' => 'yearly'],
+                ['loc' => '/shipping', 'priority' => '0.4', 'changefreq' => 'monthly'],
+                ['loc' => '/seller-agreement', 'priority' => '0.3', 'changefreq' => 'yearly'],
+
                 // صفحات ورود فروشندگان
                 ['loc' => '/seller-request', 'priority' => '0.6', 'changefreq' => 'monthly'],
             ];

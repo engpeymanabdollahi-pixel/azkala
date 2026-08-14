@@ -202,6 +202,12 @@ Route::prefix('v1')->group(function () {
             'instagram_url', 'telegram_url', 'twitter_url', 'about_text',
             // Legal
             'enamad_code', 'samandehi_code',
+            // ✅ متن‌های حقوقی قابل‌ویرایش از پنل ادمین — قبلاً در تنظیمات
+            // seed می‌شدند ولی هرگز به این whitelist اضافه نشده بودند، یعنی
+            // هیچ صفحه‌ای (حتی اگر می‌خواست) نمی‌توانست آن‌ها را بخواند.
+            // اگر ادمین این‌ها را خالی بگذارد، صفحات مربوطه از متن پیش‌فرض
+            // hardcoded خودشان استفاده می‌کنند.
+            'terms_text', 'privacy_text', 'warranty_text', 'seller_terms_text',
             // ✅ Marketing - Announcement Bar
             'announcement_enabled',
             'announcement_text',
@@ -210,6 +216,13 @@ Route::prefix('v1')->group(function () {
             'announcement_show_live_users',
             // ✅ Seller Request
             'seller_request_bg_image',
+            // ✅ Shipping — صفحه‌ی «روش‌ها و هزینه‌ی ارسال» باید هزینه‌ها و
+            // روش‌های فعال واقعی را نشان بدهد، نه رقم هاردکد. هیچ‌کدام از
+            // این کلیدها اطلاعات حساس (مثل merchant ID درگاه پرداخت) ندارند.
+            'post_pishtaz_enabled', 'post_pishtaz_cost',
+            'tipax_enabled', 'tipax_cost',
+            'free_shipping_enabled', 'free_shipping_min_amount',
+            'express_delivery_enabled', 'express_delivery_cost',
         ];
 
             $settings = Setting::whereIn('key', $keys)->get();
@@ -235,6 +248,31 @@ Route::prefix('v1')->group(function () {
             Log::error('Site Settings Error: '.$e->getMessage());
 
             return response()->json(['success' => false, 'data' => []], 500);
+        }
+    });
+
+    // ✅ صفحه‌ی «درباره ازکالا» قبلاً چهار آمار کاملاً ثابت و ساختگی («+۱۰,۰۰۰
+    // محصول»، «+۵۰۰ فروشنده»، «۹۸٪ رضایت»، «+۵۰,۰۰۰ مشتری») نشان می‌داد که
+    // به هیچ داده‌ی واقعی وصل نبودند. «رضایت ۹۸٪» و «مشتری» بدون یک تعریف
+    // دقیق (کدام معیار؟ کدام بازه؟) قابل محاسبه‌ی صادقانه نیستند و عمداً
+    // حذف شدند؛ تعداد محصول و فروشنده اما واقعاً قابل شمارش‌اند — این
+    // endpoint دقیقاً همان دو عدد را از دیتابیس واقعی برمی‌گرداند.
+    Route::get('/platform-stats', function () {
+        try {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'products_count' => \App\Models\Product::where('is_active', true)->count(),
+                    'sellers_count' => \App\Models\User::where('role', 'seller')
+                        ->where('is_active', true)
+                        ->whereNull('deleted_at')
+                        ->count(),
+                ],
+            ]);
+        } catch (Exception $e) {
+            Log::error('Platform Stats Error: '.$e->getMessage());
+
+            return response()->json(['success' => false, 'data' => ['products_count' => 0, 'sellers_count' => 0]], 500);
         }
     });
 

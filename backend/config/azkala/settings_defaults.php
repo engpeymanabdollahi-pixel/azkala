@@ -423,6 +423,16 @@ return [
         'type' => 'textarea',
         'label' => 'گارانتی و بازگشت کالا',
     ],
+    [
+        // ✅ صفحه‌ی شرایط فروشندگان (/seller-agreement) طبق همان الگوی
+        // terms_text/privacy_text/warranty_text، پیش‌فرض یک متن جامع hardcoded
+        // نشان می‌دهد ولی از اینجا هم قابل بازنویسی توسط ادمین است.
+        'key' => 'seller_terms_text',
+        'value' => '',
+        'group' => 'legal',
+        'type' => 'textarea',
+        'label' => 'شرایط و ضوابط فروشندگان',
+    ],
 
     // ═══════════════════════════════════════════════════════
     // ⚙️ System (سیستم)

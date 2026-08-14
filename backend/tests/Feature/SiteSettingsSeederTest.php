@@ -140,4 +140,35 @@ class SiteSettingsSeederTest extends TestCase
             ->assertJsonPath('data.announcement_enabled', '1')
             ->assertJsonPath('data.announcement_bg_color', 'gradient');
     }
+
+    /**
+     * ✅ رگرسیون ممیزی حقوقی: terms_text/privacy_text/warranty_text از قبل
+     * seed می‌شدند ولی هرگز به whitelist عمومی GET /site-settings اضافه
+     * نشده بودند — یعنی حتی اگر ادمین متن رسمی خودش را وارد می‌کرد، هیچ
+     * صفحه‌ای امکان خواندنش را نداشت. فیلدهای ارسال هم مشابه‌اند: بدون
+     * اینها، صفحه‌ی «روش‌ها و هزینه‌ی ارسال» نمی‌تواند هزینه‌ی واقعی را
+     * نشان دهد.
+     */
+    public function test_legal_and_shipping_settings_are_seeded_and_publicly_readable(): void
+    {
+        $this->seed(SettingSeeder::class);
+
+        $this->assertDatabaseHas('settings', ['key' => 'terms_text', 'group' => 'legal']);
+        $this->assertDatabaseHas('settings', ['key' => 'privacy_text', 'group' => 'legal']);
+        $this->assertDatabaseHas('settings', ['key' => 'warranty_text', 'group' => 'legal']);
+        $this->assertDatabaseHas('settings', ['key' => 'seller_terms_text', 'group' => 'legal']);
+
+        $response = $this->getJson('/api/v1/site-settings');
+
+        $response->assertOk();
+        $data = $response->json('data');
+
+        foreach (['terms_text', 'privacy_text', 'warranty_text', 'seller_terms_text',
+            'post_pishtaz_cost', 'free_shipping_min_amount'] as $key) {
+            $this->assertArrayHasKey($key, $data, "کلید {$key} باید در پاسخ GET /site-settings موجود باشد.");
+        }
+
+        $this->assertSame('35000', $data['post_pishtaz_cost']);
+        $this->assertSame('500000', $data['free_shipping_min_amount']);
+    }
 }
