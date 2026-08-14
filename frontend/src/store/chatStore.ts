@@ -220,9 +220,11 @@ export const startPolling = () => {
 
   pollingInterval = setInterval(async () => {
     const state = useChatStore.getState();
-    
+
     // فقط وقتی چت باز است، بررسی کن (بهینه‌سازی مصرف منابع)
-    if (!state.isOpen) return;
+    // ✅ همین‌طور وقتی تب مرورگر پس‌زمینه/مخفی است — قبلاً حتی با تب مخفی
+    // (کاربر روی تب دیگری) هر ۳ ثانیه ادامه می‌داد چون isOpen عوض نمی‌شد.
+    if (!state.isOpen || document.hidden) return;
 
     // ۱. بروزرسانی لیست مکالمات
     await state.loadConversations();

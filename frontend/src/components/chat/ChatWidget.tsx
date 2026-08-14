@@ -61,35 +61,13 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     }
   }, [isAuthenticated, isOpen]);
 
-  // 🔄 Polling بهینه - فقط وقتی Widget باز است (هر 10 ثانیه)
-  useEffect(() => {
-    if (!isOpen || !isAuthenticated) return;
-    
-    const interval = setInterval(async () => {
-      try {
-        const response = await chatService.getConversations();
-        const newConversations = response.data.data || response.data;
-        useChatStore.setState({ conversations: newConversations });
-        
-        const currentConv = useChatStore.getState().activeConversation;
-        if (currentConv) {
-          const msgResponse = await chatService.getMessages(currentConv.id);
-          const newMessages = msgResponse.data.data || msgResponse.data;
-          
-          useChatStore.setState(state => {
-            if (newMessages.length !== state.messages.length) {
-              return { messages: newMessages };
-            }
-            return {};
-          });
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-      }
-    }, 10000);
-    
-    return () => clearInterval(interval);
-  }, [isOpen, isAuthenticated]);
+  // ✅ اینجا قبلاً یک useEffect با setInterval هر ۱۰ ثانیه بود که دقیقاً
+  // همان کاری را می‌کرد که startPolling()/stopPolling() از chatStore.ts
+  // (پایین‌تر) هر ۳ ثانیه انجام می‌دهد — یعنی همیشه دو polling loop مستقل
+  // هم‌زمان فعال بودند و برای هر تیک هر دو، همان درخواست‌های getConversations/
+  // getMessages به‌صورت تکراری می‌رفتند. نسخه‌ی store کامل‌تر هم هست (تشخیص
+  // پیام جدید + صدای نوتیفیکیشن از طریق loadConversations/refreshMessages)،
+  // پس این نسخه‌ی ساده‌تر و تکراری همین‌جا حذف شد.
 
   useEffect(() => {
   // شروع Polling وقتی چت باز می‌شود

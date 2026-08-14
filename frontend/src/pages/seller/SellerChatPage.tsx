@@ -218,9 +218,14 @@ const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   // ==================== Smart Polling for Seller Chat ====================
+  // ✅ قبلاً حتی وقتی تب مرورگر پس‌زمینه/مخفی بود (کاربر روی تب دیگری بود یا
+  // پنجره minimize بود)، هر ۳ ثانیه بدون قید و شرط دو درخواست (پیام‌ها +
+  // لیست مکالمات) می‌رفت. با document.hidden این حالت را رد می‌کنیم — رفتار
+  // برای حالت فعال (تب باز و دیده‌شده) کاملاً همان قبلی است، فقط هنگام رفتن
+  // به پس‌زمینه polling متوقف و با برگشت به تب فوراً یک poll تازه می‌زند.
 useEffect(() => {
   const pollMessages = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || document.hidden) return;
 
     try {
       const response = await chatService.getMessages(selectedConversation.id);
@@ -260,7 +265,17 @@ useEffect(() => {
   // اولین بار بلافاصله اجرا کن
   pollMessages();
 
-  return () => clearInterval(intervalId);
+  // ✅ با برگشت به تب، فوراً یک poll تازه بزن — تا تأخیر پنهان‌شدن باعث
+  // نشود فروشنده پیام‌های جدید را تا تیک بعدی (حداکثر ۳ ثانیه) نبیند.
+  const handleVisibilityChange = () => {
+    if (!document.hidden) pollMessages();
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  return () => {
+    clearInterval(intervalId);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
 }, [selectedConversation, messages.length, user?.id]);
 
   // ==================== Handlers ====================
