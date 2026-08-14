@@ -140,11 +140,19 @@ class ProductRepository extends BaseRepository
 
     /**
      * Get related products
+     *
+     * ✅ تنها مصرف‌کننده‌ی این متد (ProductService::getProductBySlug) خروجی را
+     * دستی map می‌کند و فقط ستون‌های مستقیم (id/name/slug/main_image/price/
+     * compare_price/rating/reviews_count/sales_count) را می‌خواند — نه
+     * ProductResource و نه هیچ رابطه‌ای. eager loading قبلی چهار رابطه
+     * (brand/category/images/deviceModels) که هیچ‌وقت خوانده نمی‌شدند، روی
+     * هر بازدید صفحه‌ی جزئیات محصول ۴ کوئری/JOIN کاملاً بی‌فایده اضافه
+     * می‌کرد.
      */
     public function getRelatedProducts(int $categoryId, int $excludeId, int $limit = 8): Collection
     {
         return $this->query()
-            ->with(['brand', 'category', 'images', 'deviceModels'])
+            ->select(['id', 'name', 'slug', 'main_image', 'price', 'compare_price', 'rating', 'reviews_count', 'sales_count'])
             ->where('category_id', $categoryId)
             ->where('id', '!=', $excludeId)
             ->where('is_active', true)
