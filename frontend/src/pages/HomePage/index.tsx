@@ -160,6 +160,13 @@ export function HomePage() {
 
   return (
     <div className="bg-gray-50 dark:bg-slate-900 min-h-screen pb-20 md:pb-0 transition-colors duration-300">
+      {/* ✅ Seo/generateWebSiteSchema/... قبلاً import شده بودند ولی هیچ‌جای
+          این فایل استفاده نمی‌شدند — یعنی صفحه‌ی اصلی سایت هیچ meta tag یا
+          JSON-LD نداشت. الگو دقیقاً مثل ProductDetailPage.tsx است. */}
+      <Seo
+        jsonLd={[generateWebSiteSchema(), generateOrganizationSchema(), generateStoreSchema()]}
+      />
+
       {/* Dev Indicator */}
       {import.meta.env.DEV && (
         <div className={cn(
