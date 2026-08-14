@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Smartphone, Tablet, Laptop, Watch, Headphones, X, ChevronDown, ChevronLeft, Check, Loader2 } from 'lucide-react';
+import { Smartphone, Tablet, Laptop, Watch, Headphones, X, ChevronDown, ChevronLeft, Check, Loader2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { deviceService, type DeviceBrand, type DeviceSeries, type DeviceModel } from '@/services/api/device.service';
 import { useModelStore } from '@/store/modelStore';
 import { Button } from '@/components/ui/Button';
 import type { Brand, PhoneSeries, PhoneModel } from '@/types/models';
 import { cn } from '@/utils/cn';
-import { Plus, Check, BookmarkPlus, BookmarkCheck } from 'lucide-react';
-import { useUserDevices } from '@/hooks/useUserDevices';
+import { useUserDevices, type UserDevice } from '@/hooks/useUserDevices';
 import { useAuthStore } from '@/store/authStore';
 
 /**
@@ -22,6 +21,12 @@ import { useAuthStore } from '@/store/authStore';
  * - Persist در localStorage (از useModelStore)
  * - آیکون‌های مختلف بر اساس نوع دستگاه
  * - RTL-first
+ *
+ * ⚠️ این کامپوننت هیچ‌جای برنامه import نمی‌شود — دکمه‌ی هدر واقعی
+ * (Header/ModelSelector.tsx) و مودال واقعی‌اش
+ * (features/ModelSelector/ModelSelectorModal.tsx) کاملاً کامپوننت‌های
+ * دیگری هستند و «دستگاه‌های من» آنجا پیاده‌سازی شد. اینجا فقط برای
+ * سازگاری/استفاده‌ی احتمالی آینده کامل نگه داشته شده.
  */
 
 export type DeviceSelectorVariant = 'default' | 'compact';
@@ -202,6 +207,54 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
     setMobileStep('brand');
   };
 
+  // ✅ سناریو B: انتخاب مستقیم یک دستگاه از «دستگاه‌های من» — ویزارد را دور می‌زند.
+  const handleSelectSavedDevice = (device: UserDevice) => {
+    const pm = device.phone_model;
+    if (!pm || !pm.brand) return;
+
+    const brandForStore: Brand = {
+      id: pm.brand.id,
+      name: pm.brand.name,
+      slug: pm.brand.slug || '',
+      logo: pm.brand.logo || null,
+      type: (pm.brand.type as Brand['type']) || null,
+      is_active: true,
+      created_at: '',
+      updated_at: '',
+    };
+
+    const seriesForStore: PhoneSeries | undefined = pm.series
+      ? {
+          id: pm.series.id,
+          brand_id: brandForStore.id,
+          name: pm.series.name,
+          slug: pm.series.slug || '',
+          brand: brandForStore,
+          created_at: '',
+          updated_at: '',
+        }
+      : undefined;
+
+    setSelectedBrand(brandForStore);
+    if (seriesForStore) setSelectedSeries(seriesForStore);
+    setSelectedModel({
+      id: pm.id,
+      series_id: seriesForStore?.id || 0,
+      brand_id: brandForStore.id,
+      name: pm.name,
+      slug: pm.slug || '',
+      image: pm.image || null,
+      release_year: pm.release_year,
+      is_active: true,
+      brand: brandForStore,
+      series: seriesForStore,
+      specs: {},
+      created_at: '',
+      updated_at: '',
+    });
+    closeModal();
+  };
+
   const DeviceIcon = selectedModel
     ? getDeviceIcon(selectedModel.brand?.type as DeviceType)
     : Smartphone;
@@ -297,6 +350,23 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
           ))}
         </select>
 
+        {/* Save Button */}
+        {selectedModel && isAuthenticated && (
+          <button
+            onClick={handleToggleSave}
+            disabled={isAdding}
+            className={cn(
+              'flex items-center gap-1 px-2 py-2 rounded-lg text-xs font-bold transition-all',
+              isCurrentSaved
+                ? 'bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-400 hover:bg-success-100'
+                : 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 hover:bg-primary-100'
+            )}
+            title={isCurrentSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
+          >
+            {isCurrentSaved ? <BookmarkCheck className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
+          </button>
+        )}
+
         {/* Clear Button */}
         {selectedModel && (
           <button
@@ -381,6 +451,43 @@ export function DeviceSelector({ variant = 'default', className }: DeviceSelecto
               {/* Step 1: Brands */}
               {mobileStep === 'brand' && (
                 <div className="space-y-2">
+                  {/* ✅ دستگاه‌های من — دسترسی سریع بدون طی کردن ویزارد */}
+                  {isAuthenticated && devices.length > 0 && (
+                    <div className="mb-3 pb-3 border-b border-gray-100 dark:border-slate-700">
+                      <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                        <BookmarkCheck className="w-3 h-3" />
+                        دستگاه‌های من ({devices.length})
+                      </h4>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {devices.map((device) => {
+                          const isSelected = selectedModel?.id === device.phone_model_id;
+                          return (
+                            <button
+                              key={device.id}
+                              onClick={() => handleSelectSavedDevice(device)}
+                              className={cn(
+                                'w-full flex items-center gap-2 p-2 rounded-lg text-right transition-all',
+                                isSelected
+                                  ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700'
+                                  : 'hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent'
+                              )}
+                            >
+                              <Smartphone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
+                                  {device.phone_model?.brand?.name} {device.phone_model?.name}
+                                </p>
+                                {device.nickname && (
+                                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">📝 {device.nickname}</p>
+                                )}
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {brandsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />

@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   X, ChevronRight, Smartphone, Search, Check,
-  Sparkles, TrendingUp, Award, Loader2, Laptop, Tablet
+  Sparkles, TrendingUp, Award, Loader2, Laptop, Tablet,
+  BookmarkCheck,
 } from 'lucide-react';
 import { useModelStore } from '@/store/modelStore';
 import { Modal } from '@/components/ui/Modal';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { deviceService } from '@/services/api/device.service';
+import { useUserDevices } from '@/hooks/useUserDevices';
+import { useAuthStore } from '@/store/authStore';
 import type { Brand, PhoneSeries, PhoneModel } from '@/types/models';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
@@ -46,6 +49,10 @@ export function ModelSelectorModal() {
     setSelectedModel,
     clearSelection
   } = useModelStore();
+
+  // ✅ سناریو B: دستگاه‌های ذخیره‌شده‌ی کاربر برای دسترسی سریع در همین مودال
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { devices: myDevices, addDevice, removeDevice, isAdding } = useUserDevices();
 
   const [step, setStep] = useState<Step>('brand');
   const [searchTerm, setSearchTerm] = useState('');
@@ -213,6 +220,74 @@ export function ModelSelectorModal() {
     closeModal();
     resetState();
   }, [tempBrand, tempSeries, setSelectedBrand, setSelectedSeries, setSelectedModel, closeModal]);
+
+  // ✅ سناریو B: انتخاب مستقیم یک دستگاه ذخیره‌شده («دستگاه‌های من») —
+  // ویزارد برند→سری→مدل را دور می‌زند، همان الگوی handleSelectModel را
+  // با داده‌ی از قبل کامل (به‌جای hierarchy موقت) اجرا می‌کند.
+  const handleSelectSavedDevice = useCallback((device: (typeof myDevices)[number]) => {
+    const pm = device.phone_model;
+    if (!pm || !pm.brand) return;
+
+    const brandForStore: Brand = {
+      id: pm.brand.id,
+      name: pm.brand.name,
+      slug: pm.brand.slug || '',
+      logo: pm.brand.logo || null,
+      type: (pm.brand.type as Brand['type']) || null,
+      is_active: true,
+      created_at: '',
+      updated_at: '',
+    };
+
+    const seriesForStore: PhoneSeries | undefined = pm.series
+      ? {
+          id: pm.series.id,
+          brand_id: brandForStore.id,
+          name: pm.series.name,
+          slug: pm.series.slug || '',
+          brand: brandForStore,
+          created_at: '',
+          updated_at: '',
+        }
+      : undefined;
+
+    const modelForStore: PhoneModel = {
+      id: pm.id,
+      series_id: seriesForStore?.id || 0,
+      brand_id: brandForStore.id,
+      name: pm.name,
+      slug: pm.slug || '',
+      image: pm.image || null,
+      release_year: pm.release_year,
+      is_active: true,
+      brand: brandForStore,
+      series: seriesForStore,
+      specs: {},
+      created_at: '',
+      updated_at: '',
+    };
+
+    setSelectedBrand(brandForStore);
+    if (seriesForStore) setSelectedSeries(seriesForStore);
+    setSelectedModel(modelForStore);
+
+    toast.success(`${pm.name} انتخاب شد`, { icon: '📱', duration: 1500 });
+    closeModal();
+    resetState();
+  }, [setSelectedBrand, setSelectedSeries, setSelectedModel, closeModal]);
+
+  // ✅ سناریو B: دکمه‌ی ذخیره/حذف کنار هر مدل در مرحله‌ی سوم — بدون نیاز
+  // به انتخاب کامل آن به‌عنوان دستگاه فعال.
+  const handleToggleSaveModel = useCallback(async (e: React.MouseEvent, model: HierarchyModel) => {
+    e.stopPropagation();
+    if (!isAuthenticated) return;
+    const saved = myDevices.find((d) => d.phone_model_id === model.id);
+    if (saved) {
+      await removeDevice(saved.id);
+    } else {
+      await addDevice(model.id);
+    }
+  }, [isAuthenticated, myDevices, addDevice, removeDevice]);
 
   const handleBack = useCallback(() => {
     if (step === 'series') {
@@ -417,6 +492,29 @@ export function ModelSelectorModal() {
                   </div>
                 </div>
 
+                {/* ✅ سناریو B: دستگاه‌های من - دسترسی سریع بدون طی کردن ویزارد */}
+                {!searchTerm && isAuthenticated && myDevices.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex items-center gap-1 mb-2">
+                      <BookmarkCheck className="w-3 h-3 text-success-600 dark:text-success-400" />
+                      <h3 className="text-[11px] font-black text-gray-700 dark:text-gray-300">دستگاه‌های من</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {myDevices.map((device) => (
+                        <button
+                          key={device.id}
+                          onClick={() => handleSelectSavedDevice(device)}
+                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-success-200 dark:border-success-800 bg-success-50/50 dark:bg-success-900/10 hover:bg-success-100 dark:hover:bg-success-900/30 transition-all text-[11px] font-semibold text-success-700 dark:text-success-300"
+                          type="button"
+                        >
+                          <Smartphone className="w-3 h-3" />
+                          <span>{device.phone_model?.brand?.name} {device.phone_model?.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* برندهای پرطرفدار - کوچک‌تر */}
                 {!searchTerm && popularBrands.length > 0 && (
                   <div className="mb-3">
@@ -499,37 +597,59 @@ export function ModelSelectorModal() {
             {step === 'model' && (
               <div className="grid grid-cols-2 gap-2 animate-fade-in">
                 {filteredModels.length > 0 ? (
-                  filteredModels.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => handleSelectModel(model)}
-                      className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg transition-all hover:border-success-500 dark:hover:border-success-500 hover:shadow-md group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500"
-                      type="button"
-                    >
-                      {/* عکس واقعی مدل — device_models.image ستون واقعی است، قبلاً
-                          اصلاً از سرور خواسته نمی‌شد و اینجا همیشه آیکون عمومی
-                          دیده می‌شد. */}
-                      <div className="w-10 h-10 bg-gradient-to-br from-success-100 to-primary-100 dark:from-success-900/40 dark:to-primary-900/40 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-110 transition-transform">
-                        {model.image ? (
-                          <SafeImage
-                            src={model.image}
-                            alt={model.name}
-                            className="w-full h-full object-cover"
-                            showEmojiOnError
-                            fallbackEmoji="📱"
-                          />
-                        ) : (
-                          <Smartphone className="w-5 h-5 text-success-600 dark:text-success-400" />
-                        )}
-                      </div>
-                      <div className="text-right flex-1 min-w-0">
-                        <span className="font-bold text-[11px] text-gray-900 dark:text-gray-100 block truncate">{model.name}</span>
-                        {model.release_year && (
-                          <span className="text-[9px] text-gray-400 dark:text-gray-500">{model.release_year}</span>
-                        )}
-                      </div>
-                    </button>
-                  ))
+                  filteredModels.map((model) => {
+                    const saved = myDevices.some((d) => d.phone_model_id === model.id);
+                    return (
+                    <div key={model.id} className="relative group">
+                      <button
+                        onClick={() => handleSelectModel(model)}
+                        className="w-full flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg transition-all hover:border-success-500 dark:hover:border-success-500 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-500"
+                        type="button"
+                      >
+                        {/* عکس واقعی مدل — device_models.image ستون واقعی است، قبلاً
+                            اصلاً از سرور خواسته نمی‌شد و اینجا همیشه آیکون عمومی
+                            دیده می‌شد. */}
+                        <div className="w-10 h-10 bg-gradient-to-br from-success-100 to-primary-100 dark:from-success-900/40 dark:to-primary-900/40 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden group-hover:scale-110 transition-transform">
+                          {model.image ? (
+                            <SafeImage
+                              src={model.image}
+                              alt={model.name}
+                              className="w-full h-full object-cover"
+                              showEmojiOnError
+                              fallbackEmoji="📱"
+                            />
+                          ) : (
+                            <Smartphone className="w-5 h-5 text-success-600 dark:text-success-400" />
+                          )}
+                        </div>
+                        <div className="text-right flex-1 min-w-0">
+                          <span className="font-bold text-[11px] text-gray-900 dark:text-gray-100 block truncate">{model.name}</span>
+                          {model.release_year && (
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500">{model.release_year}</span>
+                          )}
+                        </div>
+                      </button>
+                      {/* ✅ سناریو B: ذخیره/حذف این مدل در «دستگاه‌های من»، بدون
+                          نیاز به انتخابش به‌عنوان دستگاه فعال. */}
+                      {isAuthenticated && (
+                        <button
+                          onClick={(e) => handleToggleSaveModel(e, model)}
+                          disabled={isAdding}
+                          className={cn(
+                            'absolute top-1 left-1 w-5 h-5 rounded-md flex items-center justify-center transition-all',
+                            saved
+                              ? 'text-success-600 dark:text-success-400 bg-white/90 dark:bg-gray-900/90'
+                              : 'text-gray-300 dark:text-gray-600 bg-white/70 dark:bg-gray-900/70 opacity-0 group-hover:opacity-100 hover:text-success-500'
+                          )}
+                          type="button"
+                          title={saved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
+                        >
+                          <BookmarkCheck className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    );
+                  })
                 ) : (
                   <div className="col-span-full text-center py-8">
                     <p className="font-bold text-gray-900 dark:text-gray-100 text-xs mb-1">مدلی یافت نشد</p>

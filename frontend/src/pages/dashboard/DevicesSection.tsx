@@ -14,8 +14,7 @@ import { cn } from '@/utils/cn';
 import { useCartStore } from '@/store/cartStore';
 import toast from 'react-hot-toast';
 import apiClient from '@/services/api/client';
-import type { Product } from '@/types/models';
-import { useEffect } from 'react';
+import type { Product, Brand, PhoneSeries, PhoneModel } from '@/types/models';
 import { useModelStore } from '@/store/modelStore';
 
 interface UserDevice {
@@ -96,6 +95,58 @@ const deleteUserDevice = async (deviceId: number) => {
   return response.data;
 };
 
+// ✅ سناریو B+C: تبدیل یک UserDevice ذخیره‌شده به شکلی که useModelStore
+// (همان store ای که هدر برای نمایش «دستگاه شما» می‌خواند) انتظار دارد.
+// فیلدهایی که این endpoint اصلاً نمی‌فرستد (slug واقعی، تاریخ‌ها و...) با
+// مقدار خنثی پر می‌شوند — دقیقاً همان الگویی که ModelSelectorModal.tsx
+// برای همین کار استفاده می‌کند.
+function buildStoreSelectionFromDevice(device: UserDevice): {
+  brand: Brand;
+  series: PhoneSeries | null;
+  model: PhoneModel;
+} | null {
+  const pm = device.phone_model;
+  if (!pm || !pm.brand) return null;
+
+  const brand: Brand = {
+    id: pm.brand.id,
+    name: pm.brand.name,
+    slug: '',
+    logo: null,
+    is_active: true,
+    created_at: '',
+    updated_at: '',
+  };
+
+  const series: PhoneSeries | null = pm.series
+    ? {
+        id: pm.series.id,
+        brand_id: brand.id,
+        name: pm.series.name,
+        slug: '',
+        brand,
+        created_at: '',
+        updated_at: '',
+      }
+    : null;
+
+  const model: PhoneModel = {
+    id: pm.id,
+    series_id: series?.id || 0,
+    brand_id: brand.id,
+    name: pm.name,
+    slug: '',
+    image: null,
+    is_active: true,
+    brand,
+    series: series || undefined,
+    created_at: '',
+    updated_at: '',
+  };
+
+  return { brand, series, model };
+}
+
 const fetchBrands = async (): Promise<DeviceBrandOption[]> => {
   const response = await apiClient.get('/devices/brands');
   return response.data.data;
@@ -118,6 +169,10 @@ export function DevicesSection() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<UserDevice | null>(null);
   const [nickname, setNickname] = useState('');
+
+  // ✅ سناریو B+C: sync دو طرفه با هدر — انتخاب یک دستگاه از این لیست همان
+  // «دستگاه شما»ی هدر را هم به‌روز می‌کند.
+  const { selectedModel: headerSelectedModel, setSelectedBrand, setSelectedSeries, setSelectedModel, clearSelection } = useModelStore();
 
   const { data: devicesData, isLoading } = useQuery({
     queryKey: ['user-devices'],
@@ -232,7 +287,23 @@ export function DevicesSection() {
                   ? 'border-primary-500 shadow-md'
                   : 'border-gray-100 dark:border-slate-700 hover:border-primary-200 dark:hover:border-primary-700'
               )}
-              onClick={() => setSelectedDevice(selectedDevice?.id === device.id ? null : device)}
+              onClick={() => {
+                const willSelect = selectedDevice?.id !== device.id;
+                setSelectedDevice(willSelect ? device : null);
+
+                // ✅ سناریو B+C: با انتخاب یک دستگاه از این لیست، همان
+                // دستگاه در هدر (useModelStore) هم فعال می‌شود — اگر کاربر
+                // deselect کند (willSelect=false)، عمداً هدر پاک نمی‌شود؛
+                // فقط این لیست حالت انتخاب‌شده‌ی محلی‌اش را برمی‌دارد.
+                if (willSelect) {
+                  const built = buildStoreSelectionFromDevice(device);
+                  if (built) {
+                    setSelectedBrand(built.brand);
+                    if (built.series) setSelectedSeries(built.series);
+                    setSelectedModel(built.model);
+                  }
+                }
+              }}
             >
               <div className="flex items-start gap-2.5">
                 <div className="w-11 h-11 bg-gradient-to-br from-warning-500 to-warning-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
@@ -253,6 +324,12 @@ export function DevicesSection() {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.confirm('آیا از حذف این دستگاه مطمئن هستید؟')) {
+                      // ✅ اگر دستگاهی که حذف می‌شود همان دستگاه فعال هدر
+                      // است، انتخاب هدر هم پاک شود — وگرنه هدر به یک
+                      // دستگاه حذف‌شده اشاره می‌کرد.
+                      if (headerSelectedModel?.id === device.phone_model_id) {
+                        clearSelection();
+                      }
                       deleteMutation.mutate(device.id);
                     }
                   }}
@@ -408,10 +485,18 @@ function AddDeviceModal({
   setNickname: (v: string) => void;
   isPending: boolean;
 }) {
-  const [step, setStep] = useState<'brand' | 'series' | 'model'>('brand');
-  const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
-  const [selectedSeries, setSelectedSeries] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<number | null>(null);
+  // ✅ سناریو C: اگر کاربر از قبل در هدر دستگاهی انتخاب کرده، همان‌جا این
+  // مودال با آن دستگاه پیش‌انتخاب باز می‌شود — چون مودال هر بار که
+  // showAddModal true می‌شود از نو mount می‌شود، خواندن useModelStore در
+  // مقداردهی اولیه‌ی state (نه useEffect) کافی و ساده‌تر است.
+  const { selectedBrand: headerBrand, selectedSeries: headerSeries, selectedModel: headerModel } = useModelStore();
+
+  const [step, setStep] = useState<'brand' | 'series' | 'model'>(
+    headerModel ? 'model' : headerSeries ? 'series' : 'brand'
+  );
+  const [selectedBrand, setSelectedBrand] = useState<number | null>(headerBrand?.id ?? null);
+  const [selectedSeries, setSelectedSeries] = useState<number | null>(headerSeries?.id ?? null);
+  const [selectedModel, setSelectedModel] = useState<number | null>(headerModel?.id ?? null);
 
   const { data: brands, isLoading: brandsLoading } = useQuery({
     queryKey: ['device-brands'],

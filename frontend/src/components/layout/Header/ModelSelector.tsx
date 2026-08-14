@@ -1,7 +1,9 @@
 import { memo } from 'react';
-import { CheckCircle, Edit2 } from 'lucide-react';
+import { CheckCircle, Edit2, BookmarkPlus, BookmarkCheck } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { getDeviceTypeIcon, getDeviceTypeLabel } from '@/utils/deviceType';
+import { useUserDevices } from '@/hooks/useUserDevices';
+import { useAuthStore } from '@/store/authStore';
 import type { ModelData } from './types';
 
 interface ModelSelectorProps {
@@ -26,40 +28,84 @@ export const ModelSelector = memo(({
   const deviceLabel = getDeviceTypeLabel(deviceType);
   const DeviceIcon = getDeviceTypeIcon(deviceType);
 
+  // ✅ سناریو B: دکمه‌ی ذخیره/حذف دستگاه فعلی در «دستگاه‌های من»، مستقیم از
+  // هدر — بدون باز کردن مودال.
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isDeviceSaved, getDeviceByModelId, addDevice, removeDevice, isAdding, isRemoving } = useUserDevices();
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedModel || !isAuthenticated) return;
+    const saved = getDeviceByModelId(selectedModel.id);
+    if (saved) {
+      await removeDevice(saved.id);
+    } else {
+      await addDevice(selectedModel.id);
+    }
+  };
+
   if (selectedModel) {
+    const isSaved = isAuthenticated && isDeviceSaved(selectedModel.id);
+
     return (
-      <button
-        onClick={onOpenModal}
+      <div
         className={cn(
-          'flex items-center gap-2 rounded-xl transition-all group focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2',
+          'flex items-center gap-1 rounded-xl transition-all group',
           isScrolled
-            ? 'px-3 py-2 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800'
-            : 'px-4 py-2.5 bg-gradient-to-r from-success-50 to-primary-50 dark:from-success-900/20 dark:to-primary-900/20 border-2 border-success-200 dark:border-success-800 hover:border-success-300 dark:hover:border-success-700 hover:shadow-md'
+            ? 'pr-1 pl-1 py-1 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800'
+            : 'pr-1.5 pl-2 py-1.5 bg-gradient-to-r from-success-50 to-primary-50 dark:from-success-900/20 dark:to-primary-900/20 border-2 border-success-200 dark:border-success-800 hover:border-success-300 dark:hover:border-success-700 hover:shadow-md'
         )}
-        aria-label={`تغییر ${deviceLabel} از ${selectedModel.name}`}
       >
-        <div
-          className={cn(
-            'bg-gradient-to-br from-success-500 to-success-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform',
-            isScrolled ? 'w-7 h-7' : 'w-8 h-8'
-          )}
+        <button
+          onClick={onOpenModal}
+          className="flex items-center gap-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-success-500 focus:ring-offset-2"
+          aria-label={`تغییر ${deviceLabel} از ${selectedModel.name}`}
         >
-          <CheckCircle className={cn('text-white', isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
-        </div>
+          <div
+            className={cn(
+              'bg-gradient-to-br from-success-500 to-success-600 rounded-lg flex items-center justify-center shadow-md group-hover:scale-110 transition-transform',
+              isScrolled ? 'w-7 h-7' : 'w-8 h-8'
+            )}
+          >
+            <CheckCircle className={cn('text-white', isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
+          </div>
 
-        <div className="text-right">
-          <p className={cn('text-success-600 dark:text-success-400 font-bold', isScrolled ? 'text-[9px]' : 'text-[10px]')}>
-            {deviceLabel} شما:
-          </p>
-          <p className={cn('font-black text-gray-900 dark:text-white truncate', isScrolled ? 'text-[10px] max-w-[80px]' : 'text-xs max-w-[120px]')}>
-            {selectedModel.name}
-          </p>
-        </div>
+          <div className="text-right">
+            <p className={cn('text-success-600 dark:text-success-400 font-bold', isScrolled ? 'text-[9px]' : 'text-[10px]')}>
+              {deviceLabel} شما:
+            </p>
+            <p className={cn('font-black text-gray-900 dark:text-white truncate', isScrolled ? 'text-[10px] max-w-[80px]' : 'text-xs max-w-[120px]')}>
+              {selectedModel.name}
+            </p>
+          </div>
 
-        {!isScrolled && (
-          <Edit2 className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
+          {!isScrolled && (
+            <Edit2 className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
+          )}
+        </button>
+
+        {isAuthenticated && (
+          <button
+            onClick={handleToggleSave}
+            disabled={isAdding || isRemoving}
+            className={cn(
+              'flex items-center justify-center rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-success-500',
+              isScrolled ? 'w-6 h-6' : 'w-7 h-7',
+              isSaved
+                ? 'text-success-600 dark:text-success-400 hover:bg-success-100 dark:hover:bg-success-900/40'
+                : 'text-gray-400 dark:text-gray-500 hover:text-success-600 dark:hover:text-success-400 hover:bg-white/60 dark:hover:bg-white/10'
+            )}
+            aria-label={isSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
+            title={isSaved ? 'حذف از دستگاه‌های من' : 'افزودن به دستگاه‌های من'}
+          >
+            {isSaved ? (
+              <BookmarkCheck className={isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+            ) : (
+              <BookmarkPlus className={isScrolled ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+            )}
+          </button>
         )}
-      </button>
+      </div>
     );
   }
 
