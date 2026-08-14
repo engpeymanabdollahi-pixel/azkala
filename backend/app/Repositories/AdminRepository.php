@@ -32,9 +32,18 @@ class AdminRepository
         $sellers = (clone $query)->where('role', 'seller')->count();
         $admins = (clone $query)->where('role', 'admin')->count();
 
-        // Users by month
+        // ✅ Users by month — DATE_FORMAT مخصوص MySQL است و روی SQLite با خطای
+        // واقعی «no such function: DATE_FORMAT» شکست می‌خورد (دقیقاً همان چیزی
+        // که در گزارش کاربران در کنسول دیده شد). همان الگوی تشخیص درایور که
+        // در SellerService::getSellerStats برای «فروش ماهانه» استفاده شده،
+        // اینجا هم به کار رفت تا روی هر دو دیتابیس درست کار کند.
+        $driver = DB::connection()->getDriverName();
+        $monthFormat = $driver === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
+
         $usersByMonth = (clone $query)
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+            ->selectRaw("{$monthFormat} as month, COUNT(*) as count")
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -527,6 +536,26 @@ class AdminRepository
         }
 
         return $anomalies;
+    }
+
+    /**
+     * Get search analytics data
+     *
+     * ⚠️ در schema فعلی هیچ جدول/مدلی برای ثبت عبارت‌های جستجوی کاربران
+     * وجود ندارد (search term هیچ‌جا log نمی‌شود). این متد قبلاً اصلاً
+     * تعریف نشده بود در حالی که ReportService::getSearchAnalytics() آن را
+     * صدا می‌زد — یعنی هر فراخوانی endpoint مربوطه با یک خطای واقعی PHP
+     * («Call to undefined method») به‌جای پاسخ کنترل‌شده مواجه می‌شد. تا
+     * وقتی زیرساخت ثبت جستجو ساخته شود، به‌جای آمار جعلی، ساختار خالیِ
+     * صادق برگردانده می‌شود.
+     */
+    public function getSearchAnalytics(): array
+    {
+        return [
+            'top_searches' => [],
+            'total_searches' => 0,
+            'note' => 'ثبت آماری عبارت‌های جستجو هنوز در این نسخه پیاده‌سازی نشده است.',
+        ];
     }
 
               /**
