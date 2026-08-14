@@ -18,7 +18,6 @@ import { cn } from '@/utils/cn';
 import type { Product } from '@/types/models';
 import toast from 'react-hot-toast';
 import { useHomeData } from '@/hooks/useHomeData';
-import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 
 // Import separated components
 import { SectionErrorBoundary } from "@/components/ErrorBoundary";
@@ -185,12 +184,7 @@ export function HomePage() {
         />
       </div>
 
-            {/* 1. Announcement Bar - Dynamic از Site Settings */}
-      <SectionErrorBoundary sectionName="Announcement Bar">
-        <AnnouncementBar />
-      </SectionErrorBoundary>
-
-      {/* 2. Hero Section (Device-Aware) */}
+      {/* 1. Hero Section (Device-Aware) */}
       <SectionErrorBoundary sectionName="Hero Section">
         <section className="relative overflow-hidden" aria-label="اسلایدر اصلی">
           {selectedModel ? (
@@ -460,7 +454,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 3. Trust Bar */}
+      {/* 2. Trust Bar */}
       <SectionErrorBoundary sectionName="Trust Bar">
         <section className="py-10 bg-white dark:bg-slate-800 border-b dark:border-slate-700">
           <div className="container mx-auto px-4">
@@ -482,7 +476,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 4. Categories Grid */}
+      {/* 3. Categories Grid */}
       <SectionErrorBoundary sectionName="Categories">
         <section className="py-12 bg-gray-50 dark:bg-slate-900">
           <div className="container mx-auto px-4">
@@ -529,7 +523,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 5. Flash Sale (Shaghf-angiz) */}
+      {/* 4. Flash Sale (Shaghf-angiz) */}
       {discountedProducts.length > 0 && (
         <SectionErrorBoundary sectionName="Flash Sale">
           <section className="py-16 bg-gradient-to-br from-error-600 via-error-700 to-accent-700 text-white relative overflow-hidden">
@@ -647,7 +641,7 @@ export function HomePage() {
         </SectionErrorBoundary>
       )}
 
-      {/* 6. Best Sellers / Featured Products */}
+      {/* 5. Best Sellers / Featured Products */}
       <SectionErrorBoundary sectionName="Best Sellers">
         <section className="py-20 bg-white dark:bg-slate-900">
           <div className="container mx-auto px-4">
@@ -697,12 +691,12 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 6.5. Top Sellers */}
+      {/* 5.5. Top Sellers */}
       <SectionErrorBoundary sectionName="Top Sellers">
         <TopSellersSection />
       </SectionErrorBoundary>
 
-      {/* 7. Recently Viewed */}
+      {/* 6. Recently Viewed */}
       {recentlyViewed.length > 0 && (
         <SectionErrorBoundary sectionName="Recently Viewed">
           <section className="py-16 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-800">
@@ -735,7 +729,7 @@ export function HomePage() {
         </SectionErrorBoundary>
       )}
 
-      {/* 8. Features (Why Azkala) */}
+      {/* 7. Features (Why Azkala) */}
       <SectionErrorBoundary sectionName="Features">
         <section className="py-20 bg-gray-50 dark:bg-slate-900">
           <div className="container mx-auto px-4">
@@ -773,7 +767,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 9. Testimonials */}
+      {/* 8. Testimonials */}
       <SectionErrorBoundary sectionName="Testimonials">
         <section className="py-20 bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-96 h-96 bg-primary-200 dark:bg-primary-900/20 rounded-full blur-3xl opacity-30" />
@@ -845,7 +839,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 10. Payment & Shipping */}
+      {/* 9. Payment & Shipping */}
       <SectionErrorBoundary sectionName="Payment & Shipping">
         <section className="py-16 bg-white dark:bg-slate-900 border-t dark:border-slate-800">
           <div className="container mx-auto px-4">
@@ -888,7 +882,7 @@ export function HomePage() {
         </section>
       </SectionErrorBoundary>
 
-      {/* 11. Newsletter */}
+      {/* 10. Newsletter */}
       <SectionErrorBoundary sectionName="Newsletter">
         <section className="py-16 bg-gray-50 dark:bg-slate-900 border-t dark:border-slate-800">
           <div className="container mx-auto px-4">

@@ -469,4 +469,60 @@ return [
         'type' => 'text',
         'label' => 'تناوب پشتیبان‌گیری',
     ],
+
+    // ═══════════════════════════════════════════════════════
+    // 📣 Marketing (بازاریابی — نوار اطلاع‌رسانی بالای هدر)
+    // ═══════════════════════════════════════════════════════
+    // ✅ این ۶ آیتم قبلاً در یک فایل جدای دیگر (config/azkala.php، نه این
+    // فایل) تعریف شده بودند. چون Laravel هر دو config/azkala.php و
+    // config/azkala/settings_defaults.php را زیر همان مسیر نقطه‌ای یکسان
+    // (azkala.settings_defaults) بارگذاری می‌کند، و این پوشه روی آن فایل
+    // اولویت دارد، محتوای config/azkala.php کاملاً نادیده گرفته می‌شد —
+    // یعنی seedDefaults() هیچ‌وقت این ۶ ردیف را در دیتابیس نمی‌ساخت، حتی
+    // اگر ادمین دکمه‌ی «مقداردهی اولیه» را می‌زد. مقدار متن پیش‌فرض
+    // announcement_text با همان ۵ پیامی هماهنگ شد که قبلاً به‌صورت هاردکد
+    // در Header/index.tsx بودند (رجوع کنید به تغییرات آن فایل) تا ظاهر
+    // پیش‌فرض برای نصب‌های تازه عوض نشود.
+    [
+        'key' => 'announcement_enabled',
+        'value' => '1',
+        'group' => 'marketing',
+        'type' => 'boolean',
+        'label' => 'فعال‌سازی نوار اطلاع‌رسانی بالای هدر',
+    ],
+    [
+        'key' => 'announcement_text',
+        'value' => 'ارسال رایگان بالای ۵۰۰ هزار تومان | ضمانت اصالت کالا | ۷ روز ضمانت بازگشت | تخفیف ویژه اولین خرید | پشتیبانی ۲۴/۷',
+        'group' => 'marketing',
+        'type' => 'text',
+        'label' => 'متن نوار اطلاع‌رسانی (بخش‌ها را با | جدا کنید)',
+    ],
+    [
+        'key' => 'announcement_link',
+        'value' => '',
+        'group' => 'marketing',
+        'type' => 'text',
+        'label' => 'لینک نوار (اختیاری)',
+    ],
+    [
+        'key' => 'announcement_bg_color',
+        'value' => 'gradient',
+        'group' => 'marketing',
+        'type' => 'text',
+        'label' => 'رنگ پس‌زمینه (gradient | primary | dark | success)',
+    ],
+    [
+        'key' => 'announcement_show_live_users',
+        'value' => '0',
+        'group' => 'marketing',
+        'type' => 'boolean',
+        'label' => 'نمایش تعداد کاربران آنلاین در نوار',
+    ],
+    [
+        'key' => 'seller_request_bg_image',
+        'value' => '/images/iran-aerial.jpg',
+        'group' => 'general',
+        'type' => 'file',
+        'label' => 'تصویر پس‌زمینه درخواست فروشندگی',
+    ],
 ];

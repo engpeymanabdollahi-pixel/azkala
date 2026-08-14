@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 // می‌شد — فقط حجم باندل را زیاد می‌کرد. لیست زیر فقط آیکون‌های واقعاً استفاده‌شده است.
 import {
   ShoppingCart, User, Menu, X, Smartphone,
-  Store, Phone, Shield, Truck, Sparkles,
-  TrendingUp, Gift, Moon, Sun, Heart,
+  Store, Phone,
+  TrendingUp, Moon, Sun, Heart,
 } from 'lucide-react';
 import { useModelStore, useCartStore, useAuthStore, useUIStore } from '@/store';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -16,6 +16,7 @@ import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { STORAGE_URL } from '@/lib/apiConfig';
 
 // Sub-components
+import { AnnouncementBar } from '../AnnouncementBar';
 import { SearchBar } from './SearchBar';
 import { ModelSelector } from './ModelSelector';
 import { NotificationsDropdown } from './NotificationsDropdown';
@@ -149,35 +150,17 @@ export function Header() {
         "min-h-[64px]"
       )}>
         {/* ============ Top Announcement Bar ============ */}
-        {!isScrolled && (
-          <div className="bg-gradient-to-r from-primary-900 via-primary-700 to-accent-700 text-white text-xs py-2.5 overflow-hidden relative">
-            <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:20px_20px]" />
-            <div className="container mx-auto px-4 relative">
-              <div className="flex items-center justify-center gap-6 md:gap-10 animate-marquee whitespace-nowrap">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Truck className="w-3.5 h-3.5 text-accent-300" />
-                  ارسال رایگان بالای ۵۰۰ هزار تومان
-                </span>
-                <span className="hidden md:flex items-center gap-1.5 font-medium">
-                  <Shield className="w-3.5 h-3.5 text-success-300" />
-                  ضمانت اصالت کالا
-                </span>
-                <span className="hidden md:flex items-center gap-1.5 font-medium">
-                  <Sparkles className="w-3.5 h-3.5 text-warning-300" />
-                  ۷ روز ضمانت بازگشت
-                </span>
-                <span className="hidden lg:flex items-center gap-1.5 font-medium">
-                  <Gift className="w-3.5 h-3.5 text-primary-300" />
-                  تخفیف ویژه اولین خرید
-                </span>
-                <span className="hidden lg:flex items-center gap-1.5 font-medium">
-                  <Phone className="w-3.5 h-3.5 text-accent-300" />
-                  پشتیبانی ۲۴/۷
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ✅ قبلاً اینجا ۵ پیام هاردکد بودند که هیچ‌جا از تنظیمات ادمین قابل
+            تغییر نبودند. AnnouncementBar همان کامپوننت پویاییست که طبق کامنت
+            خودش («نوار اطلاع‌رسانی بالای هدر») دقیقاً برای همین‌جا طراحی شده
+            بود، ولی قبلاً به‌اشتباه فقط در HomePage/index.tsx رندر می‌شد —
+            یعنی در صفحه‌ی اصلی دو نوار مشابه روی هم نمایش داده می‌شدند (این
+            هاردکد + AnnouncementBar) و در بقیه‌ی صفحات فقط همین نسخه‌ی
+            هاردکدشده دیده می‌شد. مقدار پیش‌فرض announcement_text (در
+            config/azkala/settings_defaults.php) با همین ۵ پیام هماهنگ شد تا
+            ظاهر پیش‌فرض عوض نشود؛ فقط حالا از یک‌جا (تنظیمات ادمین →
+            بازاریابی) و در همه‌ی صفحات قابل تغییر است. */}
+        {!isScrolled && <AnnouncementBar />}
 
         {/* ============ Main Header ============ */}
         <div className="container mx-auto px-4">

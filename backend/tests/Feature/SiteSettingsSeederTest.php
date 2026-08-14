@@ -113,4 +113,31 @@ class SiteSettingsSeederTest extends TestCase
 
         $this->assertSame($countAfterFirstSeed, $countAfterSecondSeed);
     }
+
+    /**
+     * ✅ رگرسیون: config/azkala.php (فایل جدا) و config/azkala/settings_defaults.php
+     * هر دو زیر همان مسیر نقطه‌ای azkala.settings_defaults بارگذاری می‌شدند —
+     * پوشه‌ی azkala/ بی‌صدا محتوای فایل تخت azkala.php را نادیده می‌گرفت.
+     * نتیجه: گروه marketing (announcement_enabled/text/link/bg_color/
+     * show_live_users که AnnouncementBar بالای هدر از آن‌ها می‌خواند) هرگز
+     * seed نمی‌شد، حتی با کلیک دستی روی «مقداردهی اولیه». این تست مطمئن
+     * می‌شود گروه marketing واقعاً در نتیجه‌ی seed حاضر است و از
+     * GET /site-settings هم برمی‌گردد — تا این باگ خاموش دوباره رخ ندهد.
+     */
+    public function test_marketing_announcement_settings_are_seeded_and_publicly_readable(): void
+    {
+        $this->seed(SettingSeeder::class);
+
+        $this->assertDatabaseHas('settings', ['key' => 'announcement_enabled', 'group' => 'marketing']);
+        $this->assertDatabaseHas('settings', ['key' => 'announcement_text', 'group' => 'marketing']);
+        $this->assertDatabaseHas('settings', ['key' => 'announcement_link', 'group' => 'marketing']);
+        $this->assertDatabaseHas('settings', ['key' => 'announcement_bg_color', 'group' => 'marketing']);
+        $this->assertDatabaseHas('settings', ['key' => 'announcement_show_live_users', 'group' => 'marketing']);
+
+        $response = $this->getJson('/api/v1/site-settings');
+
+        $response->assertOk()
+            ->assertJsonPath('data.announcement_enabled', '1')
+            ->assertJsonPath('data.announcement_bg_color', 'gradient');
+    }
 }

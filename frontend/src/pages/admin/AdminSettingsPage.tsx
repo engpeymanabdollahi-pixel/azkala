@@ -4,20 +4,21 @@ import {
   Settings, Search, Save, Lock, Unlock, History, Download, Upload,
   RefreshCw, AlertTriangle, X, Eye, EyeOff,
   Globe, CreditCard, Truck, Percent, Bell, FileText, Server,
-  Clock, Shield, TestTube,
+  Clock, Shield, TestTube, Megaphone,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { adminSettingService, type Setting, type SettingValue } from '@/services/api/adminSetting.service';
+import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { STORAGE_URL } from '@/lib/apiConfig';
 import type { AxiosError } from 'axios';
 
 // ==================== Types ====================
-type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'notifications' | 'legal' | 'system' | 'history';
+type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'notifications' | 'legal' | 'marketing' | 'system' | 'history';
 
 interface TabConfig {
   id: TabType;
@@ -33,6 +34,12 @@ const TABS: TabConfig[] = [
   { id: 'tax', label: 'مالیات', icon: Percent },
   { id: 'notifications', label: 'اطلاع‌رسانی', icon: Bell },
   { id: 'legal', label: 'قوانین', icon: FileText },
+  // ✅ گروه marketing (نوار اطلاع‌رسانی بالای هدر) قبلاً هیچ تبی نداشت —
+  // تنظیماتش (announcement_*) هرگز حتی در دیتابیس seed نمی‌شد (رجوع کنید
+  // به config/azkala/settings_defaults.php) چون یک فایل تنظیمات دیگر با
+  // همین نام مسیر، بی‌صدا آن را کنار می‌زد؛ الان هم آن باگ رفع شده و هم
+  // این تب واقعاً به همان تنظیمات وصل است.
+  { id: 'marketing', label: 'بازاریابی', icon: Megaphone },
   { id: 'system', label: 'سیستمی', icon: Server },
   { id: 'history', label: 'تاریخچه', icon: History },
 ];
@@ -73,6 +80,10 @@ export function AdminSettingsPage() {
       adminSettingService.updateGroup(group, items),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['admin-settings'] });
+      // ✅ بدون این خط، بخش عمومی سایت (فوتر، نوار اطلاع‌رسانی هدر و...) که
+      // از /site-settings می‌خواند تا ۵ دقیقه (staleTime همان کوئری) مقدار
+      // قدیمی را نشان می‌داد، با اینکه ذخیره در پنل ادمین موفق بود.
+      queryClient.invalidateQueries({ queryKey: ['site-settings'] });
       toast.success(response.message || 'تنظیمات با موفقیت ذخیره شد', { icon: '✅' });
       setChanges({});
     },
@@ -269,6 +280,21 @@ export function AdminSettingsPage() {
         <HistoryTab />
       ) : (
         <div className="space-y-4">
+          {/* ✅ پیش‌نمایش زنده‌ی نوار اطلاع‌رسانی — از همان کامپوننت واقعی
+              هدر (AnnouncementBar) استفاده می‌کند، پس دقیقاً همان چیزی را
+              نشان می‌دهد که کاربر نهایی می‌بیند. بر اساس آخرین نسخه‌ی
+              ذخیره‌شده است، نه پیش‌نویس فعلی — بعد از «ذخیره تغییرات»
+              بلافاصله به‌روز می‌شود. */}
+          {activeTab === 'marketing' && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-gray-100 dark:border-slate-700">
+                <Megaphone className="w-4 h-4 text-primary-500" />
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">پیش‌نمایش زنده (بر اساس آخرین ذخیره)</span>
+              </div>
+              <AnnouncementBar />
+            </div>
+          )}
+
           {/* Action Bar */}
           <div className="flex items-center justify-between flex-wrap gap-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm p-3">
             <div className="flex items-center gap-3">
