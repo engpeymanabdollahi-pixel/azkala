@@ -115,6 +115,10 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
     if (userIds.length === 0) return;
     
     const loadStatuses = async () => {
+      // ✅ هماهنگ با گارد document.hidden که در chatStore.ts و
+      // SellerChatPage.tsx برای پولینگ‌های مشابه اعمال شده — وقتی تب در
+      // بک‌گراند است، این polling هر ۳۰ ثانیه بی‌دلیل درخواست نمی‌فرستد.
+      if (document.hidden) return;
       try {
         const res = await chatService.getOnlineStatus(userIds);
         if (res.success) {
@@ -128,7 +132,7 @@ const [isCreatingTicket, setIsCreatingTicket] = useState(false);
         console.error('Failed to load online statuses:', error);
       }
     };
-    
+
     loadStatuses();
     const interval = setInterval(loadStatuses, 30000);
     return () => clearInterval(interval);
