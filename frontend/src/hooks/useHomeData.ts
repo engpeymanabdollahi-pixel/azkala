@@ -78,7 +78,11 @@ export function useHomeData(): HomeData {
           let brands: Brand[] = [];
 
           if (productsRes.status === 'fulfilled') {
-            const response = productsRes.value;
+            // ✅ این بلوک عمداً چند شکل احتمالی پاسخ را (پشت Array.isArray،
+            // یعنی بدون ریسک واقعی runtime) چک می‌کند؛ تایپ سرویس فقط یکی
+            // از این شکل‌ها را می‌شناسد، برای همین response اینجا any است
+            // تا این بررسی دفاعی رفتارش عوض نشود.
+            const response = productsRes.value as any;
             // بررسی ساختارهای مختلف
             if (Array.isArray(response.data)) {
               products = response.data;
@@ -91,7 +95,7 @@ export function useHomeData(): HomeData {
           }
 
           if (categoriesRes.status === 'fulfilled') {
-            const response = categoriesRes.value;
+            const response = categoriesRes.value as any;
             if (Array.isArray(response.data)) {
               categories = response.data;
             } else if (response.data && Array.isArray(response.data.data)) {
@@ -103,7 +107,7 @@ export function useHomeData(): HomeData {
           }
 
           if (brandsRes.status === 'fulfilled') {
-            const response = brandsRes.value;
+            const response = brandsRes.value as any;
             if (Array.isArray(response.data)) {
               brands = response.data;
             } else if (response.data && Array.isArray(response.data.data)) {

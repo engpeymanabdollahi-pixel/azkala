@@ -65,11 +65,11 @@ export function useWishlistApi() {
     },
     
     // ✅ onSuccess: Toast و refetch
+    // (شاخه‌ی data.alreadyExists قبلاً اینجا مرده بود — mutationFn هیچ‌وقت
+    // چنین فیلدی برنمی‌گرداند؛ حالت «قبلاً در لیست بوده» واقعاً توسط
+    // onError با context.alreadyExists/کد ۴۰۹ مدیریت می‌شود، همان‌طور که
+    // پایین‌تر هم هست.)
     onSuccess: (data) => {
-      if (data.alreadyExists) {
-        toast.info('این محصول قبلاً در علاقمندی‌های شما وجود دارد', { icon: 'ℹ️', duration: 2000 });
-        return;
-      }
       toast.success(
         data.isLocal 
           ? 'به علاقمندی‌ها اضافه شد (ذخیره موقت)' 
@@ -92,7 +92,7 @@ export function useWishlistApi() {
       
       if (axiosError.response?.status === 409 || errorCode === 'ALREADY_WISHLISTED') {
         // این یک خطا نیست، فقط اطلاع‌رسانی می‌کنیم
-        toast.info(errorMessage || 'این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
+        toast(errorMessage || 'این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
           icon: 'ℹ️', 
           duration: 2000,
           style: {

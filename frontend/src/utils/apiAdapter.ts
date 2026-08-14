@@ -26,18 +26,13 @@ interface ApiProductResponse {
   brand_id?: number;
   created_at?: string;
   updated_at?: string;
+  // ✅ دقیقاً همان چیزی که ProductResource::compatible_models واقعاً
+  // برمی‌گرداند (id, name, slug, brand: {id, name} | null) — نه بیشتر.
   compatible_models?: Array<{
     id: number;
-    series_id?: number;
-    brand_id?: number;
-    brand?: { id: number; name: string; slug?: string; logo?: string | null };
+    brand?: { id: number; name: string };
     name: string;
     slug?: string;
-    image?: string | null;
-    release_year?: number | null;
-    specs?: Record<string, unknown>;
-    created_at?: string;
-    updated_at?: string;
   }>;
   brand?: {
     id: number;
@@ -49,19 +44,19 @@ interface ApiProductResponse {
     created_at?: string;
     updated_at?: string;
   };
+  // ✅ دقیقاً همان چیزی که ProductResource::seller واقعاً برمی‌گرداند —
+  // status/health_score/reviews_count/orders_count/created_at/updated_at
+  // هیچ‌وقت در این پاسخ نبوده‌اند؛ avatar/is_verified/total_sales هم که
+  // واقعاً ارسال می‌شوند قبلاً اینجا حتی تعریف نشده بودند.
   seller?: {
     id: number;
-    name?: string;
     shop_name?: string;
     slug?: string;
-    status?: string;
-    health_score?: number;
+    avatar?: string | null;
     rating?: string | number;
-    reviews_count?: number;
+    is_verified?: boolean;
     products_count?: number;
-    orders_count?: number;
-    created_at?: string;
-    updated_at?: string;
+    total_sales?: string | number;
   };
   category?: {
     id: number;
@@ -91,40 +86,39 @@ export function mapApiProductToProduct(apiProduct: ApiProductResponse): Product 
 
   const mainImage = apiProduct.main_image || apiProduct.images?.[0] || '/images/placeholder.svg';
 
+  // ✅ ProductResource.php::compatible_models (بک‌اند) فقط
+  // { id, name, slug, brand: { id, name } | null } برمی‌گرداند —
+  // series/release_year/image/specs/compatible_products_count هیچ‌وقت
+  // در این پاسخ نبوده‌اند (بر خلاف چیزی که این تابع قبلاً فرض می‌کرد).
+  // چون این فیلدها هیچ‌وقت واقعاً وجود نداشتند، همیشه مقدار پیش‌فرض
+  // می‌گرفتند — یعنی تغییری در رفتار مشاهده‌شده ایجاد نمی‌شود، فقط نوع‌ها
+  // با واقعیت API هماهنگ می‌شوند. DeviceCompatibility.tsx (تنها مصرف‌کننده‌ی
+  // واقعی این آرایه) هم فقط id/name/brand.name را می‌خواند.
   const compatibleModels: PhoneModel[] = (apiProduct.compatible_models || []).map((m) => ({
     id: m.id,
-    series_id: m.series_id || 0,
-    brand_id: m.brand_id || m.brand?.id || 0,
+    series_id: 0,
+    brand_id: m.brand?.id || 0,
     name: m.name,
     slug: m.slug || '',
-    image: m.image || null,
-    release_year: m.release_year || null,
+    image: null,
+    release_year: null,
     is_active: true,
-    compatible_products_count: m.compatible_products_count || 0,
+    compatible_products_count: 0,
     brand: m.brand ? {
       id: m.brand.id,
       name: m.brand.name,
-      slug: m.brand.slug || m.brand.name.toLowerCase(),
-      logo: m.brand.logo || null,
+      slug: m.brand.name.toLowerCase(),
+      logo: null,
       is_active: true,
       series_count: 0,
       models_count: 0,
       created_at: '',
       updated_at: '',
     } : undefined,
-    series: m.series ? {
-      id: m.series.id,
-      brand_id: m.series.brand_id || 0,
-      name: m.series.name,
-      slug: m.series.slug || '',
-      image: m.series.image || null,
-      models_count: m.series.models_count || 0,
-      created_at: '',
-      updated_at: '',
-    } : undefined,
-    specs: m.specs || {},
-    created_at: m.created_at || '',
-    updated_at: m.updated_at || '',
+    series: undefined,
+    specs: {},
+    created_at: '',
+    updated_at: '',
   }));
 
   const brand: Brand | undefined = apiProduct.brand ? {
@@ -142,23 +136,35 @@ export function mapApiProductToProduct(apiProduct: ApiProductResponse): Product 
   const seller: Seller | undefined = apiProduct.seller ? {
     id: apiProduct.seller.id,
     user_id: apiProduct.seller.id,
-    shop_name: apiProduct.seller.shop_name || apiProduct.seller.name || 'فروشگاه',
+    shop_name: apiProduct.seller.shop_name || 'فروشگاه',
     slug: apiProduct.seller.slug || 'shop',
-    status: apiProduct.seller.status || 'active',
-    health_score: apiProduct.seller.health_score || 90,
+    // ⚠️ status/health_score هیچ‌وقت از این endpoint نمی‌آیند (تایید شد
+    // با ProductResource::seller) — این دو، مقدار پیش‌فرض معقول‌اند، نه
+    // داده‌ی واقعی. اگر جایی از کد به این دو برای منطق واقعی (نه فقط
+    // نمایش) تکیه کند، باید seller را جدا از /sellers/{slug} گرفت.
+    status: 'active',
+    health_score: 90,
     rating: Number(apiProduct.seller.rating || 0),
-    reviews_count: apiProduct.seller.reviews_count || 0,
     products_count: apiProduct.seller.products_count || 0,
-    orders_count: apiProduct.seller.orders_count || 0,
-    created_at: apiProduct.seller.created_at || '',
-    updated_at: apiProduct.seller.updated_at || '',
+    // ✅ قبلاً این سه که واقعاً در پاسخ هستند اصلاً خوانده نمی‌شدند —
+    // یعنی آواتار فروشنده و نشان «تایید‌شده» روی لیست محصولات همیشه خالی
+    // بود، حتی وقتی بک‌اند مقدار واقعی می‌فرستاد.
+    avatar: apiProduct.seller.avatar ?? null,
+    is_verified: apiProduct.seller.is_verified ?? false,
+    total_sales: Number(apiProduct.seller.total_sales || 0),
+    // این دو هم مثل status/health_score از این endpoint نمی‌آیند.
+    created_at: '',
+    updated_at: '',
   } : undefined;
 
   return {
     id: apiProduct.id,
     seller_id: apiProduct.seller_id || apiProduct.seller?.id || 1,
     category_id: apiProduct.category?.id || apiProduct.category_id || 0,
-    brand_id: apiProduct.brand_id || apiProduct.brand?.id || 0,
+    // ✅ Product در types/models.ts فیلد brand_id مستقل ندارد (فقط
+    // brand?: Brand تو در تو) — این خط قبلاً یک excess property بود که
+    // TS به‌خاطر خطاهای دیگر همین object literal گزارش نمی‌داد؛ چون
+    // هیچ مصرف‌کننده‌ای product.brand_id را نمی‌خواند (تایید شد)، حذف شد.
     name: apiProduct.name,
     slug: apiProduct.slug,
     description: apiProduct.description || '',
@@ -181,7 +187,7 @@ export function mapApiProductToProduct(apiProduct: ApiProductResponse): Product 
     seller: seller,
     category: apiProduct.category ? {
       id: apiProduct.category.id,
-      parent_id: apiProduct.category.parent_id,
+      parent_id: apiProduct.category.parent_id ?? null,
       name: apiProduct.category.name,
       slug: apiProduct.category.slug,
       icon: apiProduct.category.icon || '📦',
@@ -219,12 +225,15 @@ const iconMap: Record<string, string> = {
 export function mapApiCategoryToCategory(apiCategory: ApiCategoryResponse): Category {
   return {
     id: apiCategory.id,
-    parent_id: apiCategory.parent_id,
+    parent_id: apiCategory.parent_id ?? null,
     name: apiCategory.name,
     slug: apiCategory.slug,
-    icon: apiCategory.icon && apiCategory.icon.length <= 2 
-      ? apiCategory.icon 
-      : (iconMap[apiCategory.icon] || '📦'),
+    // ✅ icon اختیاری است؛ قبلاً iconMap[apiCategory.icon] با icon=undefined
+    // صدا زده می‌شد — در JS همیشه بی‌صدا به fallback می‌رسید (کلید
+    // "undefined" هیچ‌وقت match نمی‌شود)، ولی از نظر تایپ نامعتبر بود.
+    icon: apiCategory.icon
+      ? (apiCategory.icon.length <= 2 ? apiCategory.icon : (iconMap[apiCategory.icon] || '📦'))
+      : '📦',
     type: 'mobile_accessory',
     is_active: apiCategory.is_active ?? true,
     products_count: apiCategory.products_count || 0,

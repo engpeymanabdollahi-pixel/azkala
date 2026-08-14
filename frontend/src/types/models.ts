@@ -34,6 +34,15 @@ export interface User {
   role: Role;
   avatar?: string;
   email_verified_at?: string;
+  // ✅ این چهار فیلد واقعاً روی ستون‌های users هستند (User::$fillable
+  // سمت بک‌اند) و برای role=seller توسط AuthController/UserResource
+  // برگردانده می‌شوند؛ فقط در این تایپ تعریف نشده بودند —
+  // SellerSettings.tsx/SellerDashboard.tsx/SellerLayout.tsx مجبور بودند
+  // یا کامپایل خطا بدهند یا user را as any کست کنند.
+  shop_name?: string;
+  slug?: string;
+  bio?: string;
+  banner?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -222,9 +231,26 @@ export interface Product {
   stock: number;
   sku?: string;
   status: ProductStatus;
+  // ✅ فیلدهای واقعی که ProductResource برمی‌گرداند (is_active/
+  // discount_price/is_featured/is_special_offer/is_in_stock/final_price)
+  // اینجا تعریف نشده بودند — status از بالا هم دیگر روی جدول products
+  // اصلاً وجود ندارد (ستون واقعی is_active بولین است) و هیچ‌جای فرانت‌اند
+  // هم خوانده نمی‌شود؛ برای عدم شکستن مصرف‌کننده‌های فعلی status حذف
+  // نشد، فقط فیلدهای واقعی زیر اضافه شدند.
+  is_active?: boolean;
+  discount_price?: number | null;
+  final_price?: number;
+  is_in_stock?: boolean;
+  is_featured?: boolean;
+  is_special_offer?: boolean;
+  is_new?: boolean;
   images: string[];
   main_image: string;
-  specifications?: Record<string, string>;
+  // ✅ قبلاً Record<string, string> بود، ولی این ستون در بک‌اند یک JSON
+  // آزاد است (هر نوع مقداری می‌تواند داشته باشد)، نه فقط رشته؛ محل‌های
+  // مصرف هم فقط با Object.entries رندر می‌کنند (React با هر primitive
+  // کار می‌کند)، پس محدودکردن به string فقط باعث خطای کامپایل کاذب می‌شد.
+  specifications?: Record<string, unknown>;
   meta_title?: string;
   meta_description?: string;
   seller?: Seller;

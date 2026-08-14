@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import apiClient from '@/services/api/client';
 
 // ==================== Types ====================
@@ -103,7 +103,15 @@ export function useCrudTable<T extends { id: number }>({
       };
     },
     enabled,
-    keepPreviousData: true,
+    // ✅ قبلاً keepPreviousData: true بود — این option در react-query v5
+    // اصلاً وجود ندارد (فقط در v4 بود؛ در v5 با placeholderData جایگزین
+    // شد). چون یک پراپرتی نامعتبر بود، useQuery اصلاً روی overload
+    // درستش match نمی‌شد و TS نوع query.data را به {} تنزل می‌داد —
+    // یعنی هم کامپایل خطا می‌داد و هم، مهم‌تر، در عمل هیچ صفحه‌ی ادمینی
+    // که از useCrudTable استفاده می‌کند (کاربران، محصولات، سفارشات، ...)
+    // موقع تغییر صفحه/فیلتر دیگر داده‌ی قبلی را نگه نمی‌داشت — یعنی هر
+    // بار یک لحظه حالت خالی/لودینگ چشمک می‌زد.
+    placeholderData: keepPreviousData,
   });
 
   // ==================== Filter Handlers ====================
