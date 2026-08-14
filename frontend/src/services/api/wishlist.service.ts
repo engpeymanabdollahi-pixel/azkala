@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Product } from '@/types/product';
+import type { Product } from '@/types/models';
 
 export interface WishlistItem {
   id: number;

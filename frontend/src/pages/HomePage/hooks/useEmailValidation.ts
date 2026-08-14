@@ -18,7 +18,7 @@ interface EmailValidation {
 export function useEmailValidation(): EmailValidation {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   /**
    * اعتبارسنجی فرمت ایمیل

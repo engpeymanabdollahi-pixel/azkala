@@ -388,7 +388,7 @@ export function AlertsSection() {
                       </Button>
                       
                       <Button
-                        variant={isConfirmDelete ? 'danger' : 'ghost'}
+                        variant={isConfirmDelete ? 'destructive' : 'ghost'}
                         size="xs"
                         onClick={() => handleDelete(alert.id)}
                         className={cn(

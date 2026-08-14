@@ -323,7 +323,7 @@ export default function ProductTemplates() {
             محصولات من
           </Button>
           <Button
-            variant="primary"
+            variant="default"
             onClick={() => setShowFilters(!showFilters)}
             className="lg:hidden"
           >
@@ -389,7 +389,7 @@ export default function ProductTemplates() {
           {/* دکمه فیلتر دسکتاپ */}
           <div className="hidden lg:block">
             <Button
-              variant={showFilters ? 'primary' : 'outline'}
+              variant={showFilters ? 'default' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
               leftIcon={<Filter className="w-4 h-4" />}
             >
@@ -472,7 +472,7 @@ export default function ProductTemplates() {
               action={
                 <div className="flex gap-3 flex-wrap justify-center">
                   {(filters.search || deviceType !== 'all') && (
-                    <Button onClick={() => { resetFilters(); setDeviceType('all'); }} variant="primary">
+                    <Button onClick={() => { resetFilters(); setDeviceType('all'); }} variant="default">
                       حذف فیلترها
                     </Button>
                   )}

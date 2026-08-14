@@ -490,7 +490,7 @@ export function AdminUsersPage() {
                     {/* ✅ دکمه واحد برای باز کردن مودال بررسی */}
                     {(request.status === 'pending_initial' || request.status === 'pending_final') && (
                       <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button size="sm" variant="primary" className="gap-2 shadow-lg shadow-primary-500/20" onClick={() => { setSelectedRequest(request); setShowRequestModal(true); }}>
+                        <Button size="sm" variant="default" className="gap-2 shadow-lg shadow-primary-500/20" onClick={() => { setSelectedRequest(request); setShowRequestModal(true); }}>
                           <Eye className="w-4 h-4" /> بررسی مدارک و اقدام
                         </Button>
                       </div>
@@ -543,7 +543,7 @@ export function AdminUsersPage() {
             </div>
             <div className="flex items-center justify-end gap-2 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
               <Button variant="outline" onClick={() => { setShowRejectModal(null); setRejectReason(''); }}>انصراف</Button>
-              <Button variant="error" onClick={handleConfirmReject} disabled={rejectSellerMutation.isPending} isLoading={rejectSellerMutation.isPending} className="gap-1.5"><ShieldAlert className="w-4 h-4" /> لغو فروشندگی</Button>
+              <Button variant="destructive" onClick={handleConfirmReject} disabled={rejectSellerMutation.isPending} isLoading={rejectSellerMutation.isPending} className="gap-1.5"><ShieldAlert className="w-4 h-4" /> لغو فروشندگی</Button>
             </div>
           </div>
         </div>
@@ -856,7 +856,7 @@ function SellerRequestDetailModal({
               <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="مثال: تصویر کارت ملی ناخوانا است..." rows={3} className="w-full px-3 py-2 border border-red-300 rounded-lg text-sm focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 resize-none" />
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => { setIsRejecting(false); setRejectReason(''); }} disabled={isSubmittingReject}>انصراف</Button>
-                <Button variant="error" size="sm" onClick={handleReject} disabled={!rejectReason.trim() || isSubmittingReject} isLoading={isSubmittingReject}>ثبت رد درخواست</Button>
+                <Button variant="destructive" size="sm" onClick={handleReject} disabled={!rejectReason.trim() || isSubmittingReject} isLoading={isSubmittingReject}>ثبت رد درخواست</Button>
               </div>
             </div>
           )}
@@ -867,13 +867,13 @@ function SellerRequestDetailModal({
           <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
             <Button variant="outline" onClick={onClose}>بستن</Button>
             {request.status === 'pending_initial' && (
-              <Button variant="primary" onClick={handleInitialApprove} disabled={isInitialApproving} isLoading={isInitialApproving} className="gap-2">
+              <Button variant="default" onClick={handleInitialApprove} disabled={isInitialApproving} isLoading={isInitialApproving} className="gap-2">
                 <CheckCircle className="w-4 h-4" /> تایید اولیه و درخواست مدارک
               </Button>
             )}
             {request.status === 'pending_final' && (
               <>
-                <Button variant="error" onClick={() => setIsRejecting(true)} disabled={isFinalApproving} className="gap-2">
+                <Button variant="destructive" onClick={() => setIsRejecting(true)} disabled={isFinalApproving} className="gap-2">
                   <XCircle className="w-4 h-4" /> رد درخواست
                 </Button>
                 <Button variant="success" onClick={handleFinalApprove} disabled={isFinalApproving} isLoading={isFinalApproving} className="gap-2 shadow-lg shadow-success-500/20">

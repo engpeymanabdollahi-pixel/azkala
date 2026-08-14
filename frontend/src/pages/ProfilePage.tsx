@@ -445,7 +445,7 @@ export function ProfilePage() {
                   <p className="text-[11px] text-gray-600 mb-3 leading-relaxed">
                     با حذف حساب، تمام اطلاعات شما برای همیشه پاک خواهد شد.
                   </p>
-                  <Button variant="danger" size="xs">
+                  <Button variant="destructive" size="xs">
                     <span className="text-[11px]">حذف حساب کاربری</span>
                   </Button>
                 </div>
@@ -487,7 +487,7 @@ export function ProfilePage() {
         </div>
 
         {/* Logout Button */}
-        <Button variant="danger" className="w-full" size="md" onClick={handleLogout}>
+        <Button variant="destructive" className="w-full" size="md" onClick={handleLogout}>
           <LogOut className="w-4 h-4 ml-1.5" />
           خروج از حساب کاربری
         </Button>

@@ -241,7 +241,7 @@ export function AdminBrandsPage() {
           });
         }
       },
-      variant: 'danger',
+      variant: 'destructive',
       show: (brand) => brand.products_count === 0,
     },
   ];
@@ -258,7 +258,7 @@ export function AdminBrandsPage() {
           action: 'activate',
         });
       },
-      variant: 'primary',
+      variant: 'default',
     },
     {
       label: 'غیرفعال کردن',
@@ -284,7 +284,7 @@ export function AdminBrandsPage() {
           });
         }
       },
-      variant: 'danger',
+      variant: 'destructive',
     },
   ];
 

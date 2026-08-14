@@ -347,7 +347,7 @@ export function AdminReviewsPage() {
               </Button>
               <Button
                 size="sm"
-                variant="danger"
+                variant="destructive"
                 onClick={() => {
                   if (window.confirm(`آیا از حذف ${selectedIds.length} نظر مطمئن هستید؟`)) {
                     bulkMutation.mutate({ ids: selectedIds, action: 'delete' });
@@ -530,7 +530,7 @@ export function AdminReviewsPage() {
                         <div className="flex items-center gap-1 mt-2">
                           <Button
                             size="sm"
-                            variant={review.status === 'approved' ? 'primary' : 'outline'}
+                            variant={review.status === 'approved' ? 'default' : 'outline'}
                             className="gap-1 text-[11px] px-2 py-1 h-auto"
                             onClick={() => updateStatusMutation.mutate({ id: review.id, status: 'approved' })}
                             disabled={updateStatusMutation.isPending}
@@ -540,7 +540,7 @@ export function AdminReviewsPage() {
                           </Button>
                           <Button
                             size="sm"
-                            variant={review.status === 'rejected' ? 'danger' : 'outline'}
+                            variant={review.status === 'rejected' ? 'destructive' : 'outline'}
                             className="gap-1 text-[11px] px-2 py-1 h-auto"
                             onClick={() => updateStatusMutation.mutate({ id: review.id, status: 'rejected' })}
                             disabled={updateStatusMutation.isPending}

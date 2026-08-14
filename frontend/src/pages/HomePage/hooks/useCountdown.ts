@@ -12,7 +12,7 @@ export function useCountdown(targetDate: Date): TimeLeft {
     seconds: 0 
   });
   
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
   const lastUpdateRef = useRef<number>(0);
 
   useEffect(() => {

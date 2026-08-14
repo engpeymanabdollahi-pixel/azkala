@@ -105,7 +105,7 @@ export function AdminDeviceModelsPage() {
   const actions: ActionConfig<AdminDeviceModel>[] = [
     { label: 'ویرایش', icon: <Edit2 className="w-4 h-4" />, onClick: handleEdit, variant: 'ghost' },
     {
-      label: 'حذف', icon: <Trash2 className="w-4 h-4" />, variant: 'danger',
+      label: 'حذف', icon: <Trash2 className="w-4 h-4" />, variant: 'destructive',
       onClick: (model) => {
         if (confirm(`آیا از حذف مدل "${model.name}" مطمئن هستید؟`)) {
           deleteMutation.mutate({ endpoint: '/admin/device-models', id: model.id });

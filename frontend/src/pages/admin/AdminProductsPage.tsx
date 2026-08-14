@@ -319,7 +319,7 @@ export function AdminProductsPage() {
               </Button>
               <Button
                 size="sm"
-                variant="danger"
+                variant="destructive"
                 onClick={() => {
                   if (window.confirm(`آیا از حذف ${selectedIds.length} محصول مطمئن هستید؟`)) {
                     bulkMutation.mutate({ ids: selectedIds, action: 'delete' });

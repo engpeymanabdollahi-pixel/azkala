@@ -677,7 +677,7 @@ export function SellerProducts() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">این عمل غیرقابل بازگشت است و تمام اطلاعات محصول از سیستم حذف خواهد شد.</p>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setShowDeleteConfirm(null)}>انصراف</Button>
-            <Button variant="danger" className="flex-1 gap-2" onClick={() => handleDelete(showDeleteConfirm!)} disabled={deleteProductMutation.isPending}>
+            <Button variant="destructive" className="flex-1 gap-2" onClick={() => handleDelete(showDeleteConfirm!)} disabled={deleteProductMutation.isPending}>
               {deleteProductMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               حذف دائمی
             </Button>
@@ -695,7 +695,7 @@ export function SellerProducts() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">این عمل غیرقابل بازگشت است. آیا مطمئن هستید؟</p>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setShowBulkDeleteConfirm(false)}>انصراف</Button>
-            <Button variant="danger" className="flex-1 gap-2" onClick={handleBulkDelete} disabled={deleteProductMutation.isPending}>
+            <Button variant="destructive" className="flex-1 gap-2" onClick={handleBulkDelete} disabled={deleteProductMutation.isPending}>
               {deleteProductMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               حذف همه
             </Button>
@@ -720,7 +720,7 @@ export function SellerProducts() {
               <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white" onClick={() => setSelectedProducts(new Set())}>
                 انصراف
               </Button>
-              <Button variant="danger" className="gap-2" onClick={() => setShowBulkDeleteConfirm(true)}>
+              <Button variant="destructive" className="gap-2" onClick={() => setShowBulkDeleteConfirm(true)}>
                 <Trash2 className="w-4 h-4" />حذف انتخاب‌شده‌ها
               </Button>
             </div>

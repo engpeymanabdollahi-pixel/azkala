@@ -73,7 +73,7 @@ export function SecuritySection() {
           حذف حساب کاربری در حال حاضر از طریق پشتیبانی انجام می‌شود.
         </p>
         <Link to="/contact">
-          <Button variant="danger" size="xs" className="gap-1">
+          <Button variant="destructive" size="xs" className="gap-1">
             <LifeBuoy className="w-3 h-3" />
             <span className="text-[10px]">تماس با پشتیبانی برای حذف حساب</span>
           </Button>

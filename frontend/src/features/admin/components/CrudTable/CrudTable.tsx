@@ -34,7 +34,12 @@ export interface ActionConfig<T> {
   label: string;
   icon?: React.ReactNode;
   onClick: (row: T) => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  // ✅ قبلاً 'primary'/'danger' بود — این دو اصلاً در variant واقعی Button
+  // (که این config مستقیم بهش پاس داده می‌شود) وجود ندارند. چون cva برای
+  // مقدار نامعتبر (نه undefined) به‌جای fallback به default، هیچ کلاس
+  // رنگی اعمال نمی‌کند، این یعنی هر دکمه‌ی action/bulkAction با این دو
+  // مقدار در عمل کاملاً بی‌رنگ/بدون استایل رندر می‌شد.
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
   show?: (row: T) => boolean;
 }
 
@@ -42,7 +47,12 @@ export interface BulkActionConfig {
   label: string;
   icon?: React.ReactNode;
   onClick: (selectedIds: number[]) => Promise<void>;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  // ✅ قبلاً 'primary'/'danger' بود — این دو اصلاً در variant واقعی Button
+  // (که این config مستقیم بهش پاس داده می‌شود) وجود ندارند. چون cva برای
+  // مقدار نامعتبر (نه undefined) به‌جای fallback به default، هیچ کلاس
+  // رنگی اعمال نمی‌کند، این یعنی هر دکمه‌ی action/bulkAction با این دو
+  // مقدار در عمل کاملاً بی‌رنگ/بدون استایل رندر می‌شد.
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 }
 
 export interface ExportConfig {

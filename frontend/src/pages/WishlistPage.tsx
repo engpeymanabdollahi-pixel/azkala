@@ -444,7 +444,7 @@ export function WishlistPage() {
                 انصراف
               </Button>
               <Button 
-                variant="danger" 
+                variant="destructive" 
                 className="flex-1 hover:scale-[1.02] active:scale-95 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-error-500" 
                 size="md" 
                 onClick={handleClearAll}

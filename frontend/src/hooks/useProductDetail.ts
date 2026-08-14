@@ -10,7 +10,7 @@ import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { useChatStore } from '@/store/chatStore';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
-import type { Product } from '@/types/models';
+import type { Product, PhoneModel } from '@/types/models';
 import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 
@@ -29,7 +29,14 @@ export interface UseProductDetailReturn {
   reviews: Review[];
   reviewsSummary: any;
   reviewsPagination: any;
-  
+  // ✅ قبلاً از این interface و از return واقعی هوک جا مانده بودند —
+  // ProductDetailPage و ReviewsTab.tsx به این سه تکیه می‌کردند (ازجمله
+  // helpfulMutation.mutate بدون optional chaining) و همیشه undefined
+  // می‌گرفتند.
+  selectedModel: PhoneModel | null;
+  createReviewMutation: any;
+  helpfulMutation: any;
+
   // UI State
   selectedImage: number;
   quantity: number;
@@ -366,7 +373,21 @@ export function useProductDetail(): UseProductDetailReturn {
     reviews,
     reviewsSummary,
     reviewsPagination,
-    
+
+    // ✅ قبلاً این سه از return خارج مانده بودند در حالی که همین‌جا داخل
+    // هوک تعریف/محاسبه می‌شدند (selectedModel از useModelStore،
+    // createReviewMutation/helpfulMutation از useMutation) و همه‌جا هم
+    // در همین فایل استفاده می‌شدند (isCompatible، selectedDeviceName، و
+    // خود handleSubmitReview). یعنی در ProductDetailPage این سه همیشه
+    // undefined می‌شدند: ‌بخش «سازگاری با دستگاه انتخابی» بی‌صدا رندر
+    // نمی‌شد، و مهم‌تر — ReviewsTab.tsx خط ۳۹۹ بدون optional chaining
+    // helpfulMutation.mutate(review.id) صدا می‌زد، یعنی کلیک روی «مفید
+    // بود» زیر هر نظر همیشه با TypeError کرش می‌کرد.
+    selectedModel,
+    createReviewMutation,
+    helpfulMutation,
+
+
     // UI State
     selectedImage,
     quantity,

@@ -64,7 +64,7 @@ export function Pagination({
               <span className="px-2 text-gray-400 dark:text-gray-500">...</span>
             ) : (
               <Button
-                variant={currentPage === page ? 'primary' : 'outline'}
+                variant={currentPage === page ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => onPageChange(page as number)}
                 className="min-w-[40px]"

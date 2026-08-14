@@ -13,7 +13,7 @@ interface ScrollProgress {
 export function useScrollProgress(): ScrollProgress {
   const [progress, setProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | undefined>(undefined);
   const ticking = useRef(false);
 
   useEffect(() => {

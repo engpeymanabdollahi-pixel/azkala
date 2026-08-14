@@ -158,7 +158,7 @@ export function AdminDeviceBrandsPage() {
           deleteMutation.mutate({ endpoint: '/admin/device-brands', id: brand.id });
         }
       },
-      variant: 'danger',
+      variant: 'destructive',
     },
   ];
 

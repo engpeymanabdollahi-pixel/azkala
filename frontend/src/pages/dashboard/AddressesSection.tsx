@@ -290,7 +290,7 @@ export function AddressesSection() {
                 انصراف
               </Button>
               <Button
-                variant="danger"
+                variant="destructive"
                 className="flex-1"
                 size="md"
                 onClick={() => deleteMutation.mutate(showDeleteConfirm.id)}

@@ -182,7 +182,7 @@ export function TemplateCard({
         <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300">
           <Button
             size="sm"
-            variant="primary"
+            variant="default"
             onClick={(e) => { e.stopPropagation(); onQuickView(template); }}
             className="backdrop-blur-md bg-white/95 dark:bg-gray-900/90 hover:bg-white dark:hover:bg-gray-900 shadow-lg"
           >
@@ -259,7 +259,7 @@ export function TemplateCard({
           disabled={copyingId === template.id}
           isLoading={copyingId === template.id}
           fullWidth
-          variant={copyingId === template.id ? 'secondary' : 'primary'}
+          variant={copyingId === template.id ? 'secondary' : 'default'}
           className={cn(
             'relative overflow-hidden',
             copyingId !== template.id && 'group/btn'

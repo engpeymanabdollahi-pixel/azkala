@@ -16,7 +16,7 @@ export const AnimatedCounter = memo(({
   duration = 2000 
 }: AnimatedCounterProps) => {
   const [displayValue, setDisplayValue] = useState(0);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const startTime = Date.now();

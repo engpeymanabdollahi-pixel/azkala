@@ -280,7 +280,7 @@ export function FilterPanel({
           </Button>
           <Button
             onClick={handleApplyFilters}
-            variant="primary"
+            variant="default"
             fullWidth
             size="sm"
             className="font-sans"

@@ -97,7 +97,7 @@ export function AdminDeviceSeriesPage() {
   const actions: ActionConfig<AdminDeviceSeries>[] = [
     { label: 'ویرایش', icon: <Edit2 className="w-4 h-4" />, onClick: handleEdit, variant: 'ghost' },
     {
-      label: 'حذف', icon: <Trash2 className="w-4 h-4" />, variant: 'danger',
+      label: 'حذف', icon: <Trash2 className="w-4 h-4" />, variant: 'destructive',
       onClick: (series) => {
         if (confirm(`آیا از حذف سری "${series.name}" مطمئن هستید؟`)) {
           deleteMutation.mutate({ endpoint: '/admin/device-series', id: series.id });

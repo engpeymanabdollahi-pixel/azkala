@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { X, ArrowLeft, Scale, Trash2 } from 'lucide-react';
 import { useCompareStore } from '@/store/compareStore';
 import { SafeImage } from '@/components/ui/SafeImage';
-import { formatPrice } from '@/utils/formatPrice';
 
 export function CompareBar() {
   const navigate = useNavigate();

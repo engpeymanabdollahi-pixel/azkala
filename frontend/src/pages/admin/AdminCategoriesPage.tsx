@@ -467,7 +467,7 @@ export function AdminCategoriesPage() {
               </Button>
               <Button
                 size="sm"
-                variant="error"
+                variant="destructive"
                 onClick={() => {
                   if (window.confirm(`آیا از حذف ${selectedIds.length} دسته مطمئن هستید؟`)) {
                     bulkMutation.mutate({ ids: selectedIds, action: 'delete' });

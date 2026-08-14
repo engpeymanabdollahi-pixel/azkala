@@ -66,15 +66,43 @@ export interface ButtonProps
    * متن loading (اختیاری - اگر نباشد فقط spinner)
    */
   loadingText?: string;
+  /**
+   * ✅ قبلاً هیچ‌کدام از این سه پراپ در ButtonProps تعریف نشده بودند، در
+   * حالی که ~۲۰ جای مختلف پروژه (مودال‌های ادمین، FilterPanel، صفحه‌ی
+   * تماس و...) از leftIcon/rightIcon/fullWidth روی Button استفاده
+   * می‌کردند — چون این‌ها پراپ‌های شناخته‌شده‌ی HTML نیستند، React فقط با
+   * warning کنسول نادیده‌شان می‌گرفت: آیکون‌ها اصلاً رندر نمی‌شدند و
+   * دکمه‌های submit/cancel داخل مودال‌ها به‌جای تمام‌عرض، اندازه‌ی طبیعی
+   * خودشان را می‌گرفتند.
+   */
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, isLoading = false, loadingText, children, disabled, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      asChild = false,
+      isLoading = false,
+      loadingText,
+      leftIcon,
+      rightIcon,
+      fullWidth = false,
+      children,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const Comp = asChild ? Slot : 'button';
-    
+
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, className }), fullWidth && 'w-full')}
         ref={ref}
         disabled={disabled || isLoading}
         {...props}
@@ -85,7 +113,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             {loadingText && <span>{loadingText}</span>}
           </>
         ) : (
-          children
+          <>
+            {leftIcon}
+            {children}
+            {rightIcon}
+          </>
         )}
       </Comp>
     );
