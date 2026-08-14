@@ -583,7 +583,11 @@ body {
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 50;
+  /* ✅ قبلاً 50 بود — کمتر از هدر چسبان (Header/index.tsx: z-[60])، یعنی
+     قسمت بالایی هر مودالی که از این کامپوننت مشترک استفاده می‌کرد زیر هدر
+     می‌رفت. بقیه‌ی overlay های پروژه (Dialog.tsx, CartDrawer.tsx و...)
+     همین الان هم روی z-70 به بالا هستند، اینجا هم با همان مقیاس هماهنگ شد. */
+  z-index: 70;
   display: flex;
   align-items: center;
   justify-content: center;

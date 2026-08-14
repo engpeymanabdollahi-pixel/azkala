@@ -62,5 +62,11 @@ export const USER_MENU_ITEMS = [
 // ==================== Constants ====================
 
 export const SCROLL_THRESHOLD = 100;
+// ✅ بافر hysteresis برای جمع‌شدن هدر: هدر وقتی scrollY از SCROLL_THRESHOLD
+// بیشتر شود جمع می‌شود، ولی تا وقتی scrollY به (SCROLL_THRESHOLD - این بافر)
+// نرسیده باز نمی‌شود. بدون این بافر، نوسان چند پیکسلی اسکرول (خیلی رایج در
+// تاچ‌پد/اسکرول لمسی) دقیقاً روی نقطه‌ی ۱۰۰ پیکسل، هدر را پشت‌سرهم جمع و باز
+// می‌کرد.
+export const SCROLL_THRESHOLD_HYSTERESIS = 24;
 export const SEARCH_HISTORY_LIMIT = 10;
 export const SUPPORT_PHONE = '021-12345678';

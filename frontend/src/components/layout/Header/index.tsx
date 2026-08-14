@@ -240,15 +240,18 @@ export function Header() {
             <SearchBar isScrolled={isScrolled} selectedModel={selectedModel} />
 
             {/* Model Selector */}
-            {!isScrolled && (
-              <div className="hidden lg:block">
-                <ModelSelector
-                  selectedModel={selectedModel}
-                  isScrolled={isScrolled}
-                  onOpenModal={openModal}
-                />
-              </div>
-            )}
+            {/* ✅ قبلاً با {!isScrolled && ...} کاملاً از DOM حذف می‌شد — یعنی
+                با اسکرول به پایین، دکمه‌ی «دستگاه خود را انتخاب کنید» به‌کلی
+                ناپدید می‌شد. خودِ ModelSelector همین الان هم یک حالت جمع‌وجور
+                برای isScrolled دارد (آیکون کوچک‌تر، بدون برچسب متنی) که
+                دقیقاً برای همین حالت ساخته شده بود ولی هرگز رندر نمی‌شد. */}
+            <div className="hidden lg:block">
+              <ModelSelector
+                selectedModel={selectedModel}
+                isScrolled={isScrolled}
+                onOpenModal={openModal}
+              />
+            </div>
 
             {/* ============ Action Icons ============ */}
             <div className="flex items-center gap-1 mr-auto lg:mr-0">
@@ -436,15 +439,16 @@ export function Header() {
         </div>
 
         {/* ============ Mobile Model Selector ============ */}
-        {!isScrolled && (
-          <div className="px-4 pb-3 md:hidden border-t border-gray-100 dark:border-slate-800 pt-3">
-            <ModelSelector
-              selectedModel={selectedModel}
-              isScrolled={isScrolled}
-              onOpenModal={openModal}
-            />
-          </div>
-        )}
+        {/* ✅ همان اصلاح نسخه‌ی دسکتاپ: قبلاً با اسکرول به پایین کاملاً از
+            DOM حذف می‌شد؛ حالا با اسکرول باقی می‌ماند و حالت جمع‌وجورِ
+            isScrolled خودِ ModelSelector آن را کوچک‌تر نشان می‌دهد. */}
+        <div className="px-4 pb-3 md:hidden border-t border-gray-100 dark:border-slate-800 pt-3">
+          <ModelSelector
+            selectedModel={selectedModel}
+            isScrolled={isScrolled}
+            onOpenModal={openModal}
+          />
+        </div>
       </header>
 
       {/* ============ Mobile Menu ============ */}

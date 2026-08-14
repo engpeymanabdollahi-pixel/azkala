@@ -152,7 +152,20 @@ export function useWishlistApi() {
     },
     
     // ❌ onError: Rollback
+    // ✅ قبلاً هر خطایی (حتی 404 «این محصول در علاقه‌مندی‌های شما نیست») به‌عنوان
+    // شکست واقعی نمایش داده می‌شد و rollback می‌کرد. اما وقتی محصول از قبل حذف
+    // شده (مثلاً به‌خاطر دوبار کلیک سریع، دو درخواست DELETE می‌رفت؛ اولی موفق،
+    // دومی 404) این یعنی هدف کاربر (نبودن محصول در لیست) در واقع محقق شده —
+    // نه یک خطای واقعی. نمایش toast خطا + rollback (که می‌توانست محصول را
+    // دوباره در UI برگرداند در حالی که سرور واقعاً حذفش کرده بود) رفتار غلطی
+    // بود. الگوی این بلوک دقیقاً مثل مدیریت 409 در addToWishlistMutation است.
     onError: (error, _productId, context) => {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 404) {
+        queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+        return;
+      }
+
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       toast.error('خطا در حذف از علاقمندی‌ها', { icon: '❌', duration: 3000 });
       console.error('Failed to remove from wishlist:', error);
@@ -160,9 +173,19 @@ export function useWishlistApi() {
   });
 
   // 🔄 Toggle با Optimistic UI
+  //
+  // ✅ قبلاً وضعیت «آیا در wishlist هست؟» از روی wishlistItems (که از useQuery
+  // و رندر قبلی کامپوننت گرفته می‌شود) خوانده می‌شد — یک کلوژر بالقوه stale.
+  // بین لحظه‌ی mutate شدن (که queryClient.setQueryData را به‌صورت optimistic
+  // آپدیت می‌کند) و رندر بعدی React که wishlistItems را به‌روز می‌کند، یک
+  // پنجره‌ی زمانی کوتاه هست؛ دوبار کلیک سریع روی دکمه‌ی قلب در همین پنجره
+  // هر دو بار همان جهت (مثلاً هر دو add، یا هر دو remove) را می‌دیدند و دو
+  // درخواست همزمان به سرور می‌فرستادند (یکی موفق، دومی 409/404). حالا مستقیم
+  // از cache زنده‌ی queryClient خوانده می‌شود که همیشه به‌روز است.
   const toggleWishlist = (product: Product) => {
-    const isInWishlist = wishlistItems.some((item) => item.id === product.id);
-    
+    const currentWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || wishlistItems;
+    const isInWishlist = currentWishlist.some((item) => item.id === product.id);
+
     if (isInWishlist) {
       removeFromWishlistMutation.mutate(product.id);
     } else {
@@ -193,5 +216,9 @@ export function useWishlistApi() {
     toggleWishlist,
     prefetchProduct,
     isInWishlist: (productId: number) => wishlistItems.some((item) => item.id === productId),
+    // ✅ برای غیرفعال‌کردن دکمه در حین درخواست — یک لایه‌ی دفاعی اضافه در
+    // کنار خواندن زنده از queryClient در toggleWishlist، تا کلیک سریع
+    // روی دکمه‌ی قلب هرگز دو درخواست هم‌زمان نفرستد.
+    isTogglingWishlist: addToWishlistMutation.isPending || removeFromWishlistMutation.isPending,
   };
 }

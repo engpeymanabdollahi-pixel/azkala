@@ -61,7 +61,7 @@ export const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
   const { selectedModel } = useModelStore();
   const { addItem } = useCartStore();
-  const { isInWishlist, toggleWishlist, prefetchProduct } = useWishlistApi();
+  const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist } = useWishlistApi();
 
   const isWishlisted = isInWishlist(product.id);
     const { isCompared, toggleProduct } = useCompareStore();
@@ -98,6 +98,9 @@ export const ProductCard = memo(function ProductCard({
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // ✅ اگر درخواست قبلی هنوز در حال رفتن است، کلیک سریع دوباره را نادیده
+    // بگیر — جلوگیری از ارسال دو درخواست هم‌زمان add/remove برای یک محصول.
+    if (isTogglingWishlist) return;
     toggleWishlist(product);
   };
 
@@ -309,11 +312,13 @@ export const ProductCard = memo(function ProductCard({
         {/* دکمه علاقمندی */}
         <button
           onClick={handleWishlist}
+          disabled={isTogglingWishlist}
           className={cn(
             'absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center z-20',
             'opacity-0 group-hover:opacity-100 transition-all duration-300',
             'bg-white dark:bg-gray-800 shadow-lg hover:scale-110 active:scale-95',
             'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+            'disabled:cursor-not-allowed disabled:hover:scale-100',
             isWishlisted
               ? 'text-red-500 opacity-100'
               : 'text-gray-400 hover:text-red-400 dark:text-gray-500 dark:hover:text-red-400',
