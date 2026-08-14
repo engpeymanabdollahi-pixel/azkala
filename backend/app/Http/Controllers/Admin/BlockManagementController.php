@@ -99,26 +99,39 @@ class BlockManagementController extends Controller
                 ->get()
                 ->pluck('count', 'reason');
 
+            // ✅ having() روی alias یک selectSub بدون GROUP BY روی SQLite با
+            // خطای واقعی «HAVING clause» شکست می‌خورد (نه فقط هشدار) —
+            // دقیقاً همان چیزی که در لاگ کنسول دیده شد. با fromSub، ستون
+            // محاسبه‌شده در query بیرونی یک ستون واقعی می‌شود و WHERE رویش
+            // استاندارد است.
             // بیشترین کاربران بلاک‌شده
-            $mostBlockedUsers = User::select('users.id', 'users.name', 'users.email')
+            $blockedCounts = DB::table('users')
+                ->select('users.id', 'users.name', 'users.email')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COUNT(*)')
                         ->from('blocked_users')
                         ->whereColumn('blocked_user_id', 'users.id');
-                }, 'blocked_count')
-                ->having('blocked_count', '>', 0)
+                }, 'blocked_count');
+
+            $mostBlockedUsers = DB::query()
+                ->fromSub($blockedCounts, 'blocked_counts')
+                ->where('blocked_count', '>', 0)
                 ->orderByDesc('blocked_count')
                 ->limit(5)
                 ->get();
 
             // بیشترین کاربران بلاک‌کننده
-            $mostBlockers = User::select('users.id', 'users.name', 'users.email')
+            $blockerCounts = DB::table('users')
+                ->select('users.id', 'users.name', 'users.email')
                 ->selectSub(function ($query) {
                     $query->selectRaw('COUNT(*)')
                         ->from('blocked_users')
                         ->whereColumn('user_id', 'users.id');
-                }, 'block_count')
-                ->having('block_count', '>', 0)
+                }, 'block_count');
+
+            $mostBlockers = DB::query()
+                ->fromSub($blockerCounts, 'blocker_counts')
+                ->where('block_count', '>', 0)
                 ->orderByDesc('block_count')
                 ->limit(5)
                 ->get();

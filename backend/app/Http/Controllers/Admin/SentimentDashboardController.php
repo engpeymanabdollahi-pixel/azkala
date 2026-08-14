@@ -76,7 +76,14 @@ class SentimentDashboardController extends Controller
     public function topSellers()
     {
         try {
-            $sellersWithScore = DB::table('users')
+            // ✅ قبلاً having('avg_score', ...) مستقیم روی alias یک selectSub
+            // زده می‌شد، بدون GROUP BY — روی SQLite با خطای واقعی
+            // «HAVING clause» (نه فقط هشدار) شکست می‌خورد چون HAVING بدون
+            // GROUP BY نمی‌تواند به alias ستون subquery ارجاع بدهد. با
+            // fromSub این محاسبه در یک subquery انجام می‌شود و avg_score
+            // در query بیرونی یک ستون واقعی است، پس WHERE رویش کاملاً
+            // استاندارد و روی هر دو دیتابیس (SQLite/MySQL) کار می‌کند.
+            $sellerScores = DB::table('users')
                 ->select('users.id', 'users.name', 'users.shop_name', 'users.avatar')
                 ->selectSub(function ($query) {
                     $query->selectRaw('AVG(ms.score)')
@@ -90,8 +97,11 @@ class SentimentDashboardController extends Controller
                         ->whereColumn('conversations.seller_id', 'users.id');
                 }, 'conversations_count')
                 ->where('users.role', 'seller')
-                ->whereNull('users.deleted_at') // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
-                ->having('avg_score', '>', 0)
+                ->whereNull('users.deleted_at'); // ✅ کوئری خام: SoftDeletes خودکار اعمال نمی‌شود
+
+            $sellersWithScore = DB::query()
+                ->fromSub($sellerScores, 'seller_scores')
+                ->where('avg_score', '>', 0)
                 ->orderByDesc('avg_score')
                 ->limit(10)
                 ->get()
@@ -127,7 +137,10 @@ class SentimentDashboardController extends Controller
     public function alerts()
     {
         try {
-            $alerts = DB::table('conversations')
+            // ✅ همان اصلاح fromSub که در topSellers() انجام شد — having()
+            // روی alias یک selectSub بدون GROUP BY روی SQLite با خطای
+            // واقعی «HAVING clause» شکست می‌خورد.
+            $conversationScores = DB::table('conversations')
                 ->select(
                     'conversations.id',
                     'conversations.created_at',
@@ -143,8 +156,11 @@ class SentimentDashboardController extends Controller
                 ->leftJoin('users as b', 'b.id', '=', 'conversations.buyer_id')
                 ->leftJoin('users as s', 's.id', '=', 'conversations.seller_id')
                 ->leftJoin('products as p', 'p.id', '=', 'conversations.product_id')
-                ->where('conversations.is_active', true)
-                ->having('avg_score', '<', -0.1)
+                ->where('conversations.is_active', true);
+
+            $alerts = DB::query()
+                ->fromSub($conversationScores, 'conversation_scores')
+                ->where('avg_score', '<', -0.1)
                 ->orderBy('avg_score')
                 ->limit(10)
                 ->get()
