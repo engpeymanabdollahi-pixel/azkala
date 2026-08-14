@@ -386,7 +386,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // 🏪 فروشنده (داخل گروه auth)
-        Route::prefix('seller')->middleware('throttle:seller')->name('seller.')->group(function () {
+        Route::prefix('seller')->middleware(['throttle:seller', 'seller'])->name('seller.')->group(function () {
             Route::get('/dashboard/stats', [SellerDashboardController::class, 'stats'])->name('dashboard.stats');
             Route::get('/wallet', [SellerDashboardController::class, 'wallet'])->name('wallet');
 
@@ -395,9 +395,9 @@ Route::prefix('v1')->group(function () {
 
             Route::prefix('products')->name('products.')->group(function () {
                 // Bulk Product Upload
-Route::get('/bulk/template', [BulkProductController::class, 'downloadTemplate'])->name('bulk.template');
-Route::post('/bulk/validate', [BulkProductController::class, 'validateFile'])->name('bulk.validate');
-Route::post('/bulk/commit', [BulkProductController::class, 'commit'])->name('bulk.commit');
+                Route::get('/bulk/template', [BulkProductController::class, 'downloadTemplate'])->name('bulk.template');
+                Route::post('/bulk/validate', [BulkProductController::class, 'validateFile'])->name('bulk.validate');
+                Route::post('/bulk/commit', [BulkProductController::class, 'commit'])->name('bulk.commit');
                 Route::get('/', [SellerProductController::class, 'index'])->name('index');
                 Route::post('/', [SellerProductController::class, 'store'])->name('store');
                 Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');

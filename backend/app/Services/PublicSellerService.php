@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Models\SellerRating;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -58,22 +59,34 @@ class PublicSellerService
     /**
      * فروشگاه‌های برتر برای صفحه‌ی اصلی.
      *
-     * products_count، seller_rating و followers_count ستون‌های واقعی و
-     * cache‌شده‌ی جدول users‌اند (نه رابطه یا withCount)، پس این کوئری بدون
-     * جوین اضافه روی چند ردیف اجرا می‌شود. فروشگاه بدون محصول فعال حذف
-     * می‌شود — نمایاندنش در «فروشگاه‌های برتر» فقط به یک ویترین خالی می‌رسد.
+     * فروشگاه بدون محصول فعال حذف می‌شود — نمایاندنش در «فروشگاه‌های برتر»
+     * فقط به یک ویترین خالی می‌رسد.
+     *
+     * ✅ قبلاً has('products')/withCount('products') فیلتر is_active
+     * نداشتند — یعنی فروشنده‌ای که همه‌ی محصولاتش غیرفعال/از انبار خارج
+     * شده بود هم به شرط داشتن حتی یک محصول (فعال یا نه) در لیست می‌ماند —
+     * دقیقاً برخلاف همین کامنت بالا. الگوی withCount با closure اسکوپ‌شده
+     * همان چیزی است که در SearchController::global برای شمارش محصولات
+     * فروشنده استفاده شده.
+     *
+     * ✅ مهم‌تر: orderByDesc('seller_rating') در همین پوش (که has/withCount
+     * جایگزین where('products_count', '>', 0) شد) به‌اشتباه با
+     * orderByDesc('products_count') عوض شده بود — یعنی «فروشگاه‌های برتر»
+     * دیگر اصلاً بر اساس امتیاز مرتب نمی‌شد، بلکه فقط بر اساس تعداد محصول.
+     * ترتیب قبلی (امتیاز، سپس دنبال‌کننده) که خود نام ویژگی هم به آن اشاره
+     * دارد برگردانده شد.
      */
-   public function getTopSellers(int $limit = 8)
-{
-    return User::where('role', 'seller')
-        ->where('is_active', true)
-        ->has('products') // ✅ به جای where('products_count', '>', 0)
-        ->withCount('products') // ✅ اضافه کردن products_count واقعی
-        ->orderByDesc('products_count') // ✅ ابتدا تعداد محصولات واقعی
-        ->orderByDesc('followers_count') // سپس followers
-        ->limit($limit)
-        ->get();
-}
+    public function getTopSellers(int $limit = 8)
+    {
+        return User::where('role', 'seller')
+            ->where('is_active', true)
+            ->whereHas('products', fn ($q) => $q->where('is_active', true))
+            ->withCount(['products' => fn ($q) => $q->where('is_active', true)])
+            ->orderByDesc('seller_rating')
+            ->orderByDesc('followers_count')
+            ->limit($limit)
+            ->get();
+    }
 
     public function getSellerProducts(User $seller, array $filters): LengthAwarePaginator
     {
@@ -117,7 +130,7 @@ class PublicSellerService
      */
     public function getSellerReviews(User $seller, int $perPage = 10): LengthAwarePaginator
     {
-        return \App\Models\SellerRating::where('seller_id', $seller->id)
+        return SellerRating::where('seller_id', $seller->id)
             ->with('user:id,name,avatar')
             ->latest()
             ->paginate($perPage);

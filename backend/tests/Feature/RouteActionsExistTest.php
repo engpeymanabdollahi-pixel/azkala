@@ -11,10 +11,14 @@ use Tests\TestCase;
  * failure only appears when someone calls it - as a 500 BadMethodCallException.
  *
  * This started at 14 such routes. Those with existing service-layer support
- * were wired up, and those nothing called were removed. The 6 that remain are
- * a genuinely unbuilt feature - chat product-suggestions and sentiment - plus
- * one stray seller-ratings action. Implementing them means deciding what they
- * should do, so they are recorded here rather than silently tolerated.
+ * were wired up, and those nothing called were removed. The 5 that remain are
+ * a genuinely unbuilt feature - chat product-suggestions and sentiment.
+ * Implementing them means deciding what they should do, so they are recorded
+ * here rather than silently tolerated.
+ *
+ * ✅ seller-ratings/seller/{sellerId} به SellerRatingController::getSellerRatings
+ * وصل شد (در پوش اخیر آپلود گروهی/مقایسه/ری‌فکتور ProductDetailPage) — طبق
+ * قانون همین تست، از این لیست حذف شد.
  *
  * The test fails if a *new* one appears, and also if an entry in the list is
  * fixed without being removed from it - so the list cannot rot.
@@ -26,7 +30,6 @@ class RouteActionsExistTest extends TestCase
      * Remove an entry once its action is implemented.
      */
     private const KNOWN_MISSING = [
-        'GET|HEAD api/v1/seller-ratings/seller/{sellerId}',
         'GET|HEAD api/v1/chat/conversations/{conversation}/suggestions',
         'POST api/v1/chat/conversations/{conversation}/suggest',
         'GET|HEAD api/v1/chat/conversations/{conversation}/sentiment',

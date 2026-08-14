@@ -29,9 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
-        // Middleware برای دسترسی ادمین
+        // Middleware برای دسترسی ادمین/فروشنده
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminRole::class,
+            'seller' => \App\Http\Middleware\EnsureSellerRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
