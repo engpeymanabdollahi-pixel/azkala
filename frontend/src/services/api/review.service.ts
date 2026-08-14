@@ -15,6 +15,11 @@ export interface Review {
   comment: string;
   rating: number;
   is_verified: boolean;
+  // ✅ این سه فیلد واقعاً توسط ReviewController::index() برگردانده می‌شوند
+  // ولی قبلاً در تایپ فرانت نبودند (باعث TS2339 در ReviewsTab.tsx می‌شدند).
+  is_pending: boolean;
+  is_own_review: boolean;
+  status: 'pending' | 'approved' | 'rejected';
   helpful_count: number;
   // ✅ پاسخ ادمین (که واقعاً در پنل مدیریت ثبت می‌شود) — قبلاً هیچ‌وقت از
   // بکند برنمی‌گشت، حالا با ReviewController::index() همراه می‌آید.

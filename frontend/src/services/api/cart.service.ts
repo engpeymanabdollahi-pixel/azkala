@@ -1,12 +1,5 @@
 import apiClient from './client';
-
-export interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image?: string;
-  [key: string]: unknown;
-}
+import type { Product } from '@/types/models';
 
 export interface ApiCartItem {
   id: number;

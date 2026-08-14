@@ -5,8 +5,12 @@ interface XLSXLibrary {
     json_to_sheet: (data: unknown[]) => unknown;
     book_new: () => unknown;
     book_append_sheet: (workbook: unknown, worksheet: unknown, sheetName: string) => void;
-    writeFile: (workbook: unknown, filename: string) => void;
   };
+  // ✅ در کتابخانه‌ی واقعی SheetJS (که این ماژول از CDN انتظارش را دارد)،
+  // writeFile یک متد top-level روی خودِ XLSX است، نه زیرمجموعه‌ی utils —
+  // قبلاً اشتباهاً داخل utils تعریف شده بود که باعث می‌شد فراخوانی واقعی
+  // آن در پایین (XLSX.writeFile) اصلاً با تایپ match نشود.
+  writeFile: (workbook: unknown, filename: string) => void;
 }
 
 declare const XLSX: XLSXLibrary | undefined;

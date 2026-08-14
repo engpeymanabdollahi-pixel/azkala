@@ -10,9 +10,11 @@ import {
   useDownloadBulkTemplate,
   useValidateBulkFile,
   useCommitBulkProducts,
-  type BulkValidateResponse,
-  type BulkValidateRow,
 } from '@/hooks/api/useBulkProductUpload';
+// ✅ این دو تایپ واقعاً در sellerBulkProduct.service.ts export می‌شوند، نه
+// در useBulkProductUpload.ts (که فقط برای استفاده‌ی داخلی خودش ایمپورت
+// می‌کرد و دوباره export نمی‌کرد).
+import type { BulkValidateResponse } from '@/services/sellerBulkProduct.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 

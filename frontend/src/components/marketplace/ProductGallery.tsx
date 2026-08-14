@@ -12,7 +12,6 @@ interface ProductGalleryProps {
   className?: string;
    /** Priority loading برای اولین تصویر (LCP) */
   priority?: boolean;
-  className?: string;
 }
 
 /**

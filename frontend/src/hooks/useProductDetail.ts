@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, type Dispatch, type SetStateAction } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/store/cartStore';
@@ -7,14 +7,17 @@ import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
 import { useCompareStore } from '@/store/compareStore';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
-import { useChatStore } from '@/store/chatStore';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
 import type { Product, PhoneModel } from '@/types/models';
 import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 
-export type TabType = 'description' | 'specifications' | 'reviews';
+// ✅ 'compatibility' قبلاً اینجا نبود در حالی که ProductDetailPage.tsx واقعاً
+// چنین تبی دارد و یک نسخه‌ی محلی و ناهماهنگ از TabType (با as TabType
+// دستی) برای دور زدن تایپ درست تعریف کرده بود — یعنی تشخیص typo در آیدی
+// تب‌ها عملاً غیرفعال بود.
+export type TabType = 'description' | 'specifications' | 'compatibility' | 'reviews';
 
 export interface ReviewForm {
   rating: number;
@@ -77,9 +80,12 @@ export interface UseProductDetailReturn {
   setActiveTab: (tab: TabType) => void;
   setIsZoomed: (zoomed: boolean) => void;
   setShowReviewForm: (show: boolean) => void;
-  setReviewForm: (form: ReviewForm) => void;
+  // ✅ ست‌کننده‌های واقعی زیرین useState هستند (نه توابع ساده) — ReviewsTab.tsx
+  // هم واقعاً از فرم updater استفاده می‌کند (مثل setReviewForm(prev => ...))،
+  // پس تایپ باید Dispatch<SetStateAction<T>> باشد، نه (value: T) => void.
+  setReviewForm: Dispatch<SetStateAction<ReviewForm>>;
   setHoverRating: (rating: number) => void;
-  setReviewsPage: (page: number) => void;
+  setReviewsPage: Dispatch<SetStateAction<number>>;
   setReviewFilter: (filter: number | 'all') => void;
   handleAddToCart: () => void;
   handleQuickBuy: () => void;
@@ -95,7 +101,9 @@ export function useProductDetail(): UseProductDetailReturn {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
   const openAuthModal = useAuthModalStore((state) => state.open);
-  const { openChat, startConversation } = useChatStore();
+  // ✅ فراخوانی مرده‌ی useChatStore حذف شد — هیچ‌جای این هوک از
+  // openChat/startConversation استفاده نمی‌کرد؛ نسخه‌ی واقعی و متصل‌شده‌ی
+  // این قابلیت مستقیماً در ProductDetailPage.tsx است.
   const { addItem } = useCartStore();
   const { selectedModel } = useModelStore();
   const { toggleWishlist, isInWishlist } = useWishlistApi();

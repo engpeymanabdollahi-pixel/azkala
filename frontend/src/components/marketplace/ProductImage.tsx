@@ -92,8 +92,10 @@ export function ProductImage({
               {discountPercent}٪
             </Badge>
           )}
+          {/* ✅ variant «info» در Badge وجود ندارد (باعث می‌شد این بج بدون
+              هیچ رنگی رندر شود) — با «جدید» در ProductCard.tsx هماهنگ شد. */}
           {isNew && (
-            <Badge variant="info" size="sm" className="text-[10px] shadow-lg font-black">
+            <Badge variant="success" size="sm" className="text-[10px] shadow-lg font-black">
               <Sparkles className="w-3 h-3 ml-0.5" />
               جدید
             </Badge>

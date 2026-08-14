@@ -231,7 +231,7 @@ className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[65] an
                       رایگان
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="gap-1">
+                    <Badge variant="gray" className="gap-1">
                       <Truck className="h-3 w-3" />
                       محاسبه در پرداخت
                     </Badge>

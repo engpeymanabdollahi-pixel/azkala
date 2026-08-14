@@ -2,6 +2,14 @@
 
 import { logger } from '@/utils/logger';
 
+// ✅ webkitAudioContext پیشوند مخصوص Safari/iOS برای AudioContext است —
+// نه TypeScript DOM lib و نه Window استاندارد آن را می‌شناسند.
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 // صدای اعلان با Web Audio API (بدون نیاز به فایل صوتی)
 export const playNotificationSound = () => {
   try {

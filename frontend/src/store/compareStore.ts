@@ -24,7 +24,10 @@ export interface CompareProduct {
   main_image?: string;
   rating?: number;
   reviews_count?: number;
-  specifications?: Record<string, string>;
+  // ✅ مثل Product.specifications در types/models.ts این هم ستون JSON آزاد
+  // بک‌اند است (رشته، عدد، بولین یا حتی تو در تو) — نه فقط رشته. مصرف‌کننده‌ها
+  // (ComparePage.tsx) فقط با !== مقایسه و مستقیم رندر می‌کنند، پس unknown امن است.
+  specifications?: Record<string, unknown>;
   compatible_models?: Array<{
     id: number;
     name: string;

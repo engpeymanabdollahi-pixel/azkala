@@ -458,8 +458,10 @@ export function AdminUsersPage() {
                   pending_final: { color: 'accent', label: 'مدارک ارسال شده (بررسی نهایی)', bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' },
                   approved: { color: 'success', label: 'تایید شده و فعال', bg: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' },
                   rejected: { color: 'error', label: 'رد شده', bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
-                };
-                const config = statusConfig[request.status] || statusConfig.pending_initial;
+                  // ✅ بدون as const مقدار color به string عمومی widen می‌شد
+                  // و با یونیون variant واقعی Badge جور نبود.
+                } as const;
+                const config = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.pending_initial;
 
                 return (
                   <div key={request.id} className={cn("p-5 border rounded-xl transition-all", config.bg)}>
@@ -753,7 +755,9 @@ function SellerRequestDetailModal({
 
   // ✅ تابع کمکی برای تبدیل مسیر نسبی دیتابیس به آدرس کامل (فقط یک بار تعریف شده است)
   const getImageUrl = (path: string | null | undefined) => {
-    if (!path) return null;
+    // ✅ فقط در href/src استفاده می‌شود که string|undefined می‌خواهند نه
+    // string|null (تمام فراخوانی‌ها هم پشت `request.xxx_image ?` گارد شده‌اند).
+    if (!path) return undefined;
     if (path.startsWith('http')) return path;
     return `${STORAGE_URL}/${path}`;
   };

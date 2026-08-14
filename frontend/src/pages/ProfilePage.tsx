@@ -71,8 +71,12 @@ export function ProfilePage() {
       toast.success('اطلاعات با موفقیت به‌روزرسانی شد', { icon: '✅' });
     },
     onError: (error: any) => {
+      // ✅ Object.values روی یک آرگومان any، در این نسخه‌ی TS به‌جای any[]
+      // به unknown[] resolve می‌شود (overload بدون context قابل inference
+      // با T=unknown) — ایندکس دوم [0] روی unknown خطا می‌داد، هرچند در
+      // عمل هر دو ایندکس همیشه رشته‌ی خطای اعتبارسنجی لاراول هستند.
       const message = error.response?.data?.errors
-        ? Object.values(error.response.data.errors)[0][0]
+        ? (Object.values(error.response.data.errors)[0] as string[])[0]
         : 'خطا در به‌روزرسانی اطلاعات';
       toast.error(message);
     },

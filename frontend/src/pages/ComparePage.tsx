@@ -304,20 +304,26 @@ export default function ComparePage() {
 
             {/* ==================== ردیف: فروشنده ==================== */}
             <CompareRow label="فروشنده" icon={<Store className="w-4 h-4 text-warning-500" />} style={gridCols} striped>
-              {products.map((product) => (
+              {products.map((product) => {
+                // ✅ TS نمی‌تواند narrow شدن product.seller را داخل کلوژر
+                // onClick دنبال کند؛ یک ثابت محلی هم تایپ را درست می‌کند و
+                // هم از خواندن دوباره‌ی ملک تو در تو جلوگیری می‌کند.
+                const seller = product.seller;
+                return (
                 <div key={product.id} className="text-center">
-                  {product.seller ? (
+                  {seller ? (
                     <button
-                      onClick={() => navigate(`/seller/${product.seller.slug}`)}
+                      onClick={() => navigate(`/seller/${seller.slug}`)}
                       className="text-sm text-primary-600 dark:text-primary-400 font-medium hover:underline"
                     >
-                      {product.seller.shop_name}
+                      {seller.shop_name}
                     </button>
                   ) : (
                     <span className="text-gray-400 dark:text-gray-500">—</span>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </CompareRow>
 
             {/* ==================== ردیف: صرفه‌جویی ==================== */}
@@ -412,7 +418,7 @@ export default function ComparePage() {
                           className="p-3 border-r border-gray-100 dark:border-gray-700 last:border-r-0 flex items-center justify-center text-center"
                         >
                           {hasValue ? (
-                            <span className="text-xs text-gray-900 dark:text-gray-100">{value}</span>
+                            <span className="text-xs text-gray-900 dark:text-gray-100">{String(value)}</span>
                           ) : (
                             <span className="text-gray-300 dark:text-gray-600">—</span>
                           )}

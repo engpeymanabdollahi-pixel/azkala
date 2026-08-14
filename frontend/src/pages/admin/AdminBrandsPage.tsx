@@ -435,7 +435,7 @@ export function AdminBrandsPage() {
               <div>
                 <label className="text-xs text-gray-500 dark:text-gray-400">ویژه</label>
                 <div>
-                  <Badge variant={selectedBrand.is_featured ? 'accent' : 'secondary'}>
+                  <Badge variant={selectedBrand.is_featured ? 'accent' : 'gray'}>
                     {selectedBrand.is_featured ? 'ویژه' : 'معمولی'}
                   </Badge>
                 </div>

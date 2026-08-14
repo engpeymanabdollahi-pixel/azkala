@@ -35,8 +35,13 @@ export const shippingAddressSchema = z.object({
 
 export const checkoutFormSchema = z.object({
   shipping_address: shippingAddressSchema,
+  // ✅ zod نصب‌شده نسخه‌ی ۴ است — errorMap در z.enum حذف شده و به‌جایش error
+  // آمده. errorMap قدیمی چون فقط یک آبجکت params معمولی است (نه چیزی که
+  // zod در runtime آن را اعتبارسنجی کند)، بی‌صدا نادیده گرفته می‌شد و
+  // پیام سفارشی هرگز نمایش داده نمی‌شد — کاربر پیام پیش‌فرض عمومی zod را
+  // می‌دید، نه پیام فارسی واقعی.
   payment_method: z.enum(['online', 'wallet'], {
-    errorMap: () => ({ message: 'لطفاً روش پرداخت را انتخاب کنید' }),
+    error: 'لطفاً روش پرداخت را انتخاب کنید',
   }),
 });
 

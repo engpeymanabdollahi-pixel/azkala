@@ -2,7 +2,11 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
-interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+// ✅ عنصر واقعی زیرین یک <button> است، نه <input> — تایپ قبلی
+// (InputHTMLAttributes<HTMLInputElement>) باعث می‌شد رویدادهایی مثل
+// onClick/onMouseEnter با HTMLButtonElement که واقعاً روی آن spread
+// می‌شوند مطابقت نداشته باشند.
+interface CheckboxProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }

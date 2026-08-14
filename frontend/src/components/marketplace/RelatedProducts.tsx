@@ -89,14 +89,14 @@ export function RelatedProducts({
           `xl:grid-cols-${columns.desktop}`
         )}
       >
+        {/* ✅ showCompatibility/showSeller/showRating قبلاً اینجا پاس داده
+            می‌شدند ولی ProductCardProps چنین prop‌هایی اصلاً ندارد —
+            یعنی بی‌اثر بودند و فقط خطای TS تولید می‌کردند. */}
         {products.map((product, index) => (
           <ProductCard
             key={product.id}
             product={product}
             variant="grid"
-            showCompatibility={false}
-            showSeller={false}
-            showRating={true}
             onClick={() => navigate(`/products/${product.slug}`)}
             index={index}
           />

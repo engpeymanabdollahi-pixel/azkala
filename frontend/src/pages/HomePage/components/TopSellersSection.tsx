@@ -118,7 +118,7 @@ export function TopSellersSection() {
           {/* Left Scroll Indicator (Gradient + Arrow) */}
           {canScrollRight && (
             <button
-              onClick={() => scroll('left')}
+              onClick={() => scroll('next')}
               className="absolute left-0 top-0 bottom-0 w-20 flex items-center justify-start z-10 group"
               aria-label="نمایش فروشگاه‌های بیشتر"
             >
@@ -135,7 +135,7 @@ export function TopSellersSection() {
           {/* Right Scroll Indicator (اگر اسکرول به راست ممکن باشد) */}
           {canScrollLeft && (
             <button
-              onClick={() => scroll('right')}
+              onClick={() => scroll('prev')}
               className="absolute right-0 top-0 bottom-0 w-20 flex items-center justify-end z-10 group"
               aria-label="نمایش فروشگاه‌های قبلی"
             >
@@ -163,7 +163,9 @@ interface TopSellerCardProps {
 
 function TopSellerCard({ seller, index, onClick }: TopSellerCardProps) {
   const isVerified = !!seller.verified_at;
-  const shopName = seller.shop_name || seller.name || 'فروشگاه';
+  // ✅ SellerData (هماهنگ با PublicSellerResource) فیلدی به‌نام name ندارد،
+  // فقط shop_name — این fallback هیچ‌وقت واقعاً اجرا نمی‌شد.
+  const shopName = seller.shop_name || 'فروشگاه';
 
   // تولید gradient منحصربه‌فرد
   const gradients = [
@@ -177,7 +179,7 @@ function TopSellerCard({ seller, index, onClick }: TopSellerCardProps) {
     'from-accent-600 to-primary-500',
   ];
 
-  const hash = shopName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hash = shopName.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
   const gradient = gradients[hash % gradients.length];
   const firstLetter = shopName.trim()[0] || 'ف';
 

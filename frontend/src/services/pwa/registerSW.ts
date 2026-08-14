@@ -100,7 +100,12 @@ export function showLocalNotification(
     return;
   }
 
-  const defaultOptions: NotificationOptions = {
+  // ✅ vibrate یک فیلد واقعی و پشتیبانی‌شده (روی Chrome/Android) از
+  // NotificationOptions است که در تایپ‌های lib.dom.d.ts TypeScript
+  // (هنوز) وجود ندارد؛ برای همین این نوع محلی آن را اضافه می‌کند.
+  type NotificationOptionsWithVibrate = NotificationOptions & { vibrate?: number[] };
+
+  const defaultOptions: NotificationOptionsWithVibrate = {
     body,
     icon: '/icons/icon-192.svg',
     badge: '/icons/icon-192.svg',
@@ -151,7 +156,11 @@ export async function getServiceWorkerStatus(): Promise<{
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
-  userChoice?: Promise<{ outcome: string }>;
+  // ✅ طبق مشخصات مرورگر، userChoice همیشه روی این رویداد وجود دارد
+  // (اختیاری نیست) — علامت `?` قبلی باعث می‌شد TS تایپ را
+  // `{outcome:string} | undefined` ببیند و destructure کردن مستقیم
+  // `{ outcome }` را رد کند.
+  userChoice: Promise<{ outcome: string }>;
 }
 
 let deferredPrompt: BeforeInstallPromptEvent | null = null;

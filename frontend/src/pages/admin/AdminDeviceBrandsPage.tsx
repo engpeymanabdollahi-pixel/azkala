@@ -106,7 +106,7 @@ export function AdminDeviceBrandsPage() {
       render: (value) => {
         const Icon = typeIcons[value] || Smartphone;
         return (
-          <Badge variant="secondary" size="sm">
+          <Badge variant="gray" size="sm">
             <Icon className="w-3 h-3 ml-1" />
             {typeLabels[value] || value}
           </Badge>

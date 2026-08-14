@@ -33,11 +33,13 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
 import { useChatStore } from '@/store/chatStore';
-import { useProductDetail } from '@/hooks/useProductDetail';
+import { useProductDetail, type TabType } from '@/hooks/useProductDetail';
 import { ProductAlertButton } from '@/components/features/ProductAlertButton';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { lazy } from 'react';
+// ✅ Suspense قبلاً ایمپورت نشده بود ولی پایین‌تر مستقیم استفاده می‌شد —
+// یعنی با هر کلیک روی تب «نظرات» صفحه با ReferenceError کرش می‌کرد.
+import { lazy, Suspense } from 'react';
 import { 
   ProductCard, 
   ProductGallery, 
@@ -62,8 +64,6 @@ import toast from 'react-hot-toast';
 // ReviewsTab فقط وقتی کاربر روی تب "نظرات" کلیک کند بارگذاری می‌شود
 const ReviewsTab = lazy(() => import('./product-detail/ReviewsTab'));
 const ReviewsSkeleton = lazy(() => import('./product-detail/ReviewsSkeleton'));
-
-type TabType = 'description' | 'specifications' | 'compatibility' | 'reviews';
 
 export function ProductDetailPage() {
   const { isAuthenticated } = useAuthStore();
@@ -549,7 +549,11 @@ export function ProductDetailPage() {
                     {Object.entries(product.specifications).map(([key, value], idx) => (
                       <tr key={key} className={cn('border-b border-gray-100 dark:border-gray-700 last:border-0', idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50/50 dark:bg-gray-900/50')}>
                         <td className="py-2 px-3 text-gray-500 dark:text-gray-400 font-semibold w-1/3 font-sans">{key}</td>
-                        <td className="py-2 px-3 text-gray-900 dark:text-gray-100 font-medium font-sans">{value}</td>
+                        {/* ✅ specifications یک ستون JSON آزاد است (Record<string, unknown>)؛
+                            String(...) هم خطای تایپ ReactNode را رفع می‌کند و هم واقعاً
+                            جلوی کرش «Objects are not valid as a React child» را می‌گیرد
+                            اگر مقداری آبجکت/آرایه باشد. */}
+                        <td className="py-2 px-3 text-gray-900 dark:text-gray-100 font-medium font-sans">{String(value)}</td>
                       </tr>
                     ))}
                   </tbody>

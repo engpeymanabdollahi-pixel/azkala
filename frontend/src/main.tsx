@@ -20,7 +20,12 @@ const queryClient = new QueryClient({
 });
 
 // ✅ کامپوننت ساده برای نمایش خطا
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+// FallbackProps واقعی react-error-boundary، error را unknown تایپ می‌کند
+// (نه Error) — چون هر چیزی می‌تواند throw شود (رشته، آبجکت ساده و...)،
+// نه فقط یک نمونه‌ی واقعی Error؛ فرض قبلی «error: Error» برای این
+// ErrorBoundary سراسری (که هر خطای catch‌نشده‌ای را می‌گیرد) نادرست بود.
+function ErrorFallback({ error, resetErrorBoundary }: { error: unknown; resetErrorBoundary: () => void }) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4" dir="rtl">
       <div className="text-center max-w-md bg-white p-8 rounded-2xl shadow-xl">
@@ -29,7 +34,7 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
         <p className="text-gray-600 mb-6">متأسفانه خطای غیرمنتظره‌ای رخ داد. لطفاً صفحه را دوباره بارگذاری کنید.</p>
         <details className="text-right text-xs text-gray-500 mb-6 bg-gray-100 p-3 rounded-lg">
           <summary className="cursor-pointer font-semibold mb-2">جزئیات فنی خطا</summary>
-          <pre className="whitespace-pre-wrap">{error.message}</pre>
+          <pre className="whitespace-pre-wrap">{errorMessage}</pre>
         </details>
         <button
           onClick={resetErrorBoundary}

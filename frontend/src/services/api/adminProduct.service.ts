@@ -7,11 +7,10 @@ export interface AdminProduct extends Product {
   is_active: boolean;
   is_featured: boolean;
   is_special_offer: boolean;
-  seller?: {
-    id: number;
-    name: string;
-    shop_name: string;
-  };
+  // ✅ override محلی seller قبلاً یک شکل جعلی و ناقص (id/name/shop_name)
+  // داشت که با Seller واقعی (از Product ارثی) ناسازگار بود (TS2430) —
+  // تنها فیلدی که واقعاً در AdminProductsPage.tsx خوانده می‌شود
+  // shop_name است که در Seller واقعی هم هست، پس نیازی به override نیست.
   performance_score: number;
 }
 

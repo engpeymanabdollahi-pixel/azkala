@@ -12,7 +12,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
-import type { Product } from '@/types/models';
+// ✅ این صفحه واقعاً از sellerProduct.service.ts (endpoint فروشنده) داده
+// می‌گیرد که price/discount_price را رشته برمی‌گرداند (cast مدل به
+// decimal:4 در بک‌اند، نه ProductResource که float می‌کند) — کد همین‌جا هم
+// همه‌جا با parseFloat(product.price) درست این را فرض می‌کند. قبلاً
+// state این تب با Product کانونیک (price: number) از types/models
+// تایپ شده بود که با داده‌ی واقعی این صفحه ناسازگار بود.
+import type { Product } from '@/services/sellerProduct.service';
 import toast from 'react-hot-toast';
 import { useSellerProducts, useDeleteProduct } from '@/hooks/api/useSellerProducts';
 import { ProductFormModal } from './ProductFormModal'; 
