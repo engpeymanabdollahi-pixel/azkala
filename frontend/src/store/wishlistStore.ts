@@ -42,8 +42,16 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       removeItem: (productId) => {
+        // ✅ برخلاف addItem که قبل از set یک چک «آیا از قبل هست» دارد،
+        // removeItem بدون قید و شرط هم set و هم syncToApi را صدا می‌زد —
+        // یعنی دوبار کلیک سریع روی دکمه‌ی حذف (مثلاً در WishlistPage.tsx)
+        // دو درخواست DELETE برای همان محصول می‌فرستاد (دومی بی‌فایده، فقط
+        // بار اضافه‌ی شبکه/سرور، حتی اگر خطایش دیده نشود).
+        const wasPresent = get().items.some((item) => item.id === productId);
+        if (!wasPresent) return;
+
         set({ items: get().items.filter((item) => item.id !== productId) });
-        
+
         const isAuthenticated = useAuthStore.getState().isAuthenticated;
         if (isAuthenticated) {
           get().syncToApi('remove', productId).catch(console.error);

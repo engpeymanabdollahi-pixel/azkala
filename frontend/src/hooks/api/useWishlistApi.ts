@@ -182,7 +182,19 @@ export function useWishlistApi() {
   // هر دو بار همان جهت (مثلاً هر دو add، یا هر دو remove) را می‌دیدند و دو
   // درخواست همزمان به سرور می‌فرستادند (یکی موفق، دومی 409/404). حالا مستقیم
   // از cache زنده‌ی queryClient خوانده می‌شود که همیشه به‌روز است.
+  // ✅ گارد pending: خواندن زنده از queryClient پنجره‌ی race را کوچک می‌کرد
+  // ولی حذفش نمی‌کرد — onMutate با `await queryClient.cancelQueries(...)`
+  // شروع می‌شود که خودش async است، یعنی بین فراخوانی .mutate() و واقعاً
+  // نوشته‌شدن optimistic update در cache یک فاصله‌ی زمانی واقعی هست. دو کلیک
+  // سریع در همین فاصله می‌توانستند هر دو .mutate() را با یک جهت صدا بزنند.
+  // isPending یک mutation در React Query به‌محض فراخوانی mutate()،
+  // synchronous true می‌شود (نه بعد از resolve شدن onMutate)، پس این چک
+  // همیشه کلیک دوم را قبل از رسیدن به شبکه متوقف می‌کند.
   const toggleWishlist = (product: Product) => {
+    if (addToWishlistMutation.isPending || removeFromWishlistMutation.isPending) {
+      return;
+    }
+
     const currentWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || wishlistItems;
     const isInWishlist = currentWishlist.some((item) => item.id === product.id);
 
