@@ -10,6 +10,9 @@ interface ProductGalleryProps {
   discountPercent?: number;
   inStock: boolean;
   className?: string;
+   /** Priority loading برای اولین تصویر (LCP) */
+  priority?: boolean;
+  className?: string;
 }
 
 /**
@@ -28,6 +31,7 @@ export function ProductGallery({
   productName,
   discountPercent = 0,
   inStock,
+  priority = true, // ✅ اولین تصویر در صفحه محصول باید priority باشد
   className,
 }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
@@ -64,16 +68,20 @@ export function ProductGallery({
       >
         <div className="aspect-square relative overflow-hidden">
           <SafeImage
-            src={images[selectedImage]}
-            alt={productName}
-            className={cn(
-              'w-full h-full object-contain p-4 transition-transform duration-300',
-              isZoomed && 'scale-150'
-            )}
-            style={isZoomed ? { transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%` } : {}}
-            fallbackEmoji="📦"
-            showEmojiOnError={true}
-          />
+  src={images[selectedImage]}
+  alt={productName}
+  className={cn(
+    'w-full h-full object-contain p-4 transition-transform duration-300',
+    isZoomed && 'scale-150'
+  )}
+  style={isZoomed ? { transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%` } : {}}
+  fallbackEmoji="📦"
+  showEmojiOnError={true}
+  priority={priority && selectedImage === 0}
+  width={800}
+  height={800}
+  blurPlaceholder={true}
+/>
 
           {/* Discount Badge */}
           {discountPercent > 0 && (

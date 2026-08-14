@@ -5,6 +5,7 @@ import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { useCompareStore } from '@/store/compareStore';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { ProductImage } from '@/components/marketplace/ProductImage';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { formatPrice } from '@/utils/format';
 import type { Product } from '@/types/models';
@@ -159,13 +160,17 @@ export const ProductCard = memo(function ProductCard({
         onKeyDown={(e) => e.key === 'Enter' && handleCardClick()}
       >
         <div className="relative w-32 h-32 flex-shrink-0 bg-gray-50 dark:bg-gray-700 overflow-hidden">
-          <SafeImage
-            src={product.main_image}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            fallbackEmoji="📦"
-            showEmojiOnError
-          />
+          <ProductImage
+  src={product.main_image}
+  alt={product.name}
+  variant="grid"
+  discountPercent={discountPercent}
+  isNew={product.is_new}
+  isBestseller={product.is_bestseller}
+  priority={index < 4}
+  width={400}
+  height={400}
+/>
           {discountPercent > 0 && (
             <div className="absolute top-1 right-1 animate-in fade-in zoom-in duration-300">
               <Badge variant="error" className="text-xs px-1.5 py-0.5 shadow-lg">

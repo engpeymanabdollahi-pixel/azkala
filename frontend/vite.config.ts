@@ -66,22 +66,29 @@ export default defineConfig(({ mode }) => {
         assetFileNames: 'assets/[name]-[hash].[ext]',
         
         // تقسیم دستی dependencies به chunk های جداگانه
-        manualChunks: {
-          // React Core
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          
-          // State Management
-          'vendor-state': ['zustand', '@tanstack/react-query'],
-          
-          // UI Libraries
-          'vendor-ui': ['lucide-react', 'react-hot-toast', 'swiper'],
-          
-          // Forms
-          'vendor-forms': ['react-hook-form', 'zod', '@hookform/resolvers'],
-          
-          // Utils
-          'vendor-utils': ['axios', 'date-fns', 'clsx', 'tailwind-merge'],
-        },
+// بهینه‌سازی برای caching بهتر و parallel download
+manualChunks: {
+  // React Core
+  'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+  // State Management
+  'vendor-state': ['zustand', '@tanstack/react-query'],
+
+  // Icons (جدا از UI برای caching بهتر - چون تغییر نمی‌کند)
+  'vendor-icons': ['lucide-react'],
+
+  // UI Libraries (بدون lucide)
+  'vendor-ui': ['react-hot-toast', 'swiper'],
+
+  // SEO
+  'vendor-seo': ['react-helmet-async'],
+
+  // Forms
+  'vendor-forms': ['react-hook-form', 'zod', '@hookform/resolvers'],
+
+  // Utils
+  'vendor-utils': ['axios', 'date-fns', 'clsx', 'tailwind-merge'],
+},
       },
     },
     
