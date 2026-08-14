@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\AdminReportController;
 use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AdminSettingController;
 // فروشنده
+use App\Http\Controllers\Api\AdminCommissionController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BrandController;
@@ -571,6 +572,22 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->name('initial-approve');
                 Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->name('final-approve');
                 Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->name('reject');
+
+                // 💹 سیستم کمیسیون هوشمند — امتیاز عملکرد و override هر فروشنده
+                // ✅ {user:id} صریح لازم است چون User::getRouteKeyName() برای
+                // مسیرهای عمومی «slug» برمی‌گرداند — بدون این، implicit
+                // binding سعی می‌کند کاربر را با slug پیدا کند (نه id) و برای
+                // فروشنده‌ی بدون slug همیشه ۴۰۴ می‌داد.
+                Route::get('/{user:id}/commission', [AdminCommissionController::class, 'sellerInfo'])->name('commission.show');
+                Route::put('/{user:id}/commission-override', [AdminCommissionController::class, 'setSellerOverride'])->name('commission.override');
+            });
+
+            // 💹 قوانین کمیسیون (بازه‌ی امتیاز → سطح → نرخ) — سراسری، نه مخصوص یک فروشنده
+            Route::prefix('commission-rules')->name('commission-rules.')->group(function () {
+                Route::get('/', [AdminCommissionController::class, 'rules'])->name('index');
+                Route::post('/', [AdminCommissionController::class, 'storeRule'])->name('store');
+                Route::put('/{id}', [AdminCommissionController::class, 'updateRule'])->name('update');
+                Route::delete('/{id}', [AdminCommissionController::class, 'destroyRule'])->name('destroy');
             });
 
             Route::prefix('categories')->name('categories.')->group(function () {

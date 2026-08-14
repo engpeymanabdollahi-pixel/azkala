@@ -117,6 +117,15 @@ class User extends Authenticatable
         return $this->hasOne(SellerRequest::class);
     }
 
+    /**
+     * آخرین اسنپ‌شات محاسبه‌شده‌ی امتیاز عملکرد — توسط
+     * SellerPerformanceService نوشته می‌شود، نه به‌صورت مستقیم توسط کاربر.
+     */
+    public function performanceScore()
+    {
+        return $this->hasOne(SellerPerformanceScore::class, 'seller_id');
+    }
+
     // Relations جدید
     public function sellerRatings()
     {

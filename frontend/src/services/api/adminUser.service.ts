@@ -83,6 +83,41 @@ export interface SellerRequestsResponse {
   message?: string;
 }
 
+export interface SellerCommissionInfo {
+  seller_id: number;
+  override_rate: number | null;
+  current_rate: number;
+  current_source: 'override' | 'score_rule' | 'default';
+  current_level: string | null;
+  score: {
+    value: number;
+    level: string | null;
+    is_new_seller: boolean;
+    calculated_at: string | null;
+    breakdown: {
+      rating: number;
+      success_rate: number;
+      cancellation: number;
+      quality: number;
+      reliability: number;
+    };
+    total_orders: number;
+    successful_orders: number;
+    cancelled_orders: number;
+  };
+}
+
+export interface CommissionRule {
+  id: number;
+  level: string;
+  label: string;
+  min_score: string | number;
+  max_score: string | number | null;
+  commission_rate: string | number;
+  is_active: boolean;
+  sort_order: number;
+}
+
 export interface UserFilters {
   search?: string;
   role?: string;
@@ -149,6 +184,27 @@ export const adminUserService = {
 
   async finalApproveRequest(id: number) {
     const response = await client.post(`/admin/users/${id}/final-approve`);
+    return response.data;
+  },
+
+  // 💹 سیستم کمیسیون هوشمند
+  async getSellerCommission(id: number): Promise<{ success: boolean; data: SellerCommissionInfo }> {
+    const response = await client.get(`/admin/users/${id}/commission`);
+    return response.data;
+  },
+
+  async setSellerCommissionOverride(id: number, rate: number | null) {
+    const response = await client.put(`/admin/users/${id}/commission-override`, { rate });
+    return response.data;
+  },
+
+  async getCommissionRules(): Promise<{ success: boolean; data: CommissionRule[] }> {
+    const response = await client.get('/admin/commission-rules');
+    return response.data;
+  },
+
+  async updateCommissionRule(id: number, data: Partial<Pick<CommissionRule, 'label' | 'min_score' | 'max_score' | 'commission_rate' | 'is_active'>>) {
+    const response = await client.put(`/admin/commission-rules/${id}`, data);
     return response.data;
   },
 };

@@ -7,7 +7,7 @@ import {
   CheckCircle, XCircle, UserCheck, Clock,
   MessageSquare, FileText,
   Crown, Medal, Gem, Smile, Meh, Frown, Flag,
-  Hash, CreditCard,
+  Hash, CreditCard, Percent, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -721,11 +721,143 @@ function UserDetailModal({ user, onClose }: { user: AdminUser; onClose: () => vo
               />
             )}
           </div>
+
+          {/* 💹 سیستم کمیسیون هوشمند: امتیاز عملکرد، سطح، نرخ فعلی و override دستی */}
+          {user.role === 'seller' && <SellerCommissionSection sellerId={user.id} />}
         </div>
         <div className="flex items-center justify-end gap-2 p-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
           <Button variant="outline" onClick={onClose}>بستن</Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * ✅ بخش جدید: نمایش امتیاز عملکرد/سطح/نرخ فعلی کمیسیون یک فروشنده، و
+ * فرم تنظیم/پاک‌کردن override دستی. قبلاً هیچ نشانه‌ای از نرخ واقعی
+ * کمیسیون یا امتیاز عملکرد در پنل ادمین دیده نمی‌شد — نرخ هاردکد ۵٪ در
+ * بک‌اند بود و هیچ ادمینی راهی برای دیدن/تغییرش نداشت.
+ */
+function SellerCommissionSection({ sellerId }: { sellerId: number }) {
+  const queryClient = useQueryClient();
+  const [overrideInput, setOverrideInput] = useState('');
+  const [isEditingOverride, setIsEditingOverride] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'seller-commission', sellerId],
+    queryFn: () => adminUserService.getSellerCommission(sellerId),
+  });
+
+  const overrideMutation = useMutation({
+    mutationFn: (rate: number | null) => adminUserService.setSellerCommissionOverride(sellerId, rate),
+    onSuccess: () => {
+      toast.success('کمیسیون فروشنده به‌روزرسانی شد');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'seller-commission', sellerId] });
+      setIsEditingOverride(false);
+    },
+    onError: () => toast.error('خطا در ثبت کمیسیون'),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6 text-gray-400">
+        <Loader2 className="w-5 h-5 animate-spin" />
+      </div>
+    );
+  }
+
+  const info = data?.data;
+  if (!info) return null;
+
+  const sourceLabel = {
+    override: 'Override دستی',
+    score_rule: 'بر اساس امتیاز عملکرد',
+    default: 'نرخ پیش‌فرض',
+  }[info.current_source];
+
+  return (
+    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+      <h4 className="text-sm font-black text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+        <Percent className="w-4 h-4 text-primary-600" /> سیستم کمیسیون هوشمند
+      </h4>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <InfoCard label="نرخ کمیسیون فعلی" value={`${info.current_rate}%`} />
+        <InfoCard label="منبع نرخ" value={sourceLabel} />
+        <InfoCard label="امتیاز عملکرد" value={info.score.is_new_seller ? 'فروشنده جدید' : info.score.value.toFixed(1)} />
+        <InfoCard label="سطح" value={info.current_level ? getBadgeInfo(info.current_level).label : '—'} />
+      </div>
+
+      {!info.score.is_new_seller && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+          <MiniStat label="رتبه مشتریان" value={info.score.breakdown.rating} />
+          <MiniStat label="نرخ موفقیت" value={info.score.breakdown.success_rate} />
+          <MiniStat label="عدم لغو" value={info.score.breakdown.cancellation} />
+          <MiniStat label="کیفیت" value={info.score.breakdown.quality} />
+          <MiniStat label="قابلیت‌اطمینان" value={info.score.breakdown.reliability} />
+        </div>
+      )}
+
+      <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+        {!isEditingOverride ? (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {info.override_rate !== null
+                ? `Override دستی فعال: ${info.override_rate}%`
+                : 'بدون Override — نرخ بر اساس امتیاز عملکرد محاسبه می‌شود.'}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setOverrideInput(info.override_rate !== null ? String(info.override_rate) : ''); setIsEditingOverride(true); }}
+            >
+              تنظیم Override
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step="0.1"
+              value={overrideInput}
+              onChange={(e) => setOverrideInput(e.target.value)}
+              placeholder="مثلاً 3.5"
+              className="w-28 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:border-primary-500"
+            />
+            <Button
+              size="sm"
+              variant="default"
+              disabled={overrideMutation.isPending}
+              onClick={() => overrideMutation.mutate(overrideInput === '' ? null : parseFloat(overrideInput))}
+            >
+              ذخیره
+            </Button>
+            {info.override_rate !== null && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={overrideMutation.isPending}
+                onClick={() => overrideMutation.mutate(null)}
+              >
+                پاک‌کردن Override
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={() => setIsEditingOverride(false)}>انصراف</Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 text-center">
+      <p className="text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="font-bold text-gray-900 dark:text-gray-100">{value.toFixed(0)}</p>
     </div>
   );
 }

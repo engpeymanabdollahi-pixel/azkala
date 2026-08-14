@@ -4,7 +4,7 @@ import {
   Settings, Search, Save, Lock, Unlock, History, Download, Upload,
   RefreshCw, AlertTriangle, X, Eye, EyeOff,
   Globe, CreditCard, Truck, Percent, Bell, FileText, Server,
-  Clock, Shield, TestTube, Megaphone,
+  Clock, Shield, TestTube, Megaphone, Award,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,7 @@ import { STORAGE_URL } from '@/lib/apiConfig';
 import type { AxiosError } from 'axios';
 
 // ==================== Types ====================
-type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'notifications' | 'legal' | 'marketing' | 'system' | 'history';
+type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'commission' | 'notifications' | 'legal' | 'marketing' | 'system' | 'history';
 
 interface TabConfig {
   id: TabType;
@@ -32,6 +32,10 @@ const TABS: TabConfig[] = [
   { id: 'payment', label: 'پرداخت', icon: CreditCard },
   { id: 'shipping', label: 'ارسال', icon: Truck },
   { id: 'tax', label: 'مالیات', icon: Percent },
+  // ✅ وزن‌ها/thresholdهای سیستم کمیسیون هوشمند فروشندگان (بازه‌ی
+  // امتیاز→سطح→نرخ خودش در صفحه‌ی «کاربران» → جزئیات فروشنده مدیریت
+  // می‌شود، نه اینجا — این تب فقط پارامترهای محاسبه‌ی Score است).
+  { id: 'commission', label: 'کمیسیون فروشندگان', icon: Award },
   { id: 'notifications', label: 'اطلاع‌رسانی', icon: Bell },
   { id: 'legal', label: 'قوانین', icon: FileText },
   // ✅ گروه marketing (نوار اطلاع‌رسانی بالای هدر) قبلاً هیچ تبی نداشت —

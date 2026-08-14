@@ -14,10 +14,18 @@ class SellerTransaction extends Model
         'amount',
         'description',
         'status',
+        'commission_deducted',
+        // ✅ ستون‌های جدید سیستم کمیسیون هوشمند (رجوع به مایگریشن
+        // add_commission_audit_fields_to_seller_transactions_table) — بدون
+        // اضافه‌شدن به fillable، create() آن‌ها را بی‌صدا نادیده می‌گرفت.
+        'commission_rate',
+        'commission_source',
+        'seller_level',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'commission_rate' => 'decimal:2',
     ];
 
     /**

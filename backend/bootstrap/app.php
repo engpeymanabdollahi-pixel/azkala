@@ -87,6 +87,15 @@ return Application::configure(basePath: dirname(__DIR__))
                  ->name('fetch-persian-news')
                  ->evenInMaintenanceMode();  // حتی در حالت maintenance هم اجرا شود
         
+        // بازمحاسبه‌ی امتیاز عملکرد فروشندگان (سیستم کمیسیون هوشمند) - هر روز ساعت ۲ بامداد
+        // فقط برای تازه‌نگه‌داشتن اسنپ‌شات نمایشی پنل ادمین است؛ CommissionService
+        // هر تسویه‌ی واقعی را خودش زنده محاسبه می‌کند (رجوع به کامنت خودِ command).
+        $schedule->command('app:recalculate-seller-scores')
+                 ->dailyAt('02:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->name('recalculate-seller-scores');
+
         // پاکسازی مقالات قدیمی (اختیاری) - هر روز ساعت ۳ صبح
         // $schedule->call(function () {
         //     \App\Models\MagazineArticle::where('published_at', '<', now()->subDays(90))

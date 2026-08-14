@@ -5,6 +5,8 @@ namespace Tests\Unit\Services;
 use App\Models\Order;
 use App\Repositories\AdminOrderRepository;
 use App\Services\Admin\AdminOrderService;
+use App\Services\Commission\CommissionService;
+use App\Services\Seller\SellerPerformanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +22,13 @@ class AdminOrderServiceTest extends TestCase
     {
         parent::setUp();
         $this->repository = new AdminOrderRepository;
-        $this->service = new AdminOrderService($this->repository);
+        // ✅ سازنده‌ی AdminOrderService حالا به CommissionService هم نیاز
+        // دارد (سیستم کمیسیون هوشمند فروشندگان) — قبلاً نرخ کمیسیون هاردکد
+        // ۵٪ بود و هیچ وابستگی‌ای لازم نداشت.
+        $this->service = new AdminOrderService(
+            $this->repository,
+            new CommissionService(new SellerPerformanceService)
+        );
     }
 
     // ==================== getOrders Tests ====================

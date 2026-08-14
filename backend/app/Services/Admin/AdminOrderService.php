@@ -3,7 +3,9 @@
 namespace App\Services\Admin;
 
 use App\Models\Order;
+use App\Models\SellerTransaction;
 use App\Repositories\AdminOrderRepository;
+use App\Services\Commission\CommissionService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -11,8 +13,10 @@ class AdminOrderService
 {
     protected AdminOrderRepository $repository;
 
-    public function __construct(AdminOrderRepository $repository)
-    {
+    public function __construct(
+        AdminOrderRepository $repository,
+        protected CommissionService $commissionService
+    ) {
         $this->repository = $repository;
     }
 
@@ -241,49 +245,104 @@ class AdminOrderService
     }
 
     // ==========================================================
-    // ✨ متد جدید: پردازش تسویه حساب و کسر کمیسیون پلتفرم
+    // ✨ پردازش تسویه حساب و کسر کمیسیون پلتفرم — سیستم کمیسیون هوشمند
     // ==========================================================
+    /**
+     * نرخ کمیسیون دیگر هاردکد ۵٪ نیست: از CommissionService خوانده می‌شود
+     * که خودش اول override واقعی فروشنده را چک می‌کند، وگرنه بر اساس
+     * Seller Score و Commission Rule فعلی تصمیم می‌گیرد (معماری کامل در
+     * App\Services\Commission\CommissionService و
+     * App\Services\Seller\SellerPerformanceService).
+     *
+     * نرخ/منبع/سطحِ واقعاً اعمال‌شده روی خودِ seller_transactions ثبت
+     * می‌شود (ستون‌های commission_rate/commission_source/seller_level) تا
+     * این تسویه‌ی خاص، حتی اگر بعداً Rule یا Score عوض شود، قابل توضیح
+     * بماند — تسویه‌های قبلی هرگز دوباره محاسبه نمی‌شوند.
+     *
+     * ✅ رفع باگ واقعی: قبلاً type ثبت‌شده 'order_payout' بود که در
+     * CHECK constraint واقعی ستون type (enum) وجود نداشت — یعنی هر بار این
+     * متد اجرا می‌شد، INSERT با Integrity constraint violation شکست
+     * می‌خورد، کل تراکنش rollback می‌شد، wallet_balance هرگز واقعاً افزایش
+     * نمی‌یافت و seller_transactions هرگز واقعاً ثبت نمی‌شد — فقط چون
+     * catch بیرونی خطا را بی‌صدا لاگ می‌کرد (و به عمد throw نمی‌کرد تا
+     * تغییر وضعیت سفارش مختل نشود)، این هیچ‌وقت به سطح کاربر/ادمین به شکل
+     * خطای قابل‌مشاهده نمی‌رسید. الان از مقدار معتبر enum ('payout')
+     * استفاده می‌شود.
+     *
+     * ✅ Race condition: قفل ردیف سفارش (lockForUpdate) + بررسی
+     * idempotency (آیا برای همین سفارش/فروشنده قبلاً payout ثبت شده) با
+     * هم تضمین می‌کنند که دو درخواست هم‌زمان (مثلاً دوبار کلیک سریع روی
+     * «تحویل شد») هرگز باعث دو بار افزایش wallet_balance یا دو ردیف
+     * seller_transactions تکراری نشوند.
+     */
     protected function processSellerPayouts(Order $order): void
     {
-        // نرخ کمیسیون پلتفرم (پیش‌فرض ۵ درصد). می‌توانید این عدد را از تنظیمات بخوانید.
-        $commissionRate = 5; 
-
-        // گروه‌بندی آیتم‌های سفارش بر اساس فروشنده
-        $sellerItems = $order->items->groupBy('seller_id');
-
         DB::beginTransaction();
         try {
+            // قفل ردیف سفارش تا پایان تراکنش — درخواست هم‌زمان دوم تا
+            // commit همین تراکنش صبر می‌کند، بعد idempotency check زیر آن
+            // را متوقف می‌کند.
+            $lockedOrder = Order::whereKey($order->id)->lockForUpdate()->first();
+            if (! $lockedOrder) {
+                DB::rollBack();
+                return;
+            }
+
+            $sellerItems = $order->items->groupBy('seller_id');
+
             foreach ($sellerItems as $sellerId => $items) {
                 // اگر آیتم متعلق به خود پلتفرم است (seller_id ندارد)، از محاسبات رد می‌شود
-                if (!$sellerId) continue;
+                if (! $sellerId) {
+                    continue;
+                }
 
-                // ۱. محاسبه مبلغ کل این فروشنده در این سفارش
-                $sellerOrderTotal = $items->sum('total');
+                $alreadyPaid = SellerTransaction::where('order_id', $order->id)
+                    ->where('seller_id', $sellerId)
+                    ->where('type', 'payout')
+                    ->exists();
+                if ($alreadyPaid) {
+                    continue;
+                }
 
-                // ۲. محاسبه کمیسیون و مبلغ خالص
-                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100);
-                $netAmount = $sellerOrderTotal - $commissionAmount;
+                $seller = \App\Models\User::find($sellerId);
+                if (! $seller) {
+                    continue;
+                }
 
-                // ۳. افزایش موجودی کیف پول فروشنده
+                // ۱. تعیین نرخ کمیسیون واقعی این فروشنده (override → Score/Rule → پیش‌فرض)
+                $resolved = $this->commissionService->resolveCommissionRate($seller);
+                $commissionRate = $resolved['rate'];
+
+                // ۲. محاسبه مبلغ کل این فروشنده در این سفارش
+                $sellerOrderTotal = (float) $items->sum('total');
+
+                // ۳. محاسبه کمیسیون و مبلغ خالص (rounding سازگار با بقیه‌ی کدبیس: round به ۲ رقم اعشار)
+                $commissionAmount = round(($sellerOrderTotal * $commissionRate) / 100, 2);
+                $netAmount = round($sellerOrderTotal - $commissionAmount, 2);
+
+                // ۴. افزایش موجودی کیف پول فروشنده — increment() خودش atomic است
                 \App\Models\User::where('id', $sellerId)->increment('wallet_balance', $netAmount);
 
-                // ۴. ثبت تراکنش شفاف برای فروشنده در جدول seller_transactions
-                \App\Models\SellerTransaction::create([
+                // ۵. ثبت تراکنش شفاف و قابل‌ممیزی برای فروشنده
+                SellerTransaction::create([
                     'seller_id' => $sellerId,
                     'order_id' => $order->id,
-                    'type' => 'order_payout',
+                    'type' => 'payout',
                     'amount' => $netAmount,
-                    'commission_deducted' => $commissionAmount, // مبلغ کسر شده بابت کمیسیون
+                    'commission_deducted' => (int) round($commissionAmount), // ستون فعلی unsignedBigInteger است
+                    'commission_rate' => $commissionRate,
+                    'commission_source' => $resolved['source'],
+                    'seller_level' => $resolved['level'],
                     'status' => 'completed',
-                    'description' => "واریز سهم فروش سفارش شماره {$order->order_number} (کسر کمیسیون {$commissionRate}%)"
+                    'description' => "واریز سهم فروش سفارش شماره {$order->order_number} (کسر کمیسیون {$commissionRate}%)",
                 ]);
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('خطا در پردازش تسویه حساب فروشندگان: ' . $e->getMessage());
-            // توجه: اینجا Exception را پرتاب نمی‌کنیم تا فرآیند تغییر وضعیت سفارش مختل نشود، 
+            Log::error('خطا در پردازش تسویه حساب فروشندگان: '.$e->getMessage());
+            // توجه: اینجا Exception را پرتاب نمی‌کنیم تا فرآیند تغییر وضعیت سفارش مختل نشود،
             // اما در لاگ ثبت می‌شود تا ادمین بتواند آن را بررسی کند.
         }
     }

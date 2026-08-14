@@ -535,4 +535,95 @@ return [
         'type' => 'file',
         'label' => 'تصویر پس‌زمینه درخواست فروشندگی',
     ],
+
+    // ═══════════════════════════════════════════════════════
+    // 💹 Commission (سیستم کمیسیون هوشمند فروشندگان)
+    // وزن‌ها و بازه‌ها اینجا؛ نگاشتِ امتیاز→سطح→نرخ در جدول commission_rules
+    // (قابل مدیریت از /admin/commission-rules) است — این دو با هم
+    // CommissionService را تشکیل می‌دهند. رجوع به SellerPerformanceService.
+    // ═══════════════════════════════════════════════════════
+    [
+        'key' => 'commission_min_rate',
+        'value' => '1',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'حداقل درصد کمیسیون مجاز',
+    ],
+    [
+        'key' => 'commission_max_rate',
+        'value' => '4',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'حداکثر درصد کمیسیون مجاز',
+    ],
+    [
+        'key' => 'commission_default_rate',
+        'value' => '4',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'نرخ کمیسیون پیش‌فرض (وقتی هیچ قانونی با امتیاز مطابقت ندارد)',
+    ],
+    [
+        'key' => 'commission_weight_rating',
+        'value' => '30',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'وزن مؤلفه‌ی امتیاز مشتریان (٪ از کل وزن‌ها)',
+    ],
+    [
+        'key' => 'commission_weight_success_rate',
+        'value' => '25',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'وزن مؤلفه‌ی نرخ سفارش موفق',
+    ],
+    [
+        'key' => 'commission_weight_cancellation',
+        'value' => '20',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'وزن مؤلفه‌ی نرخ عدم لغو/مرجوعی',
+    ],
+    [
+        'key' => 'commission_weight_quality',
+        'value' => '15',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'وزن مؤلفه‌ی کیفیت محصول/سفارش',
+    ],
+    [
+        'key' => 'commission_weight_reliability',
+        'value' => '10',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'وزن مؤلفه‌ی سابقه/قابلیت‌اطمینان فروشنده',
+    ],
+    [
+        'key' => 'commission_new_seller_score',
+        'value' => '0',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'امتیاز پیش‌فرض فروشنده‌ی بدون سابقه (۰ تا ۱۰۰)',
+    ],
+    [
+        'key' => 'commission_neutral_rating_score',
+        'value' => '50',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'امتیاز مؤلفه‌ی رتبه وقتی فروشنده هنوز هیچ Rating ندارد',
+    ],
+    [
+        'key' => 'commission_reliability_max_months',
+        'value' => '12',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'سقف ماه‌های سابقه برای رسیدن به کامل مؤلفه‌ی قابلیت‌اطمینان',
+    ],
+    [
+        'key' => 'commission_reliability_max_orders',
+        'value' => '200',
+        'group' => 'commission',
+        'type' => 'number',
+        'label' => 'سقف تعداد سفارش موفق برای رسیدن به کامل مؤلفه‌ی قابلیت‌اطمینان',
+    ],
 ];
