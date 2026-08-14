@@ -9,16 +9,17 @@ class PublicSellerResource extends JsonResource
     public function toArray($request)
     {
         $shopName = $this->shop_name ?? $this->name ?? 'فروشگاه بدون نام';
-        
+
         return [
             'id' => $this->id,
             'user_id' => $this->id,
             'shop_name' => $shopName,
             'slug' => $this->slug,
             'display_title' => "شعبه آنلاین {$shopName}",
-            'logo' => $this->avatar 
-    ? asset('storage/' . $this->avatar) 
-    : null,
+            // ✅ دیگر اینجا دستی asset('storage/...') نمی‌شود — accessor
+            // مدل User همین کار را روی avatar می‌کند؛ انجام دوباره‌اش اینجا
+            // URL را دوبار prefix می‌کرد (broken link).
+            'logo' => $this->avatar,
             'banner' => $this->banner,
             'description' => $this->bio,
             'status' => $this->role === 'seller' && $this->is_active ? 'active' : 'pending',
@@ -33,8 +34,8 @@ class PublicSellerResource extends JsonResource
             'products_count' => (int) ($this->products_count ?? 0),
             'orders_count' => (int) ($this->orders_count ?? 0),
             'followers_count' => (int) ($this->followers_count ?? 0),
-            'is_followed_by_current_user' => $request->user() 
-                ? $request->user()->isFollowingSeller($this->id) 
+            'is_followed_by_current_user' => $request->user()
+                ? $request->user()->isFollowingSeller($this->id)
                 : false,
             'verified_at' => $this->seller_verified_at?->toISOString(),
             'created_at' => $this->created_at->toISOString(),

@@ -37,6 +37,10 @@ export function BrandsPage({ onNavigate }: BrandsPageProps) {
       const res = await brandService.getBrands();
       return res.data || [];
     },
+    // ✅ برندها مثل دسته‌بندی‌ها (useCategories.ts) داده‌ی مرجع کم‌تغییرند؛
+    // بدون staleTime هر mount/window-focus دوباره fetch می‌شد.
+    staleTime: 1000 * 60 * 10, // ۱۰ دقیقه
+    gcTime: 1000 * 60 * 30, // ۳۰ دقیقه
   });
 
   // فیلتر کردن برندها بر اساس جستجو

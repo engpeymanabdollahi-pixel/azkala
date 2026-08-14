@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SellerSettingsController extends Controller
 {
@@ -35,25 +36,30 @@ class SellerSettingsController extends Controller
         // ==========================================
         if ($request->hasFile('avatar')) {
             try {
-                if ($user->avatar) {
-                    Storage::disk('public')->delete($user->avatar);
+                // ✅ avatar حالا روی User accessor دارد و همیشه URL کامل
+                // برمی‌گرداند؛ برای حذف فایل قدیمی باید مسیر نسبی خام را
+                // از getRawOriginal گرفت، وگرنه Storage::delete با یک URL
+                // کامل صدا زده می‌شود و بی‌صدا هیچ فایلی پاک نمی‌کند.
+                $oldAvatarPath = $user->getRawOriginal('avatar');
+                if ($oldAvatarPath) {
+                    Storage::disk('public')->delete($oldAvatarPath);
                 }
-                
+
                 $file = $request->file('avatar');
                 $tempPath = $file->getRealPath();
                 $mime = $file->getMimeType();
-                
-                $fileName = 'avatar_' . time() . '_' . Str::random(8) . '.webp';
-                $path = 'seller/avatars/' . $fileName;
-                $fullPath = storage_path('app/public/' . $path);
 
-                if (!file_exists(dirname($fullPath))) {
+                $fileName = 'avatar_'.time().'_'.Str::random(8).'.webp';
+                $path = 'seller/avatars/'.$fileName;
+                $fullPath = storage_path('app/public/'.$path);
+
+                if (! file_exists(dirname($fullPath))) {
                     mkdir(dirname($fullPath), 0755, true);
                 }
 
                 // بارگذاری تصویر
                 $sourceImage = $this->loadImage($tempPath, $mime);
-                
+
                 if ($sourceImage) {
                     // تغییر سایز به حداکثر عرض 400 پیکسل
                     $width = imagesx($sourceImage);
@@ -66,17 +72,17 @@ class SellerSettingsController extends Controller
                     // ذخیره به صورت WebP با کیفیت 80
                     imagewebp($sourceImage, $fullPath, 80);
                     imagedestroy($sourceImage);
-                    
+
                     $data['avatar'] = $path;
                 } else {
                     // اگر پردازش شکست خورد، فایل اصلی را ذخیره کن
                     $data['avatar'] = $file->store('seller/avatars', 'public');
                 }
 
-            } catch (\Illuminate\Validation\ValidationException $e) {
-            throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
-        } catch (\Exception $e) {
-                Log::error('Seller Avatar Upload Error: ' . $e->getMessage());
+            } catch (ValidationException $e) {
+                throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+            } catch (\Exception $e) {
+                Log::error('Seller Avatar Upload Error: '.$e->getMessage());
                 $data['avatar'] = $request->file('avatar')->store('seller/avatars', 'public');
             }
         }
@@ -86,24 +92,27 @@ class SellerSettingsController extends Controller
         // ==========================================
         if ($request->hasFile('banner')) {
             try {
-                if ($user->banner) {
-                    Storage::disk('public')->delete($user->banner);
+                // ✅ همان دلیل avatar بالاتر: banner accessor دارد، پس
+                // برای حذف فایل قدیمی باید مسیر خام گرفته شود.
+                $oldBannerPath = $user->getRawOriginal('banner');
+                if ($oldBannerPath) {
+                    Storage::disk('public')->delete($oldBannerPath);
                 }
-                
+
                 $file = $request->file('banner');
                 $tempPath = $file->getRealPath();
                 $mime = $file->getMimeType();
-                
-                $fileName = 'banner_' . time() . '_' . Str::random(8) . '.webp';
-                $path = 'seller/banners/' . $fileName;
-                $fullPath = storage_path('app/public/' . $path);
 
-                if (!file_exists(dirname($fullPath))) {
+                $fileName = 'banner_'.time().'_'.Str::random(8).'.webp';
+                $path = 'seller/banners/'.$fileName;
+                $fullPath = storage_path('app/public/'.$path);
+
+                if (! file_exists(dirname($fullPath))) {
                     mkdir(dirname($fullPath), 0755, true);
                 }
 
                 $sourceImage = $this->loadImage($tempPath, $mime);
-                
+
                 if ($sourceImage) {
                     $width = imagesx($sourceImage);
                     if ($width > 1200) {
@@ -114,14 +123,14 @@ class SellerSettingsController extends Controller
 
                     imagewebp($sourceImage, $fullPath, 80);
                     imagedestroy($sourceImage);
-                    
+
                     $data['banner'] = $path;
                 } else {
                     $data['banner'] = $file->store('seller/banners', 'public');
                 }
 
             } catch (\Exception $e) {
-                Log::error('Seller Banner Upload Error: ' . $e->getMessage());
+                Log::error('Seller Banner Upload Error: '.$e->getMessage());
                 $data['banner'] = $request->file('banner')->store('seller/banners', 'public');
             }
         }
@@ -136,10 +145,13 @@ class SellerSettingsController extends Controller
                 'shop_name' => $user->shop_name,
                 'slug' => $user->slug,
                 'bio' => $user->bio,
-                'avatar' => $user->avatar ? asset('storage/' . $user->avatar) : null,
-                'banner' => $user->banner ? asset('storage/' . $user->banner) : null,
+                // ✅ avatar دیگر اینجا دستی asset('storage/...') نمی‌شود؛
+                // accessor مدل User همین کار را می‌کند و اگر همچنان دستی هم
+                // انجام می‌شد، URL دوبار prefix می‌شد (broken link).
+                'avatar' => $user->avatar,
+                'banner' => $user->banner,
                 'followers_count' => $user->followers_count,
-            ]
+            ],
         ]);
     }
 
@@ -149,7 +161,7 @@ class SellerSettingsController extends Controller
     private function loadImage(string $path, string $mime)
     {
         try {
-            if (!file_exists($path)) {
+            if (! file_exists($path)) {
                 return null;
             }
 
@@ -165,19 +177,22 @@ class SellerSettingsController extends Controller
                         imagealphablending($img, true);
                         imagesavealpha($img, true);
                     }
+
                     return $img ?: null;
 
                 case 'image/webp':
                     if (function_exists('imagecreatefromwebp')) {
                         return @imagecreatefromwebp($path) ?: null;
                     }
+
                     return null;
 
                 default:
                     return null;
             }
         } catch (\Exception $e) {
-            Log::error('loadImage error: ' . $e->getMessage());
+            Log::error('loadImage error: '.$e->getMessage());
+
             return null;
         }
     }

@@ -59,6 +59,42 @@ class User extends Authenticatable
 
     ];
 
+    // ==================== Accessors ====================
+
+    /**
+     * ✅ ستون avatar فقط مسیر نسبی داخل storage/app/public را نگه می‌دارد
+     * (مثلاً "seller/avatars/x.jpg" — دقیقاً چیزی که Storage::store()
+     * برمی‌گرداند). قبلاً هر جا این مقدار مستقیم serialize می‌شد (UserResource،
+     * ReviewResource، MagazineResource، ProductResource.seller، AuthController
+     * که مدل خام را برمی‌گرداند، رویدادهای چت و...) یک مسیر نسبی خام به
+     * فرانت‌اند می‌رفت که هیچ‌جا (به‌جز SellerPage.tsx که خودش یک
+     * normalizer محلی دارد) به URL کامل تبدیل نمی‌شد — یعنی آواتار در
+     * منوی کاربر (UserMenu)، لیست کاربران ادمین، و کارت فروشنده در صفحه‌ی
+     * محصول شکسته نمایش داده می‌شد. این accessor دقیقاً همان الگویی را که
+     * PublicSellerResource/SellerSettingsController از قبل برای این ستون
+     * استفاده می‌کردند (asset('storage/'.$path)) در یک نقطه‌ی مرکزی
+     * اعمال می‌کند تا هر جای دیگری هم که $user->avatar خوانده شود درست
+     * باشد، بدون نیاز به تکرار همین تبدیل در هر Resource/Controller.
+     *
+     * مسیر نسبی خام (برای مثلاً Storage::delete) با
+     * getRawOriginal('avatar') در دسترس می‌ماند — SellerSettingsController
+     * برای حذف فایل قدیمی از همین متد استفاده می‌کند، نه از این accessor.
+     */
+    public function getAvatarAttribute($value)
+    {
+        return $value ? asset('storage/'.$value) : null;
+    }
+
+    /**
+     * ✅ همان مشکل و همان راه‌حل avatar، برای ستون banner: هنوز حداقل یک
+     * مصرف‌کننده‌ی فرانت‌اند (SellerCard.tsx، بخش featured) این مقدار را
+     * بدون normalize مستقیم به src تصویر می‌داد.
+     */
+    public function getBannerAttribute($value)
+    {
+        return $value ? asset('storage/'.$value) : null;
+    }
+
     // ==================== Relationships ====================
 
     public function products()

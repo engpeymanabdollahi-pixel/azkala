@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DeviceModel;
 use App\Models\Product;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -15,24 +16,65 @@ use Maatwebsite\Excel\Facades\Excel;
 class BulkProductService
 {
     /**
+     * ✅ قبلاً هیچ سقفی روی تعداد ردیف فایل اکسل وجود نداشت. محدودیت حجم
+     * فایل (۱۰ مگابایت، در کنترلر) به‌تنهایی کافی نیست — یک xlsx فشرده با
+     * چند ستون متن کوتاه می‌تواند در همین حجم به‌راحتی به ده‌ها هزار ردیف
+     * برسد. هر ردیف در validateRow سه کوئری جدا می‌زند (SKU/دسته/برند)،
+     * یعنی بدون این سقف یک آپلود (حتی ناخواسته) می‌توانست صدها هزار کوئری
+     * در یک درخواست HTTP همزمان اجرا کند — یک DoS واقعی روی دیتابیس از
+     * طریق یک فروشنده‌ی معمولی. همین سقف روی commit() هم اعمال شده (سمت
+     * کنترلر) چون آن endpoint مستقل از فایل، آرایه‌ی JSON خام می‌گیرد.
+     */
+    public const MAX_ROWS = 500;
+
+    /**
      * Parse and validate Excel file
      * Returns: { valid: [], errors: [] }
      */
     public function validateFile($file, int $sellerId): array
     {
-        $rows = Excel::toCollection($file)->first();
-
-        $valid = [];
-        $errors = [];
+        // ✅ Excel::toCollection($import, $filePath, ...) امضای واقعی است؛
+        // قبلاً فقط $file پاس داده می‌شد (به‌جای $import) و آرگومان دومِ
+        // اجباری ($filePath) اصلاً وجود نداشت — یعنی همین اولین خط feature
+        // با ArgumentCountError کرش می‌کرد، روی هر آپلود واقعی، بدون
+        // استثنا. چون هیچ تست HTTP واقعی این مسیر را صدا نمی‌زد، این باگ
+        // فقط با یک درخواست واقعی (یا تست feature واقعی) قابل کشف بود، نه
+        // با خواندن کد. $import=null یعنی «بدون کلاس Import اختصاصی،
+        // فقط داده‌ی خام هر شیت».
+        $rows = Excel::toCollection(null, $file)->first();
 
         // Skip header row
         $rows->shift();
+
+        if ($rows->count() > self::MAX_ROWS) {
+            throw new \InvalidArgumentException(
+                'فایل بیش از '.self::MAX_ROWS.' ردیف دارد. لطفاً فایل را به بخش‌های کوچک‌تر تقسیم کنید.'
+            );
+        }
+
+        // ✅ قبلاً validateRow برای هر ردیف سه کوئری جدا می‌زد (SKU/دسته/برند
+        // exists) — با ۳۰ ردیف یعنی ~۶۰ کوئری، به‌صورت خطی رشد می‌کرد
+        // (اندازه‌گیری‌شده: تست BulkProductValidateQueryCountTest). این‌جا
+        // به‌جای آن، یک‌بار همه‌ی SKU/slug های استفاده‌شده در کل فایل با
+        // whereIn جمع‌آوری و در یک Set (Flip شده برای isset با O(1))
+        // نگه داشته می‌شود — رفتار و پیام خطاها دقیقاً همان قبلی است، فقط
+        // تعداد کوئری از O(n) به O(1) کاهش می‌یابد.
+        $skusInFile = $rows->pluck(1)->filter()->unique()->values();
+        $categorySlugsInFile = $rows->pluck(2)->filter()->unique()->values();
+        $brandSlugsInFile = $rows->pluck(3)->filter()->unique()->values();
+
+        $existingSkus = Product::whereIn('sku', $skusInFile)->pluck('sku')->flip();
+        $existingCategorySlugs = Category::whereIn('slug', $categorySlugsInFile)->pluck('slug')->flip();
+        $existingBrandSlugs = Brand::whereIn('slug', $brandSlugsInFile)->pluck('slug')->flip();
+
+        $valid = [];
+        $errors = [];
 
         foreach ($rows as $index => $row) {
             $rowNumber = $index + 2; // +2 because: 1-based + header
             $rowData = $row->toArray();
 
-            $rowErrors = $this->validateRow($rowData, $rowNumber, $sellerId);
+            $rowErrors = $this->validateRow($rowData, $existingSkus, $existingCategorySlugs, $existingBrandSlugs);
 
             if (empty($rowErrors)) {
                 $valid[] = [
@@ -51,8 +93,12 @@ class BulkProductService
         return compact('valid', 'errors');
     }
 
-    private function validateRow(array $data, int $rowNumber, int $sellerId): array
-    {
+    private function validateRow(
+        array $data,
+        Collection $existingSkus,
+        Collection $existingCategorySlugs,
+        Collection $existingBrandSlugs
+    ): array {
         $errors = [];
 
         // Required fields
@@ -73,27 +119,18 @@ class BulkProductService
         }
 
         // SKU uniqueness
-        if (! empty($data[1])) {
-            $skuExists = Product::where('sku', $data[1])->exists();
-            if ($skuExists) {
-                $errors[] = "SKU '{$data[1]}' قبلاً استفاده شده";
-            }
+        if (! empty($data[1]) && $existingSkus->has($data[1])) {
+            $errors[] = "SKU '{$data[1]}' قبلاً استفاده شده";
         }
 
         // Category exists
-        if (! empty($data[2])) {
-            $categoryExists = Category::where('slug', $data[2])->exists();
-            if (! $categoryExists) {
-                $errors[] = "دسته‌بندی با slug '{$data[2]}' یافت نشد";
-            }
+        if (! empty($data[2]) && ! $existingCategorySlugs->has($data[2])) {
+            $errors[] = "دسته‌بندی با slug '{$data[2]}' یافت نشد";
         }
 
         // Brand exists (if provided)
-        if (! empty($data[3])) {
-            $brandExists = Brand::where('slug', $data[3])->exists();
-            if (! $brandExists) {
-                $errors[] = "برند با slug '{$data[3]}' یافت نشد";
-            }
+        if (! empty($data[3]) && ! $existingBrandSlugs->has($data[3])) {
+            $errors[] = "برند با slug '{$data[3]}' یافت نشد";
         }
 
         // Price validation

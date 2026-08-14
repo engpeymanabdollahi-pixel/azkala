@@ -13,6 +13,13 @@ class Product extends Model
     protected $fillable = [
         'category_id',
         'brand_id',
+        // ✅ ستون واقعی و nullable روی products (مهاجرت
+        // add_device_model_id_to_products_table)، ولی در fillable نبود —
+        // یعنی Product::create(['device_model_id' => ...]) با
+        // MassAssignmentException کرش می‌کرد (دقیقاً همین چیزی که فیچر
+        // آپلود گروهی محصول را در commit() صد در صد شکست می‌داد، چون همیشه
+        // این کلید را در آرایه‌ی create می‌گذارد، حتی وقتی مقدارش null است).
+        'device_model_id',
         'seller_id',
         'name',
         'slug',
