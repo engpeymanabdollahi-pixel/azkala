@@ -66,10 +66,12 @@ export function useHomeData(): HomeData {
         try {
           logger.info('useHomeData: شروع fetch داده‌ها...');
 
-          const [productsRes, categoriesRes, brandsRes] = await Promise.allSettled([
+          const [productsRes, categoriesRes, brandsRes, featuredRes, specialOffersRes] = await Promise.allSettled([
             productService.getProducts({ per_page: 50 }),
             categoryService.getCategories(),
             brandService.getBrands(),
+            productService.getFeatured(),
+            productService.getSpecialOffers(),
           ]);
 
           // ✅ استخراج صحیح داده‌ها با بررسی ساختار
@@ -118,8 +120,25 @@ export function useHomeData(): HomeData {
             logger.debug(`Brands: ${brands.length} items`);
           }
 
-          const featuredProducts = products.filter(p => p.is_featured).slice(0, 12);
-          const specialOffers = products.filter(p => p.discount_percentage && p.discount_percentage > 0).slice(0, 8);
+          // ✅ قبلاً featured/specialOffers با فیلتر سمت کلاینت روی همان ۵۰
+          // محصولِ per_page به دست می‌آمدند — یعنی اگر محصولات ویژه/تخفیف‌دار
+          // واقعی در بین آن ۵۰ محصول (بر اساس created_at جدیدترین) نبودند،
+          // این بخش‌ها کمتر از واقعیت یا خالی نشان داده می‌شدند. endpointهای
+          // اختصاصی /products/featured و /products/special-offers از قبل
+          // در بک‌اند درست فیلتر و کش می‌شوند (ProductService::getFeaturedProducts
+          // با Cache::remember یک‌ساعته) — فقط تا الان فرانت‌اند صداشان
+          // نمی‌زد.
+          let featuredProducts: Product[] = [];
+          if (featuredRes.status === 'fulfilled') {
+            const response = featuredRes.value as any;
+            featuredProducts = Array.isArray(response.data) ? response.data : [];
+          }
+
+          let specialOffers: Product[] = [];
+          if (specialOffersRes.status === 'fulfilled') {
+            const response = specialOffersRes.value as any;
+            specialOffers = Array.isArray(response.data) ? response.data : [];
+          }
 
           const result: HomeData = {
             products,
