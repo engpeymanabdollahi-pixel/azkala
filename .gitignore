@@ -97,3 +97,15 @@ backend/coverage/
 
 # Laragon specific
 laragon/
+
+# ✅ TWA/Android signing material (فاز TWA preparation) — این کلیدها هرگز
+# نباید commit شوند. android-twa/twa-manifest.json خودش (بعد از پر شدن با
+# دامنه/packageId واقعی) مشکلی برای commit شدن ندارد؛ فقط خودِ فایل‌های
+# کلید امضا و خروجی build اندروید اینجا نادیده گرفته می‌شوند.
+android-twa/*.keystore
+android-twa/*.jks
+android-twa/.bubblewrap/
+android-twa/build/
+android-twa/app/build/
+*.keystore
+*.jks

@@ -107,13 +107,23 @@ self.addEventListener('fetch', (event) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
-        
+
+        // ❌ نادیده گرفتن پاسخ‌هایی که خودِ سرور صریحاً گفته cache نشوند
+        // (private/no-store/no-cache) — دفاع دوم، مستقل از فیلتر URL بالا؛
+        // اگر در آینده یک مسیر غیر-/api/ برای محتوای خصوصی/کاربر-محور
+        // اضافه شود (مثلاً دانلود فاکتور)، همین‌جا هم متوقف می‌شود، بدون
+        // اینکه لازم باشد allowlist/blocklist مسیرها را پیچیده‌تر کنیم.
+        const cacheControl = response.headers.get('Cache-Control') || '';
+        if (/no-store|no-cache|private/i.test(cacheControl)) {
+          return response;
+        }
+
         // Clone و cache کردن
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(request, responseToCache);
         });
-        
+
         return response;
       })
       .catch(() => {

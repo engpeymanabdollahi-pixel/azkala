@@ -150,16 +150,37 @@ function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore();
   const openAuthModal = useAuthModalStore((state) => state.open);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isAuthenticated) {
-      openAuthModal({ reason: 'برای دیدن این بخش وارد شوید.' });
+      // ✅ مقصد اصلی (path+search+hash) را نگه می‌داریم تا بعد از ورود موفق
+      // دقیقاً به همان‌جا برگردیم (مثلاً /dashboard/orders)، نه صرفاً «/».
+      // قبلاً این مقصد هیچ‌جا ذخیره نمی‌شد — دیپ‌لینک به یک مسیر
+      // Protected همیشه بعد از لاگین گم می‌شد (مهم‌تر در TWA که کاربر
+      // انتظار جریان app-like دارد، نه ری‌دایرکت گم‌شده).
+      const target = `${location.pathname}${location.search}${location.hash}`;
+
+      openAuthModal({
+        reason: 'برای دیدن این بخش وارد شوید.',
+        onSuccess: () => {
+          // ✅ فقط مسیر داخلی نسبی مجاز است (هرگز یک URL مطلق/خارجی یا
+          // protocol-relative مثل «//evil.com») — جلوگیری از open-redirect.
+          // بعد از ورود موفق isAuthenticated=true می‌شود، پس بازگشت به
+          // همان مسیر دوباره از سر باز اعتبارسنجی می‌شود و این بار رد
+          // می‌شود، بدون loop.
+          const isSafeInternalPath = target.startsWith('/') && !target.startsWith('//');
+          navigate(isSafeInternalPath ? target : '/', { replace: true });
+        },
+      });
     }
-  }, [isAuthenticated, openAuthModal]);
+  }, [isAuthenticated, openAuthModal, location.pathname, location.search, location.hash, navigate]);
 
   if (!isAuthenticated) {
     // به خانه برمی‌گردیم نه به /auth: مودال روی همان صفحه باز می‌شود، پس کاربر
     // به‌جای یک فرم تمام‌صفحه، جایی می‌ماند که بتواند ادامه بدهد یا بی‌خیال شود.
+    // (بازگشت به مقصد اصلی بعد از لاگین موفق در onSuccess بالا انجام می‌شود.)
     return <Navigate to="/" replace />;
   }
 

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { adminSettingService, type Setting, type SettingValue } from '@/services/api/adminSetting.service';
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
+import { PushNotificationButton } from '@/services/pwa/PushNotificationButton';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { STORAGE_URL } from '@/lib/apiConfig';
@@ -296,6 +297,29 @@ export function AdminSettingsPage() {
                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300">پیش‌نمایش زنده (بر اساس آخرین ذخیره)</span>
               </div>
               <AnnouncementBar />
+            </div>
+          )}
+
+          {/* ✅ Push Notification (فاز TWA preparation) — این‌جا رندر می‌شود
+              چون route های واقعی بک‌اند (/admin/push/*) زیر
+              middleware('admin') + permission:support.manage محافظت
+              می‌شوند (routes/api.php)؛ یعنی فقط همین session ادمین می‌تواند
+              subscribe/unsubscribe کند، نه صفحات کاربر عادی. این دکمه فقط
+              نوتیفیکیشن Push خودِ همین مرورگر/دستگاه ادمین را مدیریت
+              می‌کند (برای مثال دریافت آنی تیکت‌های پشتیبانی)، نه ارسال به
+              مشتریان. */}
+          {activeTab === 'notifications' && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-gray-100 dark:border-slate-700">
+                <Bell className="w-4 h-4 text-primary-500" />
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Push Notification این مرورگر</span>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  با فعال‌سازی، همین مرورگر/دستگاه شما نوتیفیکیشن‌های Push (مثل تیکت پشتیبانی جدید) دریافت می‌کند.
+                </p>
+                <PushNotificationButton />
+              </div>
             </div>
           )}
 

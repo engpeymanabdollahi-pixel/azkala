@@ -22,9 +22,49 @@
 // hostname وارد شده باشد یا .env چه نوشته باشد.
 //
 // در production (build واقعی، نه dev server) هیچ پروکسی‌ای وجود ندارد؛
-// آنجا VITE_API_URL باید صریحاً ست شود، وگرنه به آدرس پیش‌فرض برمی‌گردیم.
+// آنجا VITE_API_URL باید صریحاً ست شود.
+//
+// ✅ فاز TWA preparation — بخش «Production API Config Safety»: قبلاً اگر
+// VITE_API_URL در build production ست نشده بود، بی‌صدا به
+// `http://127.0.0.1:8000` fallback می‌شد — یعنی اپ production تلاش
+// می‌کرد به یک آدرس محلی/غیر-HTTPS وصل شود؛ روی یک origin واقعی HTTPS
+// همین درخواست به‌خاطر mixed content توسط خودِ مرورگر/TWA بی‌صدا بلاک
+// می‌شد و کاربر فقط یک صفحه‌ی خراب می‌دید، بدون هیچ خطای قابل تشخیص در
+// کنسول. resolveProductionApiOrigin() این fallback خاموش را با یک خطای
+// صریح، همان لحظه‌ی بالا آمدن اپ، جایگزین می‌کند.
+//
+// این throw فقط زمانی رخ می‌دهد که خودِ باندل production واقعاً در
+// مرورگر اجرا شود، نه در حین خودِ `vite build` (که صرفاً کد را
+// transform/bundle می‌کند، اجرایش نمی‌کند) — پس این تغییر باعث شکستن
+// build نمی‌شود. در dev رفتار قبلی (مسیر نسبی از طریق پروکسی Vite)
+// کاملاً دست‌نخورده می‌ماند.
+function resolveProductionApiOrigin(): string {
+  const configured = (import.meta.env.VITE_API_URL || '').trim();
+
+  if (!configured) {
+    throw new Error(
+      '[Azkala] پیکربندی ناقص: VITE_API_URL برای build production تنظیم ' +
+      'نشده است. این برنامه دیگر در production به‌صورت خاموش به ' +
+      'http://127.0.0.1:8000 برنمی‌گردد — این آدرس فقط برای dev محلی است. ' +
+      'مقدار HTTPS واقعی بک‌اند production را قبل از build در VITE_API_URL ' +
+      'تنظیم کنید (نمونه در frontend/.env.example).'
+    );
+  }
+
+  if (!/^https:\/\//i.test(configured)) {
+    throw new Error(
+      `[Azkala] پیکربندی ناامن: VITE_API_URL باید با https:// شروع شود ` +
+      `(مقدار فعلی: "${configured}"). اتصال production به آدرس HTTP مجاز ` +
+      'نیست — هم ریسک امنیتی/mixed-content دارد و هم پیش‌نیاز الزامی ' +
+      'Trusted Web Activity (Digital Asset Links فقط روی HTTPS معتبر است).'
+    );
+  }
+
+  return configured;
+}
+
 const isDev = import.meta.env.DEV;
-const rawApiUrl = isDev ? '' : (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000');
+const rawApiUrl = isDev ? '' : resolveProductionApiOrigin();
 
 export const API_ORIGIN = rawApiUrl
   .trim()

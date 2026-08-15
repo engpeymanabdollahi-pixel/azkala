@@ -1,0 +1,27 @@
+{
+  "packageId": "PACKAGE_NAME_PLACEHOLDER",
+  "host": "PRODUCTION_DOMAIN_PLACEHOLDER",
+  "name": "ازکالا",
+  "launcherName": "ازکالا",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#0d9488",
+  "navigationColor": "#0d9488",
+  "navigationColorDark": "#0d9488",
+  "backgroundColor": "#ffffff",
+  "backgroundColorDark": "#0f172a",
+  "startUrl": "/",
+  "iconUrl": "https://PRODUCTION_DOMAIN_PLACEHOLDER/icons/icon-512.png",
+  "maskableIconUrl": "https://PRODUCTION_DOMAIN_PLACEHOLDER/icons/icon-512-maskable.png",
+  "webManifestUrl": "https://PRODUCTION_DOMAIN_PLACEHOLDER/manifest.json",
+  "fullScopeUrl": "https://PRODUCTION_DOMAIN_PLACEHOLDER/",
+  "fallbackType": "customtabs",
+  "enableNotifications": true,
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "SIGNING_KEY_ALIAS_PLACEHOLDER"
+  },
+  "appVersion": "1",
+  "appVersionName": "1.0.0"
+}
