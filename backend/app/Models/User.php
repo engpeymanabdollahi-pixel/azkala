@@ -8,10 +8,26 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    // ✅ HasRoles (spatie/laravel-permission) لایه‌ی «Administrative
+    // Access» (Super Admin / Admin / Manager + Permission) را اضافه
+    // می‌کند — کاملاً جدا از ستون users.role (customer/seller/admin/
+    // pending_seller) که دست‌نخورده می‌ماند و همچنان تنها شرط ورود به
+    // /admin/* است (EnsureAdminRole بدون تغییر). این trait فقط داخل
+    // مسیرهای ادمین (از طریق EnsurePermission) استفاده می‌شود.
+    //
+    // نکته‌ی امنیتی بررسی‌شده: HasRoles یک Gate::before سراسری ثبت
+    // می‌کند که برای *هر* authorize()/can() در کل اپ ابتدا
+    // checkPermissionTo($ability) را چک می‌کند. چون همه‌ی Permission
+    // های این پروژه نقطه‌دار و module-prefixed هستند (مثل
+    // 'orders.view')، با نام متدهای Policy فعلی (OrderPolicy/
+    // ProductPolicy/ProductAlertPolicy: 'view', 'update', 'cancel',
+    // 'updateStatus', ...) هرگز برابر نمی‌شوند — پس این هوک همیشه
+    // null برمی‌گرداند و اجرای عادی Policy را دست‌نخورده رها می‌کند.
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -399,6 +415,35 @@ class User extends Authenticatable
         return $slug;
     }
 
+    /**
+     * خلاصه‌ی نقش/Permission های Administrative برای Frontend (بخش ۱۸
+     * درخواست: authStore.ts) — عمداً *accessor عمومی* (مثل $appends)
+     * نیست: اگر global می‌شد، روی هر سریالایز شدن User در کل اپ (لیست
+     * سفارشات با user تودرتو، محصولات با seller، نظرات، ...) هم اجرا
+     * می‌شد و برای هزاران کاربر customer/seller بی‌ربط کوئری‌های
+     * roles/permissions اضافه می‌زد (N+1 — دقیقاً همان چیزی که بخش ۳۵
+     * منع کرده). این متد را فقط AuthController (login/OTP/refresh/
+     * profile) صراحتاً صدا می‌زند — یعنی حداکثر یک‌بار در هر نشست، نه
+     * روی هر پاسخ حاوی User.
+     *
+     * برای غیر-admin (customer/seller/pending_seller) همیشه خالی است —
+     * این لایه فقط برای users.role=admin معنا دارد.
+     */
+    public function administrativeAccessSummary(): array
+    {
+        if ($this->role !== 'admin') {
+            return ['administrative_role' => null, 'permissions' => []];
+        }
+
+        $administrativeRole = collect(['super_admin', 'admin', 'manager'])
+            ->first(fn (string $role) => $this->hasRole($role));
+
+        return [
+            'administrative_role' => $administrativeRole,
+            'permissions' => $this->getAllPermissions()->pluck('name')->values()->all(),
+        ];
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -413,6 +458,44 @@ class User extends Authenticatable
             // و اسلاگ همیشه «shop-» بی‌معنی می‌ماند.
             if ($user->isDirty('shop_name') && ! empty($user->shop_name) && ! $user->slug) {
                 $user->slug = static::generateUniqueSlug($user->shop_name, $user->id);
+            }
+        });
+
+        // ✅ Backward compatibility حیاتی برای سیستم Multi-Admin/Manager:
+        // با اضافه‌شدن EnsurePermission روی ~۱۷۶ route ادمین، یک کاربر با
+        // users.role=admin که هیچ نقش Administrative (spatie) ندارد دیگر
+        // هیچ Permission ای ندارد — یعنی بدون این هوک، همان لحظه‌ای که
+        // کسی (از طریق AdminUserService::updateUserRole یا حتی مستقیم
+        // User::create) به role=admin ارتقا پیدا کند، وارد پنل می‌شود ولی
+        // به هیچ‌چیز دسترسی ندارد (قفل‌شدگی که دستور صریح منع کرده).
+        //
+        // این هوک دقیقاً همان رفتار قبلی سیستم را حفظ می‌کند: «شدن admin»
+        // پیش‌فرض یعنی دسترسی گسترده (نقش Administrative «admin»، نه
+        // super_admin) — Super Admin بعداً می‌تواند از پنل Admin Access
+        // این را به «manager» با Permission محدود downgrade کند.
+        //
+        // wasChanged('role') (نه هر save ای) عمداً استفاده شده — فقط در
+        // لحظه‌ی *واقعی* تبدیل به admin اجرا می‌شود، نه در هر ذخیره‌ی
+        // بعدی (مثلاً toggle کردن is_active) — وگرنه اگر Super Admin
+        // صراحتاً نقش Administrative یک ادمین را حذف کند، اولین ذخیره‌ی
+        // بعدی آن کاربر (حتی برای یک تغییر بی‌ربط) دوباره پنهانی
+        // «admin» را به او برمی‌گرداند و آن تصمیم را دور می‌زد.
+        //
+        // برای کاربرانی که این کد قبل از استقرارش «admin» بوده‌اند
+        // (رجوع به AdministrativeAccessSeeder برای backfill یک‌باره).
+        static::saved(function ($user) {
+            // ✅ wasChanged('role') به‌تنهایی برای INSERT جدید کار
+            // نمی‌کند — چون Eloquent برای یک رکورد کاملاً تازه هیچ
+            // «original» ای قبل از insert ندارد که باهاش مقایسه کند، پس
+            // wasChanged('role') حتی وقتی role مستقیم روی مقدار 'admin'
+            // ست شده باشد، false برمی‌گرداند (تایید‌شده مستقیم با تست).
+            // wasRecentlyCreated دقیقاً برای همین لحظه‌ی insert true است؛
+            // ترکیبش با wasChanged('role') هر دو مسیر (ساخته‌شدن مستقیم
+            // با role=admin، و ارتقای بعدی یک کاربر موجود) را می‌پوشاند.
+            $justBecameAdmin = $user->wasRecentlyCreated || $user->wasChanged('role');
+
+            if ($user->role === 'admin' && $justBecameAdmin && ! $user->roles()->exists()) {
+                $user->assignRole('admin');
             }
         });
     }

@@ -1,44 +1,67 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
   Tag, FolderTree, X, LogOut, ChevronLeft,
-  Settings, BarChart3, MessageCircle, Newspaper, Megaphone,
+  Settings, BarChart3, MessageCircle, Newspaper, Megaphone, ShieldCheck,
 } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { useAuthStore } from '@/store/authStore';
+import { usePermission } from '@/hooks/usePermission';
 import { cn } from '@/utils/cn';
 import apiClient from '@/services/api/client';
 
-const menuItems = [
+// ✅ سیستم Multi-Admin/Manager (بخش ۲۰ درخواست): هر آیتم می‌تواند یک
+// permission داشته باشد که *دقیقاً* همان چیزی است که مسیرهای API آن
+// بخش در routes/api.php رویش گیت شده‌اند (permission:xxx.view) — اگر
+// کاربر آن را نداشته باشد، آیتم اصلاً رندر نمی‌شود. بدون permission
+// یعنی همیشه نمایش داده شود (فقط داشبورد — طبق تصمیم مستند «صفحه‌ی
+// فرودِ تجمیعی بی‌خطر» در routes/api.php، عمداً هیچ permission‌ای
+// رویش نیست).
+//
+// ⚠️ این فقط UX است؛ حتی اگر کسی این فیلتر را دور بزند (مثلاً از
+// DevTools)، ورود مستقیم به مسیر یا صدا زدن API همچنان با ۴۰۳ از
+// Backend (EnsurePermission) رد می‌شود.
+const menuItems: Array<{
+  path: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  exact?: boolean;
+  permission?: string;
+}> = [
   // ═══════════════════════════════════════════════════════
   // 📊 داشبورد و مدیریت اصلی
   // ═══════════════════════════════════════════════════════
   { path: '/admin', icon: LayoutDashboard, label: 'داشبورد', exact: true },
-  { path: '/admin/products', icon: Package, label: 'محصولات' },
-  { path: '/admin/orders', icon: ShoppingCart, label: 'سفارشات' },
-  { path: '/admin/users', icon: Users, label: 'کاربران' },
-  { path: '/admin/reviews', icon: MessageSquare, label: 'نظرات' },
-  { path: '/admin/magazine', icon: Newspaper, label: 'مجله' },
-    { path: '/admin/ads', icon: Megaphone, label: 'تبلیغات' },
-  { path: '/admin/catalog', icon: FolderTree, label: 'کاتالوگ' }, // ✅ تجمیع شده
-  { path: '/admin/coupons', icon: Tag, label: 'کدهای تخفیف' },
+  { path: '/admin/products', icon: Package, label: 'محصولات', permission: 'products.view' },
+  { path: '/admin/orders', icon: ShoppingCart, label: 'سفارشات', permission: 'orders.view' },
+  { path: '/admin/users', icon: Users, label: 'کاربران', permission: 'users.view' },
+  { path: '/admin/reviews', icon: MessageSquare, label: 'نظرات', permission: 'reviews.view' },
+  { path: '/admin/magazine', icon: Newspaper, label: 'مجله', permission: 'content.view' },
+  { path: '/admin/ads', icon: Megaphone, label: 'تبلیغات', permission: 'ads.view' },
+  { path: '/admin/catalog', icon: FolderTree, label: 'کاتالوگ', permission: 'catalog.view' }, // ✅ تجمیع شده
+  { path: '/admin/coupons', icon: Tag, label: 'کدهای تخفیف', permission: 'coupons.view' },
 
   // ═══════════════════════════════════════════════════════
   // 📊 گزارشات
   // ═══════════════════════════════════════════════════════
-  { path: '/admin/reports', icon: BarChart3, label: 'گزارشات' },
+  { path: '/admin/reports', icon: BarChart3, label: 'گزارشات', permission: 'reports.view' },
 
   // ═══════════════════════════════════════════════════════
   // 💬 ارتباطات (تجمیع شده)
   // ═══════════════════════════════════════════════════════
-  { path: '/admin/communication', icon: MessageCircle, label: 'ارتباطات' },
+  { path: '/admin/communication', icon: MessageCircle, label: 'ارتباطات', permission: 'support.view' },
+
+  // ═══════════════════════════════════════════════════════
+  // 🛡️ دسترسی مدیریتی (Multi-Admin/Manager)
+  // ═══════════════════════════════════════════════════════
+  { path: '/admin/access', icon: ShieldCheck, label: 'دسترسی مدیریتی', permission: 'admin.access.view' },
 
   // ═══════════════════════════════════════════════════════
   // ⚙️ تنظیمات
   // ═══════════════════════════════════════════════════════
-  { path: '/admin/settings', icon: Settings, label: 'تنظیمات' },
+  { path: '/admin/settings', icon: Settings, label: 'تنظیمات', permission: 'settings.view' },
 ];
 
 // ✅ همان endpoint واقعی که AdminDashboard برای شمارش گزارش‌های تخلفِ در
@@ -56,17 +79,28 @@ const fetchPendingReportsCount = async (): Promise<number> => {
 export function AdminLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { hasPermission } = usePermission();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const visibleMenuItems = useMemo(
+    () => menuItems.filter((item) => !item.permission || hasPermission(item.permission)),
+    [hasPermission]
+  );
 
   // ✅ قبلاً زنگ اعلان همیشه یک نقطه‌ی قرمز ثابت نشان می‌داد (span
   // absolute بدون هیچ داده‌ای) — یعنی حتی وقتی هیچ گزارش تخلفِ در انتظاری
   // وجود نداشت هم ادمین فکر می‌کرد چیزی خوانده‌نشده مانده. حالا از تعداد
   // واقعی گزارش‌های در انتظار می‌آید و کلیک به صفحه‌ی گزارش‌ها می‌برد.
+  //
+  // ✅ enabled: بدون support.view این درخواست همیشه ۴۰۳ می‌گیرد (بخش ۳۵:
+  // از درخواست‌های بی‌فایده پرهیز کن) — Manager ای که دسترسی پشتیبانی
+  // ندارد اصلاً این کوئری را نمی‌فرستد.
   const { data: pendingReports = 0 } = useQuery({
     queryKey: ['admin-layout-pending-reports'],
     queryFn: fetchPendingReportsCount,
     refetchInterval: 30000,
+    enabled: hasPermission('support.view'),
   });
 
   const handleLogout = () => {
@@ -111,7 +145,7 @@ export function AdminLayout() {
 
         {/* Menu */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -183,7 +217,7 @@ export function AdminLayout() {
             </div>
 
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-              {menuItems.map((item) => {
+              {visibleMenuItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink

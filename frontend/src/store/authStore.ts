@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { User, AuthResponse, Seller } from '@/types/models';
+import type { User, AuthResponse, Seller, AdministrativeRole } from '@/types/models';
 import { useWishlistStore } from './wishlistStore';
 import { requestNotificationPermission } from '@/lib/notification';
 import { useCartStore } from './cartStore';
@@ -11,19 +11,31 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   seller: Seller | null;
-  
+
    login: (response: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setSeller: (seller: Seller | null) => void;
   setToken: (token: string | null) => void;
-  
+
   isSeller: () => boolean;
   isApprovedSeller: () => boolean;
   isAdmin: () => boolean;
   isCustomer: () => boolean;
   canAccessSellerPanel: () => boolean;
+
+  // ✅ سیستم Multi-Admin/Manager (بخش ۱۸ درخواست) — این دو صرفاً روی
+  // user.administrative_role/user.permissions (که از AuthController
+  // می‌آید) می‌خوانند؛ عمداً state جدا/تکراری نیستند، چون user همان‌جا
+  // در localStorage هم persist می‌شود. منطق hasPermission/hasAnyPermission/
+  // hasAllPermissions در usePermission() (بخش ۱۹) است، نه اینجا — تا
+  // چک Super Admin bypass فقط یک‌جا نوشته شود.
+  //
+  // ⚠️ این‌ها فقط برای UX/نمایش‌اند؛ Backend تنها مرجع امنیتی واقعی
+  // است و هر endpoint حساس را مستقل از این مقادیر enforce می‌کند.
+  getAdministrativeRole: () => AdministrativeRole | null;
+  getPermissions: () => string[];
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -164,6 +176,9 @@ export const useAuthStore = create<AuthState>()(
         const state = get();
         return state.isSeller() && state.seller?.status === 'active';
       },
+
+      getAdministrativeRole: () => get().user?.administrative_role ?? null,
+      getPermissions: () => get().user?.permissions ?? [],
     }),
     {
       name: 'auth-storage',

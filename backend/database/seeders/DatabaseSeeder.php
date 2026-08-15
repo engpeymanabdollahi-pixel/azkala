@@ -18,6 +18,14 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
         ]);
 
+        // ✅ نقش‌ها/Permission های Administrative Access (Super Admin/
+        // Admin/Manager) — زیرساخت لازم برای EnsurePermission middleware؛
+        // بدون این Seeder، هر چک permission روی یک دیتابیس تازه با «هیچ
+        // نقشی موجود نیست» شکست می‌خورد.
+        $this->call([
+            AdministrativeAccessSeeder::class,
+        ]);
+
         // ۱. ابتدا کاربران (تا محصولات بتوانند به seller_id متصل شوند)
         $this->call([
             AdminUserSeeder::class,

@@ -33,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdminRole::class,
             'seller' => \App\Http\Middleware\EnsureSellerRole::class,
+            // 💹 سیستم Multi-Admin/Manager — همیشه *بعد* از 'admin' در
+            // زنجیره استفاده می‌شود، هرگز جایگزین آن نمی‌شود (رجوع به
+            // کامنت کامل در EnsurePermission).
+            'permission' => \App\Http\Middleware\EnsurePermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

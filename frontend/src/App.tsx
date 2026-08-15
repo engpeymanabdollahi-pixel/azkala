@@ -65,6 +65,7 @@ const AdminReportsPage = lazy(() => import('@/pages/admin/AdminReportsPage'));
 const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModelsPage'));
 const AdminMagazinePage = lazy(() => import('@/pages/admin/AdminMagazinePage'));
 const AdminAdsPage = lazy(() => import('@/pages/admin/AdminAdsPage'));
+const AdminAccessPage = lazy(() => import('@/pages/admin/AdminAccessPage'));
 const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
 
 // ==========================================
@@ -406,6 +407,7 @@ export default function App() {
                 <Route path="reports" element={<AdminReportsPage />} />
                 <Route path="settings" element={<AdminSettingsPage />} />
                 <Route path="communication" element={<AdminCommunicationPage />} />
+                <Route path="access" element={<AdminAccessPage />} />
                 <Route path="chat/monitor" element={<Navigate to="/admin/communication" replace />} />
                 <Route path="chat/reports" element={<Navigate to="/admin/communication" replace />} />
                 <Route path="chat/sentiment" element={<Navigate to="/admin/communication" replace />} />

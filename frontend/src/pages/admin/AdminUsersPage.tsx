@@ -23,6 +23,7 @@ import { formatPrice } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { ExportButton } from '@/components/admin/ExportButton';
+import { usePermission } from '@/hooks/usePermission';
 
 // ==================== Types ====================
 type RoleFilter = 'all' | 'customer' | 'seller' | 'admin';
@@ -741,6 +742,7 @@ function UserDetailModal({ user, onClose }: { user: AdminUser; onClose: () => vo
  */
 function SellerCommissionSection({ sellerId }: { sellerId: number }) {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermission();
   const [overrideInput, setOverrideInput] = useState('');
   const [isEditingOverride, setIsEditingOverride] = useState(false);
 
@@ -807,13 +809,20 @@ function SellerCommissionSection({ sellerId }: { sellerId: number }) {
                 ? `Override دستی فعال: ${info.override_rate}%`
                 : 'بدون Override — نرخ بر اساس امتیاز عملکرد محاسبه می‌شود.'}
             </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setOverrideInput(info.override_rate !== null ? String(info.override_rate) : ''); setIsEditingOverride(true); }}
-            >
-              تنظیم Override
-            </Button>
+            {/* ✅ Action-Level UI (بخش ۲۱): بدون commission.override.manage
+                فقط می‌تواند وضعیت فعلی Override را ببیند (commission.
+                override.view روی خودِ صفحه گیت شده)، نه ویرایش کند —
+                Backend هم مستقل همین را در PUT .../commission-override
+                (permission:commission.override.manage) enforce می‌کند. */}
+            {hasPermission('commission.override.manage') && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setOverrideInput(info.override_rate !== null ? String(info.override_rate) : ''); setIsEditingOverride(true); }}
+              >
+                تنظیم Override
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-2">

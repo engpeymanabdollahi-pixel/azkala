@@ -22,6 +22,7 @@ import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { ExportButton } from '@/components/admin/ExportButton';
 import { Virtuoso } from 'react-virtuoso';
+import { usePermission } from '@/hooks/usePermission';
 
 // ==================== Types ====================
 
@@ -887,6 +888,11 @@ function OrderStatusModal({ order, onClose, onSave, onPaymentChange, isPending }
   onPaymentChange: (status: string) => void;
   isPending: boolean;
 }) {
+  const { hasPermission } = usePermission();
+  const canManageOrders = hasPermission('orders.manage');
+  const canManagePayment = hasPermission('orders.payment.manage');
+  const canPayout = hasPermission('finance.payout');
+
   const [status, setStatus] = useState(order.status);
   const [trackingNumber, setTrackingNumber] = useState(order.tracking_number || '');
   const [notes, setNotes] = useState(order.notes || '');
@@ -938,12 +944,29 @@ function OrderStatusModal({ order, onClose, onSave, onPaymentChange, isPending }
             <div className="grid grid-cols-2 gap-2">
               {statuses.map((s) => {
                 const Icon = s.icon;
+                // ✅ Action-Level UI (بخش ۲۱/Finance Isolation بخش ۹):
+                // انتقال به «تحویل شده» از یک وضعیت غیرِ تحویل‌شده،
+                // Payout واقعی را trigger می‌کند و علاوه بر orders.manage
+                // به finance.payout هم نیاز دارد — دقیقاً همان چک سرویس
+                // (AdminOrderService::updateStatus) که این دکمه فقط
+                // پیش‌نمایشش است، نه جایگزینش.
+                const wouldTriggerPayout = s.value === 'delivered' && order.status !== 'delivered';
+                const disabled = !canManageOrders || (wouldTriggerPayout && !canPayout);
                 return (
                   <button
                     key={s.value}
-                    onClick={() => setStatus(s.value)}
+                    disabled={disabled}
+                    onClick={() => !disabled && setStatus(s.value)}
+                    title={
+                      disabled
+                        ? !canManageOrders
+                          ? 'دسترسی مدیریت سفارشات را ندارید'
+                          : 'برای این انتقال به Permission «finance.payout» نیاز دارید'
+                        : undefined
+                    }
                     className={cn(
                       'flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-bold',
+                      disabled && 'opacity-40 cursor-not-allowed',
                       status === s.value
                         ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
@@ -981,29 +1004,39 @@ function OrderStatusModal({ order, onClose, onSave, onPaymentChange, isPending }
             />
           </div>
 
+          {/* ✅ Action-Level UI (بخش ۲۱): تغییر وضعیت پرداخت مستقل از
+              تغییر وضعیت سفارش است و Permission جدای خودش (orders.
+              payment.manage) دارد — بدون آن فقط وضعیت فعلی نمایش
+              داده می‌شود. */}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">وضعیت پرداخت</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { value: 'pending', label: 'پرداخت نشده' },
-                { value: 'paid', label: 'پرداخت شده' },
-                { value: 'failed', label: 'ناموفق' },
-                { value: 'refunded', label: 'مسترد شده' },
-              ].map((p) => (
-                <button
-                  key={p.value}
-                  onClick={() => onPaymentChange(p.value)}
-                  className={cn(
-                    'p-2.5 rounded-lg border-2 transition-all text-xs font-bold',
-                    order.payment_status === p.value
-                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+            {canManagePayment ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'pending', label: 'پرداخت نشده' },
+                  { value: 'paid', label: 'پرداخت شده' },
+                  { value: 'failed', label: 'ناموفق' },
+                  { value: 'refunded', label: 'مسترد شده' },
+                ].map((p) => (
+                  <button
+                    key={p.value}
+                    onClick={() => onPaymentChange(p.value)}
+                    className={cn(
+                      'p-2.5 rounded-lg border-2 transition-all text-xs font-bold',
+                      order.payment_status === p.value
+                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                برای تغییر وضعیت پرداخت به Permission «orders.payment.manage» نیاز دارید.
+              </p>
+            )}
           </div>
         </div>
 
@@ -1013,7 +1046,7 @@ function OrderStatusModal({ order, onClose, onSave, onPaymentChange, isPending }
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || !canManageOrders || (status === 'delivered' && order.status !== 'delivered' && !canPayout)}
             isLoading={isPending}
             className="gap-1.5"
           >

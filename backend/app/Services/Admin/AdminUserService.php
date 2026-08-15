@@ -70,9 +70,22 @@ class AdminUserService
         }
     }
 
-    public function updateUserRole(int $id, string $role): User
+    /**
+     * ✅ رفع Finding 1 (Audit سیستم Role/Permission، بخش ۱۰):
+     * قبلاً این متد هیچ محدودیتی نداشت — هر ادمین می‌توانست role خودش
+     * (یا هر کاربر دیگری) را با یک درخواست به هر مقدار مجاز از جمله
+     * 'admin' تغییر دهد. self-modification حالا صراحتاً رد می‌شود —
+     * enforcement در Service layer است (نه فقط Controller) طبق دستور
+     * صریح «امنیت را فقط به Middleware/Controller محدود نکن» تا اگر این
+     * متد بعداً از جای دیگری هم صدا زده شود، این محافظت دور زده نشود.
+     */
+    public function updateUserRole(int $id, string $role, ?int $actorId = null): User
     {
         try {
+            if ($actorId !== null && $actorId === $id) {
+                throw new Exception('امکان تغییر نقش خودتان وجود ندارد.', 403);
+            }
+
             $user = $this->repository->findOrFail($id);
             if (! in_array($role, ['customer', 'seller', 'admin'])) {
                 throw new Exception('نقش نامعتبر است', 422);

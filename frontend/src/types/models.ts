@@ -2,6 +2,12 @@
 
 export type Role = 'customer' | 'seller' | 'admin';
 
+// ✅ سیستم Multi-Admin/Manager: نقش «Administrative» یک لایه‌ی کاملاً جدا
+// از Role بالاست — روی جدول جداگانه‌ی spatie زندگی می‌کند و هرگز
+// جایگزین role اصلی کاربر (customer/seller/admin) نمی‌شود. فقط برای
+// role === 'admin' معنا دارد؛ بقیه همیشه null هستند.
+export type AdministrativeRole = 'super_admin' | 'admin' | 'manager';
+
 export type OrderStatus =
   | 'pending'
   | 'processing'
@@ -45,6 +51,12 @@ export interface User {
   banner?: string | null;
   created_at: string;
   updated_at: string;
+  // ✅ سیستم Multi-Admin/Manager (بخش ۱۸ درخواست) — همیشه توسط
+  // AuthController::userPayload برگردانده می‌شوند؛ برای role !== 'admin'
+  // همیشه null/[] هستند. اختیاری فقط برای سازگاری با پاسخ‌های قدیمی‌تر
+  // (مثلاً /profile update که این فیلدها را برنمی‌گرداند).
+  administrative_role?: AdministrativeRole | null;
+  permissions?: string[];
 }
 
 export interface AuthResponse {

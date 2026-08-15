@@ -68,13 +68,24 @@ class AdminOrderController extends Controller
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $updatedOrder = $this->orderService->updateStatus($order->id, $validated);
+        try {
+            // ✅ actor پاس داده می‌شود تا AdminOrderService بتواند برای
+            // انتقال delivered/completed (که Payout واقعی trigger می‌کند)
+            // اضافه بر orders.manage، finance.payout را هم چک کند
+            // (Finance Isolation — رجوع به کامنت کامل روی خودِ متد سرویس).
+            $updatedOrder = $this->orderService->updateStatus($order->id, $validated, $request->user());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'وضعیت سفارش با موفقیت به‌روز شد.',
-            'data' => $updatedOrder,
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'وضعیت سفارش با موفقیت به‌روز شد.',
+                'data' => $updatedOrder,
+            ]);
+        } catch (\Exception $e) {
+            $status = $e->getCode();
+            $status = ($status >= 400 && $status < 600) ? $status : 500;
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+        }
     }
 
     /**

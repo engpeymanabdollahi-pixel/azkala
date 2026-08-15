@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Repositories\AdminOrderRepository;
 use App\Services\Admin\AdminOrderService;
 use App\Services\Commission\CommissionService;
+use App\Services\Permission\PermissionService;
 use App\Services\Seller\SellerPerformanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -22,12 +23,14 @@ class AdminOrderServiceTest extends TestCase
     {
         parent::setUp();
         $this->repository = new AdminOrderRepository;
-        // ✅ سازنده‌ی AdminOrderService حالا به CommissionService هم نیاز
-        // دارد (سیستم کمیسیون هوشمند فروشندگان) — قبلاً نرخ کمیسیون هاردکد
-        // ۵٪ بود و هیچ وابستگی‌ای لازم نداشت.
+        // ✅ سازنده‌ی AdminOrderService حالا به CommissionService (سیستم
+        // کمیسیون هوشمند فروشندگان) و PermissionService (چک
+        // finance.payout روی انتقال delivered/completed — بخش ۱۲
+        // Service-Level Authorization) هم نیاز دارد.
         $this->service = new AdminOrderService(
             $this->repository,
-            new CommissionService(new SellerPerformanceService)
+            new CommissionService(new SellerPerformanceService),
+            new PermissionService
         );
     }
 

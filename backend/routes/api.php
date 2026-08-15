@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\AdminReportController;
 use App\Http\Controllers\Api\AdminReviewController;
 use App\Http\Controllers\Api\AdminSettingController;
 // فروشنده
+use App\Http\Controllers\Api\AdminAccessController;
 use App\Http\Controllers\Api\AdminCommissionController;
 use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
@@ -488,41 +489,41 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             // الزامی است؛ بدون آن هر سه گروه نام‌های یکسانِ admin.index/store/update/
             // destroy می‌گیرند و آخرین ثبت، قبلی‌ها را از جدولِ نام‌ها بیرون می‌کند.
             Route::prefix('device-brands')->name('device-brands.')->group(function () {
-                Route::get('/', [AdminDeviceBrandController::class, 'index'])->name('index');
-                Route::post('/', [AdminDeviceBrandController::class, 'store'])->name('store');
-                Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->name('update');
-                Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->name('destroy');
+                Route::get('/', [AdminDeviceBrandController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::post('/', [AdminDeviceBrandController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
+                Route::put('/{id}', [AdminDeviceBrandController::class, 'update'])->middleware('permission:catalog.manage')->name('update');
+                Route::delete('/{id}', [AdminDeviceBrandController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy');
             });
             Route::prefix('device-series')->name('device-series.')->group(function () {
-                Route::get('/', [AdminDeviceSeriesController::class, 'index'])->name('index');
-                Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->name('brands.dropdown'); // برای دراپ‌داون
-                Route::post('/', [AdminDeviceSeriesController::class, 'store'])->name('store');
-                Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->name('update');
-                Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->name('destroy');
+                Route::get('/', [AdminDeviceSeriesController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::get('/brands-dropdown', [AdminDeviceSeriesController::class, 'getBrandsForDropdown'])->middleware('permission:catalog.view')->name('brands.dropdown'); // برای دراپ‌داون
+                Route::post('/', [AdminDeviceSeriesController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
+                Route::put('/{id}', [AdminDeviceSeriesController::class, 'update'])->middleware('permission:catalog.manage')->name('update');
+                Route::delete('/{id}', [AdminDeviceSeriesController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy');
             });
             Route::prefix('device-models')->name('device-models.')->group(function () {
-                Route::get('/', [AdminDeviceModelController::class, 'index'])->name('index');
-                Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->name('series.dropdown');
-                Route::post('/', [AdminDeviceModelController::class, 'store'])->name('store');
-                Route::put('/{id}', [AdminDeviceModelController::class, 'update'])->name('update');
-                Route::delete('/{id}', [AdminDeviceModelController::class, 'destroy'])->name('destroy');
+                Route::get('/', [AdminDeviceModelController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::get('/series-dropdown', [AdminDeviceModelController::class, 'getSeriesForDropdown'])->middleware('permission:catalog.view')->name('series.dropdown');
+                Route::post('/', [AdminDeviceModelController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
+                Route::put('/{id}', [AdminDeviceModelController::class, 'update'])->middleware('permission:catalog.manage')->name('update');
+                Route::delete('/{id}', [AdminDeviceModelController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy');
             });
 
             Route::prefix('settings')->name('settings.')->group(function () {
-                Route::get('/', [AdminSettingController::class, 'index'])->name('index');
-                Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults'])->name('seed-defaults');
-                Route::post('/update-group/{group}', [AdminSettingController::class, 'updateGroup'])->name('update-group');
-                Route::put('/{key}', [AdminSettingController::class, 'update'])->name('update');
-                Route::post('/{key}/toggle-lock', [AdminSettingController::class, 'toggleLock'])->name('toggle-lock');
-                Route::get('/history', [AdminSettingController::class, 'history'])->name('history');
-                Route::post('/rollback/{history}', [AdminSettingController::class, 'rollback'])->name('rollback');
-                Route::get('/export', [AdminSettingController::class, 'export'])->name('export');
-                Route::post('/import', [AdminSettingController::class, 'import'])->name('import');
-                Route::post('/test-smtp', [AdminSettingController::class, 'testSmtp'])->name('test-smtp');
-                Route::post('/test-sms', [AdminSettingController::class, 'testSms'])->name('test-sms');
+                Route::get('/', [AdminSettingController::class, 'index'])->middleware('permission:settings.view')->name('index');
+                Route::post('/seed-defaults', [AdminSettingController::class, 'seedDefaults'])->middleware('permission:settings.manage')->name('seed-defaults');
+                Route::post('/update-group/{group}', [AdminSettingController::class, 'updateGroup'])->middleware('permission:settings.manage')->name('update-group');
+                Route::put('/{key}', [AdminSettingController::class, 'update'])->middleware('permission:settings.manage')->name('update');
+                Route::post('/{key}/toggle-lock', [AdminSettingController::class, 'toggleLock'])->middleware('permission:settings.manage')->name('toggle-lock');
+                Route::get('/history', [AdminSettingController::class, 'history'])->middleware('permission:settings.view')->name('history');
+                Route::post('/rollback/{history}', [AdminSettingController::class, 'rollback'])->middleware('permission:settings.manage')->name('rollback');
+                Route::get('/export', [AdminSettingController::class, 'export'])->middleware('permission:settings.view')->name('export');
+                Route::post('/import', [AdminSettingController::class, 'import'])->middleware('permission:settings.manage')->name('import');
+                Route::post('/test-smtp', [AdminSettingController::class, 'testSmtp'])->middleware('permission:settings.manage')->name('test-smtp');
+                Route::post('/test-sms', [AdminSettingController::class, 'testSms'])->middleware('permission:settings.manage')->name('test-sms');
             });
 
-            Route::prefix('reports')->name('reports.')->group(function () {
+            Route::prefix('reports')->middleware('permission:reports.view')->name('reports.')->group(function () {
                 Route::get('/overview', [AdminReportController::class, 'overview'])->name('overview');
                 Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
                 Route::get('/sales-chart', [AdminReportController::class, 'salesChart'])->name('sales-chart');
@@ -532,7 +533,7 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/top-sellers', [AdminReportController::class, 'topSellers'])->name('top-sellers');
             });
 
-            Route::prefix('advanced-reports')->middleware('throttle:admin-reports')->name('advanced-reports.')->group(function () {
+            Route::prefix('advanced-reports')->middleware(['throttle:admin-reports', 'permission:reports.view'])->name('advanced-reports.')->group(function () {
                 Route::get('/users-analysis', [AdminAdvancedReportController::class, 'usersAnalysis'])->name('users-analysis');
                 Route::get('/seller-performance', [AdminAdvancedReportController::class, 'sellerPerformance'])->name('seller-performance');
                 Route::get('/period-comparison', [AdminAdvancedReportController::class, 'periodComparison'])->name('period-comparison');
@@ -545,7 +546,7 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/anomalies', [AdminAdvancedReportController::class, 'anomalies'])->name('anomalies');
             });
 
-            Route::prefix('export')->middleware('throttle:admin-reports')->name('export.')->group(function () {
+            Route::prefix('export')->middleware(['throttle:admin-reports', 'permission:reports.export'])->name('export.')->group(function () {
                 Route::get('/orders/excel', [ReportExportController::class, 'exportOrdersExcel'])->name('orders.excel');
                 Route::get('/orders/pdf', [ReportExportController::class, 'exportOrdersPdf'])->name('orders.pdf');
                 Route::get('/users/excel', [ReportExportController::class, 'exportUsersExcel'])->name('users.excel');
@@ -557,91 +558,103 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             });
 
             Route::prefix('users')->name('users.')->group(function () {
-                Route::get('/', [AdminUserController::class, 'index'])->name('index');
-                Route::get('/seller-requests', [AdminUserController::class, 'sellerRequests'])->name('seller-requests');
-                Route::get('/{user}', [AdminUserController::class, 'show'])->name('show');
-                Route::put('/{user}/role', [AdminUserController::class, 'updateRole'])->name('update-role');
-                Route::put('/{user}/status', [AdminUserController::class, 'updateStatus'])->name('update-status');
-                Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->name('reject-seller');
+                Route::get('/', [AdminUserController::class, 'index'])->middleware('permission:users.view')->name('index');
+                Route::get('/seller-requests', [AdminUserController::class, 'sellerRequests'])->middleware('permission:sellers.view')->name('seller-requests');
+                Route::get('/{user}', [AdminUserController::class, 'show'])->middleware('permission:users.view')->name('show');
+                Route::put('/{user}/role', [AdminUserController::class, 'updateRole'])->middleware('permission:users.role.manage')->name('update-role');
+                Route::put('/{user}/status', [AdminUserController::class, 'updateStatus'])->middleware('permission:users.manage')->name('update-status');
+                Route::post('/{user}/reject-seller', [AdminUserController::class, 'rejectSeller'])->middleware('permission:sellers.manage')->name('reject-seller');
                 // ✅ approve-seller-request حذف شد (controller method متناظرش
                 // هم حذف شد — رجوع به کامنت AdminUserController). reject-seller-request
                 // هم حذف شد چون دقیقاً همان controller method مسیر reject
                 // پایین‌تر را صدا می‌زد؛ فرانت‌اند فقط از reject استفاده می‌کرد.
                 // ❌ approve-seller («تایید یک‌کلیکی») هم حذف شد — رجوع به
                 // کامنت کامل در AdminUserRepository::rejectSeller().
-                Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->name('initial-approve');
-                Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->name('final-approve');
-                Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->name('reject');
+                Route::post('/{id}/initial-approve', [AdminUserController::class, 'initialApproveRequest'])->middleware('permission:sellers.manage')->name('initial-approve');
+                Route::post('/{id}/final-approve', [AdminUserController::class, 'finalApproveRequest'])->middleware('permission:sellers.manage')->name('final-approve');
+                Route::post('/{id}/reject', [AdminUserController::class, 'rejectSellerRequest'])->middleware('permission:sellers.manage')->name('reject');
 
                 // 💹 سیستم کمیسیون هوشمند — امتیاز عملکرد و override هر فروشنده
                 // ✅ {user:id} صریح لازم است چون User::getRouteKeyName() برای
                 // مسیرهای عمومی «slug» برمی‌گرداند — بدون این، implicit
                 // binding سعی می‌کند کاربر را با slug پیدا کند (نه id) و برای
                 // فروشنده‌ی بدون slug همیشه ۴۰۴ می‌داد.
-                Route::get('/{user:id}/commission', [AdminCommissionController::class, 'sellerInfo'])->name('commission.show');
-                Route::put('/{user:id}/commission-override', [AdminCommissionController::class, 'setSellerOverride'])->name('commission.override');
+                Route::get('/{user:id}/commission', [AdminCommissionController::class, 'sellerInfo'])->middleware('permission:commission.override.view')->name('commission.show');
+                Route::put('/{user:id}/commission-override', [AdminCommissionController::class, 'setSellerOverride'])->middleware('permission:commission.override.manage')->name('commission.override');
+            });
+
+            // 👑 مدیریت Administrative Access (Super Admin/Admin/Manager + Permission)
+            // — لایه‌ی جدید و مستقل از users.role؛ رجوع به AdminAccessService
+            // برای hierarchy/delegation/self-modification.
+            Route::prefix('access')->name('access.')->group(function () {
+                Route::get('/users', [AdminAccessController::class, 'users'])->middleware('permission:admin.access.view')->name('users.index');
+                Route::get('/users/{id}', [AdminAccessController::class, 'show'])->middleware('permission:admin.access.view')->name('users.show');
+                Route::get('/roles', [AdminAccessController::class, 'roles'])->middleware('permission:admin.access.view')->name('roles');
+                Route::get('/permissions', [AdminAccessController::class, 'permissions'])->middleware('permission:admin.access.view')->name('permissions');
+                Route::put('/users/{id}/role', [AdminAccessController::class, 'updateRole'])->middleware('permission:admin.access.manage')->name('users.role');
+                Route::put('/users/{id}/permissions', [AdminAccessController::class, 'updatePermissions'])->middleware('permission:admin.access.manage')->name('users.permissions');
             });
 
             // 💹 قوانین کمیسیون (بازه‌ی امتیاز → سطح → نرخ) — سراسری، نه مخصوص یک فروشنده
             Route::prefix('commission-rules')->name('commission-rules.')->group(function () {
-                Route::get('/', [AdminCommissionController::class, 'rules'])->name('index');
-                Route::post('/', [AdminCommissionController::class, 'storeRule'])->name('store');
-                Route::put('/{id}', [AdminCommissionController::class, 'updateRule'])->name('update');
-                Route::delete('/{id}', [AdminCommissionController::class, 'destroyRule'])->name('destroy');
+                Route::get('/', [AdminCommissionController::class, 'rules'])->middleware('permission:commission.view')->name('index');
+                Route::post('/', [AdminCommissionController::class, 'storeRule'])->middleware('permission:commission.rules.manage')->name('store');
+                Route::put('/{id}', [AdminCommissionController::class, 'updateRule'])->middleware('permission:commission.rules.manage')->name('update');
+                Route::delete('/{id}', [AdminCommissionController::class, 'destroyRule'])->middleware('permission:commission.rules.manage')->name('destroy');
             });
 
             Route::prefix('categories')->name('categories.')->group(function () {
-                Route::get('/', [AdminCategoryController::class, 'index'])->name('index');
-                Route::get('/tree', [AdminCategoryController::class, 'tree'])->name('tree');
-                Route::post('/', [AdminCategoryController::class, 'store'])->name('store');
+                Route::get('/', [AdminCategoryController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::get('/tree', [AdminCategoryController::class, 'tree'])->middleware('permission:catalog.view')->name('tree');
+                Route::post('/', [AdminCategoryController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
                 // /reorder باید قبل از /{category} بیاید؛ در غیر این صورت PUT
                 // روی آن با «reorder» به‌عنوان شناسه به update() می‌رسد و
                 // implicit binding با ۴۰۴ ردش می‌کند.
-                Route::put('/reorder', [AdminCategoryController::class, 'reorder'])->name('reorder');
-                Route::get('/{category}', [AdminCategoryController::class, 'show'])->name('show');
-                Route::put('/{category}', [AdminCategoryController::class, 'update'])->name('update');
-                Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->name('destroy');
-                Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->name('bulk-action');
+                Route::put('/reorder', [AdminCategoryController::class, 'reorder'])->middleware('permission:catalog.manage')->name('reorder');
+                Route::get('/{category}', [AdminCategoryController::class, 'show'])->middleware('permission:catalog.view')->name('show');
+                Route::put('/{category}', [AdminCategoryController::class, 'update'])->middleware('permission:catalog.manage')->name('update');
+                Route::delete('/{category}', [AdminCategoryController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy');
+                Route::post('/bulk-action', [AdminCategoryController::class, 'bulkAction'])->middleware('permission:catalog.manage')->name('bulk-action');
             });
 
             Route::prefix('brands')->name('brands.')->group(function () {
-                Route::get('/', [AdminBrandController::class, 'index'])->name('index');
-                Route::post('/', [AdminBrandController::class, 'store'])->name('store');
-                Route::get('/{id}', [AdminBrandController::class, 'show'])->name('show');          // ✅ تغییر به {id}
-                Route::put('/{id}', [AdminBrandController::class, 'update'])->name('update');      // ✅ تغییر به {id}
-                Route::delete('/{id}', [AdminBrandController::class, 'destroy'])->name('destroy'); // ✅ تغییر به {id}
-                Route::post('/{id}/verify', [AdminBrandController::class, 'verify'])->name('verify');       // ✅ تغییر به {id}
-                Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->name('unverify'); // ✅ تغییر به {id}
-                Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->name('bulk-action');
+                Route::get('/', [AdminBrandController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::post('/', [AdminBrandController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
+                Route::get('/{id}', [AdminBrandController::class, 'show'])->middleware('permission:catalog.view')->name('show');          // ✅ تغییر به {id}
+                Route::put('/{id}', [AdminBrandController::class, 'update'])->middleware('permission:catalog.manage')->name('update');      // ✅ تغییر به {id}
+                Route::delete('/{id}', [AdminBrandController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy'); // ✅ تغییر به {id}
+                Route::post('/{id}/verify', [AdminBrandController::class, 'verify'])->middleware('permission:catalog.manage')->name('verify');       // ✅ تغییر به {id}
+                Route::post('/{id}/unverify', [AdminBrandController::class, 'unverify'])->middleware('permission:catalog.manage')->name('unverify'); // ✅ تغییر به {id}
+                Route::post('/bulk-action', [AdminBrandController::class, 'bulkAction'])->middleware('permission:catalog.manage')->name('bulk-action');
             });
             // ============================================================
             // مدیریت تبلیغات (Admin Ads)
             // ============================================================
             Route::prefix('ads')->name('ads.')->group(function () {
-                Route::get('/', [AdminAdController::class, 'index'])->name('index');
-                Route::post('/', [AdminAdController::class, 'store'])->name('store');
-                Route::get('/{ad}', [AdminAdController::class, 'show'])->name('show');
-                Route::put('/{ad}', [AdminAdController::class, 'update'])->name('update');
-                Route::delete('/{ad}', [AdminAdController::class, 'destroy'])->name('destroy');
-                Route::post('/{ad}/toggle', [AdminAdController::class, 'toggle'])->name('toggle');
+                Route::get('/', [AdminAdController::class, 'index'])->middleware('permission:ads.view')->name('index');
+                Route::post('/', [AdminAdController::class, 'store'])->middleware('permission:ads.manage')->name('store');
+                Route::get('/{ad}', [AdminAdController::class, 'show'])->middleware('permission:ads.view')->name('show');
+                Route::put('/{ad}', [AdminAdController::class, 'update'])->middleware('permission:ads.manage')->name('update');
+                Route::delete('/{ad}', [AdminAdController::class, 'destroy'])->middleware('permission:ads.manage')->name('destroy');
+                Route::post('/{ad}/toggle', [AdminAdController::class, 'toggle'])->middleware('permission:ads.manage')->name('toggle');
             });
 
             // ============================================================
             // مدیریت مجله ازکالا (Admin Magazine)
             // ============================================================
             Route::prefix('magazine')->name('magazine.')->group(function () {
-                Route::get('/stats', [AdminMagazineController::class, 'stats'])->name('stats');
-                Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->name('bulk-action');
+                Route::get('/stats', [AdminMagazineController::class, 'stats'])->middleware('permission:content.view')->name('stats');
+                Route::post('/bulk-action', [AdminMagazineController::class, 'bulkAction'])->middleware('permission:content.manage')->name('bulk-action');
 
-                Route::get('/', [AdminMagazineController::class, 'index'])->name('index');
-                Route::post('/', [AdminMagazineController::class, 'store'])->name('store');
-                Route::get('/{article}', [AdminMagazineController::class, 'show'])->name('show');
-                Route::put('/{article}', [AdminMagazineController::class, 'update'])->name('update');
-                Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->name('destroy');
-                Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->name('toggle');
+                Route::get('/', [AdminMagazineController::class, 'index'])->middleware('permission:content.view')->name('index');
+                Route::post('/', [AdminMagazineController::class, 'store'])->middleware('permission:content.manage')->name('store');
+                Route::get('/{article}', [AdminMagazineController::class, 'show'])->middleware('permission:content.view')->name('show');
+                Route::put('/{article}', [AdminMagazineController::class, 'update'])->middleware('permission:content.manage')->name('update');
+                Route::delete('/{article}', [AdminMagazineController::class, 'destroy'])->middleware('permission:content.manage')->name('destroy');
+                Route::post('/{article}/toggle', [AdminMagazineController::class, 'toggle'])->middleware('permission:content.manage')->name('toggle');
 
                 // ✨ AI Routes
-                Route::prefix('ai')->name('ai.')->group(function () {
+                Route::prefix('ai')->middleware('permission:content.manage')->name('ai.')->group(function () {
                     Route::post('/generate', [AdminAiArticleController::class, 'generate'])->name('generate');
                     Route::post('/rewrite', [AdminAiArticleController::class, 'rewrite'])->name('rewrite');
                     Route::post('/suggest-title', [AdminAiArticleController::class, 'suggestTitle'])->name('suggest-title');
@@ -649,27 +662,35 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             });
 
             Route::prefix('products')->name('products.')->group(function () {
-                Route::get('/', [AdminProductController::class, 'index'])->name('index');
+                Route::get('/', [AdminProductController::class, 'index'])->middleware('permission:products.view')->name('index');
                 // باید قبل از /{product} ثبت شود؛ در routes/api_v1.php بعد از آن
                 // تعریف شده بود و در عمل هرگز match نمی‌شد (implicit binding روی
                 // «templates» محصولی پیدا نمی‌کرد و ۴۰۴ می‌داد).
-                Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
+                Route::get('/templates', [ProductController::class, 'getTemplates'])->middleware('permission:products.view')->name('templates');
                 // stats() آمارِ یک محصول را برمی‌گرداند (getProductStats($id) صدا
                 // می‌زند) ولی به /stats بدون پارامتر وصل بود، و /{product}/stats به
                 // متدِ ناموجودِ productStats اشاره می‌کرد. فرانت‌اند هم همین دومی را
                 // صدا می‌زند. جای درستش اینجاست؛ روت بی‌پارامتر حذف شد.
-                Route::get('/{product}/stats', [AdminProductController::class, 'stats'])->name('product-stats');
-                Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->name('quick-update');
-                Route::delete('/{product}', [AdminProductController::class, 'destroy'])->name('destroy');
-                Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->name('bulk-action');
+                Route::get('/{product}/stats', [AdminProductController::class, 'stats'])->middleware('permission:products.view')->name('product-stats');
+                Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->middleware('permission:products.manage')->name('quick-update');
+                Route::delete('/{product}', [AdminProductController::class, 'destroy'])->middleware('permission:products.manage')->name('destroy');
+                Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->middleware('permission:products.manage')->name('bulk-action');
             });
 
             Route::prefix('orders')->name('orders.')->group(function () {
-                Route::get('/', [AdminOrderController::class, 'index'])->name('index');
-                Route::get('/stats', [AdminOrderController::class, 'stats'])->name('stats');
-                Route::get('/{order}', [AdminOrderController::class, 'show'])->name('show');
-                Route::put('/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('update-status');
-                Route::put('/{order}/payment-status', [AdminOrderController::class, 'updatePaymentStatus'])->name('update-payment-status');
+                Route::get('/', [AdminOrderController::class, 'index'])->middleware('permission:orders.view')->name('index');
+                Route::get('/stats', [AdminOrderController::class, 'stats'])->middleware('permission:orders.view')->name('stats');
+                Route::get('/{order}', [AdminOrderController::class, 'show'])->middleware('permission:orders.view')->name('show');
+                // ✅ finance.payout اینجا در middleware عمداً نیامده — چون این
+                // route یک endpoint واحد برای *همه‌ی* انتقال‌های وضعیت است
+                // (pending/processing/shipped/cancelled/returned هم همین‌جا)،
+                // نه فقط delivered/completed. الزام اضافی finance.payout فقط
+                // برای انتقال به delivered/completed (که واقعاً Payout مالی
+                // trigger می‌کند) داخل AdminOrderService::updateStatus به شکل
+                // Service-level enforcement چک می‌شود — دقیقاً طبق دستور «امنیت
+                // را فقط به Middleware محدود نکن».
+                Route::put('/{order}/status', [AdminOrderController::class, 'updateStatus'])->middleware('permission:orders.manage')->name('update-status');
+                Route::put('/{order}/payment-status', [AdminOrderController::class, 'updatePaymentStatus'])->middleware('permission:orders.payment.manage')->name('update-payment-status');
                 // POST /{order}/refund حذف شد: AdminOrderController::refund وجود
                 // نداشت، هیچ‌جای فرانت‌اند صدایش نمی‌زد، و معنای بازپرداخت (کامل یا
                 // جزئی، اتصال به درگاه، برگشت موجودی) تصمیم محصولی است نه حدسِ ما.
@@ -677,95 +698,100 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             });
 
             Route::prefix('reviews')->name('reviews.')->group(function () {
-                Route::get('/', [AdminReviewController::class, 'index'])->name('index');
-                Route::put('/{review}/status', [AdminReviewController::class, 'updateStatus'])->name('update-status');
-                Route::post('/{review}/reply', [AdminReviewController::class, 'reply'])->name('reply');
-                Route::delete('/{review}', [AdminReviewController::class, 'destroy'])->name('destroy');
-                Route::post('/bulk-action', [AdminReviewController::class, 'bulkAction'])->name('bulk-action');
+                Route::get('/', [AdminReviewController::class, 'index'])->middleware('permission:reviews.view')->name('index');
+                Route::put('/{review}/status', [AdminReviewController::class, 'updateStatus'])->middleware('permission:reviews.manage')->name('update-status');
+                Route::post('/{review}/reply', [AdminReviewController::class, 'reply'])->middleware('permission:reviews.manage')->name('reply');
+                Route::delete('/{review}', [AdminReviewController::class, 'destroy'])->middleware('permission:reviews.manage')->name('destroy');
+                Route::post('/bulk-action', [AdminReviewController::class, 'bulkAction'])->middleware('permission:reviews.manage')->name('bulk-action');
             });
 
             Route::prefix('coupons')->name('coupons.')->group(function () {
-                Route::get('/', [CouponController::class, 'index'])->name('index');
-                Route::post('/', [CouponController::class, 'store'])->name('store');
-                Route::get('/{coupon}', [CouponController::class, 'show'])->name('show');
-                Route::put('/{coupon}', [CouponController::class, 'update'])->name('update');
-                Route::delete('/{coupon}', [CouponController::class, 'destroy'])->name('destroy');
+                Route::get('/', [CouponController::class, 'index'])->middleware('permission:coupons.view')->name('index');
+                Route::post('/', [CouponController::class, 'store'])->middleware('permission:coupons.manage')->name('store');
+                Route::get('/{coupon}', [CouponController::class, 'show'])->middleware('permission:coupons.view')->name('show');
+                Route::put('/{coupon}', [CouponController::class, 'update'])->middleware('permission:coupons.manage')->name('update');
+                Route::delete('/{coupon}', [CouponController::class, 'destroy'])->middleware('permission:coupons.manage')->name('destroy');
             });
 
             Route::prefix('chat-management')->name('chat-management.')->group(function () {
                 Route::prefix('reports')->name('reports.')->group(function () {
-                    Route::get('/', [AdminChatReportController::class, 'index'])->name('index');
-                    Route::get('/stats', [AdminChatReportController::class, 'stats'])->name('stats');
-                    Route::get('/{report}', [AdminChatReportController::class, 'show'])->name('show');
-                    Route::put('/{report}', [AdminChatReportController::class, 'update'])->name('update');
-                    Route::post('/{report}/action', [AdminChatReportController::class, 'action'])->name('action');
+                    Route::get('/', [AdminChatReportController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [AdminChatReportController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::get('/{report}', [AdminChatReportController::class, 'show'])->middleware('permission:support.view')->name('show');
+                    Route::put('/{report}', [AdminChatReportController::class, 'update'])->middleware('permission:support.manage')->name('update');
+                    Route::post('/{report}/action', [AdminChatReportController::class, 'action'])->middleware('permission:support.manage')->name('action');
                 });
 
                 Route::prefix('monitor')->name('monitor.')->group(function () {
-                    Route::get('/', [ChatMonitorController::class, 'index'])->name('index');
-                    Route::get('/stats', [ChatMonitorController::class, 'stats'])->name('stats');
-                    Route::get('/{chat}', [ChatMonitorController::class, 'show'])->name('show');
-                    Route::post('/{chat}/intervene', [ChatMonitorController::class, 'intervene'])->name('intervene');
-                    Route::post('/{chat}/close', [ChatMonitorController::class, 'close'])->name('close');
+                    Route::get('/', [ChatMonitorController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [ChatMonitorController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::get('/{chat}', [ChatMonitorController::class, 'show'])->middleware('permission:support.view')->name('show');
+                    Route::post('/{chat}/intervene', [ChatMonitorController::class, 'intervene'])->middleware('permission:support.manage')->name('intervene');
+                    Route::post('/{chat}/close', [ChatMonitorController::class, 'close'])->middleware('permission:support.manage')->name('close');
                 });
 
-                Route::prefix('sentiment')->name('sentiment.')->group(function () {
+                Route::prefix('sentiment')->middleware('permission:support.view')->name('sentiment.')->group(function () {
                     Route::get('/dashboard', [SentimentDashboardController::class, 'dashboard'])->name('dashboard');
                     Route::get('/top-sellers', [SentimentDashboardController::class, 'topSellers'])->name('top-sellers');
                     Route::get('/alerts', [SentimentDashboardController::class, 'alerts'])->name('alerts');
                 });
 
                 Route::prefix('blocks')->name('blocks.')->group(function () {
-                    Route::get('/', [BlockManagementController::class, 'index'])->name('index');
-                    Route::get('/stats', [BlockManagementController::class, 'stats'])->name('stats');
-                    Route::post('/block', [BlockManagementController::class, 'blockByAdmin'])->name('block');
-                    Route::delete('/{block}', [BlockManagementController::class, 'unblock'])->name('unblock');
-                    Route::delete('/user/{user}/all', [BlockManagementController::class, 'unblockAll'])->name('unblock-all');
+                    Route::get('/', [BlockManagementController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [BlockManagementController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::post('/block', [BlockManagementController::class, 'blockByAdmin'])->middleware('permission:support.manage')->name('block');
+                    Route::delete('/{block}', [BlockManagementController::class, 'unblock'])->middleware('permission:support.manage')->name('unblock');
+                    Route::delete('/user/{user}/all', [BlockManagementController::class, 'unblockAll'])->middleware('permission:support.manage')->name('unblock-all');
                 });
 
                 Route::prefix('faq')->name('faq.')->group(function () {
-                    Route::get('/', [FaqManagementController::class, 'index'])->name('index');
-                    Route::get('/stats', [FaqManagementController::class, 'stats'])->name('stats');
-                    Route::post('/system', [FaqManagementController::class, 'storeSystem'])->name('store-system');
-                    Route::put('/{faq}', [FaqManagementController::class, 'update'])->name('update');
-                    Route::delete('/{faq}', [FaqManagementController::class, 'destroy'])->name('destroy');
-                    Route::post('/{faq}/toggle', [FaqManagementController::class, 'toggle'])->name('toggle');
+                    Route::get('/', [FaqManagementController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [FaqManagementController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::post('/system', [FaqManagementController::class, 'storeSystem'])->middleware('permission:support.manage')->name('store-system');
+                    Route::put('/{faq}', [FaqManagementController::class, 'update'])->middleware('permission:support.manage')->name('update');
+                    Route::delete('/{faq}', [FaqManagementController::class, 'destroy'])->middleware('permission:support.manage')->name('destroy');
+                    Route::post('/{faq}/toggle', [FaqManagementController::class, 'toggle'])->middleware('permission:support.manage')->name('toggle');
                 });
 
                 Route::prefix('suggestions')->name('suggestions.')->group(function () {
-                    Route::get('/', [SuggestionManagementController::class, 'index'])->name('index');
-                    Route::get('/stats', [SuggestionManagementController::class, 'stats'])->name('stats');
-                    Route::get('/top-performers', [SuggestionManagementController::class, 'topPerformers'])->name('top-performers');
-                    Route::get('/top-sellers', [SuggestionManagementController::class, 'topSellers'])->name('top-sellers');
-                    Route::get('/settings', [SuggestionManagementController::class, 'getSettings'])->name('settings');
-                    Route::put('/settings', [SuggestionManagementController::class, 'updateSettings'])->name('update-settings');
+                    Route::get('/', [SuggestionManagementController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [SuggestionManagementController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::get('/top-performers', [SuggestionManagementController::class, 'topPerformers'])->middleware('permission:support.view')->name('top-performers');
+                    Route::get('/top-sellers', [SuggestionManagementController::class, 'topSellers'])->middleware('permission:support.view')->name('top-sellers');
+                    Route::get('/settings', [SuggestionManagementController::class, 'getSettings'])->middleware('permission:support.view')->name('settings');
+                    Route::put('/settings', [SuggestionManagementController::class, 'updateSettings'])->middleware('permission:support.manage')->name('update-settings');
                 });
 
                 Route::prefix('message-templates')->name('message-templates.')->group(function () {
-                    Route::get('/', [MessageTemplateController::class, 'index'])->name('index');
-                    Route::post('/', [MessageTemplateController::class, 'store'])->name('store');
-                    Route::post('/seed-defaults', [MessageTemplateController::class, 'seedDefaults'])->name('seed-defaults');
-                    Route::put('/{template}', [MessageTemplateController::class, 'update'])->name('update');
-                    Route::delete('/{template}', [MessageTemplateController::class, 'destroy'])->name('destroy');
-                    Route::post('/{template}/toggle', [MessageTemplateController::class, 'toggle'])->name('toggle');
-                    Route::post('/{template}/track', [MessageTemplateController::class, 'trackUsage'])->name('track');
+                    Route::get('/', [MessageTemplateController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::post('/', [MessageTemplateController::class, 'store'])->middleware('permission:support.manage')->name('store');
+                    Route::post('/seed-defaults', [MessageTemplateController::class, 'seedDefaults'])->middleware('permission:support.manage')->name('seed-defaults');
+                    Route::put('/{template}', [MessageTemplateController::class, 'update'])->middleware('permission:support.manage')->name('update');
+                    Route::delete('/{template}', [MessageTemplateController::class, 'destroy'])->middleware('permission:support.manage')->name('destroy');
+                    Route::post('/{template}/toggle', [MessageTemplateController::class, 'toggle'])->middleware('permission:support.manage')->name('toggle');
+                    Route::post('/{template}/track', [MessageTemplateController::class, 'trackUsage'])->middleware('permission:support.manage')->name('track');
                 });
 
                 Route::prefix('tickets')->name('tickets.')->group(function () {
-                    Route::get('/', [SupportTicketController::class, 'index'])->name('index');
-                    Route::get('/stats', [SupportTicketController::class, 'stats'])->name('stats');
-                    Route::get('/support-staff', [SupportTicketController::class, 'getSupportStaff'])->name('support-staff');
-                    Route::post('/', [SupportTicketController::class, 'store'])->name('store');
-                    Route::post('/convert/{conversation}', [SupportTicketController::class, 'convertFromConversation'])->name('convert');
-                    Route::get('/{ticket}', [SupportTicketController::class, 'show'])->name('show');
-                    Route::put('/{ticket}', [SupportTicketController::class, 'update'])->name('update');
-                    Route::post('/{ticket}/assign', [SupportTicketController::class, 'assign'])->name('assign');
-                    Route::post('/{ticket}/escalate', [SupportTicketController::class, 'escalate'])->name('escalate');
-                    Route::post('/{ticket}/message', [SupportTicketController::class, 'sendMessage'])->name('send-message');
+                    Route::get('/', [SupportTicketController::class, 'index'])->middleware('permission:support.view')->name('index');
+                    Route::get('/stats', [SupportTicketController::class, 'stats'])->middleware('permission:support.view')->name('stats');
+                    Route::get('/support-staff', [SupportTicketController::class, 'getSupportStaff'])->middleware('permission:support.view')->name('support-staff');
+                    Route::post('/', [SupportTicketController::class, 'store'])->middleware('permission:support.manage')->name('store');
+                    Route::post('/convert/{conversation}', [SupportTicketController::class, 'convertFromConversation'])->middleware('permission:support.manage')->name('convert');
+                    Route::get('/{ticket}', [SupportTicketController::class, 'show'])->middleware('permission:support.view')->name('show');
+                    Route::put('/{ticket}', [SupportTicketController::class, 'update'])->middleware('permission:support.manage')->name('update');
+                    Route::post('/{ticket}/assign', [SupportTicketController::class, 'assign'])->middleware('permission:support.manage')->name('assign');
+                    Route::post('/{ticket}/escalate', [SupportTicketController::class, 'escalate'])->middleware('permission:support.manage')->name('escalate');
+                    Route::post('/{ticket}/message', [SupportTicketController::class, 'sendMessage'])->middleware('permission:support.manage')->name('send-message');
                 });
             });
 
-            Route::prefix('push')->name('push.')->group(function () {
+            // ✅ ارسال Push Notification یک قابلیت ارتباطی broadcast (به همه‌ی
+            // کاربران) است — نزدیک‌ترین module موجود support است؛ ساخت یک
+            // Permission تک‌مصرفی جداگانه («notifications.manage») فقط برای
+            // همین ۴ route، طبق دستور «از ساخت Permission بی‌دلیل خودداری کن»
+            // توجیه نداشت.
+            Route::prefix('push')->middleware('permission:support.manage')->name('push.')->group(function () {
                 Route::post('/subscribe', [PushSubscriptionController::class, 'store'])->name('subscribe');
                 Route::delete('/unsubscribe/{subscription}', [PushSubscriptionController::class, 'destroy'])->name('unsubscribe');
                 Route::post('/test', [PushSubscriptionController::class, 'sendTest'])->name('test');

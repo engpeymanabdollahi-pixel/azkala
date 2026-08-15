@@ -25,6 +25,18 @@ class AuthController extends Controller
     }
 
     /**
+     * ✅ سیستم Multi-Admin/Manager (بخش ۱۸ درخواست): هر پاسخی که شامل
+     * User باشد باید administrative_role/permissions را هم برای
+     * authStore.ts بفرستد — یک نقطه‌ی واحد به‌جای تکرار در ۴ متد
+     * (login/handleOtp/refresh/user). برای غیر-admin این دو فیلد همیشه
+     * null/[] هستند (رجوع به User::administrativeAccessSummary).
+     */
+    private function userPayload(User $user): array
+    {
+        return array_merge($user->toArray(), $user->administrativeAccessSummary());
+    }
+
+    /**
      * ثبت‌نام یا درخواست کد تایید
      */
     public function register(Request $request)
@@ -88,7 +100,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => $result['message'],
             'data' => [
-                'user' => $result['user'],
+                'user' => $this->userPayload($result['user']),
                 'token' => $result['token'],
             ],
         ], 200);
@@ -146,7 +158,7 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'ورود با موفقیت انجام شد',
             'data' => [
-                'user' => $user, // یا UserResource::make($user) اگر دارید
+                'user' => $this->userPayload($user),
                 'token' => $token,
             ],
         ]);
@@ -222,7 +234,7 @@ class AuthController extends Controller
                 'message' => 'Token refreshed successfully',
                 'data' => [
                     'token' => $newToken,
-                    'user' => $user,
+                    'user' => $this->userPayload($user),
                 ],
             ]);
 
@@ -250,7 +262,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $request->user(),
+            'data' => $this->userPayload($user),
         ], 200);
     }
 
@@ -265,7 +277,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'پروفایل با موفقیت به‌روزرسانی شد',
-            'data' => $user->fresh(),
+            'data' => $this->userPayload($user->fresh()),
         ], 200);
     }
 

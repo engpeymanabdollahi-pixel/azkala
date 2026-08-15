@@ -4,8 +4,10 @@ namespace App\Services\Admin;
 
 use App\Models\Order;
 use App\Models\SellerTransaction;
+use App\Models\User;
 use App\Repositories\AdminOrderRepository;
 use App\Services\Commission\CommissionService;
+use App\Services\Permission\PermissionService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +17,8 @@ class AdminOrderService
 
     public function __construct(
         AdminOrderRepository $repository,
-        protected CommissionService $commissionService
+        protected CommissionService $commissionService,
+        protected PermissionService $permissionService
     ) {
         $this->repository = $repository;
     }
@@ -88,13 +91,36 @@ class AdminOrderService
 
     /**
      * Update order status
+     *
+     * ✅ Finance Isolation (Audit سیستم Role/Permission، بخش ۹/۲۷ درخواست
+     * Multi-Admin): این متد وقتی وضعیت به delivered/completed می‌رود،
+     * واقعاً processSellerPayouts را trigger می‌کند — یعنی پول واقعی
+     * جابه‌جا می‌شود. middleware مسیر HTTP فقط orders.manage را چک
+     * می‌کند (چون همین endpoint برای بقیه‌ی انتقال‌های بی‌ضرر هم استفاده
+     * می‌شود)؛ اینجا، در Service layer، برای دقیقاً همین انتقال خاص
+     * finance.payout هم اضافه چک می‌شود — طبق دستور صریح «کسی که فقط
+     * Orders را مدیریت می‌کند نباید بتواند wallet/payout را کنترل کند».
+     *
+     * $actor عمداً nullable و پیش‌فرض null است: اگر ارائه نشود (مثلاً
+     * فراخوانی مستقیم داخلی/تست بدون context کاربر) این چک اضافه به‌طور
+     * کامل نادیده گرفته می‌شود — رفتار قبلی این متد برای چنین
+     * فراخوانی‌هایی دست‌نخورده می‌ماند.
      */
-    public function updateStatus(int $id, array $data): Order
+    public function updateStatus(int $id, array $data, ?User $actor = null): Order
     {
-        try {
-            $order = Order::findOrFail($id);
-            $oldStatus = $order->status;
+        $order = Order::findOrFail($id);
+        $oldStatus = $order->status;
+        $willTriggerPayout = in_array($data['status'], ['completed', 'delivered'])
+            && ! in_array($oldStatus, ['completed', 'delivered']);
 
+        if ($willTriggerPayout && $actor !== null && ! $this->permissionService->userHasPermission($actor, 'finance.payout')) {
+            throw new \Exception(
+                'تغییر وضعیت به «تحویل‌شده/تکمیل‌شده» تسویه‌حساب فروشنده را trigger می‌کند و به Permission finance.payout نیاز دارد.',
+                403
+            );
+        }
+
+        try {
             $updateData = ['status' => $data['status']];
 
             if (isset($data['tracking_number'])) {

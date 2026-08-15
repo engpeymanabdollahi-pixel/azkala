@@ -51,9 +51,21 @@ class AdminUserController extends Controller
             'role' => 'required|in:customer,seller,admin',
         ]);
 
-        $this->userService->updateUserRole((int) $id, $validated['role']);
+        try {
+            // ✅ actorId پاس داده می‌شود تا AdminUserService بتواند
+            // self-modification را رد کند (Finding 1، رجوع به کامنت کامل
+            // روی خودِ متد سرویس). قبلاً این try/catch اصلاً وجود نداشت،
+            // یعنی هر Exception (حتی 422 نقش نامعتبر) به‌جای status کد
+            // درست، ۵۰۰ عمومی می‌داد.
+            $this->userService->updateUserRole((int) $id, $validated['role'], (int) $request->user()->id);
 
-        return response()->json(['success' => true, 'message' => 'نقش تغییر کرد']);
+            return response()->json(['success' => true, 'message' => 'نقش تغییر کرد']);
+        } catch (\Exception $e) {
+            $status = $e->getCode();
+            $status = ($status >= 400 && $status < 600) ? $status : 400;
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
+        }
     }
 
     /**
