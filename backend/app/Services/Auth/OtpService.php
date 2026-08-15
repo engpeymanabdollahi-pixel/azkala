@@ -19,8 +19,20 @@ class OtpService
         // ذخیره در کش به مدت ۲ دقیقه
         Cache::put('otp_'.$phone, $otp, now()->addMinutes(2));
 
-        // لاگ برای دیباگ محیط توسعه — همیشه باقی می‌ماند، مستقل از ارسال واقعی پیامک
-        Log::info("OTP generated for phone {$phone}: {$otp}");
+        // ✅ CONFIRMED SECURITY FINDING (Backend Full Audit): این خط قبلاً
+        // در همه‌ی environment ها (از جمله production) اجرا می‌شد و OTP را
+        // عیناً در storage/logs می‌نوشت. هر کسی که به لاگ‌های اپ دسترسی
+        // دارد (که معمولاً دسترسی گسترده‌تری از Redis/Cache دارد، و
+        // لاگ‌ها اغلب به سرویس‌های ثالث ارسال/برای مدت طولانی‌تری نگه
+        // داشته می‌شوند) می‌توانست OTP زنده‌ی هر کاربری را بخواند و در
+        // همان بازه‌ی ۲ دقیقه‌ای حساب او را تصاحب کند — یک مسیر واقعی
+        // Account Takeover. الان دقیقاً همان الگوی app()->environment
+        // ('local') که DebugController/DevController این پروژه از قبل
+        // استفاده می‌کنند به کار رفته: امکان دیباگ محلی حفظ شده، ولی OTP
+        // دیگر هرگز در production/staging لاگ نمی‌شود.
+        if (app()->environment('local')) {
+            Log::info("OTP generated for phone {$phone}: {$otp}");
+        }
 
         // ✅ قبلاً همین‌جا کار تمام می‌شد و هیچ پیامک واقعی‌ای فرستاده
         // نمی‌شد — کاربر واقعی (نه محیط dev) هیچ‌وقت کد را دریافت نمی‌کرد.

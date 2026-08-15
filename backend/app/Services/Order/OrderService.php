@@ -180,7 +180,18 @@ class OrderService
             throw new \Exception('این سفارش قابل لغو نیست', 400);
         }
 
-        return DB::transaction(function () use ($order) {
+        return DB::transaction(function () use ($order, $orderId) {
+            // ✅ CONFIRMED BUG (Backend Full Audit): $orderId قبلاً در
+            // use() این closure نبود — فقط $order capture می‌شد، ولی
+            // زیرش updateStatus($orderId, ...) صدا زده می‌شد. نتیجه:
+            // "Undefined variable $orderId" (که Laravel آن را به
+            // ErrorException تبدیل می‌کند) در همان لحظه‌ی commit —
+            // یعنی مسیر موفق cancelOrder برای هیچ سفارشی هرگز واقعاً کار
+            // نمی‌کرد (بازتولید شد با تست HTTP واقعی روی
+            // POST /orders/{order}/cancel). تنها تست Unit موجود
+            // (test_cancel_order_throws_exception_for_nonexistent_order)
+            // فقط مسیر «سفارش یافت نشد» را می‌سنجید که قبل از رسیدن به
+            // این closure throw می‌شود، پس این باگ را هرگز نمی‌گرفت.
             foreach ($order->items as $item) {
                 Product::where('id', $item->product_id)->increment('stock', $item->quantity);
                 Product::where('id', $item->product_id)->decrement('sales_count', $item->quantity);

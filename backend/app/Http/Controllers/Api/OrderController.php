@@ -105,15 +105,39 @@ return response()->json([
         $this->authorize('cancel', $order);
 
         try {
-            $cancelledOrder = app(\App\Services\OrderService::class)->cancelOrder($order);
-            
+            // ✅ CONFIRMED BUG (Backend Full Audit): قبلاً اینجا
+            // app(\App\Services\OrderService::class) صدا زده می‌شد —
+            // یعنی namespace نادرست (App\Services\OrderService، بدون
+            // زیرپوشه‌ی Order\)؛ چنین کلاسی اصلاً وجود ندارد. نتیجه:
+            // BindingResolutionException در همان لحظه‌ی resolve، یعنی
+            // هر درخواست واقعی به این endpoint با ۵۰۰ رد می‌شد — لغو
+            // سفارش برای هیچ کاربری کار نمی‌کرد (بازتولید شد: تست HTTP
+            // واقعی روی این route دقیقاً همین خطا را داد). سرویس درستِ
+            // تزریق‌شده (همین‌جا در constructor، با namespace صحیح)
+            // همیشه در دسترس بود؛ فقط استفاده نمی‌شد.
+            //
+            // امضای واقعی OrderService::cancelOrder(int $orderId, int
+            // $userId): bool هم با فراخوانی قبلی (که کل مدل $order را
+            // پاس می‌داد و منتظر برگشتِ همان مدل بود) ناسازگار بود؛
+            // خروجی واقعی boolean است، نه یک Order — دقیقاً همان چیزی که
+            // order.service.ts فرانت‌اند هم انتظار دارد
+            // ({success, message}, بدون فیلد data).
+            $this->orderService->cancelOrder((int) $order->id, (int) Auth::id());
+
             return response()->json([
                 'success' => true,
                 'message' => 'سفارش با موفقیت لغو شد.',
-                'data' => $cancelledOrder
             ]);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\Exception $e) {
+            // ✅ OrderService::cancelOrder برای «یافت نشد»/«قابل لغو نیست»
+            // \Exception($message, $httpCode) می‌اندازد (نه
+            // InvalidArgumentException — catch قبلی هرگز این‌ها را
+            // نمی‌گرفت)؛ همان الگوی نگاشت code→status که در
+            // AdminAccessController این پروژه هم استفاده می‌شود.
+            $status = $e->getCode();
+            $status = ($status >= 400 && $status < 600) ? $status : 400;
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $status);
         }
     }
 }
