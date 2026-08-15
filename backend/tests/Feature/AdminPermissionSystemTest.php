@@ -514,4 +514,149 @@ class AdminPermissionSystemTest extends TestCase
 
         $this->assertEquals('admin', $customer->fresh()->role);
     }
+
+    // ==================== Admin Access Search (GET /admin/access/users?search=) ====================
+    //
+    // بدون endpoint جدید — همان GET /admin/access/users با پارامتر
+    // اختیاری search (name/phone/email، الگوی LIKE دقیقاً مطابق
+    // AdminUserRepository::getUsers). جستجو همیشه *داخل* استخر
+    // users.role='admin' اعمال می‌شود (مسیر A دست‌نخورده).
+
+    public function test_search_finds_user_by_name(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $target = User::factory()->create(['role' => 'admin', 'name' => 'زهرا احمدی نمونه']);
+        User::factory()->create(['role' => 'admin', 'name' => 'کاربر بی‌ربط دیگر']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=احمدی');
+
+        $response->assertStatus(200);
+        $names = collect($response->json('data.data'))->pluck('id');
+        $this->assertTrue($names->contains($target->id));
+        $this->assertCount(1, $response->json('data.data'));
+    }
+
+    public function test_search_finds_user_by_phone(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $target = User::factory()->create(['role' => 'admin', 'phone' => '09121234567']);
+        User::factory()->create(['role' => 'admin', 'phone' => '09359998877']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=0912');
+
+        $response->assertStatus(200)->assertJsonCount(1, 'data.data');
+        $this->assertEquals($target->id, $response->json('data.data.0.id'));
+    }
+
+    public function test_search_finds_user_by_email(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $target = User::factory()->create(['role' => 'admin', 'email' => 'unique-search-target@azkala.test']);
+        User::factory()->create(['role' => 'admin', 'email' => 'someone-else@azkala.test']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=unique-search-target');
+
+        $response->assertStatus(200)->assertJsonCount(1, 'data.data');
+        $this->assertEquals($target->id, $response->json('data.data.0.id'));
+    }
+
+    public function test_empty_search_returns_all_admin_role_users(): void
+    {
+        $superAdmin = $this->superAdmin();
+        User::factory()->count(3)->create(['role' => 'admin']);
+
+        // بدون search اصلاً — یعنی رفتار قبلی (قبل از این تسک) باید دست‌نخورده بماند
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users');
+
+        $response->assertStatus(200);
+        // ۳ کاربر تازه‌ساخته + خودِ superAdmin (که users.role هم admin است)
+        $this->assertEquals(4, $response->json('data.total'));
+    }
+
+    public function test_search_with_no_matching_result_returns_empty_list_not_error(): void
+    {
+        $superAdmin = $this->superAdmin();
+        User::factory()->create(['role' => 'admin', 'name' => 'یک کاربر واقعی']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=رشته-کاملا-نامرتبط-xyz-999');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(0, 'data.data')
+            ->assertJsonPath('data.total', 0);
+    }
+
+    public function test_search_respects_pagination(): void
+    {
+        $superAdmin = $this->superAdmin();
+        // ۵ کاربر با یک نام مشترک قابل‌جستجو، per_page=2 → باید ۳ صفحه بدهد
+        User::factory()->count(5)->create(['role' => 'admin', 'name' => fn () => 'مشترک-جستجو '.fake()->firstName()]);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=مشترک-جستجو&per_page=2&page=1');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total', 5)
+            ->assertJsonPath('data.per_page', 2)
+            ->assertJsonPath('data.last_page', 3)
+            ->assertJsonCount(2, 'data.data');
+    }
+
+    public function test_search_does_not_leak_users_outside_admin_role(): void
+    {
+        // ✅ جستجو نباید مرز مسیر A را بشکند — customer/seller با نام
+        // مشابه هرگز نباید در نتیجه ظاهر شوند، even اگر دقیقاً با همان
+        // رشته جستجو مطابقت داشته باشند.
+        $superAdmin = $this->superAdmin();
+        User::factory()->create(['role' => 'admin', 'name' => 'رضا مشترک تست']);
+        User::factory()->create(['role' => 'customer', 'name' => 'رضا مشترک تست']);
+        User::factory()->create(['role' => 'seller', 'name' => 'رضا مشترک تست']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=رضا مشترک تست');
+
+        $response->assertStatus(200)->assertJsonCount(1, 'data.data');
+        $this->assertEquals('admin', $response->json('data.data.0.users_role'));
+    }
+
+    // ==================== Auth/Hierarchy Regression روی endpoint های همین تسک ====================
+    //
+    // این‌ها همان قوانین از پیش تثبیت‌شده (بخش‌های بالای همین فایل) را
+    // *دوباره طراحی* نمی‌کنند؛ فقط مستقیماً روی GET/PUT admin/access/users
+    // (endpoint هدف این تسک) تکرار می‌کنند تا رگرسیون این تسک را هم
+    // مستقل پوشش دهند.
+
+    public function test_guest_cannot_access_admin_access_users(): void
+    {
+        $this->getJson('/api/v1/admin/access/users')->assertStatus(401);
+    }
+
+    public function test_customer_cannot_access_admin_access_users(): void
+    {
+        $customer = User::factory()->create(['role' => 'customer']);
+        $this->actingAs($customer)->getJson('/api/v1/admin/access/users')->assertStatus(403);
+    }
+
+    public function test_seller_cannot_access_admin_access_users(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $this->actingAs($seller)->getJson('/api/v1/admin/access/users')->assertStatus(403);
+    }
+
+    public function test_admin_without_admin_access_view_cannot_list_users(): void
+    {
+        $manager = $this->bareManager(); // صفر Permission، از جمله admin.access.view
+        $this->actingAs($manager)->getJson('/api/v1/admin/access/users')->assertStatus(403);
+    }
+
+    public function test_admin_without_admin_access_manage_cannot_change_role_or_permissions(): void
+    {
+        $manager = $this->managerWith(['admin.access.view']); // فقط view، نه manage
+        $target = $this->bareManager();
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/access/users/{$target->id}/role", ['role' => 'admin'])
+            ->assertStatus(403);
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/access/users/{$target->id}/permissions", ['permissions' => ['orders.view']])
+            ->assertStatus(403);
+    }
 }

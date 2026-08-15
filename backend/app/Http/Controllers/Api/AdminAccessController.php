@@ -22,8 +22,9 @@ class AdminAccessController extends Controller
     public function users(Request $request)
     {
         $perPage = (int) $request->get('per_page', 20);
+        $search = $request->get('search');
 
-        return response()->json(['success' => true, 'data' => $this->service->listUsers($perPage)]);
+        return response()->json(['success' => true, 'data' => $this->service->listUsers($perPage, $search)]);
     }
 
     public function show(int $id)

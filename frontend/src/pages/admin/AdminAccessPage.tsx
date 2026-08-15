@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
-import { Crown, ShieldCheck, UserCog, ShieldAlert, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Crown, ShieldCheck, UserCog, ShieldAlert, ChevronRight, ChevronLeft, Search } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -42,15 +42,24 @@ export function AdminAccessPage() {
   const { hasPermission, isSuperAdmin, permissions: actorPermissions } = usePermission();
   const currentUser = useAuthStore((state) => state.user);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleModalUser, setRoleModalUser] = useState<AdminAccessUser | null>(null);
   const [permissionsModalUser, setPermissionsModalUser] = useState<AdminAccessUser | null>(null);
 
   const canView = hasPermission('admin.access.view');
   const canManage = hasPermission('admin.access.manage');
 
+  // ✅ همان الگوی debounce ۴۰۰ میلی‌ثانیه‌ای موجود در AdminCouponsPage —
+  // جلوگیری از یک درخواست به ازای هر حرف تایپ‌شده.
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-access-users', page],
-    queryFn: () => adminAccessService.getUsers(page),
+    queryKey: ['admin-access-users', page, debouncedSearch],
+    queryFn: () => adminAccessService.getUsers(page, 20, debouncedSearch || undefined),
     enabled: canView,
   });
 
@@ -86,13 +95,34 @@ export function AdminAccessPage() {
         </p>
       </div>
 
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(1);
+          }}
+          placeholder="جستجوی نام، شماره موبایل یا ایمیل..."
+          className="w-full pr-10 pl-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500"
+        />
+      </div>
+
       <Card variant="plain" className="overflow-hidden">
         {isLoading ? (
           <div className="p-12 flex justify-center">
             <Spinner size="lg" />
           </div>
         ) : users.length === 0 ? (
-          <EmptyState title="هیچ ادمینی یافت نشد" description="کاربری با نقش اصلی «ادمین» ثبت نشده است." />
+          debouncedSearch ? (
+            <EmptyState
+              title="نتیجه‌ای یافت نشد"
+              description={`هیچ کاربری با نقش اصلی «ادمین» مطابق «${debouncedSearch}» پیدا نشد.`}
+            />
+          ) : (
+            <EmptyState title="هیچ ادمینی یافت نشد" description="کاربری با نقش اصلی «ادمین» ثبت نشده است." />
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

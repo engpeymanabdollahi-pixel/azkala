@@ -44,8 +44,13 @@ export type AdminAccessPermissionsTaxonomy = Record<string, AdminAccessPermissio
 // ==================== Service ====================
 
 export const adminAccessService = {
-  async getUsers(page = 1, perPage = 20): Promise<{ success: boolean; data: AdminAccessUsersPage }> {
-    const response = await client.get('/admin/access/users', { params: { page, per_page: perPage } });
+  // ✅ search اختیاری (name/phone/email — سمت بک‌اند در
+  // AdminAccessService::listUsers) — همان endpoint موجود، بدون
+  // endpoint جدید.
+  async getUsers(page = 1, perPage = 20, search?: string): Promise<{ success: boolean; data: AdminAccessUsersPage }> {
+    const response = await client.get('/admin/access/users', {
+      params: { page, per_page: perPage, search: search || undefined },
+    });
     return response.data;
   },
 

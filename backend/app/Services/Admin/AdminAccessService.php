@@ -30,13 +30,28 @@ class AdminAccessService
     /**
      * فهرست کاربرانی که واجد شرایط Administrative Access اند
      * (users.role === 'admin') به‌همراه نقش/Permission فعلی هرکدام.
+     *
+     * ✅ $search (بخش «Backend Search» تسک): همان الگوی دقیق
+     * AdminUserRepository::getUsers (name/email/phone با LIKE داخل یک
+     * where تودرتو) — فقط بدون shop_name که برای کاربران Administrative
+     * بی‌معناست. جستجو همیشه *داخل* استخر users.role='admin' اعمال
+     * می‌شود (AND، نه جایگزین آن) — معماری مسیر A (فقط کاربرانی که از
+     * قبل users.role=admin هستند در این صفحه قابل مدیریت‌اند) دست‌نخورده
+     * می‌ماند.
      */
-    public function listUsers(int $perPage = 20): LengthAwarePaginator
+    public function listUsers(int $perPage = 20, ?string $search = null): LengthAwarePaginator
     {
-        $paginator = User::where('role', 'admin')
-            ->with('roles', 'permissions')
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
+        $query = User::where('role', 'admin')->with('roles', 'permissions');
+
+        if (! empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $query->orderByDesc('created_at')->paginate($perPage);
 
         $paginator->getCollection()->transform(fn (User $user) => $this->formatUserAccess($user));
 
