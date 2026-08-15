@@ -420,4 +420,98 @@ class AdminPermissionSystemTest extends TestCase
 
         $this->assertGreaterThan(0, (float) $seller->fresh()->wallet_balance);
     }
+
+    // ==================== Legacy users.role Bypass (بخش ۱۸ گزارش نهایی) ====================
+    //
+    // مسیر قدیمی PUT /admin/users/{user}/role (users.role اصلی، نه
+    // Administrative Role) یک بردار غیرمستقیم برای دور زدن hierarchy
+    // بود: کسی با فقط users.role.manage می‌توانست بدون admin.access.
+    // manage یک کاربر را به role=admin ارتقا دهد (که خودکار Administrative
+    // Role «admin» می‌گیرد) یا Administrative Role موجود کسی را با
+    // تغییر users.role قطع کند. AdminUserService::updateUserRole حالا
+    // این حالت‌ها را از طریق AdminAccessService::canManageAdministrativeRole
+    // (همان منبع حقیقت مسیر admin/access/*) رد می‌کند.
+
+    public function test_users_role_manage_alone_cannot_promote_customer_to_admin(): void
+    {
+        $manager = $this->managerWith(['users.role.manage']); // بدون admin.access.manage
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/users/{$customer->id}/role", ['role' => 'admin'])
+            ->assertStatus(403);
+
+        $this->assertEquals('customer', $customer->fresh()->role);
+    }
+
+    public function test_users_role_manage_alone_cannot_demote_an_existing_admin(): void
+    {
+        $manager = $this->managerWith(['users.role.manage']);
+        $existingAdmin = $this->admin(); // Administrative Role «admin» دارد
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/users/{$existingAdmin->id}/role", ['role' => 'customer'])
+            ->assertStatus(403);
+
+        $this->assertEquals('admin', $existingAdmin->fresh()->role);
+    }
+
+    public function test_users_role_manage_with_admin_access_manage_can_promote_to_admin(): void
+    {
+        // ✅ عمداً از admin() استفاده می‌شود نه managerWith(): delegation بر
+        // اساس نقش Administrative («admin»/«super_admin») است، نه صرفاً
+        // داشتن Permission admin.access.manage — دقیقاً همان قانونی که
+        // test_manager_cannot_delegate_even_with_admin_access_manage_permission
+        // برای مسیر admin/access/* اثبات می‌کند؛ اینجا همان قانون را برای
+        // مسیر قدیمی users.role هم صادق نگه می‌داریم.
+        $admin = $this->admin();
+        $admin->givePermissionTo(['users.role.manage', 'admin.access.manage']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($admin)
+            ->putJson("/api/v1/admin/users/{$customer->id}/role", ['role' => 'admin'])
+            ->assertStatus(200);
+
+        $this->assertEquals('admin', $customer->fresh()->role);
+    }
+
+    public function test_manager_with_both_permissions_still_cannot_promote_via_legacy_endpoint(): void
+    {
+        // Manager هرگز delegation ندارد — even با هر دو Permission (رفتار
+        // یکسان با /admin/access/* برای همین مسیر قدیمی حفظ می‌شود).
+        $manager = $this->managerWith(['users.role.manage', 'admin.access.manage']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/users/{$customer->id}/role", ['role' => 'admin'])
+            ->assertStatus(403);
+
+        $this->assertEquals('customer', $customer->fresh()->role);
+    }
+
+    public function test_users_role_manage_alone_still_works_for_ordinary_non_administrative_changes(): void
+    {
+        // ✅ چک جدید نباید رفتار غیرحساس (customer→seller) را بشکند —
+        // هیچ Administrative Role ای نه هدف دارد نه role جدید ایجاد می‌کند.
+        $manager = $this->managerWith(['users.role.manage']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($manager)
+            ->putJson("/api/v1/admin/users/{$customer->id}/role", ['role' => 'seller'])
+            ->assertStatus(200);
+
+        $this->assertEquals('seller', $customer->fresh()->role);
+    }
+
+    public function test_super_admin_can_promote_via_legacy_role_endpoint(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/users/{$customer->id}/role", ['role' => 'admin'])
+            ->assertStatus(200);
+
+        $this->assertEquals('admin', $customer->fresh()->role);
+    }
 }

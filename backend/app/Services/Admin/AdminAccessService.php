@@ -190,7 +190,15 @@ class AdminAccessService
         return $target->fresh(['roles', 'permissions']);
     }
 
-    private function currentAdministrativeRole(User $user): ?string
+    /**
+     * ✅ public (نه فقط برای این سرویس): AdminUserService هم از همین
+     * متد برای رفع ریسک مستند‌شده در گزارش نهایی استفاده می‌کند — مسیر
+     * قدیمی PUT /admin/users/{user}/role (تغییر users.role اصلی) نباید
+     * بتواند Administrative Access را بدون عبور از همین hierarchy دور
+     * بزند. یک منبع حقیقت واحد برای «آیا actor اجازه دارد Administrative
+     * Role این هدف را تغییر دهد»، به‌جای تکرار منطق در دو Service.
+     */
+    public function currentAdministrativeRole(User $user): ?string
     {
         foreach (self::ADMINISTRATIVE_ROLES as $role) {
             if ($user->hasRole($role)) {
@@ -209,7 +217,7 @@ class AdminAccessService
      *   - هیچ‌کس جز Super Admin نمی‌تواند super_admin بسازد یا یک
      *     super_admin موجود را تغییر دهد.
      */
-    private function canManageAdministrativeRole(User $actor, ?string $targetCurrentRole, ?string $newRole): bool
+    public function canManageAdministrativeRole(User $actor, ?string $targetCurrentRole, ?string $newRole): bool
     {
         if ($actor->hasRole('super_admin')) {
             return true;

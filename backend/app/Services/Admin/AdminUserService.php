@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\SellerRequest;
 use App\Models\User;
 use App\Repositories\AdminUserRepository;
+use App\Services\Permission\PermissionService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,15 @@ class AdminUserService
 {
     protected AdminUserRepository $repository;
 
-    public function __construct(AdminUserRepository $repository)
-    {
+    // ✅ مقدار پیش‌فرض («new در initializer» — PHP 8.1+) فقط برای دو تست
+    // Unit موجود است که مستقیم `new AdminUserService($repo)` می‌سازند
+    // (بدون DI واقعی)؛ در مسیر واقعی HTTP همیشه Laravel Container یک
+    // نمونه‌ی resolve‌شده‌ی واقعی تزریق می‌کند، نه این مقدار پیش‌فرض —
+    // پس هیچ تست موجودی برای این تغییر نیازی به ویرایش نداشت.
+    public function __construct(
+        AdminUserRepository $repository,
+        protected AdminAccessService $adminAccessService = new AdminAccessService(new PermissionService)
+    ) {
         $this->repository = $repository;
     }
 
@@ -89,6 +97,34 @@ class AdminUserService
             $user = $this->repository->findOrFail($id);
             if (! in_array($role, ['customer', 'seller', 'admin'])) {
                 throw new Exception('نقش نامعتبر است', 422);
+            }
+
+            // ✅ رفع ریسک مستند‌شده در گزارش نهایی Multi-Admin (بخش ۱۸):
+            // این مسیر *قدیمی* (users.role اصلی) یک بردار غیرمستقیم برای
+            // دور زدن hierarchy مسیر جدید admin/access/* بود — کسی با
+            // فقط users.role.manage (بدون admin.access.manage) می‌توانست
+            // با تغییر users.role=admin، Administrative Role «admin» را
+            // به‌صورت خودکار (از طریق User::boot) به یک کاربر بدهد، یا با
+            // تغییر users.role یک ادمین/مدیر موجود به غیر از admin،
+            // دسترسی‌اش به کل پنل ادمین (شامل هر Administrative Role ای
+            // که دارد) را قطع کند — بدون هیچ چک hierarchy ای.
+            //
+            // فقط وقتی واقعاً «حساس» است چک اضافه اجرا می‌شود: هدف از قبل
+            // یک Administrative Role دارد (هر جهتی)، یا نقش جدید 'admin'
+            // است (ارتقای بالقوه). $actorId===null یعنی فراخوانی مستقیم
+            // Service (تست‌های Unit موجود) — دقیقاً مثل چک finance.payout
+            // در AdminOrderService، برای backward compatibility رد می‌شود.
+            if ($actorId !== null) {
+                $currentAdminRole = $this->adminAccessService->currentAdministrativeRole($user);
+                $prospectiveAdminRole = $role === 'admin' ? 'admin' : null;
+
+                if ($currentAdminRole !== null || $prospectiveAdminRole !== null) {
+                    $actor = User::findOrFail($actorId);
+
+                    if (! $this->adminAccessService->canManageAdministrativeRole($actor, $currentAdminRole, $prospectiveAdminRole)) {
+                        throw new Exception('این تغییر نقش، دسترسی Administrative را تحت تأثیر قرار می‌دهد و به Permission «admin.access.manage» نیاز دارد.', 403);
+                    }
+                }
             }
 
             return $this->repository->update($user, ['role' => $role]);
