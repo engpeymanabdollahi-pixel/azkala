@@ -35,6 +35,17 @@ const ROLE_META: Record<AdministrativeRole, { label: string; variant: 'accent' |
   manager: { label: 'Manager', variant: 'gray', icon: UserCog },
 };
 
+// ✅ نقش اصلی (users.role) — از وقتی جستجو دیگر به role=admin محدود
+// نیست (بخش «فعال‌سازی تخصیص Administrative Role به کاربران غیر-admin»)،
+// جدول باید این را هم نشان بدهد تا مشخص باشد کدام کاربر هنوز
+// Administrative Role نگرفته است.
+const USERS_ROLE_LABEL: Record<string, string> = {
+  customer: 'مشتری',
+  seller: 'فروشنده',
+  admin: 'ادمین',
+  pending_seller: 'در انتظار تایید فروشندگی',
+};
+
 const SELECT_CLASS =
   'w-full px-4 py-2.5 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-sm';
 
@@ -116,10 +127,7 @@ export function AdminAccessPage() {
           </div>
         ) : users.length === 0 ? (
           debouncedSearch ? (
-            <EmptyState
-              title="نتیجه‌ای یافت نشد"
-              description={`هیچ کاربری با نقش اصلی «ادمین» مطابق «${debouncedSearch}» پیدا نشد.`}
-            />
+            <EmptyState title="نتیجه‌ای یافت نشد" description={`هیچ کاربری مطابق «${debouncedSearch}» پیدا نشد.`} />
           ) : (
             <EmptyState title="هیچ ادمینی یافت نشد" description="کاربری با نقش اصلی «ادمین» ثبت نشده است." />
           )
@@ -129,6 +137,7 @@ export function AdminAccessPage() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-right">
                   <th className="p-4 font-semibold">کاربر</th>
+                  <th className="p-4 font-semibold">نقش اصلی</th>
                   <th className="p-4 font-semibold">نقش Administrative</th>
                   <th className="p-4 font-semibold">Permission های مستقیم</th>
                   <th className="p-4 font-semibold" />
@@ -148,6 +157,12 @@ export function AdminAccessPage() {
                       <td className="p-4">
                         <div className="font-bold text-gray-900 dark:text-gray-100">{u.name}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">{u.phone}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
+                      </td>
+                      <td className="p-4">
+                        <Badge variant="gray" size="sm">
+                          {USERS_ROLE_LABEL[u.users_role] ?? u.users_role}
+                        </Badge>
                       </td>
                       <td className="p-4">
                         {meta ? (
@@ -167,7 +182,7 @@ export function AdminAccessPage() {
                         ) : canManageThisRow ? (
                           <div className="flex gap-2 justify-end">
                             <Button size="sm" variant="outline" onClick={() => setRoleModalUser(u)}>
-                              تغییر نقش
+                              {u.administrative_role ? 'تغییر نقش' : 'تعیین نقش'}
                             </Button>
                             <Button
                               size="sm"

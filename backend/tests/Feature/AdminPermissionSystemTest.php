@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\AdminAccessLog;
+use App\Models\CommissionRule;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Admin\AdminAccessService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -139,7 +142,7 @@ class AdminPermissionSystemTest extends TestCase
         // دسترسی گسترده پیش‌فرض — برخلاف قبل، این‌ها دیگر «حساس و مستثنا»
         // نیستند، چون تست‌های از پیش موجود اثبات می‌کنند یک role=admin
         // ساده امروز واقعاً می‌تواند این کارها را انجام دهد.
-        $rule = \App\Models\CommissionRule::first();
+        $rule = CommissionRule::first();
         $this->actingAs($admin)
             ->putJson("/api/v1/admin/commission-rules/{$rule->id}", ['commission_rate' => 2, 'label' => $rule->label])
             ->assertStatus(200); // commission.rules.manage اکنون پیش‌فرض است
@@ -600,11 +603,14 @@ class AdminPermissionSystemTest extends TestCase
             ->assertJsonCount(2, 'data.data');
     }
 
-    public function test_search_does_not_leak_users_outside_admin_role(): void
+    public function test_search_finds_users_with_any_users_role(): void
     {
-        // ✅ جستجو نباید مرز مسیر A را بشکند — customer/seller با نام
-        // مشابه هرگز نباید در نتیجه ظاهر شوند، even اگر دقیقاً با همان
-        // رشته جستجو مطابقت داشته باشند.
+        // ✅ تصمیم معماری صریح این تسک (به‌روزرسانی نسبت به تسک قبلی
+        // Search): جستجو دیگر به users.role=admin محدود نیست — یک Super
+        // Admin باید بتواند هر کاربر موجودی (customer/seller/admin) را
+        // پیدا کند تا بتواند اولین بار به او Administrative Role بدهد.
+        // مرز امنیتی واقعی جای دیگری enforce می‌شود (canManageAdministrativeRole
+        // در assignAdministrativeRole)، نه در این لیست فقط-خواندنی.
         $superAdmin = $this->superAdmin();
         User::factory()->create(['role' => 'admin', 'name' => 'رضا مشترک تست']);
         User::factory()->create(['role' => 'customer', 'name' => 'رضا مشترک تست']);
@@ -612,8 +618,38 @@ class AdminPermissionSystemTest extends TestCase
 
         $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=رضا مشترک تست');
 
+        $response->assertStatus(200)->assertJsonCount(3, 'data.data');
+        $roles = collect($response->json('data.data'))->pluck('users_role')->sort()->values();
+        $this->assertEquals(['admin', 'customer', 'seller'], $roles->all());
+    }
+
+    public function test_search_finds_users_by_email_even_when_not_admin_role(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $target = User::factory()->create(['role' => 'customer', 'email' => 'brand-new-customer-target@azkala.test']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users?search=brand-new-customer-target');
+
         $response->assertStatus(200)->assertJsonCount(1, 'data.data');
-        $this->assertEquals('admin', $response->json('data.data.0.users_role'));
+        $this->assertEquals($target->id, $response->json('data.data.0.id'));
+        $this->assertEquals('customer', $response->json('data.data.0.users_role'));
+        $this->assertNull($response->json('data.data.0.administrative_role'));
+    }
+
+    public function test_without_search_default_list_stays_scoped_to_admin_role_only(): void
+    {
+        // ✅ بدون search، رفتار قبلی (قبل از این تسک) دست‌نخورده می‌ماند —
+        // این پیش‌فرض هرگز خودش را روی کل جدول users باز نمی‌کند.
+        $superAdmin = $this->superAdmin();
+        User::factory()->create(['role' => 'customer']);
+        User::factory()->create(['role' => 'seller']);
+
+        $response = $this->actingAs($superAdmin)->getJson('/api/v1/admin/access/users');
+
+        $response->assertStatus(200);
+        collect($response->json('data.data'))->each(
+            fn (array $u) => $this->assertEquals('admin', $u['users_role'])
+        );
     }
 
     // ==================== Auth/Hierarchy Regression روی endpoint های همین تسک ====================
@@ -658,5 +694,212 @@ class AdminPermissionSystemTest extends TestCase
         $this->actingAs($manager)
             ->putJson("/api/v1/admin/access/users/{$target->id}/permissions", ['permissions' => ['orders.view']])
             ->assertStatus(403);
+    }
+
+    // ==================== Administrative Role Assignment برای کاربران غیر-admin ====================
+    //
+    // Option A: assignAdministrativeRole دیگر users.role=admin را
+    // پیش‌نیاز نمی‌داند — اگر actor مجاز باشد، users.role هدف هم در همان
+    // تراکنش به‌طور خودکار admin می‌شود. ۱۲ سناریوی امنیتی الزامی‌شده
+    // در این تسک، دقیقاً به همین ترتیب.
+
+    // ۱. Super Admin → customer → manager = موفق
+    public function test_super_admin_can_assign_manager_role_to_a_customer(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'manager']);
+
+        $response->assertStatus(200);
+        $customer->refresh();
+        $this->assertEquals('admin', $customer->role); // ✅ Option A: users.role هم خودکار admin شد
+        $this->assertTrue($customer->hasRole('manager'));
+        $this->assertFalse($customer->hasRole('admin')); // Administrative Role دقیقاً manager است، نه admin
+    }
+
+    // ۲. Super Admin → seller → manager = موفق
+    public function test_super_admin_can_assign_manager_role_to_a_seller(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $seller = User::factory()->create(['role' => 'seller']);
+
+        $response = $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$seller->id}/role", ['role' => 'manager']);
+
+        $response->assertStatus(200);
+        $seller->refresh();
+        $this->assertEquals('admin', $seller->role);
+        $this->assertTrue($seller->hasRole('manager'));
+    }
+
+    // ۳. Super Admin → customer → admin (Administrative Role) = موفق
+    public function test_super_admin_can_assign_administrative_admin_role_to_a_customer(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'admin']);
+
+        $response->assertStatus(200);
+        $customer->refresh();
+        $this->assertEquals('admin', $customer->role);
+        $this->assertTrue($customer->hasRole('admin'));
+    }
+
+    // ۴. Admin (با admin.access.manage) → customer → manager = طبق hierarchy مجاز
+    public function test_admin_with_admin_access_manage_can_assign_manager_to_a_customer(): void
+    {
+        $admin = $this->admin();
+        $admin->givePermissionTo('admin.access.manage');
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($admin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'manager']);
+
+        $response->assertStatus(200);
+        $this->assertTrue($customer->fresh()->hasRole('manager'));
+    }
+
+    // ۵. Manager → customer → admin = رد (Manager صفر delegation دارد)
+    public function test_manager_cannot_assign_admin_role_to_a_customer(): void
+    {
+        $manager = $this->managerWith(['admin.access.manage']); // even با این Permission
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($manager)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'admin']);
+
+        $response->assertStatus(403);
+        $this->assertEquals('customer', $customer->fresh()->role); // ✅ users.role هم دست‌نخورده ماند
+        $this->assertNull($customer->fresh()->getRoleNames()->first());
+    }
+
+    // ۶. Manager → customer → super_admin = رد
+    public function test_manager_cannot_assign_super_admin_role_to_a_customer(): void
+    {
+        $manager = $this->managerWith(['admin.access.manage']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($manager)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'super_admin']);
+
+        $response->assertStatus(403);
+        $this->assertEquals('customer', $customer->fresh()->role);
+    }
+
+    // ۷. Admin → super_admin (حتی برای یک کاربر کاملاً تازه) = رد
+    public function test_admin_cannot_assign_super_admin_role_to_a_fresh_customer(): void
+    {
+        $admin = $this->admin();
+        $admin->givePermissionTo('admin.access.manage');
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $response = $this->actingAs($admin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'super_admin']);
+
+        $response->assertStatus(403);
+        $this->assertEquals('customer', $customer->fresh()->role); // ✅ حتی users.role هم تغییر نکرد
+    }
+
+    // ۸. Admin → تغییر super_admin موجود = رد
+    public function test_admin_cannot_change_an_existing_super_admin(): void
+    {
+        $admin = $this->admin();
+        $admin->givePermissionTo('admin.access.manage');
+        $existingSuperAdmin = $this->superAdmin();
+
+        $response = $this->actingAs($admin)
+            ->putJson("/api/v1/admin/access/users/{$existingSuperAdmin->id}/role", ['role' => 'manager']);
+
+        $response->assertStatus(403);
+        $this->assertTrue($existingSuperAdmin->fresh()->hasRole('super_admin'));
+    }
+
+    // ۹. Manager → تغییر Role خودش = رد
+    public function test_manager_cannot_change_its_own_role_via_assignment_endpoint(): void
+    {
+        $manager = $this->managerWith(['admin.access.manage']);
+
+        $response = $this->actingAs($manager)
+            ->putJson("/api/v1/admin/access/users/{$manager->id}/role", ['role' => 'admin']);
+
+        $response->assertStatus(403);
+        $this->assertTrue($manager->fresh()->hasRole('manager'));
+    }
+
+    // ۱۰. Super Admin → تغییر Role خودش = رد (پوشش تکراری عمدی با تست
+    // موجود cannot_modify_own_administrative_role — اینجا با target=null هم چک می‌شود)
+    public function test_super_admin_cannot_remove_its_own_role_via_assignment_endpoint(): void
+    {
+        $superAdmin = $this->superAdmin();
+
+        $response = $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$superAdmin->id}/role", ['role' => 'admin']);
+
+        $response->assertStatus(403);
+        $this->assertTrue($superAdmin->fresh()->hasRole('super_admin'));
+    }
+
+    // ۱۱. Customer بدون permission → endpoint = 403
+    public function test_customer_without_permission_cannot_assign_role_to_anyone(): void
+    {
+        $customer = User::factory()->create(['role' => 'customer']);
+        $otherCustomer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($customer)
+            ->putJson("/api/v1/admin/access/users/{$otherCustomer->id}/role", ['role' => 'manager'])
+            ->assertStatus(403);
+    }
+
+    // ۱۲. Seller بدون permission → endpoint = 403
+    public function test_seller_without_permission_cannot_assign_role_to_anyone(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller']);
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($seller)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'manager'])
+            ->assertStatus(403);
+    }
+
+    // ==================== تست‌های تکمیلی: audit log و حذف نقش ====================
+
+    public function test_assigning_role_to_non_admin_user_logs_both_users_role_and_administrative_role_change(): void
+    {
+        $superAdmin = $this->superAdmin();
+        $customer = User::factory()->create(['role' => 'customer']);
+
+        $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'manager'])
+            ->assertStatus(200);
+
+        $log = AdminAccessLog::where('target_user_id', $customer->id)->latest()->first();
+        $this->assertNotNull($log);
+        $this->assertEquals(AdminAccessLog::ACTION_ROLE_ASSIGNED, $log->action);
+        $newValue = json_decode($log->new_value, true);
+        $this->assertEquals('manager', $newValue['administrative_role']);
+        $this->assertEquals('admin', $newValue['users_role']);
+    }
+
+    public function test_removing_administrative_role_does_not_revert_users_role(): void
+    {
+        // ✅ رفتار مستند‌شده: حذف Administrative Role (role=null) عمداً
+        // users.role را به حالت قبلی برنمی‌گرداند — کاربر همچنان
+        // users.role=admin می‌ماند.
+        $superAdmin = $this->superAdmin();
+        $customer = User::factory()->create(['role' => 'customer']);
+        $this->actingAs($superAdmin)->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => 'manager']);
+
+        $response = $this->actingAs($superAdmin)
+            ->putJson("/api/v1/admin/access/users/{$customer->id}/role", ['role' => null]);
+
+        $response->assertStatus(200);
+        $customer->refresh();
+        $this->assertEquals('admin', $customer->role); // برنگشت به customer
+        $this->assertNull($this->app->make(AdminAccessService::class)
+            ->currentAdministrativeRole($customer));
     }
 }

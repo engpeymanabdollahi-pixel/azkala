@@ -10,7 +10,11 @@ export interface AdminAccessUser {
   id: number;
   name: string;
   phone: string;
-  users_role: string; // customer/seller/admin/pending_seller — همیشه 'admin' در این لیست
+  email: string;
+  // ✅ customer/seller/admin/pending_seller — بدون search همیشه 'admin'
+  // است (رفتار قبلی)؛ با search می‌تواند هر مقداری باشد (بخش «فعال‌سازی
+  // تخصیص Administrative Role به کاربران غیر-admin»).
+  users_role: string;
   administrative_role: AdministrativeRole | null;
   direct_permissions: string[];
   effective_permissions: string[];
