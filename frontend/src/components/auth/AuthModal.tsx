@@ -26,6 +26,7 @@ import { useAuthModalStore } from '@/store/authModalStore';
 import apiClient, { fetchCsrfCookie } from '@/services/api/client';
 import { cn } from '@/utils/cn';
 import { digitsOnly, toLatinDigits } from '@/utils/digits';
+import { getStoredReferralCode, clearStoredReferralCode } from '@/lib/referralCapture';
 import { OtpInput } from './OtpInput';
 
 const OTP_LENGTH = 5;
@@ -100,7 +101,16 @@ export function AuthModal() {
       // نسخه‌ی قبلی fetch خام می‌زد و اصلاً از این مسیر رد نمی‌شد.
       await fetchCsrfCookie();
 
-      const response = await apiClient.post<AuthApiResponse>('/register', { phone: data.phone });
+      // ✅ Referral System Phase 2: اگر کاربر از لینک دعوت (?ref=CODE)
+      // وارد شده، همان لحظه‌ی درخواست OTP (که طبق AuthService واقعاً
+      // لحظه‌ی ساخت User در DB است) کد ذخیره‌شده ارسال می‌شود. Backend
+      // مستقل دوباره آن را validate می‌کند — این مقدار محلی هرگز به‌عنوان
+      // حقیقت نهایی در نظر گرفته نمی‌شود.
+      const referralCode = getStoredReferralCode();
+      const response = await apiClient.post<AuthApiResponse>('/register', {
+        phone: data.phone,
+        ...(referralCode ? { ref: referralCode } : {}),
+      });
 
       return response.data;
     },
@@ -110,6 +120,10 @@ export function AuthModal() {
       setOtp('');
       setSecondsLeft(RESEND_SECONDS);
       toast.success('کد تأیید برایتان ارسال شد', { icon: '✉️' });
+      // ✅ بک‌اند همین الان (موفق یا ناموفق) درباره‌ی Referral تصمیم گرفت؛
+      // مقدار محلی دیگر لازم نیست و پاک می‌شود تا در ثبت‌نام/درخواست بعدی
+      // دوباره فرستاده نشود.
+      clearStoredReferralCode();
     },
     onError: (error: unknown) => {
       const message =

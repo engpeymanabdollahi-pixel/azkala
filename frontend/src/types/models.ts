@@ -57,6 +57,11 @@ export interface User {
   // (مثلاً /profile update که این فیلدها را برنمی‌گرداند).
   administrative_role?: AdministrativeRole | null;
   permissions?: string[];
+  // ✅ Referral System Phase 2 — همیشه توسط AuthController::userPayload
+  // برگردانده می‌شود (users.toArray() آن را شامل می‌شود)؛ برای کاربران
+  // قدیمی‌تر که هنوز lazy تولید نشده تا وقتی GET /user/referral زده
+  // نشود null است.
+  referral_code?: string | null;
 }
 
 export interface AuthResponse {

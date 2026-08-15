@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   User, Mail, Phone, Calendar, Edit2, Save, X, Lock,
-  Shield, Store, ArrowLeft
+  Shield, Store, ArrowLeft, Gift, Copy, Link2, Users
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { orderService } from '@/services/api/order.service';
 import { profileService } from '@/services/api/profile.service';
 import { couponService } from '@/services/api/coupon.service';
+import { referralService } from '@/services/api/referral.service';
 import apiClient from '@/services/api/client';
 
 // ✅ قبلاً status فقط 'pending' | 'approved' | 'rejected' بود، ولی مقادیر
@@ -83,6 +84,20 @@ export function ProfileSection() {
     queryKey: ['my-coupons-profile'],
     queryFn: () => couponService.getMyCoupons(),
   });
+
+  // ✅ Referral System Phase 2: کد/لینک دعوت کاربر جاری. GET /user/referral
+  // خودش lazy کد را (اگر هنوز نداشت) تولید می‌کند، پس نیازی به mutation
+  // جداگانه نیست.
+  const { data: referralData } = useQuery({
+    queryKey: ['my-referral-profile'],
+    queryFn: () => referralService.getMyReferral(),
+  });
+  const referral = referralData?.data;
+
+  const handleCopy = (value: string, label: string) => {
+    navigator.clipboard.writeText(value);
+    toast.success(`${label} کپی شد`, { icon: '📋' });
+  };
 
   // ✅ کوئری وضعیت درخواست فروشندگی
   const { data: sellerRequestData } = useQuery({
@@ -195,6 +210,55 @@ export function ProfileSection() {
           </div>
         ))}
       </div>
+
+      {/* ✅ Referral System Phase 2: کارت «دعوت از دوستان» — فقط کد/لینک
+          خود کاربر + دکمه‌های کپی؛ هیچ Reward/Campaign/گزارشی اینجا نیست
+          (خارج از scope این فاز). */}
+      {referral && (
+        <div className="bg-gradient-to-br from-accent-50 to-white dark:from-accent-900/20 dark:to-slate-800 border border-accent-100 dark:border-accent-800 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-accent-100 dark:bg-accent-900/40 rounded-xl flex items-center justify-center text-accent-600 dark:text-accent-400 flex-shrink-0">
+              <Gift className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">دعوت از دوستان</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                کد و لینک دعوت خودتان را با دوستانتان به اشتراک بگذارید.
+              </p>
+            </div>
+            {referral.total_referrals > 0 && (
+              <Badge variant="primary" className="mr-auto gap-1">
+                <Users className="w-3 h-3" />
+                {referral.total_referrals.toLocaleString('fa-IR')} دعوت
+              </Badge>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex items-center justify-between gap-2 p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-700">
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">کد معرف من</p>
+                <p className="font-black text-gray-900 dark:text-gray-100 text-sm tracking-widest truncate">{referral.referral_code}</p>
+              </div>
+              <Button variant="outline" size="xs" onClick={() => handleCopy(referral.referral_code, 'کد معرف')} className="gap-1 flex-shrink-0">
+                <Copy className="w-3 h-3" />
+                کپی کد
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 p-2.5 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-700">
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">لینک دعوت</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100 text-xs truncate">{referral.referral_link}</p>
+              </div>
+              <Button variant="outline" size="xs" onClick={() => handleCopy(referral.referral_link, 'لینک دعوت')} className="gap-1 flex-shrink-0">
+                <Link2 className="w-3 h-3" />
+                کپی لینک
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* کارت درخواست فروشندگی (همیشه نمایش داده می‌شود مگر اینکه کاربر قبلاً فروشنده شده باشد) */}
       {user.role !== 'seller' && !sellerRequestData && (

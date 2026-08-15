@@ -56,12 +56,20 @@ class AuthController extends Controller
             'phone' => 'required|string|regex:/^09[0-9]{9}$/',
             'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
+            // ✅ Referral System Phase 2: عمداً هیچ regex/format-validation
+            // سخت‌گیرانه‌ای اینجا نیست — طبق الزام صریح «Referral نباید
+            // Registration را خراب کند»، یک کد بدفرمت/نامعتبر نباید کل
+            // درخواست ثبت‌نام را با ۴۲۲ رد کند. اعتبارسنجی واقعی فرمت/
+            // وجود کد داخل ReferralService است (silent no-op برای هر
+            // چیزی که معتبر نباشد).
+            'ref' => 'nullable|string|max:32',
         ]);
 
         $result = $this->authService->registerOrRequestOtp(
             $validated['phone'],
             $validated['email'] ?? null,
-            $validated['name'] ?? null
+            $validated['name'] ?? null,
+            $validated['ref'] ?? null
         );
 
         return response()->json([

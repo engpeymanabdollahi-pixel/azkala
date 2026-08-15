@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/Footer';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
+import { captureReferralFromLocation } from '@/lib/referralCapture';
 import { AppErrorBoundary } from './components/ErrorBoundary';
 import type { ReactNode } from 'react';
 
@@ -250,6 +251,14 @@ export default function App() {
   useEffect(() => {
     void useAuthStore.getState().checkAuth();
   }, []);
+
+  // ✅ Referral System Phase 2: روی location.search (نه فقط mount) چون
+  // این پروژه route اختصاصی «/register» ندارد — ثبت‌نام از هر صفحه‌ای
+  // ممکن است شروع شود، پس ?ref= باید هرجا در URL ظاهر شد capture شود، نه
+  // فقط یک‌بار در بارگذاری اول اپ.
+  useEffect(() => {
+    captureReferralFromLocation(location.search);
+  }, [location.search]);
 
   return (
     <AppErrorBoundary>

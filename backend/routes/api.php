@@ -55,6 +55,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PublicSellerController;
 // ادمین (ویژه)
 use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SellerDashboardController;
@@ -330,6 +331,11 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
 
             // لیست فروشندگان دنبال‌شده
             Route::get('/followed-sellers', [PublicSellerController::class, 'followedSellers'])->name('followed-sellers');
+
+            // ✅ Referral System — Phase 2 (فقط GET؛ ساخت Referral endpoint
+            // عمومی ندارد، فقط از مسیر ثبت‌نام سمت سرور capture می‌شود)
+            Route::get('/referral', [ReferralController::class, 'me'])->name('referral');
+            Route::get('/referrals', [ReferralController::class, 'myReferrals'])->name('referrals');
         });
 
         // روت‌های RESTful دنبال کردن فروشندگان

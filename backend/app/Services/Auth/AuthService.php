@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
+use App\Services\Referral\ReferralService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -10,15 +11,27 @@ class AuthService
 {
     protected OtpService $otpService;
 
-    public function __construct(OtpService $otpService)
+    protected ReferralService $referralService;
+
+    public function __construct(OtpService $otpService, ReferralService $referralService = new ReferralService)
     {
         $this->otpService = $otpService;
+        $this->referralService = $referralService;
     }
 
     /**
      * ثبت‌نام یا درخواست OTP
+     *
+     * ✅ Referral System Phase 2: چون کاربر همین‌جا (نه در verify-otp) با
+     * firstOrCreate واقعاً در DB ساخته می‌شود، این تنها نقطه‌ی صحیح برای
+     * capture کردن Referral Code است (رجوع به Phase 1 Audit، بخش ۳).
+     * wasRecentlyCreated دقیقاً تشخیص می‌دهد که آیا این کاربر *همین الان*
+     * ساخته شد یا از قبل وجود داشت — بدون آن، درخواست دوم/تکراری OTP برای
+     * یک شماره‌ی موجود دوباره تلاش می‌کرد یک Referral بسازد (که
+     * ReferralService خودش هم duplicate را رد می‌کند، اما این چک اینجا
+     * حتی از رسیدن به آن مرحله هم جلوگیری می‌کند).
      */
-    public function registerOrRequestOtp(string $phone, ?string $email = null, ?string $name = null): array
+    public function registerOrRequestOtp(string $phone, ?string $email = null, ?string $name = null, ?string $referralCode = null): array
     {
         $this->otpService->generateAndCache($phone);
 
@@ -41,6 +54,10 @@ class AuthService
                 'is_active' => true,
             ]
         );
+
+        if ($user->wasRecentlyCreated) {
+            $this->referralService->captureReferral($user, $referralCode);
+        }
 
         return [
             'message' => 'کد تایید برای شما ارسال شد',
