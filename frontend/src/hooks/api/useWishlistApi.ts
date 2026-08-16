@@ -172,6 +172,22 @@ export function useWishlistApi() {
     },
   });
 
+  // ✅ P0 fix — Wishlist Race Condition: بلافاصله بعد از لود صفحه (وقتی
+  // isAuthenticated از localStorage به‌صورت sync بازیابی می‌شود)، کوئری
+  // ['wishlist'] enabled می‌شود ولی پاسخش هنوز نرسیده — در این پنجره‌ی
+  // زمانی wishlistItems=[] است، یعنی isInWishlist() برای هر محصولی
+  // (حتی محصولات از‌قبل‌wishlist‌شده) false برمی‌گرداند و قلب کاملاً
+  // کلیک‌پذیر می‌ماند. کلیک روی یک محصولِ از‌قبل‌موجود در این پنجره یک
+  // POST /wishlist واقعی (نه تکراری/retry‌شده) می‌فرستد که backend به‌درستی
+  // با 409 رد می‌کند. isWishlistBusy این پنجره را هم به همان گاردِ
+  // pending موجود اضافه می‌کند — فقط برای کاربر لاگین‌کرده (مهمان‌ها
+  // اصلاً کوئری‌شان enabled نیست، پس این شرط برایشان بی‌اثر است و رفتار
+  // localStorage-only فعلی‌شان دست‌نخورده می‌ماند).
+  const isWishlistBusy =
+    addToWishlistMutation.isPending ||
+    removeFromWishlistMutation.isPending ||
+    (isAuthenticated && isWishlistLoading);
+
   // 🔄 Toggle با Optimistic UI
   //
   // ✅ قبلاً وضعیت «آیا در wishlist هست؟» از روی wishlistItems (که از useQuery
@@ -191,7 +207,7 @@ export function useWishlistApi() {
   // synchronous true می‌شود (نه بعد از resolve شدن onMutate)، پس این چک
   // همیشه کلیک دوم را قبل از رسیدن به شبکه متوقف می‌کند.
   const toggleWishlist = (product: Product) => {
-    if (addToWishlistMutation.isPending || removeFromWishlistMutation.isPending) {
+    if (isWishlistBusy) {
       return;
     }
 
@@ -228,9 +244,11 @@ export function useWishlistApi() {
     toggleWishlist,
     prefetchProduct,
     isInWishlist: (productId: number) => wishlistItems.some((item) => item.id === productId),
-    // ✅ برای غیرفعال‌کردن دکمه در حین درخواست — یک لایه‌ی دفاعی اضافه در
-    // کنار خواندن زنده از queryClient در toggleWishlist، تا کلیک سریع
-    // روی دکمه‌ی قلب هرگز دو درخواست هم‌زمان نفرستد.
-    isTogglingWishlist: addToWishlistMutation.isPending || removeFromWishlistMutation.isPending,
+    // ✅ برای غیرفعال‌کردن دکمه — هم در حین mutation، هم در پنجره‌ی
+    // race شرح‌داده‌شده بالای toggleWishlist (بارگذاری اولیه‌ی
+    // ['wishlist'] برای کاربر لاگین‌کرده). همان مقداری که خودِ
+    // toggleWishlist برای گارد داخلی‌اش استفاده می‌کند — یک منبع واحد،
+    // نه دو state جدا که ممکن است از هم جدا بیفتند.
+    isTogglingWishlist: isWishlistBusy,
   };
 }

@@ -64,6 +64,10 @@ export interface UseProductDetailReturn {
   images: string[];
   rating: number;
   isWishlisted: boolean;
+  // ✅ P0 fix — Wishlist Race Condition: هم در حین mutation و هم در پنجره‌ی
+  // بارگذاری اولیه‌ی ['wishlist'] true است؛ دکمه‌ی قلب باید در هر دو حالت
+  // غیرفعال بماند (رجوع به کامنت useWishlistApi.ts).
+  isTogglingWishlist: boolean;
   inCompare: boolean;
   isCompatible: boolean;
   selectedDeviceName: string;
@@ -106,7 +110,7 @@ export function useProductDetail(): UseProductDetailReturn {
   // این قابلیت مستقیماً در ProductDetailPage.tsx است.
   const { addItem } = useCartStore();
   const { selectedModel } = useModelStore();
-  const { toggleWishlist, isInWishlist } = useWishlistApi();
+  const { toggleWishlist, isInWishlist, isTogglingWishlist } = useWishlistApi();
   const { isCompared, toggleProduct } = useCompareStore();
 
   // ==================== State ====================
@@ -345,6 +349,10 @@ export function useProductDetail(): UseProductDetailReturn {
       compatible_models: product.compatible_models ?? [],
       seller: product.seller,
       category: product.category,
+      // ✅ P0 fix — Comparison Brand: قبلاً اینجا اصلاً ارسال نمی‌شد،
+      // در حالی که ProductController آن را از قبل eager-load می‌کرد
+      // (product.brand همین‌جا موجود است) — هیچ درخواست جدیدی لازم نیست.
+      brand: product.brand,
     });
   }, [product, toggleProduct]);
 
@@ -420,6 +428,7 @@ export function useProductDetail(): UseProductDetailReturn {
     images,
     rating,
     isWishlisted,
+    isTogglingWishlist,
     inCompare,
     isCompatible,
     selectedDeviceName,

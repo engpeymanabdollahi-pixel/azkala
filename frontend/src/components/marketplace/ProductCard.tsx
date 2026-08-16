@@ -346,6 +346,10 @@ export const ProductCard = memo(function ProductCard({
               compatible_models: product.compatible_models,
               seller: product.seller,
               category: product.category,
+              // ✅ P0 fix — Comparison Brand: قبلاً اینجا اصلاً ارسال نمی‌شد،
+              // در حالی که ProductController آن را از قبل eager-load می‌کرد
+              // (product.brand همین‌جا موجود است) — هیچ درخواست جدیدی لازم نیست.
+              brand: product.brand,
             });
           }}
           className={cn(

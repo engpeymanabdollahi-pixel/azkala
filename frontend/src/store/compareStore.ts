@@ -43,6 +43,17 @@ export interface CompareProduct {
     name: string;
     slug: string;
   };
+  // ✅ P0 fix — Comparison Brand: قبلاً این فیلد اصلاً در CompareProduct
+  // تعریف نشده بود، در حالی که ComparePage.tsx از قبل سعی می‌کرد
+  // (product as any).brand?.name را رندر کند — یعنی ردیف «برند» همیشه
+  // «—» نشان می‌داد، چون هیچ نقطه‌ی ورودی این فیلد را ست نمی‌کرد. شکل
+  // دقیقاً مطابق Brand در types/models.ts (که ProductController از قبل
+  // eager-load می‌کند) — نه یک شیء تازه‌اختراع‌شده.
+  brand?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
 }
 
 interface CompareState {

@@ -28,7 +28,7 @@ export const ProductCardWithQuickView = memo(({
 }: ProductCardWithQuickViewProps) => {
   const [showQuickView, setShowQuickView] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const { isInWishlist, toggleWishlist, prefetchProduct } = useWishlistApi();
+  const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist } = useWishlistApi();
   
   const isWishlisted = isInWishlist(product.id);
 
@@ -83,14 +83,16 @@ export const ProductCardWithQuickView = memo(({
             >
               <ShoppingBag className="w-5 h-5" />
             </button>
-            <button 
+            <button
               className={cn(
                 "w-11 h-11 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl active:scale-95",
-                isWishlisted 
-                  ? "text-error-500 dark:text-error-400" 
+                "disabled:cursor-not-allowed disabled:hover:scale-100",
+                isWishlisted
+                  ? "text-error-500 dark:text-error-400"
                   : "hover:bg-error-500 hover:text-white dark:hover:bg-error-600"
               )}
               onClick={handleWishlistToggle}
+              disabled={isTogglingWishlist}
               aria-label={isWishlisted ? 'حذف از علاقمندی‌ها' : 'افزودن به علاقمندی‌ها'}
             >
               <Heart className={cn("w-5 h-5", isWishlisted && "fill-current")} />

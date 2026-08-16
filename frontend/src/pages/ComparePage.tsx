@@ -285,7 +285,7 @@ export default function ComparePage() {
               {products.map((product) => (
                 <div key={product.id} className="text-center">
                   <span className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                    {(product as any).brand?.name || '—'}
+                    {product.brand?.name || '—'}
                   </span>
                 </div>
               ))}

@@ -94,6 +94,7 @@ export function ProductDetailPage() {
     images,
     rating,
     isWishlisted,
+    isTogglingWishlist,
     inCompare,
     isCompatible,
     selectedDeviceName,
@@ -441,6 +442,7 @@ export function ProductDetailPage() {
                   variant="outline"
                   size="md"
                   onClick={handleWishlistToggle}
+                  disabled={isTogglingWishlist}
                   className={cn('transition-all', isWishlisted && 'text-error-500 border-error-300 bg-error-50')}
                   aria-label={isWishlisted ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'}
                 >
