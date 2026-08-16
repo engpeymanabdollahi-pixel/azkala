@@ -64,6 +64,46 @@ class WishlistApiTest extends TestCase
         $this->assertSame(1, Wishlist::where('user_id', $this->user->id)->count());
     }
 
+    /**
+     * ✅ رگرسیون واقعی برای Part 2 (Wishlist 409 root-cause audit): چک
+     * SELECT و INSERT در WishlistService::addToWishlist دو کوئری جدا
+     * هستند — بین آن دو، یک درخواست همزمان دیگر (دو تب باز، یا race که
+     * گارد frontend نتوانسته جلویش را بگیرد) می‌تواند همان ردیف را واقعاً
+     * بسازد. اینجا این پنجره‌ی زمانی را به‌صورت deterministic (بدون نیاز
+     * به دو thread واقعی) با رویداد Eloquent `creating` شبیه‌سازی می‌کند:
+     * درست قبل از این‌که سطرِ واقعیِ سرویس INSERT شود، یک ردیف تکراری
+     * مستقیم در DB درج می‌شود — یعنی SELECT اولیه‌ی سرویس چیزی پیدا
+     * نکرده (رد شده)، ولی INSERT خودش الان با همان unique constraint
+     * (wishlists.user_id+product_id) تداخل می‌کند.
+     *
+     * پیش از فیکس، این حالت یک QueryException خام (SQLSTATE 23000) بود
+     * که هیچ‌جا catch نمی‌شد و به کاربر یک ۵۰۰ عمومی («خطای داخلی سرور»)
+     * نشان می‌داد، نه پیام روشن «قبلاً اضافه شده».
+     */
+    public function test_race_condition_insert_conflict_returns_409_not_500(): void
+    {
+        Wishlist::creating(function () {
+            \Illuminate\Support\Facades\DB::table('wishlists')->insert([
+                'user_id' => $this->user->id,
+                'product_id' => $this->product->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        try {
+            $response = $this->actingAs($this->user)
+                ->postJson('/api/v1/wishlist', ['product_id' => $this->product->id]);
+
+            $response->assertStatus(409);
+            $response->assertJsonPath('success', false);
+            $response->assertJsonPath('code', 'ALREADY_WISHLISTED');
+            $this->assertSame(1, Wishlist::where('user_id', $this->user->id)->count());
+        } finally {
+            \Illuminate\Support\Facades\Event::forget('eloquent.creating: '.Wishlist::class);
+        }
+    }
+
     public function test_adding_nonexistent_product_fails_validation(): void
     {
         $this->actingAs($this->user)

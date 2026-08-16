@@ -100,6 +100,90 @@ class ProductListQueryCountTest extends TestCase
     }
 
     /**
+     * ✅ رگرسیون واقعی: GET /api/v1/products/featured → 500.
+     *
+     * علت واقعی: نسخه‌ی قبلی ProductService::getFeaturedProducts کل
+     * Collection مدل‌های Eloquent (با روابط) را مستقیماً Cache::remember
+     * می‌کرد. درایور کش این پروژه 'database' است، یعنی مقدار با
+     * serialize() خام PHP در جدول cache ذخیره می‌شود. بازتولید مستقیم
+     * (خارج از این تست، در دو پردازش PHP جدا — دقیقاً معادل دو
+     * PHP-FPM worker متفاوت که یک درخواست واقعی HTTP رویشان می‌رود)
+     * نشان داد unserialize() این گراف پیچیده در یک پردازش تازه با
+     * خطای "incomplete object... was loaded before unserialize()"
+     * می‌شکند؛ یعنی درخواست اول (cache miss) کار می‌کرد، درخواست دوم
+     * (cache hit) ۵۰۰ می‌داد.
+     *
+     * چون این خطا فقط بین دو پردازش PHP جدا رخ می‌دهد (کلاس‌ها در همان
+     * پردازش PHPUnit از قبل autoload شده‌اند)، این تست خودِ آن exception
+     * را نمی‌تواند بازتولید کند — به‌جایش عاملِ ریشه‌ای را مستقیم تضمین
+     * می‌کند: مقدار خام ذخیره‌شده در جدول cache هرگز نباید یک آبجکت
+     * serialize‌شده باشد (نشانگر "O:" در ابتدای رشته‌ی serialize شده‌ی
+     * PHP)، فقط باید یک آرایه‌ی ساده باشد — دقیقاً چیزی که فیکس
+     * (کش‌کردن فقط ID ها، نه مدل‌ها) تضمین می‌کند.
+     */
+    public function test_featured_products_cache_never_stores_a_serialized_object(): void
+    {
+        // ✅ phpunit.xml کش تست را روی 'array' ست کرده (درست برای سرعت
+        // بقیه‌ی تست‌ها) — ولی همان دلیلی است که این باگ تولید هرگز با
+        // هیچ تست موجودی گرفته نمی‌شد: درایور 'array' اصلاً چیزی روی
+        // جدول cache نمی‌نویسد (serialize/unserialize واقعی هم در کار
+        // نیست). اینجا صراحتاً همان درایوری که production واقعاً استفاده
+        // می‌کند (config/cache.php → CACHE_STORE=database) موقتاً فعال
+        // می‌شود تا این تست واقعاً همان مسیر کد را بسنجد.
+        config(['cache.default' => 'database']);
+
+        $seller = User::factory()->create(['role' => 'seller', 'is_active' => true]);
+        Product::factory()->count(3)->create([
+            'is_active' => true, 'is_featured' => true, 'seller_id' => $seller->id,
+        ]);
+
+        Cache::store('database')->flush();
+        $this->getJson('/api/v1/products/featured')->assertStatus(200);
+
+        $cachedRows = DB::table('cache')->where('key', 'like', '%featured%')->pluck('value', 'key');
+
+        $this->assertNotEmpty($cachedRows, 'انتظار می‌رفت getFeaturedProducts چیزی در جدول cache بنویسد.');
+
+        // ✅ DatabaseStore::serialize فقط وقتی مقدار سریالایزشده حاوی
+        // بایت null باشد (دقیقاً همان چیزی که سریالایز یک آبجکت Eloquent
+        // با propertyهای protected/private تولید می‌کند) آن را
+        // base64_encode می‌کند؛ یک آرایه‌ی ساده‌ی int هرگز بایت null ندارد
+        // و دست‌نخورده ذخیره می‌شود. همان تشخیص را که خودِ
+        // DatabaseStore::unserialize موقع خواندن انجام می‌دهد اینجا هم
+        // تکرار می‌شود: اگر رشته حاوی ':' یا ';' (نشانگرهای واقعی فرمت
+        // serialize PHP) نباشد، یعنی base64 است.
+        foreach ($cachedRows as $key => $rawValue) {
+            $looksLikeBase64 = ! str_contains($rawValue, ':') && ! str_contains($rawValue, ';');
+            $decoded = $looksLikeBase64 ? base64_decode($rawValue, true) : $rawValue;
+            $this->assertNotFalse($decoded, "کلید کش '{$key}' base64 معتبر نیست.");
+
+            $this->assertStringStartsNotWith(
+                'O:',
+                $decoded,
+                "کلید کش '{$key}' یک آبجکت serialize‌شده ذخیره کرده — دقیقاً همان الگویی که باعث ۵۰۰ در unserialize() روی یک پردازش PHP تازه می‌شد."
+            );
+        }
+    }
+
+    /**
+     * ✅ درخواست دوم (cache hit، بدون Cache::flush بین دو فراخوانی) باید
+     * دقیقاً همان ۲۰۰ و همان تعداد محصول را برگرداند — این دقیقاً همان
+     * مسیری است که در production واقعاً ۵۰۰ می‌داد (چون درخواست دوم از
+     * کش خوانده می‌شد، نه fresh compute).
+     */
+    public function test_featured_products_returns_200_on_repeated_cached_request(): void
+    {
+        $seller = User::factory()->create(['role' => 'seller', 'is_active' => true]);
+        Product::factory()->count(3)->create([
+            'is_active' => true, 'is_featured' => true, 'seller_id' => $seller->id,
+        ]);
+
+        Cache::flush();
+        $this->getJson('/api/v1/products/featured')->assertStatus(200)->assertJsonCount(3, 'data');
+        $this->getJson('/api/v1/products/featured')->assertStatus(200)->assertJsonCount(3, 'data');
+    }
+
+    /**
      * my-products has its own with() in the repository, separate from the one
      * the main listing uses, so fixing that listing did not cover this.
      */

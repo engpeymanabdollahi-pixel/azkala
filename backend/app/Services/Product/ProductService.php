@@ -122,19 +122,54 @@ class ProductService
         }
     }
 
+    /**
+     * ✅ رفع باگ واقعی و قابل‌بازتولید GET /api/v1/products/featured → 500:
+     * نسخه‌ی قبلی کل Collection مدل‌های Eloquent (با روابط brand/category/
+     * images/seller بارشده) را مستقیماً با Cache::remember کش می‌کرد.
+     * درایور کش این پروژه 'database' است (config/cache.php → CACHE_STORE)،
+     * یعنی serialize() خامِ PHP از کل گراف آبجکت‌ها در جدول cache ذخیره
+     * می‌شود. در یک پردازش/درخواست تازه (که کلاس‌های لازم هنوز autoload
+     * نشده‌اند)، unserialize() این گراف پیچیده با خطای واقعی زیر شکست
+     * می‌خورد — تأیید شده با بازتولید مستقیم (دو فراخوانی جدا، یکی cache
+     * miss که موفق است، بعدی cache hit که می‌شکند):
+     *   "Error: The script tried to call a method on an incomplete
+     *    object... Illuminate\Database\Eloquent\Collection ... was
+     *    loaded before unserialize()"
+     * یعنی دقیقاً endpoint اولین بار (cache miss) کار می‌کرد و بعد از آن
+     * (cache hit) با ۵۰۰ می‌شکست — همان چیزی که گزارش شده بود.
+     *
+     * فیکس: فقط آرایه‌ی سبک ID ها cache می‌شود (یک آرایه‌ی int ساده،
+     * serialize/unserialize‌اش صد-در-صد امن است، نه گراف Eloquent) و
+     * مدل‌ها با روابطشان هر بار fresh از DB خوانده می‌شوند — یک کوئری
+     * indexed سبک روی is_featured/is_active، نه باری که کش قرار بود
+     * جلویش را بگیرد. AzkalaSyncCommand از قبل کلید 'featured_product_ids_'
+     * را هم پاک می‌کند (کنار 'featured_products_' قدیمی) — این تغییر
+     * همان کلید را واقعاً پر می‌کند.
+     */
     public function getFeaturedProducts(int $limit = 10)
     {
-        return Cache::remember('featured_products_'.$limit, 3600, function () use ($limit) {
+        $ids = Cache::remember('featured_product_ids_'.$limit, 3600, function () use ($limit) {
             return Product::where('is_featured', true)
                 ->where('is_active', true)
-                // images و seller هم لازم‌اند چون ProductResource می‌خواندشان.
-                // کش این را پنهان می‌کرد: فقط در cache miss یک کوئری اضافه به‌ازای
-                // هر محصول زده می‌شد، که در شمارش کوئری روی درخواست دوم دیده نمی‌شد.
-                ->with(['brand', 'category', 'images', 'seller'])
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
-                ->get();
+                ->pluck('id')
+                ->all();
         });
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        $products = Product::whereIn('id', $ids)
+            ->with(['brand', 'category', 'images', 'seller'])
+            ->get();
+
+        // whereIn ترتیب را تضمین نمی‌کند — ترتیب اصلی (جدیدترین اول) از
+        // روی همان آرایه‌ی cache‌شده‌ی $ids بازسازی می‌شود.
+        $order = array_flip($ids);
+
+        return $products->sortBy(fn ($product) => $order[$product->id] ?? PHP_INT_MAX)->values();
     }
 
     public function getSpecialOffers(int $limit = 10): Collection
