@@ -4,6 +4,7 @@ namespace App\Services\Store;
 
 use App\Models\Store;
 use App\Models\StoreHour;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
@@ -100,6 +101,13 @@ class NearbyStoreService
                 'stores.phone',
                 'stores.latitude',
                 'stores.longitude',
+                // ✅ Phase 4.1 (Product Detail → Nearby Stores): قبلاً اینجا
+                // انتخاب نمی‌شد با اینکه ستون و رابطه‌ی Store::seller() هر
+                // دو از قبل وجود داشتند — یعنی هیچ‌راهی برای لینک‌کردن یک
+                // شعبه به صفحه‌ی عمومی فروشنده‌اش نبود. فقط id (نه هیچ
+                // فیلد خصوصی دیگر فروشنده) — attachSellerInfo زیر آن را به
+                // seller_slug تبدیل می‌کند.
+                'stores.seller_id',
                 'store_inventory.stock',
                 'store_inventory.pickup_enabled',
             ])
@@ -120,12 +128,52 @@ class NearbyStoreService
         $items = $withDistance->forPage($page, $perPage)->values();
 
         return [
-            'stores' => $this->attachHours($items),
+            'stores' => $this->attachSellerInfo($this->attachHours($items)),
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
             'radius' => $radius,
         ];
+    }
+
+    /**
+     * اسلاگ فروشنده‌ی صاحب هر شعبه را برای ساخت لینک /seller/{slug} اضافه
+     * می‌کند — Phase 4.1 (Product Detail → Nearby Stores). دقیقاً همان
+     * الگوی batch (whereIn) متد attachHours بالا، نه N+1: یک کوئری برای
+     * همه‌ی seller_id های همان صفحه‌ی نهایی (حداکثر self::MAX_PER_PAGE)،
+     * نه یک کوئری جدا برای هر شعبه.
+     *
+     * فقط seller_slug برگردانده می‌شود — هیچ فیلد خصوصی فروشنده (ایمیل/
+     * موبایل/...) اینجا expose نمی‌شود. seller_slug فقط وقتی پر می‌شود که
+     * فروشنده هنوز واقعاً یک seller فعال باشد — دقیقاً همان شرط
+     * PublicSellerService::findActiveSellerBySlug (role=seller AND
+     * is_active=true)؛ اگر فروشنده حذف/غیرفعال شده باشد، seller_slug=null
+     * برمی‌گردد تا فرانت‌اند یک fallback غیرقابل‌کلیک نشان دهد، نه لینک
+     * شکسته به یک صفحه‌ی ۴۰۴.
+     *
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function attachSellerInfo(Collection $items): Collection
+    {
+        if ($items->isEmpty()) {
+            return $items;
+        }
+
+        $sellerIds = $items->pluck('seller_id')->filter()->unique();
+
+        $sellersById = User::whereIn('id', $sellerIds)
+            ->where('role', 'seller')
+            ->where('is_active', true)
+            ->get(['id', 'slug'])
+            ->keyBy('id');
+
+        return $items->map(function (array $row) use ($sellersById) {
+            $seller = $sellersById->get($row['seller_id'] ?? null);
+            $row['seller_slug'] = $seller?->slug;
+
+            return $row;
+        });
     }
 
     /**

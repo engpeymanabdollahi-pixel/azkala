@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Store;
 use App\Models\StoreHour;
 use App\Models\StoreInventory;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,40 @@ class NearbyStoreSearchTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.0.id', $store->id);
         $response->assertJsonPath('meta.total', 1);
+    }
+
+    /**
+     * فاز ۴.۱ (Product Detail → Nearby Stores): قبلاً stores.seller_id
+     * اصلاً select نمی‌شد — یعنی هیچ‌راهی برای لینک‌کردن یک شعبه به
+     * صفحه‌ی عمومی فروشنده‌اش (/seller/{slug}) نبود.
+     */
+    public function test_response_includes_seller_slug_for_active_seller(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $seller = User::factory()->create(['role' => 'seller', 'is_active' => true, 'slug' => 'my-real-shop']);
+        $this->verifiedStoreWithInventory($product, ['seller_id' => $seller->id]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.seller_slug', 'my-real-shop');
+    }
+
+    /**
+     * دفاعی: اگر فروشنده‌ی صاحبِ شعبه دیگر یک seller فعال نیست (مثلاً
+     * غیرفعال شده)، seller_slug باید null باشد تا فرانت‌اند به‌جای لینک
+     * شکسته به یک ۴۰۴، یک fallback غیرقابل‌کلیک نشان دهد.
+     */
+    public function test_seller_slug_is_null_when_seller_is_inactive(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $seller = User::factory()->create(['role' => 'seller', 'is_active' => false, 'slug' => 'deactivated-shop']);
+        $this->verifiedStoreWithInventory($product, ['seller_id' => $seller->id]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.seller_slug', null);
     }
 
     public function test_excludes_store_outside_requested_radius(): void

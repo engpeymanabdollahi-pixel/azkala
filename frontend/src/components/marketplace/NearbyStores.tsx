@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MapPin, Navigation, Store as StoreIcon, PackageCheck, Phone, Clock, ChevronDown, BookMarked } from 'lucide-react';
+import { MapPin, Navigation, Store as StoreIcon, PackageCheck, Phone, Clock, ChevronDown, BookMarked, ChevronLeft } from 'lucide-react';
 import { useNearbyStores } from '@/hooks/useNearbyStores';
 import { useAuthStore } from '@/store/authStore';
 import { addressService } from '@/services/api/address.service';
@@ -300,14 +301,30 @@ export function NearbyStores({ productId, className }: NearbyStoresProps) {
                 </p>
               )}
               <StoreHoursSummary hours={store.hours} />
+              {/* ✅ فاز ۴.۱: لینک به صفحه‌ی عمومی فروشنده — فقط وقتی
+                  seller_slug واقعاً پر است (فروشنده هنوز فعال است).
+                  اگر فروشنده حذف/غیرفعال شده، هیچ لینکی رندر نمی‌شود
+                  (fallback غیرقابل‌کلیک، بدون لینک شکسته به ۴۰۴). */}
+              {store.seller_slug && (
+                <Link
+                  to={`/seller/${store.seller_slug}`}
+                  className="inline-flex items-center gap-0.5 mt-1 text-[11px] font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  مشاهده فروشگاه
+                  <ChevronLeft className="w-3 h-3" />
+                </Link>
+              )}
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
               <span className="text-xs font-medium text-primary-700 dark:text-primary-400 whitespace-nowrap">
                 {formatDistance(store.distance_meters)}
               </span>
-              <span className="inline-flex items-center gap-1 text-[11px] text-green-700 dark:text-green-400">
+              {/* ✅ فاز ۴.۲: تعداد واقعی موجودی به‌جای برچسب عمومی «موجود» —
+                  store.stock از قبل در پاسخ بک‌اند بود ولی اینجا خوانده
+                  نمی‌شد. */}
+              <span className="inline-flex items-center gap-1 text-[11px] text-green-700 dark:text-green-400 whitespace-nowrap">
                 <PackageCheck className="w-3.5 h-3.5" />
-                موجود
+                موجودی: {store.stock.toLocaleString('fa-IR')} عدد
               </span>
             </div>
           </li>

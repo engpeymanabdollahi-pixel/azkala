@@ -704,6 +704,12 @@ export interface NearbyStore {
   // ✅ Nearby Stores Completion Phase — batch-loaded در NearbyStoreService
   // (نه N+1)؛ همان shape عمومی StoreHour بالا (بدون id/store_id داخلی).
   hours?: Pick<StoreHour, 'day_of_week' | 'opens_at' | 'closes_at' | 'is_closed'>[];
+  // ✅ فاز ۴.۱ (Product Detail → Nearby Stores): seller_id همیشه واقعی است
+  // (ستون stores.seller_id، NOT NULL)؛ seller_slug فقط وقتی پر است که
+  // فروشنده هنوز واقعاً یک seller فعال باشد (NearbyStoreService::attachSellerInfo)
+  // — وقتی null است یعنی فروشنده حذف/غیرفعال شده، پس UI نباید لینک بسازد.
+  seller_id: number;
+  seller_slug: string | null;
 }
 
 export interface NearbyStoreSearchMeta {
