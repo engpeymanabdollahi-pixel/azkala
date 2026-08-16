@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Repositories\AdminOrderRepository;
 use App\Services\Commission\CommissionService;
 use App\Services\Permission\PermissionService;
+use App\Services\Referral\ReferralRewardService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,8 @@ class AdminOrderService
     public function __construct(
         AdminOrderRepository $repository,
         protected CommissionService $commissionService,
-        protected PermissionService $permissionService
+        protected PermissionService $permissionService,
+        protected ReferralRewardService $referralRewardService
     ) {
         $this->repository = $repository;
     }
@@ -140,6 +142,15 @@ class AdminOrderService
             // ✨ منطق جدید: پردازش تسویه حساب و کسر کمیسیون هنگام تکمیل یا تحویل سفارش
             if (in_array($data['status'], ['completed', 'delivered']) && !in_array($oldStatus, ['completed', 'delivered'])) {
                 $this->processSellerPayouts($updatedOrder);
+
+                // 🎁 Referral System — Phase 3: دقیقاً همان نقطه‌ی «نهایی
+                // بودن واقعی سفارش» که Payout فروشنده رویش سوار است — نه
+                // یک مکانیزم موازی/event/listener جدید. کاملاً مستقل و
+                // idempotent (رجوع به ReferralRewardService)؛ تراکنش و
+                // catch خودش را دارد، پس شکست احتمالی‌اش هرگز روی
+                // processSellerPayouts بالا (که همین الان commit شده)
+                // اثر نمی‌گذارد.
+                $this->referralRewardService->qualifyAndRewardForCompletedOrder($updatedOrder);
             }
 
             return $updatedOrder;

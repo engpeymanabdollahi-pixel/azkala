@@ -7,6 +7,7 @@ use App\Repositories\AdminOrderRepository;
 use App\Services\Admin\AdminOrderService;
 use App\Services\Commission\CommissionService;
 use App\Services\Permission\PermissionService;
+use App\Services\Referral\ReferralRewardService;
 use App\Services\Seller\SellerPerformanceService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,13 +25,15 @@ class AdminOrderServiceTest extends TestCase
         parent::setUp();
         $this->repository = new AdminOrderRepository;
         // ✅ سازنده‌ی AdminOrderService حالا به CommissionService (سیستم
-        // کمیسیون هوشمند فروشندگان) و PermissionService (چک
+        // کمیسیون هوشمند فروشندگان)، PermissionService (چک
         // finance.payout روی انتقال delivered/completed — بخش ۱۲
-        // Service-Level Authorization) هم نیاز دارد.
+        // Service-Level Authorization) و ReferralRewardService (Referral
+        // System Phase 3 — پاداش معرفی روی همان انتقال) هم نیاز دارد.
         $this->service = new AdminOrderService(
             $this->repository,
             new CommissionService(new SellerPerformanceService),
-            new PermissionService
+            new PermissionService,
+            new ReferralRewardService
         );
     }
 
