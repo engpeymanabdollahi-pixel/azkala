@@ -133,6 +133,13 @@ class User extends Authenticatable
         return $this->hasOne(SellerRequest::class);
     }
 
+    // ✅ Nearby Physical Stores — یک seller می‌تواند صفر یا چند فروشگاه
+    // فیزیکی داشته باشد (Store::seller_id → users.id).
+    public function stores()
+    {
+        return $this->hasMany(Store::class, 'seller_id');
+    }
+
     /**
      * آخرین اسنپ‌شات محاسبه‌شده‌ی امتیاز عملکرد — توسط
      * SellerPerformanceService نوشته می‌شود، نه به‌صورت مستقیم توسط کاربر.

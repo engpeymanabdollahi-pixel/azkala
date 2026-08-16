@@ -48,6 +48,8 @@ use App\Http\Controllers\Api\DevController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\MagazineController;
+use App\Http\Controllers\Api\AdminStoreController;
+use App\Http\Controllers\Api\NearbyStoreController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductAlertController;
@@ -65,6 +67,8 @@ use App\Http\Controllers\Api\SellerQuickReplyController;
 use App\Http\Controllers\Api\SellerRatingController;
 use App\Http\Controllers\Api\SellerRequestController;
 use App\Http\Controllers\Api\SellerSettingsController;
+use App\Http\Controllers\Api\SellerStoreController;
+use App\Http\Controllers\Api\SellerStoreInventoryController;
 use App\Http\Controllers\Api\UserDeviceController;
 use App\Http\Controllers\Api\UserTicketController;
 use App\Http\Controllers\Api\WishlistController;
@@ -145,6 +149,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/compatible-multi', [ProductController::class, 'compatibleMulti'])->name('compatible-multi');
         Route::get('/slug/{slug}', [ProductController::class, 'bySlug'])->name('by-slug');
         Route::get('/{productId}/reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        // 📍 Nearby Physical Stores — عمومی، بدون نیاز به ورود؛ throttle
+        // اختصاصی خودش را دارد (نه throttle:search که برای جستجوی متنی
+        // محصولات است).
+        Route::get('/{product}/nearby-stores', [NearbyStoreController::class, 'index'])
+            ->middleware('throttle:nearby-stores')
+            ->name('nearby-stores');
         Route::get('/templates', [ProductController::class, 'getTemplates'])->name('templates');
         // نیازمند ورود است، ولی باید همین‌جا — قبل از /{product} — ثبت شود.
         // قبلاً پایین‌تر داخل گروه auth:sanctum بود، یعنی بعد از wildcard، پس
@@ -479,6 +489,22 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             // ✅ روت جدید برای به‌روزرسانی تنظیمات فروشگاه
             Route::post('/settings', [SellerSettingsController::class, 'update'])->name('settings.update');
 
+            // 🏬 Nearby Physical Stores — فروشگاه‌های فیزیکی این فروشنده
+            // (نامش با «/settings» بالا تداخلی ندارد؛ آن یکی تنظیمات
+            // حساب فروشنده است، این یکی شعبه‌های فیزیکی).
+            Route::prefix('stores')->name('stores.')->group(function () {
+                Route::get('/', [SellerStoreController::class, 'index'])->name('index');
+                Route::post('/', [SellerStoreController::class, 'store'])->name('store');
+                Route::get('/{id}', [SellerStoreController::class, 'show'])->name('show');
+                Route::put('/{id}', [SellerStoreController::class, 'update'])->name('update');
+                Route::delete('/{id}', [SellerStoreController::class, 'destroy'])->name('destroy');
+                Route::put('/{id}/hours', [SellerStoreController::class, 'setHours'])->name('hours');
+
+                Route::get('/{storeId}/inventory', [SellerStoreInventoryController::class, 'index'])->name('inventory.index');
+                Route::post('/{storeId}/inventory', [SellerStoreInventoryController::class, 'upsert'])->name('inventory.upsert');
+                Route::delete('/{storeId}/inventory/{productId}', [SellerStoreInventoryController::class, 'destroy'])->name('inventory.destroy');
+            });
+
         }); // ✅ پایان گروه seller (همه چیز حالا درست داخل این گروه است)
 
         // 👨‍💼 ادمین (داخل گروه auth)
@@ -587,6 +613,17 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 // فروشنده‌ی بدون slug همیشه ۴۰۴ می‌داد.
                 Route::get('/{user:id}/commission', [AdminCommissionController::class, 'sellerInfo'])->middleware('permission:commission.override.view')->name('commission.show');
                 Route::put('/{user:id}/commission-override', [AdminCommissionController::class, 'setSellerOverride'])->middleware('permission:commission.override.manage')->name('commission.override');
+            });
+
+            // 🏬 Nearby Physical Stores — تایید/رد/فعال‌سازی فروشگاه‌های
+            // فیزیکی ثبت‌شده توسط فروشندگان (Phase 16). یک فروشگاه تا
+            // تاییدنشدن (verify) هرگز در جستجوی عمومی نمایش داده نمی‌شود.
+            Route::prefix('stores')->name('stores.')->group(function () {
+                Route::get('/', [AdminStoreController::class, 'index'])->middleware('permission:stores.view')->name('index');
+                Route::post('/{id}/verify', [AdminStoreController::class, 'verify'])->middleware('permission:stores.manage')->name('verify');
+                Route::post('/{id}/reject', [AdminStoreController::class, 'reject'])->middleware('permission:stores.manage')->name('reject');
+                Route::post('/{id}/deactivate', [AdminStoreController::class, 'deactivate'])->middleware('permission:stores.manage')->name('deactivate');
+                Route::post('/{id}/activate', [AdminStoreController::class, 'activate'])->middleware('permission:stores.manage')->name('activate');
             });
 
             // 👑 مدیریت Administrative Access (Super Admin/Admin/Manager + Permission)

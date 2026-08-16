@@ -636,3 +636,76 @@ export interface ApiError {
   errors?: Record<string, string[]>;
   status_code: number;
 }
+
+// ==================== Nearby Physical Stores ====================
+// یک seller می‌تواند صفر یا چند فروشگاه فیزیکی داشته باشد؛ این کاملاً
+// مستقل از Product.stock (موجودی آنلاین) است — رجوع به کامنت
+// StoreInventory بک‌اند.
+
+export interface Store {
+  id: number;
+  seller_id: number | null;
+  name: string;
+  phone?: string | null;
+  province?: string | null;
+  city?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  is_active: boolean;
+  verified_at?: string | null;
+  hours?: StoreHour[];
+  inventory_count?: number;
+  // ✅ فقط در پاسخ‌های ادمین eager-load می‌شود (AdminStoreService::list)
+  seller?: { id: number; name: string; email?: string } | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StoreHour {
+  id?: number;
+  store_id?: number;
+  // ۰=یکشنبه ... ۶=شنبه (مطابق ستون day_of_week بک‌اند)
+  day_of_week: number;
+  opens_at?: string | null;
+  closes_at?: string | null;
+  is_closed?: boolean;
+}
+
+export interface StoreInventoryItem {
+  id: number;
+  store_id: number;
+  product_id: number;
+  stock: number;
+  pickup_enabled: boolean;
+  product?: {
+    id: number;
+    name: string;
+    slug: string;
+    main_image: string;
+    price: number;
+    discount_price?: number | null;
+  };
+}
+
+/** یک ردیف نتیجه‌ی جستجوی «فروشگاه‌های نزدیک این محصول» */
+export interface NearbyStore {
+  id: number;
+  name: string;
+  city?: string | null;
+  province?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  latitude: number;
+  longitude: number;
+  stock: number;
+  pickup_enabled: boolean;
+  distance_meters: number;
+}
+
+export interface NearbyStoreSearchMeta {
+  total: number;
+  page: number;
+  per_page: number;
+  radius: number;
+}

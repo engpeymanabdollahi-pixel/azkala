@@ -122,5 +122,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-reports', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
+
+        // 📍 محدودکننده‌ی اختصاصیِ جستجوی «فروشگاه‌های نزدیک» (Nearby
+        // Physical Stores — Phase 11). این endpoint عمومی است (بدون نیاز
+        // به ورود) و می‌تواند از سمت مرورگر با هر تغییر مکان/رفرش صفحه‌ی
+        // محصول به‌طور مکرر صدا زده شود؛ عمداً از throttle:search استفاده
+        // نشده چون آن یکی برای جستجوی متنی محصولات است، نه کوئری جغرافیایی.
+        RateLimiter::for('nearby-stores', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

@@ -82,6 +82,13 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
+    // ✅ Nearby Physical Stores — موجودی فیزیکی این محصول در فروشگاه‌های
+    // مختلف (کاملاً مستقل از ستون stock بالا که موجودی آنلاین است).
+    public function storeInventory()
+    {
+        return $this->hasMany(StoreInventory::class);
+    }
+
         public function deviceModels()
     {
         return $this->belongsToMany(

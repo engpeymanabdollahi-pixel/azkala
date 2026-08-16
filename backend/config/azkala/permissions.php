@@ -33,6 +33,13 @@ return [
             'sellers.manage' => ['label' => 'تایید/رد فروشندگی', 'sensitive' => false],
         ],
     ],
+    'stores' => [
+        'label' => 'فروشگاه‌های فیزیکی',
+        'permissions' => [
+            'stores.view' => ['label' => 'مشاهده فروشگاه‌های فیزیکی', 'sensitive' => false],
+            'stores.manage' => ['label' => 'تایید/رد/غیرفعال‌سازی فروشگاه فیزیکی', 'sensitive' => false],
+        ],
+    ],
     'orders' => [
         'label' => 'سفارشات',
         'permissions' => [

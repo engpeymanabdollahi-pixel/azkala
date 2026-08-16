@@ -67,6 +67,7 @@ const AdminDeviceModelsPage = lazy(() => import('@/pages/admin/AdminDeviceModels
 const AdminMagazinePage = lazy(() => import('@/pages/admin/AdminMagazinePage'));
 const AdminAdsPage = lazy(() => import('@/pages/admin/AdminAdsPage'));
 const AdminAccessPage = lazy(() => import('@/pages/admin/AdminAccessPage'));
+const AdminStoresPage = lazy(() => import('@/pages/admin/AdminStoresPage'));
 const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
 
 // ==========================================
@@ -97,6 +98,8 @@ const SellerPayouts = lazy(() => import('@/pages/seller/SellerPayouts'));
 const SellerLoginPage = lazy(() => import('@/pages/seller/sellerLogin'));
 const SellerChatPage = lazy(() => import('@/pages/seller/SellerChatPage'));
 const SellerSettings = lazy(() => import('@/pages/seller/SellerSettings'));
+const SellerStores = lazy(() => import('@/pages/seller/SellerStores'));
+const SellerStoreInventory = lazy(() => import('@/pages/seller/SellerStoreInventory'));
 // ✅ خط ProductTemplatesPage از اینجا حذف شد چون در بالا تعریف شده است
 
 // ==========================================
@@ -215,7 +218,8 @@ export default function App() {
     location.pathname.startsWith('/seller/orders') ||
     location.pathname.startsWith('/seller/payouts') ||
     location.pathname.startsWith('/seller/chat') ||  // ✅ خط بعدی با OR وصل می‌شود
-    location.pathname.startsWith('/seller/settings'); // ✅ اینجا سمی‌کالن می‌آید چون پایان عبارت است
+    location.pathname.startsWith('/seller/settings') ||
+    location.pathname.startsWith('/seller/stores'); // ✅ اینجا سمی‌کالن می‌آید چون پایان عبارت است
 
   const hideLayout = isPrivateSellerRoute || isAuthPage || isAdminRoute;
 
@@ -408,6 +412,8 @@ export default function App() {
                 <Route path="orders/:orderId" element={<SellerOrderDetail />} />
                 <Route path="payouts" element={<SellerPayouts />} />
                 <Route path="chat" element={<SellerChatPage />} />
+                <Route path="stores" element={<SellerStores />} />
+                <Route path="stores/:storeId/inventory" element={<SellerStoreInventory />} />
               </Route>
 
               {/* ---------------------------------------------------- */}
@@ -438,6 +444,7 @@ export default function App() {
                 <Route path="settings" element={<AdminSettingsPage />} />
                 <Route path="communication" element={<AdminCommunicationPage />} />
                 <Route path="access" element={<AdminAccessPage />} />
+                <Route path="stores" element={<AdminStoresPage />} />
                 <Route path="chat/monitor" element={<Navigate to="/admin/communication" replace />} />
                 <Route path="chat/reports" element={<Navigate to="/admin/communication" replace />} />
                 <Route path="chat/sentiment" element={<Navigate to="/admin/communication" replace />} />

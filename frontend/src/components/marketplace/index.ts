@@ -48,6 +48,10 @@ export type { SellerCardProps, SellerCardVariant, SellerData } from './SellerCar
 export { SellerInfoCard } from './SellerInfoCard';
 export type { SellerInfoCardProps, SellerInfoCardData } from './SellerInfoCard';
 
+// ==================== Nearby Physical Stores ====================
+export { NearbyStores } from './NearbyStores';
+export type { NearbyStoresProps } from './NearbyStores';
+
 // ==================== Cart Components ====================
 export { QuantitySelector } from './QuantitySelector';
 export type { QuantitySelectorProps } from './QuantitySelector';

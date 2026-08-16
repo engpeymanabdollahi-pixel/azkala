@@ -51,6 +51,7 @@ import {
   RelatedProducts,
   SellerInfoCard,
   DeviceCompatibility,
+  NearbyStores,
 } from '@/components/marketplace';
 import Seo from '@/components/Seo';
 import {
@@ -397,6 +398,10 @@ export function ProductDetailPage() {
                 }}
               />
             )}
+
+            {/* فروشگاه‌های نزدیک شما — بدون نقشه (Phase 17/20)؛ خودش تمام
+                حالت‌های خالی/خطا/لودینگ را مدیریت می‌کند. */}
+            <NearbyStores productId={product.id} />
 
             {/* Stock Status */}
             <ProductStock stock={product.stock} variant="warning" />
