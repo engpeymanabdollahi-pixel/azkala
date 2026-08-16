@@ -6,7 +6,6 @@ use App\Models\Product;
 use App\Models\SellerRating;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class PublicSellerService
@@ -41,6 +40,14 @@ class PublicSellerService
             'orders_count',
             $seller->orderItems()->distinct('order_id')->count('order_id')
         );
+        // ✅ فاز ۶ (Seller Store ↔ Nearby Stores): تعداد شعبه‌ی فیزیکیِ
+        // واقعاً «قابل کشف عمومی» همین فروشنده — دقیقاً همان تعریفی که
+        // NearbyStoreService برای «فروشگاه واقعی و نمایش‌پذیر» استفاده
+        // می‌کند (Store::scopePubliclyDiscoverable: فعال + تأییدشده +
+        // دارای مختصات) — نه صرفاً همه‌ی ردیف‌های stores این فروشنده (که
+        // می‌توانست شامل شعبه‌ی هنوز تأییدنشده/غیرفعال هم باشد و به کاربر
+        // چیزی نشان دهد که در جستجوی «فروشگاه‌های نزدیک» هرگز ظاهر نمی‌شود).
+        $seller->setAttribute('stores_count', $seller->stores()->publiclyDiscoverable()->count());
     }
 
     public function findActiveSellerById(int $id): User
@@ -136,12 +143,32 @@ class PublicSellerService
             ->paginate($perPage);
     }
 
+    /**
+     * ✅ فاز ۳.۵ (بازبینی صفحه فروشگاه): این دو متد قبلاً بعد از
+     * follow/unfollow، Cache::forget("public_seller_profile_{$seller->slug}")
+     * را صدا می‌زدند — ولی در کل کدبیس هیچ‌جا (نه اینجا، نه
+     * findActiveSellerBySlug، نه هیچ کنترلری) این کلید با
+     * Cache::remember/Cache::put واقعاً ست نمی‌شد؛ یعنی کد مرده‌ای بود که
+     * ظاهر یک لایه‌ی cache را نشان می‌داد بدون اینکه واقعاً وجود داشته
+     * باشد (بی‌ضرر چون forget روی کلید ناموجود no-op است، ولی گمراه‌کننده
+     * برای هر توسعه‌دهنده‌ی بعدی).
+     *
+     * عمداً به‌جای پیاده‌سازی نصفه‌ونیمه‌ی caching فقط همین‌جا، این کد مرده
+     * حذف شد نه بازسازی: findActiveSellerBySlug واقعاً روی هر
+     * GET /sellers/{slug} صدا زده می‌شود، ولی reviews_count/orders_count/
+     * rating/followers_count هم از منابع دیگری تغییر می‌کنند که هیچ‌کدام
+     * امروز این کلید را invalidate نمی‌کنند (ثبت نظر جدید در
+     * SellerRatingController، تکمیل سفارش در AdminOrderService، ویرایش
+     * پروفایل فروشگاه در تنظیمات فروشنده). caching واقعی و درست نیازمند
+     * اضافه‌کردن Cache::forget به همه‌ی آن نقطه‌ها هم هست — خارج از scope
+     * همین بازبینی؛ اگر در آینده لازم شد، به‌عنوان یک کار مجزا با تست
+     * صریح staleness مستند شود (رجوع به گزارش نهایی، بخش Remaining Work).
+     */
     public function followSeller(User $user, User $seller): void
     {
         DB::transaction(function () use ($user, $seller) {
             $user->followingSellers()->attach($seller->id);
             $seller->increment('followers_count');
-            Cache::forget("public_seller_profile_{$seller->slug}");
         });
     }
 
@@ -150,7 +177,6 @@ class PublicSellerService
         DB::transaction(function () use ($user, $seller) {
             $user->followingSellers()->detach($seller->id);
             $seller->decrement('followers_count');
-            Cache::forget("public_seller_profile_{$seller->slug}");
         });
     }
 

@@ -73,6 +73,37 @@ class PublicSellerApiTest extends TestCase
         $this->assertSame('مال این فروشنده', $response->json('data.0.name'));
     }
 
+    /**
+     * فاز ۳.۳ (بازبینی صفحه فروشگاه): فرانت‌اند حالا category_id را واقعاً
+     * می‌فرستد (قبلاً هیچ‌وقت این پارامتر ارسال نمی‌شد) — این تست تایید
+     * می‌کند که رفتار از قبل موجودِ PublicSellerService::getSellerProducts
+     * واقعاً همان چیزی است که مستندات ادعا می‌کردند.
+     */
+    public function test_seller_products_can_be_filtered_by_category(): void
+    {
+        $categoryA = \App\Models\Category::factory()->create(['name' => 'دسته الف']);
+        $categoryB = \App\Models\Category::factory()->create(['name' => 'دسته ب']);
+
+        Product::factory()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => true,
+            'category_id' => $categoryA->id,
+            'name' => 'محصول دسته الف',
+        ]);
+        Product::factory()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => true,
+            'category_id' => $categoryB->id,
+            'name' => 'محصول دسته ب',
+        ]);
+
+        $response = $this->getJson("/api/v1/sellers/my-shop/products?category_id={$categoryA->id}");
+
+        $response->assertStatus(200);
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame('محصول دسته الف', $response->json('data.0.name'));
+    }
+
     public function test_follow_requires_authentication(): void
     {
         $this->postJson("/api/v1/sellers/{$this->seller->id}/follow")->assertStatus(401);
@@ -194,6 +225,54 @@ class PublicSellerApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.reviews_count', 3)
             ->assertJsonPath('data.orders_count', 2);
+    }
+
+    /**
+     * فاز ۶ (Seller Store ↔ Nearby Stores): stores_count باید فقط شعبه‌های
+     * واقعاً «قابل کشف عمومی» (فعال + تأییدشده + دارای مختصات — همان
+     * Store::scopePubliclyDiscoverable که NearbyStoreService هم استفاده
+     * می‌کند) را بشمارد؛ شعبه‌ی تأییدنشده/غیرفعال نباید در این عدد باشد.
+     */
+    public function test_seller_profile_returns_real_stores_count_scoped_to_publicly_discoverable(): void
+    {
+        \App\Models\Store::factory()->verified()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => true,
+            'latitude' => 35.7,
+            'longitude' => 51.4,
+        ]);
+        \App\Models\Store::factory()->verified()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => true,
+            'latitude' => 35.8,
+            'longitude' => 51.5,
+        ]);
+        // تأییدنشده — نباید شمرده شود.
+        \App\Models\Store::factory()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => true,
+            'verified_at' => null,
+            'latitude' => 35.9,
+            'longitude' => 51.6,
+        ]);
+        // غیرفعال — نباید شمرده شود.
+        \App\Models\Store::factory()->verified()->create([
+            'seller_id' => $this->seller->id,
+            'is_active' => false,
+            'latitude' => 36.0,
+            'longitude' => 51.7,
+        ]);
+
+        $response = $this->getJson('/api/v1/sellers/my-shop');
+
+        $response->assertOk()->assertJsonPath('data.stores_count', 2);
+    }
+
+    public function test_seller_profile_stores_count_is_zero_for_seller_with_no_physical_stores(): void
+    {
+        $response = $this->getJson('/api/v1/sellers/my-shop');
+
+        $response->assertOk()->assertJsonPath('data.stores_count', 0);
     }
 
     public function test_seller_profile_does_not_expose_a_fake_health_score(): void

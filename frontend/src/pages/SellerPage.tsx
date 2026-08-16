@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Store, Star, Users, Package, Heart, Loader2, ArrowLeft,
-  AlertCircle, CheckCircle2, Settings, MessageCircle, Grid3x3, Info, MessageSquare
+  AlertCircle, CheckCircle2, Settings, MessageCircle, Grid3x3, Info, MessageSquare,
+  ShoppingBag, Calendar
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ProductCard } from '@/components/marketplace';
@@ -12,6 +13,9 @@ import { useChatStore } from '@/store/chatStore';
 import { STORAGE_URL } from '@/lib/apiConfig';
 import apiClient from '@/services/api/client';
 import { useAuthModalStore } from '@/store/authModalStore';
+import { useCategories } from '@/hooks/useCategories';
+import Seo from '@/components/Seo';
+import { generateSellerStoreSchema, generateBreadcrumbSchema } from '@/lib/seo-schemas';
 import type { Product } from '@/types/models';
 
 // ✅ شکل واقعی PublicSellerResource (backend) — قبلاً sellerData به‌طور
@@ -34,6 +38,10 @@ interface PublicSeller {
   products_count: number;
   orders_count: number;
   followers_count: number;
+  // ✅ فاز ۶ (Seller Store ↔ Nearby Stores): فقط شعبه‌های واقعاً «قابل
+  // کشف عمومی» (فعال+تأییدشده+دارای مختصات) را می‌شمارد — رجوع به
+  // PublicSellerService::attachRealCounts.
+  stores_count: number;
   is_followed_by_current_user: boolean;
   verified_at: string | null;
   created_at: string;
@@ -62,6 +70,12 @@ const getImageUrl = (path: string | null | undefined) => {
   const cleanPath = path.replace(/^storage\//, '');
   return `${STORAGE_URL}/${cleanPath}`;
 };
+
+// ✅ فاز ۳.۲: نشان اعتماد «فروشنده از ...» — از همان users.created_at ای
+// که PublicSellerResource از قبل برمی‌گرداند (بدون هیچ فیلد DB جدید)،
+// فقط با دقت ماه/سال (نه روز) چون این یک trust signal است نه یک تاریخ دقیق.
+const formatSellerSince = (isoDate: string): string =>
+  new Date(isoDate).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long' });
 
 export default function SellerPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -95,7 +109,17 @@ export default function SellerPage() {
   const [productSearch, setProductSearch] = useState('');
   const [productSort, setProductSort] = useState('newest');
   const [productDiscountOnly, setProductDiscountOnly] = useState(false);
+  // ✅ فاز ۳.۳: فیلتر دسته‌بندی — بک‌اند (getSellerProducts بالا) از قبل
+  // category_id را می‌پذیرفت، فقط فرانت‌اند این پارامتر را هیچ‌وقت نمی‌فرستاد.
+  // '' یعنی «همه‌ی دسته‌بندی‌ها» (بدون فیلتر).
+  const [productCategoryId, setProductCategoryId] = useState<number | ''>('');
   const [productsPage, setProductsPage] = useState(1);
+
+  // ✅ همان hook مشترکی که برای دسته‌بندی‌های سراسری سایت استفاده می‌شود
+  // (بدون کوئری/endpoint جدید) — گزینه‌های dropdown از همین لیست ساخته
+  // می‌شوند؛ اگر فروشگاه در دسته‌ای محصول نداشته باشد، انتخاب آن دسته
+  // فقط لیست خالی برمی‌گرداند (همان رفتار فیلتر دسته‌بندی در ProductsPage).
+  const { data: categories = [] } = useCategories();
 
   // جستجو با تأخیر (debounce) تا با هر حرف تایپ‌شده درخواست جدید نرود
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -107,10 +131,10 @@ export default function SellerPage() {
   // با تغییر هر فیلتر، به صفحه‌ی اول برگرد
   useEffect(() => {
     setProductsPage(1);
-  }, [debouncedSearch, productSort, productDiscountOnly]);
+  }, [debouncedSearch, productSort, productDiscountOnly, productCategoryId]);
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['seller-products', slug, debouncedSearch, productSort, productDiscountOnly, productsPage],
+    queryKey: ['seller-products', slug, debouncedSearch, productSort, productDiscountOnly, productCategoryId, productsPage],
     queryFn: async () => {
       const res = await apiClient.get(`/sellers/${slug}/products`, {
         params: {
@@ -119,6 +143,7 @@ export default function SellerPage() {
           sort: productSort,
           search: debouncedSearch || undefined,
           has_discount: productDiscountOnly || undefined,
+          category_id: productCategoryId || undefined,
         },
       });
       return res.data as { data: unknown[]; meta: { current_page: number; last_page: number; total: number } };
@@ -218,12 +243,6 @@ export default function SellerPage() {
     }
   };
 
-  useEffect(() => {
-    if (sellerData?.display_title) {
-      document.title = `${sellerData.display_title} | ازکالا`;
-    }
-  }, [sellerData]);
-
   const isOwner = isAuthenticated && user && sellerData && user.id === sellerData.user_id;
   // ✅ PublicSellerController::products() همیشه {success, data: [...], meta}
   // برمی‌گرداند — بدون بسته‌بندی تودرتوی اضافه.
@@ -256,6 +275,25 @@ export default function SellerPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-12">
+      {/* ✅ فاز ۳.۴: همان کامپوننت Seo واقعی که ProductDetailPage/HomePage
+          استفاده می‌کنند (نه DynamicMeta که هیچ‌جای pages/ استفاده
+          نمی‌شود) — قبلاً این صفحه فقط document.title را دستی ست
+          می‌کرد، بدون meta description/canonical/OG/JSON-LD. */}
+      <Seo
+        title={sellerData.shop_name}
+        description={sellerData.description || `خرید از فروشگاه ${sellerData.shop_name} در ازکالا — ${sellerData.products_count} محصول، ${Number(sellerData.rating || 0).toFixed(1)} امتیاز از ${sellerData.reviews_count} نظر.`}
+        canonical={`/seller/${sellerData.slug}`}
+        image={logoUrl || undefined}
+        type="profile"
+        jsonLd={[
+          generateSellerStoreSchema(sellerData),
+          generateBreadcrumbSchema([
+            { name: 'خانه', url: '/' },
+            { name: sellerData.shop_name, url: `/seller/${sellerData.slug}` },
+          ]),
+        ]}
+      />
+
       {/* هدر و بنر فروشگاه */}
       <div className="bg-white dark:bg-slate-800 shadow-sm">
         <div className="h-48 md:h-64 w-full bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-900/30 dark:to-accent-900/30 relative overflow-hidden">
@@ -296,6 +334,19 @@ export default function SellerPage() {
                     تایید‌شده
                   </span>
                 )}
+                {/* ✅ فاز ۶ (Seller Store ↔ Nearby Stores): فقط وقتی
+                    stores_count واقعی > ۰ باشد نشان داده می‌شود — اکثر
+                    فروشندگان فقط آنلاین‌اند، «۰ شعبه فیزیکی» یک trust
+                    signal نیست، فقط شلوغی بی‌فایده است. */}
+                {sellerData.stores_count > 0 && (
+                  <span
+                    className="flex items-center gap-1 px-2 py-1 bg-accent-50 dark:bg-accent-900/30 text-accent-600 dark:text-accent-400 rounded-full text-xs font-bold"
+                    title="تعداد شعبه‌ی فیزیکی قابل کشف این فروشنده"
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    {sellerData.stores_count.toLocaleString('fa-IR')} شعبه فیزیکی
+                  </span>
+                )}
                 {isOwner && (
                   <button
                     onClick={() => navigate('/seller/settings')}
@@ -320,6 +371,19 @@ export default function SellerPage() {
                 <span className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-accent-500 dark:text-accent-400" />
                   <span>{Number(sellerData.followers_count || 0).toLocaleString('fa-IR')} دنبال‌کننده</span>
+                </span>
+                {/* ✅ فاز ۳.۱: orders_count از قبل در PublicSellerResource
+                    واقعی محاسبه می‌شد (attachRealCounts) ولی هیچ‌جای این
+                    صفحه رندر نمی‌شد. */}
+                <span className="flex items-center gap-1.5">
+                  <ShoppingBag className="w-4 h-4 text-success-500 dark:text-success-400" />
+                  <span>{Number(sellerData.orders_count || 0).toLocaleString('fa-IR')} سفارش</span>
+                </span>
+                {/* ✅ فاز ۳.۲: نشان اعتماد «فروشنده از ...» — بدون فیلد DB
+                    جدید، فقط از users.created_at که از قبل در پاسخ API بود. */}
+                <span className="flex items-center gap-1.5" title="تاریخ عضویت فروشنده در ازکالا">
+                  <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <span>فروشنده از {formatSellerSince(sellerData.created_at)}</span>
                 </span>
               </div>
               {sellerData.description && (
@@ -414,6 +478,19 @@ export default function SellerPage() {
                       className="w-full pr-4 pl-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
                     />
                   </div>
+                  {/* ✅ فاز ۳.۳: فیلتر دسته‌بندی — همان لیست سراسری دسته‌بندی‌های
+                      سایت (useCategories مشترک)؛ بک‌اند از قبل category_id
+                      را پشتیبانی می‌کرد. */}
+                  <select
+                    value={productCategoryId}
+                    onChange={(e) => setProductCategoryId(e.target.value ? Number(e.target.value) : '')}
+                    className="px-4 py-2.5 border border-gray-200 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                  >
+                    <option value="">همه‌ی دسته‌بندی‌ها</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>{category.name}</option>
+                    ))}
+                  </select>
                   <select
                     value={productSort}
                     onChange={(e) => setProductSort(e.target.value)}
@@ -468,12 +545,12 @@ export default function SellerPage() {
                       </div>
                     )}
                   </>
-                ) : debouncedSearch || productDiscountOnly ? (
+                ) : debouncedSearch || productDiscountOnly || productCategoryId ? (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                     <Package className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-slate-600" />
                     <p className="font-bold">محصولی مطابق این جستجو/فیلتر یافت نشد.</p>
                     <button
-                      onClick={() => { setProductSearch(''); setProductDiscountOnly(false); }}
+                      onClick={() => { setProductSearch(''); setProductDiscountOnly(false); setProductCategoryId(''); }}
                       className="mt-4 px-4 py-2 text-primary-600 dark:text-primary-400 font-bold hover:underline"
                     >
                       پاک کردن فیلترها

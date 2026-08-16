@@ -333,3 +333,59 @@ export function generateStoreSchema(): Record<string, any> {
     },
   };
 }
+
+// ==================== Seller Store Schema (Per-Seller) ====================
+
+/**
+ * Schema برای صفحه‌ی عمومی یک فروشگاه/فروشنده (SellerPage — /seller/:slug).
+ *
+ * ⚠️ برخلاف generateStoreSchema بالا (که همیشه خودِ ازکالا را توصیف
+ * می‌کند)، این تابع پارامتری است و فقط از داده‌ی واقعیِ همان فروشنده
+ * (که PublicSellerResource برمی‌گرداند) استفاده می‌کند. هرگز نباید به‌جای
+ * این، generateStoreSchema برای صفحه‌ی یک فروشنده‌ی خاص صدا زده شود —
+ * آن یعنی structured data گمراه‌کننده (ادعا می‌کند این فروشنده خودِ
+ * ازکالا است).
+ *
+ * aggregateRating فقط وقتی اضافه می‌شود که حداقل یک نظر واقعی ثبت شده
+ * باشد — schema.org امتیاز بدون هیچ نظری را ناقض دستورالعمل می‌داند؛
+ * دقیقاً همان دلیلی که SellerPage.tsx خودش برای مخفی‌کردن «۰ نظر» ندارد
+ * ولی اینجا (چون این عدد وارد نتایج گوگل می‌شود) محافظه‌کارانه‌تر عمل
+ * می‌کنیم.
+ */
+export function generateSellerStoreSchema(seller: {
+  shop_name: string;
+  slug: string;
+  logo: string | null;
+  description: string | null;
+  rating: number;
+  reviews_count: number;
+}): Record<string, any> {
+  const schema: Record<string, any> = {
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    name: seller.shop_name,
+    url: getFullUrl(`/seller/${seller.slug}`),
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'IR',
+    },
+  };
+
+  if (seller.logo) {
+    schema.image = seller.logo.startsWith('http') ? seller.logo : getFullUrl(seller.logo);
+  }
+
+  if (seller.description) {
+    schema.description = seller.description;
+  }
+
+  if (seller.reviews_count > 0) {
+    schema.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: seller.rating,
+      reviewCount: seller.reviews_count,
+    };
+  }
+
+  return schema;
+}

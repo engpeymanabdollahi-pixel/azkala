@@ -34,6 +34,9 @@ class PublicSellerResource extends JsonResource
             'products_count' => (int) ($this->products_count ?? 0),
             'orders_count' => (int) ($this->orders_count ?? 0),
             'followers_count' => (int) ($this->followers_count ?? 0),
+            // ✅ فاز ۶: از PublicSellerService::attachRealCounts می‌آید
+            // (فقط برای واکشی تک‌فروشنده، مثل reviews_count/orders_count بالا).
+            'stores_count' => (int) ($this->stores_count ?? 0),
             'is_followed_by_current_user' => $request->user()
                 ? $request->user()->isFollowingSeller($this->id)
                 : false,
