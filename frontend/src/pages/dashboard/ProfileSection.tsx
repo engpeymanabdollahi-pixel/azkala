@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   User, Mail, Phone, Calendar, Edit2, Save, X, Lock,
-  Shield, Store, ArrowLeft, Gift, Copy, Link2, Users
+  Shield, Store, ArrowLeft, Gift, Copy, Link2, Users, ChevronDown, Award
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store';
@@ -15,8 +15,19 @@ import toast from 'react-hot-toast';
 import { orderService } from '@/services/api/order.service';
 import { profileService } from '@/services/api/profile.service';
 import { couponService } from '@/services/api/coupon.service';
-import { referralService } from '@/services/api/referral.service';
+import { referralService, type ReferralListItem } from '@/services/api/referral.service';
 import apiClient from '@/services/api/client';
+import { formatPrice } from '@/utils/format';
+
+// ✅ Referral System Phase 3: برچسب/رنگ فارسی هر وضعیت — یک‌جا تعریف
+// شده تا کارت خلاصه و لیست تاریخچه هر دو از همین منبع واحد استفاده کنند.
+const REFERRAL_STATUS_META: Record<ReferralListItem['status'], { label: string; variant: 'gray' | 'primary' | 'success' | 'error' }> = {
+  pending: { label: 'در انتظار خرید اول', variant: 'gray' },
+  qualified: { label: 'واجد شرایط پاداش', variant: 'primary' },
+  rewarded: { label: 'پاداش دریافت شد', variant: 'success' },
+  cancelled: { label: 'لغو شده', variant: 'error' },
+  rejected: { label: 'رد شده', variant: 'error' },
+};
 
 // ✅ قبلاً status فقط 'pending' | 'approved' | 'rejected' بود، ولی مقادیر
 // واقعی pending_initial/pending_documents/pending_final/approved/rejected
@@ -93,6 +104,18 @@ export function ProfileSection() {
     queryFn: () => referralService.getMyReferral(),
   });
   const referral = referralData?.data;
+
+  // ✅ Referral System Phase 3: تاریخچه‌ی دعوت‌ها (getMyReferrals تا
+  // پیش از این فاز در جایی صدا زده نمی‌شد). enabled فقط وقتی کارت
+  // «دعوت از دوستان» اصلاً چیزی برای نمایش دارد (referral آماده شده)
+  // اجرا می‌شود.
+  const { data: referralHistoryData } = useQuery({
+    queryKey: ['my-referrals-history'],
+    queryFn: () => referralService.getMyReferrals(),
+    enabled: !!referral,
+  });
+  const referralHistory = referralHistoryData?.data ?? [];
+  const [showReferralHistory, setShowReferralHistory] = useState(false);
 
   const handleCopy = (value: string, label: string) => {
     navigator.clipboard.writeText(value);
@@ -211,9 +234,9 @@ export function ProfileSection() {
         ))}
       </div>
 
-      {/* ✅ Referral System Phase 2: کارت «دعوت از دوستان» — فقط کد/لینک
-          خود کاربر + دکمه‌های کپی؛ هیچ Reward/Campaign/گزارشی اینجا نیست
-          (خارج از scope این فاز). */}
+      {/* ✅ Referral System Phase 2/3: کارت «دعوت از دوستان» — کد/لینک +
+          خلاصه‌ی پاداش (Phase 3) + تاریخچه‌ی جمع‌وجورِ قابل‌بازشدن. مبلغ
+          پاداش هیچ‌جا هاردکد نیست — همیشه از پاسخ بک‌اند خوانده می‌شود. */}
       {referral && (
         <div className="bg-gradient-to-br from-accent-50 to-white dark:from-accent-900/20 dark:to-slate-800 border border-accent-100 dark:border-accent-800 rounded-2xl p-5 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
@@ -257,6 +280,62 @@ export function ProfileSection() {
               </Button>
             </div>
           </div>
+
+          {/* ✅ Referral System Phase 3: مجموع پاداش دریافتی — فقط وقتی
+              حداقل یک پاداش گرفته شده باشد نمایش داده می‌شود (هیچ‌وقت
+              «۰ تومان پاداش» را به‌عنوان یک دستاورد نشان نمی‌دهیم). */}
+          {referral.rewarded_referrals > 0 && (
+            <div className="mt-2 flex items-center justify-between gap-2 p-2.5 bg-success-50 dark:bg-success-900/20 border border-success-100 dark:border-success-800 rounded-lg">
+              <div className="flex items-center gap-2 min-w-0">
+                <Award className="w-4 h-4 text-success-600 dark:text-success-400 flex-shrink-0" />
+                <p className="text-xs font-bold text-success-700 dark:text-success-400">
+                  مجموع پاداش دریافتی از {referral.rewarded_referrals.toLocaleString('fa-IR')} دعوت موفق
+                </p>
+              </div>
+              <p className="text-sm font-black text-success-700 dark:text-success-400 flex-shrink-0">
+                {formatPrice(referral.total_earned_rewards)}
+              </p>
+            </div>
+          )}
+
+          {/* ✅ تاریخچه‌ی جمع‌وجور — پیش‌فرض بسته، فقط با کلیک کاربر باز
+              می‌شود؛ هر ردیف وضعیت واقعی از بک‌اند را نشان می‌دهد، نه
+              حدس فرانت. */}
+          {referralHistory.length > 0 && (
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => setShowReferralHistory((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-slate-900/60 rounded-lg transition-colors"
+              >
+                <span>تاریخچه‌ی دعوت‌ها ({referralHistory.length.toLocaleString('fa-IR')})</span>
+                <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showReferralHistory && 'rotate-180')} />
+              </button>
+
+              {showReferralHistory && (
+                <div className="mt-1.5 space-y-1.5 max-h-64 overflow-y-auto">
+                  {referralHistory.map((item, idx) => {
+                    const meta = REFERRAL_STATUS_META[item.status];
+                    const date = new Date(item.registered_at).toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                    return (
+                      <div key={idx} className="flex items-center justify-between gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border border-gray-100 dark:border-slate-700">
+                        <div className="min-w-0">
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400">{date}</p>
+                          <Badge variant={meta.variant} className="mt-0.5 text-[10px]">{meta.label}</Badge>
+                        </div>
+                        {item.reward && (
+                          <p className="text-xs font-black text-success-600 dark:text-success-400 flex-shrink-0">
+                            {formatPrice(item.reward.amount)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

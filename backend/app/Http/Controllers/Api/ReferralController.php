@@ -34,18 +34,30 @@ class ReferralController extends Controller
 
     /**
      * GET /user/referrals — لیست دعوت‌های خودِ کاربر جاری. عمداً فقط
-     * status/registered_at برمی‌گردد؛ هیچ اطلاعات شخصی کاربر
+     * status/تاریخ‌ها/اطلاعات پاداش برمی‌گردد؛ هیچ اطلاعات شخصی کاربر
      * معرفی‌شده (نام/شماره موبایل/ایمیل) نمایش داده نمی‌شود.
+     *
+     * ✅ Referral System Phase 3: qualified_at/rewarded_at/reward
+     * (amount+order_number) اضافه شدند — reward با eager-load (رابطه‌ی
+     * Referral::reward) خوانده می‌شود تا N+1 ایجاد نشود؛ order فقط
+     * order_number برمی‌گرداند (شماره‌ی غیرحساس)، نه کل شیء سفارش.
      */
     public function myReferrals(Request $request)
     {
         $referrals = Referral::query()
             ->where('referrer_user_id', $request->user()->id)
+            ->with('reward:id,referral_id,amount,rewarded_at,order_id', 'reward.order:id,order_number')
             ->orderByDesc('registered_at')
-            ->get(['status', 'registered_at'])
+            ->get()
             ->map(fn (Referral $referral) => [
                 'status' => $referral->status,
                 'registered_at' => $referral->registered_at,
+                'qualified_at' => $referral->qualified_at,
+                'rewarded_at' => $referral->rewarded_at,
+                'reward' => $referral->reward ? [
+                    'amount' => (float) $referral->reward->amount,
+                    'order_number' => $referral->reward->order?->order_number,
+                ] : null,
             ]);
 
         return response()->json([

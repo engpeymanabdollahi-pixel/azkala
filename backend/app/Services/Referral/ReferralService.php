@@ -3,6 +3,7 @@
 namespace App\Services\Referral;
 
 use App\Models\Referral;
+use App\Models\ReferralReward;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
@@ -167,6 +168,11 @@ class ReferralService
 
     /**
      * خلاصه‌ی Referral کاربر جاری برای GET /user/referral.
+     *
+     * ✅ Referral System Phase 3: qualified/rewarded_referrals و
+     * total_earned_rewards هم اضافه شدند — همگی صرفاً خواندنی (COUNT/SUM
+     * روی referrals و referral_rewards)، هیچ‌کدام مقدار پاداش را
+     * هاردکد نمی‌کنند (رجوع به config/azkala/referral.php).
      */
     public function getReferralSummary(User $user): array
     {
@@ -179,6 +185,15 @@ class ReferralService
             'pending_referrals' => Referral::where('referrer_user_id', $user->id)
                 ->where('status', Referral::STATUS_PENDING)
                 ->count(),
+            'qualified_referrals' => Referral::where('referrer_user_id', $user->id)
+                ->where('status', Referral::STATUS_QUALIFIED)
+                ->count(),
+            'rewarded_referrals' => Referral::where('referrer_user_id', $user->id)
+                ->where('status', Referral::STATUS_REWARDED)
+                ->count(),
+            'total_earned_rewards' => (float) ReferralReward::where('referrer_user_id', $user->id)
+                ->where('status', ReferralReward::STATUS_GRANTED)
+                ->sum('amount'),
         ];
     }
 

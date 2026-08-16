@@ -9,13 +9,26 @@ export interface ReferralSummary {
   referral_link: string;
   total_referrals: number;
   pending_referrals: number;
+  // ✅ Referral System Phase 3
+  qualified_referrals: number;
+  rewarded_referrals: number;
+  total_earned_rewards: number;
 }
 
-// ✅ عمداً فقط status/registered_at — بک‌اند اطلاعات شخصی کاربر
-// معرفی‌شده (نام/شماره موبایل/ایمیل) را برنمی‌گرداند.
+export interface ReferralRewardInfo {
+  amount: number;
+  order_number: string | null;
+}
+
+// ✅ عمداً فقط status/تاریخ‌ها/اطلاعات پاداش — بک‌اند اطلاعات شخصی
+// کاربر معرفی‌شده (نام/شماره موبایل/ایمیل) را برنمی‌گرداند.
 export interface ReferralListItem {
   status: 'pending' | 'qualified' | 'rewarded' | 'cancelled' | 'rejected';
   registered_at: string;
+  // ✅ Referral System Phase 3
+  qualified_at: string | null;
+  rewarded_at: string | null;
+  reward: ReferralRewardInfo | null;
 }
 
 export const referralService = {
