@@ -49,6 +49,7 @@ use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\MagazineController;
 use App\Http\Controllers\Api\AdminStoreController;
+use App\Http\Controllers\Api\AdminReferralController;
 use App\Http\Controllers\Api\NearbyStoreController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
@@ -624,6 +625,14 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::post('/{id}/reject', [AdminStoreController::class, 'reject'])->middleware('permission:stores.manage')->name('reject');
                 Route::post('/{id}/deactivate', [AdminStoreController::class, 'deactivate'])->middleware('permission:stores.manage')->name('deactivate');
                 Route::post('/{id}/activate', [AdminStoreController::class, 'activate'])->middleware('permission:stores.manage')->name('activate');
+            });
+
+            // 🎁 Referral System — Phase 3 (Admin Module). MVP فقط
+            // نمایش/ممیزی است — هیچ endpoint نوشتنی‌ای اینجا نیست (رجوع
+            // به کامنت AdminReferralController).
+            Route::prefix('referrals')->name('referrals.')->group(function () {
+                Route::get('/', [AdminReferralController::class, 'index'])->middleware('permission:referrals.view')->name('index');
+                Route::get('/{referral}', [AdminReferralController::class, 'show'])->middleware('permission:referrals.view')->name('show');
             });
 
             // 👑 مدیریت Administrative Access (Super Admin/Admin/Manager + Permission)

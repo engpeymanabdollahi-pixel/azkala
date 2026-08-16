@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
   Tag, FolderTree, X, LogOut, ChevronLeft,
-  Settings, BarChart3, MessageCircle, Newspaper, Megaphone, ShieldCheck, MapPin,
+  Settings, BarChart3, MessageCircle, Newspaper, Megaphone, ShieldCheck, MapPin, Gift,
 } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { useAuthStore } from '@/store/authStore';
@@ -43,6 +43,7 @@ const menuItems: Array<{
   { path: '/admin/catalog', icon: FolderTree, label: 'کاتالوگ', permission: 'catalog.view' }, // ✅ تجمیع شده
   { path: '/admin/coupons', icon: Tag, label: 'کدهای تخفیف', permission: 'coupons.view' },
   { path: '/admin/stores', icon: MapPin, label: 'فروشگاه‌های فیزیکی', permission: 'stores.view' },
+  { path: '/admin/referrals', icon: Gift, label: 'معرفی دوستان', permission: 'referrals.view' },
 
   // ═══════════════════════════════════════════════════════
   // 📊 گزارشات

@@ -135,4 +135,16 @@ return [
             'admin.access.manage' => ['label' => 'مدیریت نقش/دسترسی ادمین‌ها', 'sensitive' => true],
         ],
     ],
+    'referrals' => [
+        'label' => 'معرفی دوستان (Referral)',
+        'permissions' => [
+            // این فاز فقط MVP نمایش/ممیزی است (بدون ویرایش/ابطال پاداش)؛
+            // referrals.manage امروز به هیچ endpoint نوشتنی وصل نیست —
+            // فقط طبق قرارداد موجود ماژول‌ها (view/manage) از همین الان
+            // ثبت شده تا فاز بعدی (مثلاً ابطال پاداش) نیازی به تغییر
+            // taxonomy نداشته باشد.
+            'referrals.view' => ['label' => 'مشاهده معرفی‌ها و پاداش‌ها', 'sensitive' => false],
+            'referrals.manage' => ['label' => 'مدیریت معرفی‌ها (رزرو شده برای توسعه‌ی آینده)', 'sensitive' => false],
+        ],
+    ],
 ];
