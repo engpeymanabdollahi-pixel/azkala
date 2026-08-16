@@ -3,6 +3,7 @@
 namespace App\Services\Store;
 
 use App\Models\Store;
+use App\Models\StoreHour;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use InvalidArgumentException;
@@ -119,12 +120,59 @@ class NearbyStoreService
         $items = $withDistance->forPage($page, $perPage)->values();
 
         return [
-            'stores' => $items,
+            'stores' => $this->attachHours($items),
             'total' => $total,
             'page' => $page,
             'per_page' => $perPage,
             'radius' => $radius,
         ];
+    }
+
+    /**
+     * ساعات کاری هفتگی هر فروشگاه را به نتیجه‌ی نهایی اضافه می‌کند —
+     * Nearby Stores Completion Phase.
+     *
+     * ✅ نه N+1: دقیقاً یک کوئری batch اضافی (whereIn) برای همه‌ی
+     * store_id های همان صفحه‌ی نهایی (حداکثر self::MAX_PER_PAGE، نه کل
+     * مجموعه‌ی کاندید تا self::MAX_CANDIDATES) — نه حلقه‌ای که برای هر
+     * فروشگاه جدا StoreHour بخواند.
+     *
+     * ✅ خروجی هر آیتم را عمداً به آرایه‌ی PHP تبدیل می‌کند (toArray)،
+     * نه mutate کردن مستقیم property روی مدل Eloquent — چون «hours» دقیقاً
+     * همنام رابطه‌ی Store::hours() است و نوشتن مستقیم روی آن مدل می‌توانست
+     * گیج‌کننده/شکننده باشد؛ تبدیل به آرایه‌ی ساده این ابهام را کاملاً حذف
+     * می‌کند و شکل JSON خروجی هم دقیقاً همان چیزی می‌ماند که تست‌های
+     * موجود از قبل انتظار دارند.
+     *
+     * ✅ فقط فیلدهای امن/عمومی هر روز (day_of_week/opens_at/closes_at/
+     * is_closed) برگردانده می‌شود — id/store_id/timestamps داخلی حذف
+     * می‌شوند.
+     */
+    private function attachHours(Collection $items): Collection
+    {
+        if ($items->isEmpty()) {
+            return $items;
+        }
+
+        $hoursByStore = StoreHour::whereIn('store_id', $items->pluck('id'))
+            ->orderBy('day_of_week')
+            ->get()
+            ->groupBy('store_id');
+
+        return $items->map(function ($row) use ($hoursByStore) {
+            $array = $row->toArray();
+
+            $array['hours'] = ($hoursByStore->get($row->id) ?? collect())
+                ->map(fn (StoreHour $hour) => [
+                    'day_of_week' => $hour->day_of_week,
+                    'opens_at' => $hour->opens_at,
+                    'closes_at' => $hour->closes_at,
+                    'is_closed' => $hour->is_closed,
+                ])
+                ->values();
+
+            return $array;
+        });
     }
 
     private function normalizeRadius(?int $radiusMeters): int

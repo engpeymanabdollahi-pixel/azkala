@@ -4,8 +4,11 @@ namespace Tests\Feature\Api;
 
 use App\Models\Product;
 use App\Models\Store;
+use App\Models\StoreHour;
 use App\Models\StoreInventory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -203,5 +206,102 @@ class NearbyStoreSearchTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('meta.total', 0);
         $response->assertJsonCount(0, 'data');
+    }
+
+    // ==================== Store Hours — Nearby Stores Completion Phase ====================
+
+    public function test_nearby_response_includes_store_hours(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $store = $this->verifiedStoreWithInventory($product);
+
+        StoreHour::create(['store_id' => $store->id, 'day_of_week' => 0, 'opens_at' => '09:00', 'closes_at' => '21:00', 'is_closed' => false]);
+        StoreHour::create(['store_id' => $store->id, 'day_of_week' => 5, 'opens_at' => null, 'closes_at' => null, 'is_closed' => true]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $response->assertOk();
+        $hours = $response->json('data.0.hours');
+        $this->assertIsArray($hours);
+        $this->assertCount(2, $hours);
+    }
+
+    public function test_store_hours_returns_correct_open_and_close_times(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $store = $this->verifiedStoreWithInventory($product);
+        StoreHour::create(['store_id' => $store->id, 'day_of_week' => 1, 'opens_at' => '10:00', 'closes_at' => '20:00', 'is_closed' => false]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $hour = collect($response->json('data.0.hours'))->firstWhere('day_of_week', 1);
+        $this->assertNotNull($hour);
+        // ✅ فقط پیشوند «HH:MM» چک می‌شود، نه رشته‌ی دقیق — چون فرمت خام
+        // ستون TIME می‌تواند بسته به driver با/بدون ثانیه برگردد؛ نکته‌ی
+        // اصلی این تست درستیِ مقدار است، نه فرمت داخلی DB.
+        $this->assertStringStartsWith('10:00', $hour['opens_at']);
+        $this->assertStringStartsWith('20:00', $hour['closes_at']);
+        $this->assertFalse($hour['is_closed']);
+    }
+
+    public function test_closed_day_is_correctly_represented(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $store = $this->verifiedStoreWithInventory($product);
+        StoreHour::create(['store_id' => $store->id, 'day_of_week' => 5, 'is_closed' => true]);
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $hour = collect($response->json('data.0.hours'))->firstWhere('day_of_week', 5);
+        $this->assertNotNull($hour);
+        $this->assertTrue($hour['is_closed']);
+    }
+
+    public function test_store_without_hours_returns_empty_hours_array(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+        $this->verifiedStoreWithInventory($product); // بدون هیچ ردیف StoreHour
+
+        $response = $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG);
+
+        $response->assertOk();
+        $this->assertSame([], $response->json('data.0.hours'));
+    }
+
+    public function test_fetching_store_hours_does_not_introduce_n_plus_one_query(): void
+    {
+        $product = Product::factory()->create(['is_active' => true]);
+
+        $store1 = $this->verifiedStoreWithInventory($product);
+        StoreHour::create(['store_id' => $store1->id, 'day_of_week' => 0, 'opens_at' => '09:00', 'closes_at' => '21:00']);
+
+        Cache::flush();
+        DB::enableQueryLog();
+        $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG)->assertOk();
+        $queryCountWithOneStore = count(DB::getQueryLog());
+        DB::flushQueryLog();
+
+        // ✅ حالا ۴ فروشگاه دیگر (جمعاً ۵) اضافه می‌شود، هرکدام با ساعات
+        // کاری خودشان — اگر پیاده‌سازی N+1 بود، تعداد کوئری با تعداد
+        // فروشگاه‌ها رشد می‌کرد. (Query log موقتاً خاموش می‌شود تا
+        // INSERTهای این setup با کوئری‌های واقعیِ درخواست دوم قاطی نشوند.)
+        DB::disableQueryLog();
+        for ($i = 0; $i < 4; $i++) {
+            $store = $this->verifiedStoreWithInventory($product, ['latitude' => self::ORIGIN_LAT + 0.0001 * ($i + 1)]);
+            StoreHour::create(['store_id' => $store->id, 'day_of_week' => 0, 'opens_at' => '09:00', 'closes_at' => '21:00']);
+        }
+
+        Cache::flush(); // ✅ کلید کش قبلی نباید نتیجه‌ی این درخواست را «رایگان» کند
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->getJson("/api/v1/products/{$product->id}/nearby-stores?lat=".self::ORIGIN_LAT.'&lng='.self::ORIGIN_LNG)->assertOk();
+        $queryCountWithFiveStores = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertSame(
+            $queryCountWithOneStore,
+            $queryCountWithFiveStores,
+            'تعداد کوئری‌های SQL نباید با افزایش تعداد فروشگاه‌های بازگشتی رشد کند (N+1).'
+        );
     }
 }

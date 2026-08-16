@@ -11,6 +11,11 @@ export interface Address {
   address: string;
   postal_code: string | null;
   is_default: boolean;
+  // ✅ Nearby Stores Completion Phase — کاملاً اختیاری؛ فقط برای استفاده‌ی
+  // صریح کاربر به‌عنوان منبع مکان جستجوی «فروشگاه‌های نزدیک». هیچ ارتباطی
+  // با Checkout ندارد.
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +29,8 @@ export interface AddressFormData {
   address: string;
   postal_code?: string;
   is_default?: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface AddressesResponse {

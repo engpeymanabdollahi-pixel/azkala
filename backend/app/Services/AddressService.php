@@ -35,6 +35,10 @@ class AddressService
                 'address' => $data['address'],
                 'postal_code' => $data['postal_code'] ?? null,
                 'is_default' => $isFirstAddress || !empty($data['is_default']),
+                // ✅ Nearby Stores Completion Phase — اختیاری؛ نبودشان در
+                // $data به معنای null است، نه خطا.
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
             ]);
         });
     }

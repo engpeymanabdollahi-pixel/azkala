@@ -20,11 +20,19 @@ class Address extends Model
         'address',
         'postal_code',
         'is_default',
+        // ✅ Nearby Stores Completion Phase — مختصات اختیاری، فقط برای
+        // استفاده‌ی صریح کاربر به‌عنوان منبع مکان جستجوی «فروشگاه‌های
+        // نزدیک»؛ هیچ ارتباطی با Checkout/Order ندارد.
+        'latitude',
+        'longitude',
     ];
 
     protected $casts = [
         'user_id' => 'integer',
         'is_default' => 'boolean',
+        // ✅ دقیقاً همان قرارداد Store::latitude/longitude (decimal:7).
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
     ];
 
     // ==================== Relationships ====================

@@ -7,16 +7,17 @@ import { IRAN_MAJOR_CITIES } from '@/constants/iranCities';
  * مکان‌یابی برای «فروشگاه‌های نزدیک شما» — Phase 13 (Location Fallback).
  *
  * ✅ هرگز به‌تنهایی به GPS متکی نیست و هرگز به‌صورت خودکار در لود صفحه
- * درخواست مکان مرورگر نمی‌دهد (باید با یک کلیک کاربر آغاز شود). دو مسیر
+ * درخواست مکان مرورگر نمی‌دهد (باید با یک کلیک کاربر آغاز شود). سه مسیر
  * مستقل برای گرفتن مختصات وجود دارد:
  *   ۱. موقعیت مرورگر (navigator.geolocation) — با اکشن صریح کاربر.
  *   ۲. انتخاب دستی شهر از یک لیست ثابت (بدون هیچ سرویس نقشه/geocoding
  *      خارجی — رجوع به کامنت constants/iranCities.ts).
- * آدرس‌های ذخیره‌شده‌ی کاربر (addresses) عمداً به‌عنوان یک منبع مکان اینجا
- * استفاده نشده‌اند: جدول addresses هیچ ستون latitude/longitude ای ندارد
- * (فقط province/city/address متنی — رجوع به migration)، و افزودن یک
- * سرویس geocoding برای تبدیل متن به مختصات دقیقاً همان «سرویس نقشه‌ی
- * خارجی» است که Phase 20 صریحاً برای این فاز ممنوع کرده.
+ *   ۳. یکی از آدرس‌های ذخیره‌شده‌ی کاربر که مختصات دارد (Nearby Stores
+ *      Completion Phase — addresses.latitude/longitude اختیاری). این هوک
+ *      خودش addresses را نمی‌خواند (آن مسئولیت کامپوننت مصرف‌کننده است تا
+ *      این هوک مستقل از احراز هویت/API آدرس بماند)؛ فقط selectCoordinates
+ *      یک ورودی عمومی برای «مختصات از هر منبعی» expose می‌کند.
+ * هیچ‌کدام خودکار انتخاب نمی‌شوند — همیشه با اکشن صریح کاربر.
  */
 
 export type NearbyStoreLocationStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'unavailable' | 'error';
@@ -67,6 +68,18 @@ export function useNearbyStores(productId: number | undefined) {
     setStatus('granted');
   }, []);
 
+  /**
+   * ✅ Nearby Stores Completion Phase — ورودی عمومی «مختصات از هر منبع
+   * غیر GPS/غیر شهر»؛ در حال حاضر فقط برای «انتخاب یک آدرس ذخیره‌شده»
+   * استفاده می‌شود (رجوع به NearbyStores.tsx). عمداً هیچ‌جا خودش را
+   * صدا نمی‌زند — همیشه باید از یک اکشن صریح کاربر بیاید.
+   */
+  const selectCoordinates = useCallback((lat: number, lng: number) => {
+    setCoords({ lat, lng });
+    setSelectedCityKey(null);
+    setStatus('granted');
+  }, []);
+
   const clearLocation = useCallback(() => {
     setCoords(null);
     setSelectedCityKey(null);
@@ -97,6 +110,7 @@ export function useNearbyStores(productId: number | undefined) {
     cities: IRAN_MAJOR_CITIES,
     requestBrowserLocation,
     selectCity,
+    selectCoordinates,
     clearLocation,
 
     // Search result

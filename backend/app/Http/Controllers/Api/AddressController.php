@@ -51,6 +51,10 @@ class AddressController extends Controller
             'address' => 'required|string',
             'postal_code' => 'nullable|string|max:20',
             'is_default' => 'boolean',
+            // ✅ Nearby Stores Completion Phase — کاملاً اختیاری؛ آدرس بدون
+            // مختصات هم مثل قبل قابل ثبت است.
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         try {
@@ -86,6 +90,9 @@ class AddressController extends Controller
             'address' => 'sometimes|string',
             'postal_code' => 'nullable|string|max:20',
             'is_default' => 'boolean',
+            // ✅ Nearby Stores Completion Phase
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         try {

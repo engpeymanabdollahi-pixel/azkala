@@ -701,6 +701,9 @@ export interface NearbyStore {
   stock: number;
   pickup_enabled: boolean;
   distance_meters: number;
+  // ✅ Nearby Stores Completion Phase — batch-loaded در NearbyStoreService
+  // (نه N+1)؛ همان shape عمومی StoreHour بالا (بدون id/store_id داخلی).
+  hours?: Pick<StoreHour, 'day_of_week' | 'opens_at' | 'closes_at' | 'is_closed'>[];
 }
 
 export interface NearbyStoreSearchMeta {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MapPin, Plus, Edit2, Trash2, CheckCircle, Star, X,
-  Phone, User as UserIcon, Home, Building2,
+  Phone, User as UserIcon, Home, Building2, Navigation, CheckCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import { addressService, type Address, type AddressFormData } from '@/services/api/address.service';
+import { useBrowserGeolocation } from '@/hooks/useBrowserGeolocation';
 
 // لیست استان‌های ایران
 const PROVINCES = [
@@ -333,9 +334,33 @@ function AddressFormModal({
     address: address?.address || '',
     postal_code: address?.postal_code || '',
     is_default: address?.is_default || false,
+    latitude: address?.latitude ?? null,
+    longitude: address?.longitude ?? null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ✅ Nearby Stores Completion Phase — همیشه با کلیک صریح کاربر آغاز
+  // می‌شود، هرگز خودکار موقع باز شدن این فرم.
+  const geolocation = useBrowserGeolocation();
+
+  const handleSaveCurrentLocation = async () => {
+    const { coords, status } = await geolocation.requestLocation();
+
+    if (coords) {
+      setFormData((prev) => ({ ...prev, latitude: coords.lat, longitude: coords.lng }));
+      toast.success('موقعیت مکانی فعلی ثبت شد', { icon: '📍' });
+      return;
+    }
+
+    if (status === 'denied') {
+      toast.error('دسترسی به موقعیت مکانی رد شد. می‌توانید این آدرس را بدون موقعیت مکانی ذخیره کنید.');
+    } else if (status === 'unavailable') {
+      toast.error('مرورگر شما از موقعیت‌یابی پشتیبانی نمی‌کند.');
+    } else {
+      toast.error('دریافت موقعیت مکانی با خطا مواجه شد. لطفاً دوباره تلاش کنید.');
+    }
+  };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -494,6 +519,34 @@ function AddressFormModal({
               placeholder="خیابان، کوچه، پلاک، واحد..."
             />
             {errors.address && <p className="text-[10px] text-error-500 dark:text-error-400 mt-0.5">{errors.address}</p>}
+          </div>
+
+          {/* ✅ Nearby Stores Completion Phase — موقعیت مکانی کاملاً
+              اختیاری این آدرس؛ فقط با کلیک صریح کاربر فعال می‌شود، هرگز
+              خودکار. برای جستجوی «فروشگاه‌های نزدیک» استفاده می‌شود، نه
+              برای Checkout. */}
+          <div>
+            <button
+              type="button"
+              onClick={handleSaveCurrentLocation}
+              disabled={geolocation.status === 'requesting'}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 dark:border-slate-600 hover:border-primary-400 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/10 disabled:opacity-60 transition-colors text-xs font-semibold text-gray-600 dark:text-gray-300"
+            >
+              {formData.latitude != null && formData.longitude != null ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success-600 dark:text-success-400" />
+                  موقعیت مکانی ثبت شد — به‌روزرسانی
+                </>
+              ) : (
+                <>
+                  <Navigation className="w-3.5 h-3.5" />
+                  {geolocation.status === 'requesting' ? 'در حال دریافت موقعیت...' : 'ذخیره موقعیت فعلی'}
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+              اختیاری — فقط برای نمایش فروشگاه‌های نزدیک این آدرس استفاده می‌شود.
+            </p>
           </div>
 
           {/* Postal Code */}
