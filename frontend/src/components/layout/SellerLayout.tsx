@@ -39,7 +39,7 @@ const SEARCH_SHORTCUTS = [
   { icon: Package, label: 'محصولات', desc: 'مشاهده همه محصولات', path: '/seller/products', keywords: ['محصول', 'محصولات', 'کالا', 'products'] },
   { icon: ShoppingBag, label: 'سفارشات', desc: 'مدیریت سفارشات', path: '/seller/orders', keywords: ['سفارش', 'سفارشات', 'orders'] },
   { icon: CreditCard, label: 'تسویه حساب', desc: 'مدیریت پرداخت‌ها', path: '/seller/payouts', keywords: ['تسویه', 'پرداخت', 'حساب', 'payout'] },
-  { icon: MapPin, label: 'فروشگاه‌های فیزیکی', desc: 'مدیریت شعبه‌ها و موجودی فیزیکی', path: '/seller/stores', keywords: ['فروشگاه', 'شعبه', 'حضوری', 'store', 'branch'] },
+  { icon: MapPin, label: 'شعبه‌ی فیزیکی', desc: 'مدیریت شعبه و موجودی فیزیکی', path: '/seller/stores', keywords: ['فروشگاه', 'شعبه', 'حضوری', 'store', 'branch'] },
   { icon: LayoutDashboard, label: 'داشبورد', desc: 'بازگشت به داشبورد', path: '/seller', keywords: ['داشبورد', 'خانه', 'dashboard'] },
   { icon: MessageSquare, label: 'پیام‌ها', desc: 'گفتگو با مشتریان', path: '/seller/chat', keywords: ['پیام', 'چت', 'گفتگو', 'chat', 'message'] },
   { icon: Settings, label: 'تنظیمات', desc: 'تنظیمات فروشگاه', path: '/seller/settings', keywords: ['تنظیمات', 'settings'] },
@@ -141,7 +141,7 @@ export function SellerLayout() {
       badge: 'جدید' as number | string | null,
     },
     { path: '/seller/orders', label: 'سفارشات', icon: ShoppingBag, color: 'from-success-500 to-success-600', badge: pendingOrdersCount || null },
-    { path: '/seller/stores', label: 'فروشگاه‌های فیزیکی', icon: MapPin, color: 'from-teal-500 to-teal-600', badge: null as number | string | null },
+    { path: '/seller/stores', label: 'شعبه‌ی فیزیکی', icon: MapPin, color: 'from-teal-500 to-teal-600', badge: null as number | string | null },
     { path: '/seller/payouts', label: 'تسویه حساب', icon: CreditCard, color: 'from-warning-500 to-warning-600', badge: null as number | string | null },
     {
       path: '/seller/settings',

@@ -46,10 +46,19 @@ export default function SellerStores() {
     mutationFn: (data: StoreFormData) => storeService.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seller-stores'] });
-      toast.success('فروشگاه ثبت شد و در انتظار تایید ادمین است', { icon: '🏬' });
+      toast.success('شعبه ثبت شد و در انتظار تایید ادمین است', { icon: '🏬' });
       setFormOpen(false);
     },
-    onError: () => toast.error('خطا در ثبت فروشگاه'),
+    // ✅ هر فروشنده فقط یک شعبه دارد — دکمه‌ی «افزودن» وقتی شعبه‌ای از
+    // قبل ثبت شده مخفی می‌شود (پایین‌تر)، ولی این پیام واقعی بک‌اند
+    // («شما قبلاً شعبه‌ی خود را ثبت کرده‌اید») باید نشان داده شود، نه
+    // یک خطای عمومی — مثلاً اگر دو تب باز باشد.
+    onError: (error: unknown) => {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || 'خطا در ثبت شعبه');
+    },
   });
 
   const updateMutation = useMutation({
@@ -140,15 +149,23 @@ export default function SellerStores() {
         <div>
           <h1 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-            فروشگاه‌های فیزیکی
+            شعبه‌ی فیزیکی
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            شعبه‌های فیزیکی خود را ثبت کنید تا مشتریان نزدیک بتوانند محصولات موجود در آن‌ها را در صفحه محصول ببینند.
+            {/* ✅ هر فروشنده روی ازکالا دقیقاً یک شعبه دارد (مثل غرفه‌ی
+                باسلام) — نشانی همان شعبه‌ای که در بازار/فروشگاه فیزیکی
+                دارید، تا مشتریان نزدیک بتوانند محصولات موجود در آن را
+                در صفحه محصول ببینند. */}
+            نشانی شعبه‌ی فیزیکی خود را ثبت کنید تا مشتریان نزدیک بتوانند محصولات موجود در آن را در صفحه محصول ببینند.
           </p>
         </div>
-        <Button onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-          افزودن فروشگاه
-        </Button>
+        {/* ✅ هر فروشنده فقط یک شعبه دارد — دکمه‌ی افزودن فقط تا قبل از
+            ثبت همان یک شعبه نشان داده می‌شود. */}
+        {stores.length === 0 && (
+          <Button onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
+            ثبت شعبه
+          </Button>
+        )}
       </div>
 
       {isLoading && (
@@ -161,9 +178,9 @@ export default function SellerStores() {
       {!isLoading && stores.length === 0 && (
         <EmptyState
           icon={<StoreIcon className="w-10 h-10" />}
-          title="هنوز فروشگاه فیزیکی ثبت نکرده‌اید"
-          description="با افزودن فروشگاه، محصولاتی که در آن موجود هستند برای مشتریان نزدیک قابل‌مشاهده خواهند بود."
-          action={<Button onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>افزودن اولین فروشگاه</Button>}
+          title="هنوز شعبه‌ی فیزیکی خود را ثبت نکرده‌اید"
+          description="با ثبت نشانی شعبه، محصولاتی که در آن موجود هستند برای مشتریان نزدیک قابل‌مشاهده خواهند بود."
+          action={<Button onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>ثبت شعبه</Button>}
         />
       )}
 
@@ -214,7 +231,7 @@ export default function SellerStores() {
       </div>
 
       {/* Create/Edit Modal */}
-      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editingStore ? 'ویرایش فروشگاه' : 'افزودن فروشگاه'} size="lg">
+      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editingStore ? 'ویرایش شعبه' : 'ثبت شعبه'} size="lg">
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">نام فروشگاه *</label>
@@ -300,7 +317,7 @@ export default function SellerStores() {
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setFormOpen(false)}>انصراف</Button>
             <Button onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-              {editingStore ? 'ذخیره تغییرات' : 'ثبت فروشگاه'}
+              {editingStore ? 'ذخیره تغییرات' : 'ثبت شعبه'}
             </Button>
           </div>
         </div>

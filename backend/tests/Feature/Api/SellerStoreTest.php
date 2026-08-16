@@ -55,6 +55,46 @@ class SellerStoreTest extends TestCase
         $this->assertNull($store->verified_at);
     }
 
+    /**
+     * فلسفه‌ی «شعبه» (طبق توضیح صریح کارفرما، دقیقاً مثل غرفه‌ی باسلام):
+     * هر فروشنده فقط یک شعبه دارد.
+     */
+    public function test_seller_cannot_create_a_second_store(): void
+    {
+        $seller = $this->seller();
+
+        $this->actingAs($seller, 'sanctum')->postJson('/api/v1/seller/stores', [
+            'name' => 'شعبه اول',
+        ])->assertCreated();
+
+        $response = $this->actingAs($seller, 'sanctum')->postJson('/api/v1/seller/stores', [
+            'name' => 'شعبه دوم',
+        ]);
+
+        $response->assertStatus(409);
+        $response->assertJsonPath('success', false);
+        $this->assertSame(1, Store::where('seller_id', $seller->id)->count());
+    }
+
+    /**
+     * دفاعی: soft-delete نباید یک فروشنده را برای همیشه از داشتن شعبه
+     * محروم کند — بعد از حذف شعبه‌ی قبلی، باید بتواند شعبه‌ی جدید بسازد.
+     */
+    public function test_seller_can_create_a_new_store_after_soft_deleting_the_previous_one(): void
+    {
+        $seller = $this->seller();
+
+        $first = Store::factory()->create(['seller_id' => $seller->id]);
+        $first->delete();
+
+        $response = $this->actingAs($seller, 'sanctum')->postJson('/api/v1/seller/stores', [
+            'name' => 'شعبه جدید',
+        ]);
+
+        $response->assertCreated();
+        $this->assertSame(1, Store::where('seller_id', $seller->id)->count());
+    }
+
     public function test_seller_sees_only_their_own_stores(): void
     {
         $sellerA = $this->seller();

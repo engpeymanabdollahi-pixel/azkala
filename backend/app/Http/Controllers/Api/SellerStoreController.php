@@ -59,13 +59,25 @@ class SellerStoreController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        $store = $this->storeService->create($request->user()->id, $validated);
+        try {
+            $store = $this->storeService->create($request->user()->id, $validated);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'فروشگاه با موفقیت ثبت شد و در انتظار تایید ادمین است.',
-            'data' => $store,
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'فروشگاه با موفقیت ثبت شد و در انتظار تایید ادمین است.',
+                'data' => $store,
+            ], 201);
+        } catch (\Exception $e) {
+            // ✅ همان الگوی ProductAlertController::store — خطای «شما قبلاً
+            // شعبه‌ی خود را ثبت کرده‌اید» باید همان پیام واقعی به فرانت‌اند
+            // برسد، نه یک ۵۰۰ عمومی.
+            Log::error('SellerStoreController@store: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
     }
 
     public function update(Request $request, $id)

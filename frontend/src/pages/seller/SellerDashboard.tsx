@@ -23,6 +23,7 @@ import {
   X,
   MessageCircle,
   Store,
+  Copy,
   type LucideIcon,
 } from 'lucide-react';
 import { formatPrice } from '@/utils/format';
@@ -475,32 +476,58 @@ export function SellerDashboard() {
           </div>
         </div>
 
-        {/* کارت دسترسی سریع به فروشگاه */}
+        {/* کارت دسترسی سریع به شعبه (فروشگاه آنلاین) — دقیقاً همان شعبه‌ای
+            که فروشنده می‌تواند لینکش را برای تبلیغ به اشتراک بگذارد. */}
         <div className="bg-gradient-to-r from-primary-500 to-accent-600 rounded-2xl p-4 md:p-6 text-white mt-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-primary-500/20">
           <div className="text-center md:text-right">
             <h3 className="font-black text-lg md:text-xl mb-1 flex items-center justify-center md:justify-start gap-2">
               <Store className="w-5 h-5" />
-              فروشگاه آنلاین شما
+              شعبه‌ی آنلاین شما
             </h3>
-            <p className="text-white/80 text-sm">مشاهده صفحه عمومی فروشگاه همان‌طور که مشتریان می‌بینند</p>
+            <p className="text-white/80 text-sm">مشاهده صفحه عمومی شعبه همان‌طور که مشتریان می‌بینند، یا لینکش را برای تبلیغ به اشتراک بگذارید</p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const storeSlug = user?.slug;
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* ✅ فلسفه‌ی «شعبه»: هر فروشنده یک شعبه‌ی آنلاین دارد که
+                می‌تواند لینکش را برای تبلیغ (مثلاً در اینستاگرام/بازار)
+                به اشتراک بگذارد — دقیقاً همان الگوی navigator.clipboard
+                که ProfileSection.tsx برای کد معرف استفاده می‌کند. */}
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const storeSlug = user?.slug;
 
-              if (storeSlug) {
-                window.open(`/seller/${storeSlug}`, '_blank');
-              } else {
-                toast.error('آدرس فروشگاه یافت نشد. لطفاً ابتدا به بخش تنظیمات رفته و نام فروشگاه را ذخیره کنید.');
-                navigate('/seller/settings');
-              }
-            }}
-            className="bg-white text-primary-600 hover:bg-gray-100 font-bold gap-2 w-full md:w-auto"
-          >
-            <Store className="w-4 h-4" />
-            مشاهده فروشگاه
-          </Button>
+                if (!storeSlug) {
+                  toast.error('آدرس شعبه یافت نشد. لطفاً ابتدا به بخش تنظیمات رفته و نام فروشگاه را ذخیره کنید.');
+                  navigate('/seller/settings');
+                  return;
+                }
+
+                navigator.clipboard.writeText(`${window.location.origin}/seller/${storeSlug}`);
+                toast.success('لینک شعبه کپی شد', { icon: '📋' });
+              }}
+              className="bg-white/15 hover:bg-white/25 text-white font-bold gap-2 flex-1 md:flex-none"
+            >
+              <Copy className="w-4 h-4" />
+              کپی لینک
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const storeSlug = user?.slug;
+
+                if (storeSlug) {
+                  window.open(`/seller/${storeSlug}`, '_blank');
+                } else {
+                  toast.error('آدرس شعبه یافت نشد. لطفاً ابتدا به بخش تنظیمات رفته و نام فروشگاه را ذخیره کنید.');
+                  navigate('/seller/settings');
+                }
+              }}
+              className="bg-white text-primary-600 hover:bg-gray-100 font-bold gap-2 flex-1 md:flex-none"
+            >
+              <Store className="w-4 h-4" />
+              مشاهده شعبه
+            </Button>
+          </div>
         </div>
 
         {/* Quick Actions & Tips */}

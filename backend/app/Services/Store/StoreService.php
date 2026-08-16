@@ -7,7 +7,13 @@ use App\Models\StoreHour;
 use Illuminate\Support\Facades\DB;
 
 /**
- * مدیریت فروشگاه‌های فیزیکی یک seller (Nearby Physical Stores).
+ * مدیریت شعبه‌ی فیزیکی یک seller (Nearby Physical Stores).
+ *
+ * ✅ فلسفه‌ی «شعبه» (طبق توضیح صریح کارفرما، دقیقاً مثل غرفه‌ی باسلام):
+ * هر فروشنده روی ازکالا دقیقاً یک شعبه دارد — کسی که در بازار یک مغازه‌ی
+ * فیزیکی دارد، می‌آید و همان یک مغازه را به‌عنوان شعبه‌اش داخل ازکالا
+ * افتتاح می‌کند؛ این «یک شعبه به ازای هر فروشنده» یک قانون کسب‌وکاری
+ * است، نه یک محدودیت فنی دلبخواه — رجوع به create() پایین.
  *
  * ✅ همه‌ی متدهای mutate این کلاس ownership را همیشه با یک شرط واحد در
  * همان کوئری enforce می‌کنند (`where('seller_id', $sellerId)` قبل از
@@ -38,8 +44,23 @@ class StoreService
             ->firstOrFail();
     }
 
+    /**
+     * ✅ هر فروشنده فقط یک شعبه دارد (رجوع به کامنت بالای کلاس). این
+     * چک عمداً یک محدودیت سطح-اپلیکیشن است، نه یک unique index دیتابیسی
+     * — چون Store از SoftDeletes استفاده می‌کند (پرس‌وجوی where ساده
+     * خودش ردیف‌های soft-delete‌شده را کنار می‌گذارد، پس بعد از حذف
+     * شعبه‌ی قبلی، ساخت یک شعبه‌ی جدید مجاز می‌ماند) و چون فاکتوری‌های
+     * تست موجود (SellerStoreTest/AdminStoreTest/NearbyStoreSearchTest)
+     * مستقیماً و عمداً چند Store برای یک seller_id می‌سازند تا
+     * ownership-isolation را تست کنند — یک unique constraint دیتابیسی
+     * آن تست‌های موجود را می‌شکست.
+     */
     public function create(int $sellerId, array $data): Store
     {
+        if (Store::where('seller_id', $sellerId)->exists()) {
+            throw new \Exception('شما قبلاً شعبه‌ی خود را ثبت کرده‌اید. هر فروشنده فقط می‌تواند یک شعبه داشته باشد.', 409);
+        }
+
         return Store::create([
             'seller_id' => $sellerId,
             'name' => $data['name'],
