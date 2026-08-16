@@ -2,9 +2,11 @@
 
 namespace App\Services\Referral;
 
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Referral;
 use App\Models\ReferralReward;
+use App\Models\Setting;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -104,8 +106,18 @@ class ReferralRewardService
                 return;
             }
 
-            // بند ۹: مبلغ پاداش کاملاً از config می‌آید — هیچ‌جا هاردکد نیست.
-            $rewardAmount = (float) config('azkala.referral.reward.amount', 50000);
+            // بند ۹: مبلغ پاداش کاملاً از تنظیمات می‌آید — هیچ‌جا هاردکد
+            // نیست. دقیقاً همان لایه‌بندی CommissionService::bounds()
+            // (Setting دیتابیسی/قابل‌ویرایش از پنل ادمین → پیش‌فرض
+            // config/azkala/referral.php → عدد ثابت نهایی) — تا ادمین
+            // بتواند بدون تغییر کد/دیپلوی مجدد، مبلغ را از پنل تنظیمات
+            // عوض کند. clamp دفاعی (>= 0) دقیقاً همان الگوی
+            // CommissionService::clamp — اگر مقدار ذخیره‌شده به هر دلیلی
+            // منفی/نامعتبر باشد، هرگز پاداش منفی ساخته نمی‌شود.
+            $rewardAmount = max(
+                0.0,
+                (float) Setting::get('referral_reward_amount', config('azkala.referral.reward.amount', 50000))
+            );
             $rewardType = (string) config('azkala.referral.reward.type', ReferralReward::TYPE_FIXED_CREDIT);
             $now = now();
 
@@ -148,6 +160,35 @@ class ReferralRewardService
                 'order_id' => $order->id,
                 'amount' => $rewardAmount,
             ]);
+
+            // بند ۲.۴ (اطلاع‌رسانی پاداش معرفی): از همان زیرساخت
+            // نوتیفیکیشن دیتابیسی موجود استفاده می‌شود که AdminUserService
+            // برای seller_request_initial_approved/final_approved استفاده
+            // می‌کند (Notification::create مستقیم — دقیقاً همان الگو، نه
+            // یک ساب‌سیستم جدید). toast اینجا معنی ندارد: این متد از
+            // AdminOrderService::updateStatus (یک اکشن ادمین) صدا زده
+            // می‌شود، نه از اکشن خودِ معرف در مرورگرش — پس معرف لزوماً در
+            // همان لحظه آنلاین نیست و toast هرگز دیده نمی‌شد؛ نوتیفیکیشن
+            // دیتابیسی (زنگوله‌ی هدر، already polling هر ۳۰ ثانیه) تنها
+            // مسیر واقعاً قابل‌اتکا است. عمداً try/catch جدا از تراکنش
+            // اصلی: این بلوک فقط *بعد از* commit موفق اجرا می‌شود، پس
+            // شکست نوتیفیکیشن هرگز نباید به‌عنوان شکستِ خودِ پاداش
+            // لاگ/تفسیر شود (رجوع به catch بیرونی زیر).
+            try {
+                Notification::create([
+                    'user_id' => $referral->referrer_user_id,
+                    'type' => 'referral_reward_earned',
+                    'title' => 'پاداش معرفی دریافت کردید!',
+                    'message' => 'یکی از دوستانی که با کد شما ثبت‌نام کرد، اولین خرید خود را با موفقیت تکمیل کرد و مبلغ '
+                        .number_format($rewardAmount).' تومان به‌عنوان پاداش معرفی برای شما ثبت شد.',
+                ]);
+            } catch (\Throwable $notifyException) {
+                Log::warning('[ReferralReward] ثبت نوتیفیکیشن پاداش معرفی ناموفق بود (خودِ پاداش با موفقیت ثبت شده است).', [
+                    'referral_id' => $referral->id,
+                    'reward_id' => $reward->id,
+                    'error' => $notifyException->getMessage(),
+                ]);
+            }
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('[ReferralReward] خطا در پردازش پاداش معرفی: '.$e->getMessage(), [

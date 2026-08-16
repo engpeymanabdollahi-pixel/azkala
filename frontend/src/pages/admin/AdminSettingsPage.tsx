@@ -4,7 +4,7 @@ import {
   Settings, Search, Save, Lock, Unlock, History, Download, Upload,
   RefreshCw, AlertTriangle, X, Eye, EyeOff,
   Globe, CreditCard, Truck, Percent, Bell, FileText, Server,
-  Clock, Shield, TestTube, Megaphone, Award,
+  Clock, Shield, TestTube, Megaphone, Award, Gift,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
@@ -19,7 +19,7 @@ import { STORAGE_URL } from '@/lib/apiConfig';
 import type { AxiosError } from 'axios';
 
 // ==================== Types ====================
-type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'commission' | 'notifications' | 'legal' | 'marketing' | 'system' | 'history';
+type TabType = 'general' | 'payment' | 'shipping' | 'tax' | 'commission' | 'referral' | 'notifications' | 'legal' | 'marketing' | 'system' | 'history';
 
 interface TabConfig {
   id: TabType;
@@ -37,6 +37,10 @@ const TABS: TabConfig[] = [
   // امتیاز→سطح→نرخ خودش در صفحه‌ی «کاربران» → جزئیات فروشنده مدیریت
   // می‌شود، نه اینجا — این تب فقط پارامترهای محاسبه‌ی Score است).
   { id: 'commission', label: 'کمیسیون فروشندگان', icon: Award },
+  // ✅ قبلاً مبلغ پاداش معرفی فقط از REFERRAL_REWARD_AMOUNT (env/config)
+  // قابل تغییر بود — نه از پنل ادمین. حالا مثل نرخ کمیسیون، از طریق
+  // همین زیرساخت Setting/AdminSettingService مدیریت می‌شود.
+  { id: 'referral', label: 'معرفی دوستان', icon: Gift },
   { id: 'notifications', label: 'اطلاع‌رسانی', icon: Bell },
   { id: 'legal', label: 'قوانین', icon: FileText },
   // ✅ گروه marketing (نوار اطلاع‌رسانی بالای هدر) قبلاً هیچ تبی نداشت —

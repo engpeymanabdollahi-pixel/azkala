@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Referral;
 use App\Models\ReferralReward;
 use App\Models\SellerTransaction;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Admin\AdminOrderService;
 use App\Services\Referral\ReferralService;
@@ -269,5 +270,110 @@ class ReferralRewardTest extends TestCase
         $referral = Referral::where('referred_user_id', $referred->id)->firstOrFail();
         $reward = ReferralReward::where('referral_id', $referral->id)->firstOrFail();
         $this->assertEquals(123456.00, (float) $reward->amount);
+    }
+
+    // ==================== فاز بعدی: مبلغ پاداش از پنل تنظیمات ادمین ====================
+
+    public function test_reward_amount_is_read_from_admin_setting_when_present(): void
+    {
+        // دقیقاً همان لایه‌بندی CommissionService::bounds(): وقتی هم ردیف
+        // Setting دیتابیسی و هم config مقدار دارند، Setting (یعنی چیزی که
+        // ادمین از پنل تنظیمات ذخیره کرده) باید اولویت داشته باشد.
+        config(['azkala.referral.reward.amount' => 20000]);
+        Setting::set('referral_reward_amount', '75000', [
+            'group' => 'referral',
+            'type' => 'number',
+            'label' => 'مبلغ پاداش معرفی (تومان)',
+        ]);
+
+        $referrer = User::factory()->create();
+        $referred = User::factory()->create();
+        $order = $this->makeReferredOrder($referrer, $referred);
+
+        $this->adminOrderService()->updateStatus($order->id, ['status' => 'delivered']);
+
+        $referral = Referral::where('referred_user_id', $referred->id)->firstOrFail();
+        $reward = ReferralReward::where('referral_id', $referral->id)->firstOrFail();
+        $this->assertEquals(75000.00, (float) $reward->amount);
+    }
+
+    public function test_reward_amount_falls_back_to_config_when_setting_row_absent(): void
+    {
+        // وقتی هیچ ردیف Setting ای برای این کلید در دیتابیس وجود ندارد
+        // (نصب تازه/قبل از اولین ذخیره از پنل ادمین)، باید بی‌صدا به
+        // config/azkala/referral.php برگردد — نه خطا، نه صفر.
+        $this->assertNull(Setting::where('key', 'referral_reward_amount')->first());
+        config(['azkala.referral.reward.amount' => 33000]);
+
+        $referrer = User::factory()->create();
+        $referred = User::factory()->create();
+        $order = $this->makeReferredOrder($referrer, $referred);
+
+        $this->adminOrderService()->updateStatus($order->id, ['status' => 'delivered']);
+
+        $referral = Referral::where('referred_user_id', $referred->id)->firstOrFail();
+        $reward = ReferralReward::where('referral_id', $referral->id)->firstOrFail();
+        $this->assertEquals(33000.00, (float) $reward->amount);
+    }
+
+    public function test_reward_amount_never_negative_when_setting_value_is_invalid(): void
+    {
+        // دفاع clamp: اگر مقدار ذخیره‌شده در تنظیمات به هر دلیلی منفی باشد
+        // (مثلاً دستکاری مستقیم دیتابیس)، هرگز پاداش منفی ساخته نمی‌شود —
+        // دقیقاً همان الگوی دفاعی CommissionService::clamp().
+        Setting::set('referral_reward_amount', '-5000', [
+            'group' => 'referral',
+            'type' => 'number',
+            'label' => 'مبلغ پاداش معرفی (تومان)',
+        ]);
+
+        $referrer = User::factory()->create();
+        $referred = User::factory()->create();
+        $order = $this->makeReferredOrder($referrer, $referred);
+
+        $this->adminOrderService()->updateStatus($order->id, ['status' => 'delivered']);
+
+        $referral = Referral::where('referred_user_id', $referred->id)->firstOrFail();
+        $reward = ReferralReward::where('referral_id', $referral->id)->firstOrFail();
+        $this->assertEquals(0.0, (float) $reward->amount);
+    }
+
+    // ==================== فاز بعدی: نوتیفیکیشن پاداش معرفی ====================
+
+    public function test_referrer_receives_notification_when_reward_is_granted(): void
+    {
+        config(['azkala.referral.reward.amount' => 40000]);
+        $referrer = User::factory()->create();
+        $referred = User::factory()->create();
+        $order = $this->makeReferredOrder($referrer, $referred);
+
+        $this->adminOrderService()->updateStatus($order->id, ['status' => 'delivered']);
+
+        // دقیقاً همان زیرساخت notifications که AdminUserService برای
+        // seller_request_* استفاده می‌کند — گیرنده باید referrer باشد
+        // (کسی که پاداش را واقعاً دریافت کرده)، نه کاربر معرفی‌شده.
+        $this->assertDatabaseHas('notifications', [
+            'user_id' => $referrer->id,
+            'type' => 'referral_reward_earned',
+        ]);
+
+        $notification = \App\Models\Notification::where('user_id', $referrer->id)
+            ->where('type', 'referral_reward_earned')
+            ->firstOrFail();
+        $this->assertStringContainsString('40,000', $notification->message);
+    }
+
+    public function test_no_notification_created_when_order_produces_no_reward(): void
+    {
+        // بدون Referral واقعی (capture نشده) — یعنی هیچ پاداشی هم ساخته
+        // نمی‌شود؛ پس نباید هیچ نوتیفیکیشنی هم برای هیچ‌کس ساخته شود.
+        $referred = User::factory()->create();
+        $order = Order::factory()->create(['user_id' => $referred->id, 'status' => 'processing']);
+
+        $this->adminOrderService()->updateStatus($order->id, ['status' => 'delivered']);
+
+        $this->assertDatabaseMissing('notifications', [
+            'type' => 'referral_reward_earned',
+        ]);
     }
 }

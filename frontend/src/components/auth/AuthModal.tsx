@@ -4,22 +4,24 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { 
-  ArrowRight, 
-  CheckCircle2, 
-  KeyRound, 
-  Loader2, 
-  Pencil, 
-  RefreshCw, 
-  ShieldCheck, 
-  ShoppingBag, 
-  Smartphone, 
+import {
+  ArrowRight,
+  CheckCircle2,
+  KeyRound,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  ShieldCheck,
+  ShoppingBag,
+  Smartphone,
   X,
   Lock,
   Mail,
   UserPlus,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Gift,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAuthModalStore } from '@/store/authModalStore';
@@ -79,6 +81,15 @@ export function AuthModal() {
   const [otp, setOtp] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
 
+  // ✅ Referral System — ورود دستی کد معرف (علاوه بر capture خودکار
+  // ?ref=CODE موجود). مقدار اولیه از همان localStorage‌ای می‌آید که
+  // captureReferralFromLocation از قبل پر کرده — اگر کاربر از لینک دعوت
+  // وارد شده، فیلد از همان اول باز و پر است؛ در غیر این صورت بسته و
+  // خالی (تا فرم ورود/ثبت‌نام معمولی برای اکثریت کاربران شلوغ نشود).
+  const initialReferralCode = getStoredReferralCode() ?? '';
+  const [referralCode, setReferralCode] = useState(initialReferralCode);
+  const [showReferralField, setShowReferralField] = useState(!!initialReferralCode);
+
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const phoneForm = useForm<PhoneData>({
@@ -92,6 +103,12 @@ export function AuthModal() {
     setOtp('');
     setSecondsLeft(RESEND_SECONDS);
     phoneForm.reset();
+    // ✅ اگر یک لینک دعوت هنوز در localStorage باقی مانده (مثلاً کاربر
+    // مودال را قبل از تکمیل ورود بست)، دوباره از همان‌جا پر می‌شود؛
+    // در غیر این صورت بسته/خالی می‌ماند.
+    const storedCode = getStoredReferralCode() ?? '';
+    setReferralCode(storedCode);
+    setShowReferralField(!!storedCode);
   }, [phoneForm]);
 
   // ── ارسال کد ──────────────────────────────────────────────────────────────
@@ -101,15 +118,19 @@ export function AuthModal() {
       // نسخه‌ی قبلی fetch خام می‌زد و اصلاً از این مسیر رد نمی‌شد.
       await fetchCsrfCookie();
 
-      // ✅ Referral System Phase 2: اگر کاربر از لینک دعوت (?ref=CODE)
-      // وارد شده، همان لحظه‌ی درخواست OTP (که طبق AuthService واقعاً
-      // لحظه‌ی ساخت User در DB است) کد ذخیره‌شده ارسال می‌شود. Backend
-      // مستقل دوباره آن را validate می‌کند — این مقدار محلی هرگز به‌عنوان
-      // حقیقت نهایی در نظر گرفته نمی‌شود.
-      const referralCode = getStoredReferralCode();
+      // ✅ Referral System: کد نهایی همیشه از فیلد فرم (state محلی
+      // referralCode) خوانده می‌شود، نه دوباره از localStorage — چون
+      // کاربر ممکن است مقدار پیش‌پرشده از لینک دعوت را ویرایش/پاک کرده
+      // یا خودش دستی یک کد متفاوت وارد کرده باشد؛ همان لحظه‌ی درخواست
+      // OTP (که طبق AuthService واقعاً لحظه‌ی ساخت User در DB است)
+      // ارسال می‌شود. Backend مستقل دوباره آن را validate می‌کند — این
+      // مقدار محلی هرگز به‌عنوان حقیقت نهایی در نظر گرفته نمی‌شود؛ یک
+      // کد نامعتبر/بدشکل هرگز ثبت‌نام را نمی‌شکند (رجوع به
+      // ReferralService::captureReferral — بی‌صدا نادیده گرفته می‌شود).
+      const trimmedReferralCode = referralCode.trim();
       const response = await apiClient.post<AuthApiResponse>('/register', {
         phone: data.phone,
-        ...(referralCode ? { ref: referralCode } : {}),
+        ...(trimmedReferralCode ? { ref: trimmedReferralCode } : {}),
       });
 
       return response.data;
@@ -479,6 +500,69 @@ export function AuthModal() {
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                     {phoneForm.formState.errors.phone.message}
                   </p>
+                )}
+              </div>
+
+              {/* ✅ Referral System — ورود دستی کد معرف (کپسول‌شونده تا فرم
+                  ورود معمولی برای کاربران بازگشتی شلوغ نشود). */}
+              <div>
+                {!showReferralField ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowReferralField(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#57606a] dark:text-[#8b949e] hover:text-[#0969da] dark:hover:text-[#58a6ff] transition-colors"
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    کد معرف دارید؟
+                  </button>
+                ) : (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="flex items-center justify-between">
+                      <label
+                        htmlFor="auth-referral-code"
+                        className="block text-sm font-semibold text-[#24292f] dark:text-[#c9d1d9]"
+                      >
+                        کد معرف (اختیاری)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowReferralField(false);
+                          setReferralCode('');
+                        }}
+                        className="flex items-center gap-1 text-xs text-[#57606a] dark:text-[#8b949e] hover:text-[#cf222e] dark:hover:text-[#ff7b72] transition-colors"
+                      >
+                        <ChevronDown className="w-3.5 h-3.5" />
+                        بستن
+                      </button>
+                    </div>
+                    <div className="relative group">
+                      <input
+                        id="auth-referral-code"
+                        type="text"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        placeholder="مثلاً 7K9M2XQP"
+                        maxLength={8}
+                        disabled={sendOtp.isPending}
+                        dir="ltr"
+                        className={cn(
+                          'w-full h-10 pl-3 pr-10 rounded-md text-sm font-medium tracking-widest',
+                          'bg-white dark:bg-[#0d1117]',
+                          'text-[#24292f] dark:text-[#c9d1d9]',
+                          'placeholder:text-[#8b949e] dark:placeholder:text-[#484f58] placeholder:tracking-normal',
+                          'border border-[#d0d7de] dark:border-[#30363d] transition-all duration-200',
+                          'focus:outline-none focus:ring-1 focus:ring-offset-0 focus:border-[#0969da] focus:ring-[#0969da]/20',
+                          'disabled:opacity-60 disabled:cursor-not-allowed',
+                          'hover:border-[#8b949e] dark:hover:border-[#484f58]'
+                        )}
+                      />
+                      <Gift className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b949e] group-focus-within:text-[#0969da] transition-colors duration-200" />
+                    </div>
+                    <p className="text-xs text-[#8b949e] dark:text-[#6e7681]">
+                      اگر دوستی شما را به ازکالا دعوت کرده، کد او را اینجا وارد کنید.
+                    </p>
+                  </div>
                 )}
               </div>
 

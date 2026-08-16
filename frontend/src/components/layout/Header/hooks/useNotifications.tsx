@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import type { ComponentType } from 'react';
-import { Bell, Package, Truck, CreditCard, UserCheck } from 'lucide-react';
+import { Bell, Package, Truck, CreditCard, UserCheck, Gift } from 'lucide-react';
 import type { UseNotificationsReturn } from '../types';
 import apiClient from '@/services/api/client';
 
@@ -17,11 +17,13 @@ interface NotificationApiItem {
 import { useAuthStore } from '@/store/authStore';
 
 // نگاشت آیکون‌ها بر اساس نوع نوتیفیکیشن
-// ✅ در کل بک‌اند، تنها جایی که واقعاً رکورد notifications ساخته می‌شود
-// AdminUserController::initialApproveRequest/finalApproveRequest است، با
-// type دقیقاً برابر seller_request_initial_approved / seller_request_final_approved
-// (نه seller_approved/seller_rejected که اینجا قبلاً نوشته شده بود و هیچ‌وقت
-// از سمت بک‌اند ارسال نمی‌شد — پس همیشه به آیکون پیش‌فرض Bell می‌افتاد).
+// ✅ در بک‌اند، جاهایی که واقعاً رکورد notifications ساخته می‌شوند:
+// - AdminUserService::initialApproveRequest/finalApproveRequest، با type
+//   دقیقاً برابر seller_request_initial_approved / seller_request_final_approved
+//   (نه seller_approved/seller_rejected که اینجا قبلاً نوشته شده بود و هیچ‌وقت
+//   از سمت بک‌اند ارسال نمی‌شد — پس همیشه به آیکون پیش‌فرض Bell می‌افتاد).
+// - ReferralRewardService::qualifyAndRewardForCompletedOrder، با type
+//   دقیقاً برابر referral_reward_earned (Referral System — پاداش معرفی).
 // order_placed/order_shipped/order_delivered/payment هنوز در بک‌اند پیاده
 // نشده‌اند؛ اینجا نگه داشته شده‌اند تا اگر در آینده اضافه شدند، آیکون آماده باشد.
 const getNotificationIcon = (type: string) => {
@@ -32,6 +34,10 @@ const getNotificationIcon = (type: string) => {
     payment: { icon: CreditCard, color: 'from-accent-500 to-accent-600' },
     seller_request_initial_approved: { icon: UserCheck, color: 'from-green-500 to-green-600' },
     seller_request_final_approved: { icon: UserCheck, color: 'from-success-500 to-success-600' },
+    // ✅ Referral System: دومین نوع واقعی که بک‌اند می‌سازد
+    // (ReferralRewardService::qualifyAndRewardForCompletedOrder، بعد از
+    // commit موفقِ ردیف پاداش).
+    referral_reward_earned: { icon: Gift, color: 'from-accent-500 to-accent-600' },
     default: { icon: Bell, color: 'from-gray-500 to-gray-600' },
   };
   return iconMap[type] || iconMap.default;
