@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import toast from 'react-hot-toast';
+import type { Product } from '@/types/models';
 
 /**
  * CompareStore - مدیریت لیست مقایسه محصولات
@@ -143,3 +144,28 @@ export const useCompareStore = create<CompareState>()(
     }
   )
 );
+
+/**
+ * تبدیل Product کامل (پاسخ productService.getProduct) به شکل فشرده‌ی
+ * CompareProduct — دقیقاً همان ۱۰ فیلدی که ProductCard.tsx از قبل هنگام
+ * toggleProduct دستی می‌سازد (رجوع به آنجا برای الگوی مرجع). اینجا فقط
+ * برای مسیر جدید هیدراسیون از لینک اشتراک‌گذاری‌شده (/compare?ids=...در
+ * ComparePage.tsx) استخراج شده تا آن نگاشت یک‌بار دیگر تکرار نشود.
+ */
+export function toCompareProduct(product: Product): CompareProduct {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    price: product.price,
+    compare_price: product.compare_price,
+    main_image: product.main_image,
+    rating: product.rating,
+    reviews_count: product.reviews_count,
+    specifications: product.specifications,
+    compatible_models: product.compatible_models,
+    seller: product.seller,
+    category: product.category,
+    brand: product.brand,
+  };
+}

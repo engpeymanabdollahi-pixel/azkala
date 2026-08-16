@@ -5,6 +5,7 @@ import { useWishlistStore } from './wishlistStore';
 import { requestNotificationPermission } from '@/lib/notification';
 import { useCartStore } from './cartStore';
 import { useModelStore } from './modelStore';
+import { useCompareStore } from './compareStore';
 
 interface AuthState {
   user: User | null;
@@ -108,7 +109,16 @@ export const useAuthStore = create<AuthState>()(
             isModalOpen: false,
           });
           localStorage.removeItem('azkala-model-storage');
-          
+
+          // ✅ فاز ۵.۲ (بازبینی مقایسه محصولات): compareStore هیچ جدول
+          // بک‌اندی ندارد و به هیچ کاربری sync نمی‌شود (برخلاف wishlist که
+          // عمداً اینجا پاک نمی‌شود چون syncFromApi در login دوباره پرش
+          // می‌کند) — دقیقاً مثل cartStore/modelStore بالا یک state محلیِ
+          // مرورگر است که روی یک کامپیوتر مشترک نباید بین دو کاربر مختلف
+          // نشت کند.
+          useCompareStore.setState({ products: [] });
+          localStorage.removeItem('azkala-compare');
+
           window.location.href = '/';
         }
       },

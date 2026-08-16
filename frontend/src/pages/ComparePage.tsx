@@ -1,17 +1,18 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight, X, ShoppingCart, Trash2, CheckCircle, XCircle,
-  Scale, Star, Tag, Store, Package, Flame, Award, Sparkles,
+  Scale, Star, Tag, Store, Package, Flame, Award, Sparkles, Link2,
 } from 'lucide-react';
-import { useCompareStore } from '@/store/compareStore';
+import { useCompareStore, toCompareProduct, type CompareProduct } from '@/store/compareStore';
 import { SafeImage } from '@/components/ui/SafeImage';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { formatPrice } from '@/utils/format';
 import { useCartStore } from '@/store/cartStore';
-import { DeviceCompatibility } from '@/components/marketplace';
 import { useModelStore } from '@/store/modelStore';
+import { productService } from '@/services/api/product.service';
+import Seo from '@/components/Seo';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
 
@@ -28,12 +29,115 @@ import { cn } from '@/utils/cn';
  */
 export default function ComparePage() {
   const navigate = useNavigate();
-  const { products, removeProduct, clearAll, maxProducts } = useCompareStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { products, addProduct, removeProduct, clearAll, maxProducts } = useCompareStore();
   const { addItem } = useCartStore();
   const { selectedModel } = useModelStore();
 
   // ✅ فقط تفاوت‌ها - مطابق الگوی Shopify Polaris
   const [onlyDifferences, setOnlyDifferences] = useState(false);
+  const [addingToCartId, setAddingToCartId] = useState<number | null>(null);
+
+  // ==================== فاز ۵.۱: لینک قابل‌اشتراک /compare?ids=12,45,88 ====================
+  // بدون هیچ جدول مقایسه‌ی جدید در بک‌اند — فقط از همان GET /products/{id}
+  // موجود استفاده می‌شود که ProductDetailPage هم استفاده می‌کند.
+  // localStorage (persist موجود compareStore) همچنان fallback اصلی است؛
+  // URL فقط یک نمای همگام/قابل‌اشتراک روی همان state است.
+
+  // کدام رشته‌ی خام ids قبلاً پردازش شده — از fetch دوباره‌ی همان لینک با
+  // هر رندر جلوگیری می‌کند.
+  const hydratedIdsRef = useRef<string | null>(null);
+  // تا وقتی لینک اشتراک‌گذاری‌شده هنوز در حال هیدراسیون است، افکت
+  // «store → URL» نباید URL را زودتر از موعد بازنویسی/پاک کند (race
+  // condition بین دو افکت). اگر از ابتدا ids در URL نبود، از همان اول true است.
+  const [hydrationDone, setHydrationDone] = useState(() => !searchParams.get('ids'));
+
+  useEffect(() => {
+    const idsParam = searchParams.get('ids');
+    if (!idsParam || idsParam === hydratedIdsRef.current) return;
+    hydratedIdsRef.current = idsParam;
+    setHydrationDone(false);
+
+    // اعتبارسنجی + یکتاسازی + سقف maxProducts — دقیقاً همان قانونی که
+    // compareStore.addProduct خودش هم (برای مسیر دستی افزودن) اعمال می‌کند.
+    const ids = Array.from(
+      new Set(
+        idsParam
+          .split(',')
+          .map((raw) => Number(raw.trim()))
+          .filter((n) => Number.isInteger(n) && n > 0)
+      )
+    ).slice(0, maxProducts);
+
+    const currentProducts = useCompareStore.getState().products;
+    const missingIds = ids.filter((id) => !currentProducts.some((p) => p.id === id));
+
+    if (missingIds.length === 0) {
+      setHydrationDone(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const results = await Promise.allSettled(missingIds.map((id) => productService.getProduct(id)));
+      if (cancelled) return;
+
+      let failedCount = 0;
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          addProduct(toCompareProduct(result.value.data.product));
+        } else {
+          // محصول حذف‌شده/نامعتبر در لینک اشتراک‌گذاری‌شده — نباید صفحه را
+          // بشکند، فقط بی‌صدا از لیست کنار گذاشته می‌شود.
+          failedCount += 1;
+        }
+      });
+
+      if (!cancelled) {
+        if (failedCount > 0) {
+          toast.error(
+            failedCount === 1
+              ? 'یکی از محصولات این لینک دیگر در دسترس نیست.'
+              : `${failedCount} مورد از محصولات این لینک دیگر در دسترس نیستند.`
+          );
+        }
+        setHydrationDone(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // ✅ addProduct یک اکشن Zustand است (identity پایدار بین رندرها) —
+    // اضافه‌شدنش به deps هیچ اجرای اضافه‌ای اضافه نمی‌کند، فقط هشدار
+    // exhaustive-deps را برطرف می‌کند.
+  }, [searchParams, maxProducts, addProduct]);
+
+  // همگام‌سازی store → URL: هر تغییری در لیست مقایسه (افزودن/حذف/پاک‌کردن)
+  // بلافاصله در URL منعکس می‌شود تا صفحه همیشه واقعاً قابل‌اشتراک‌گذاری
+  // باشد. replace: true تا هر افزودن/حذف یک ورودی جدید در تاریخچه‌ی
+  // مرورگر نسازد (دکمه‌ی برگشت مرورگر نباید محصول به محصول برگردد).
+  useEffect(() => {
+    if (!hydrationDone) return;
+
+    const currentIds = products.map((p) => p.id).join(',');
+    const urlIds = searchParams.get('ids') || '';
+    if (currentIds === urlIds) return;
+
+    const next = new URLSearchParams(searchParams);
+    if (currentIds) {
+      next.set('ids', currentIds);
+    } else {
+      next.delete('ids');
+    }
+    setSearchParams(next, { replace: true });
+  }, [products, hydrationDone, searchParams, setSearchParams]);
+
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast.success('لینک مقایسه کپی شد', { icon: '🔗' });
+  };
 
   // ==================== Computed Values ====================
 
@@ -74,12 +178,29 @@ export default function ComparePage() {
 
   // ==================== Handlers ====================
 
-  const handleAddToCart = (product: any) => {
-    addItem(product, 1);
-    toast.success(`${product.name} به سبد خرید اضافه شد`, { icon: '🛒' });
+  // ✅ فاز ۵.۳: قبلاً product اینجا any بود — چون CompareProduct عمداً یک
+  // نسخه‌ی فشرده برای *نمایش* مقایسه است و stock/seller_id واقعی را ندارد
+  // (چیزی که cartStore.addItem واقعاً برای چک سقف موجودی و seller_id
+  // آیتم سبد می‌خواند)، با any این خلأ کاملاً بی‌صدا نادیده گرفته می‌شد:
+  // «quantity > product.stock» با stock=undefined همیشه false بود، یعنی
+  // چک موجودی هرگز واقعاً اجرا نمی‌شد. به‌جای ساختن یک Product جعلی از
+  // داده‌ی ناقصِ CompareProduct، محصول واقعی و کامل مستقیماً از همان
+  // GET /products/{id} موجود گرفته می‌شود — دقیقاً همان endpoint که
+  // ProductDetailPage استفاده می‌کند — و addItem با داده‌ی واقعی صدا زده می‌شود.
+  const handleAddToCart = async (product: CompareProduct) => {
+    setAddingToCartId(product.id);
+    try {
+      const res = await productService.getProduct(product.id);
+      addItem(res.data.product, 1);
+      toast.success(`${product.name} به سبد خرید اضافه شد`, { icon: '🛒' });
+    } catch {
+      toast.error('خطا در افزودن به سبد خرید');
+    } finally {
+      setAddingToCartId(null);
+    }
   };
 
-  const calculateDiscount = (product: any): number => {
+  const calculateDiscount = (product: CompareProduct): number => {
     if (product.compare_price && product.compare_price > product.price) {
       return Math.round(((product.compare_price - product.price) / product.compare_price) * 100);
     }
@@ -90,6 +211,10 @@ export default function ComparePage() {
   if (products.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+        {/* ✅ فاز ۵.۴: مقایسه یک ترکیب گذرا/کاربرمحور است (بدون شناسه‌ی
+            دائمی معنادار برای موتور جستجو)، نه یک صفحه‌ی محتوایی —
+            دقیقاً مثل حالت پر، نباید ایندکس شود. */}
+        <Seo title="مقایسه محصولات" noindex nofollow />
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
             <Scale className="w-10 h-10 text-gray-400" />
@@ -113,6 +238,17 @@ export default function ComparePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-32">
+      {/* ✅ فاز ۵.۴: همان کامپوننت Seo واقعی که ProductDetailPage/SellerPage
+          استفاده می‌کنند. noindex/nofollow چون هر لینک /compare?ids=...
+          یک ترکیب گذرای کاربرمحور است، نه یک صفحه‌ی محتوایی مستقل —
+          ایندکس‌شدنش فقط صفحات تکراری/کم‌ارزش در نتایج جستجو می‌سازد. */}
+      <Seo
+        title="مقایسه محصولات"
+        description={`مقایسه ${products.length} محصول: ${products.map((p) => p.name).join('، ')}`}
+        noindex
+        nofollow
+      />
+
       {/* ==================== Header ==================== */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -152,6 +288,15 @@ export default function ComparePage() {
                 <Sparkles className="w-4 h-4" />
                 فقط تفاوت‌ها
               </button>
+
+              {/* ✅ فاز ۵.۱: لینک این صفحه از قبل با URL همگام است
+                  (?ids=...)؛ این دکمه فقط همان window.location.href فعلی
+                  را کپی می‌کند — دقیقاً همان الگوی navigator.clipboard
+                  که ProfileSection.tsx برای کد معرف استفاده می‌کند. */}
+              <Button variant="outline" size="sm" onClick={handleCopyShareLink}>
+                <Link2 className="w-4 h-4 ml-2" />
+                کپی لینک
+              </Button>
 
               <Button variant="outline" size="sm" onClick={clearAll}>
                 <Trash2 className="w-4 h-4 ml-2" />
@@ -246,7 +391,8 @@ export default function ComparePage() {
 
                       {/* دکمه افزودن به سبد */}
                       <Button
-                        onClick={() => handleAddToCart(product)}
+                        onClick={() => void handleAddToCart(product)}
+                        isLoading={addingToCartId === product.id}
                         size="sm"
                         className="w-full"
                       >
