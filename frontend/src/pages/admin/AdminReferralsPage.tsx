@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Gift, Users, ChevronRight, ChevronLeft, X, Award } from 'lucide-react';
+import { Gift, Users, ChevronRight, ChevronLeft, X, Award, List, Layers } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatPrice } from '@/utils/format';
+import { cn } from '@/utils/cn';
+import { ReferralRulesPanel } from './referral/ReferralRulesPanel';
 import {
   adminReferralService,
   type AdminReferralFilters,
@@ -28,6 +30,7 @@ const STATUS_META: Record<AdminReferralListItem['status'], { label: string; vari
  * نوشتنی‌ای (ویرایش/ابطال پاداش) در این نسخه نیست.
  */
 export default function AdminReferralsPage() {
+  const [tab, setTab] = useState<'referrals' | 'rules'>('referrals');
   const [status, setStatus] = useState<AdminReferralFilters['status']>('');
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<number | null>(null);
@@ -35,6 +38,7 @@ export default function AdminReferralsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-referrals', status, page],
     queryFn: () => adminReferralService.list({ status: status || undefined, page, per_page: 20 }),
+    enabled: tab === 'referrals',
   });
 
   const { data: detail, isLoading: isDetailLoading } = useQuery({
@@ -64,10 +68,42 @@ export default function AdminReferralsPage() {
           معرفی دوستان (Referral)
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          نمایش و ممیزی معرفی‌ها و پاداش‌های پرداخت‌شده. این نسخه فقط اطلاعاتی است — امکان ویرایش/ابطال پاداش هنوز اضافه نشده.
+          نمایش و ممیزی معرفی‌ها و پاداش‌های پرداخت‌شده، و مدیریت قوانین پاداش سطحی (Referral Rule Engine).
         </p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-5 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-1 w-fit">
+        <button
+          onClick={() => setTab('referrals')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-colors',
+            tab === 'referrals'
+              ? 'bg-primary-600 text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+          )}
+        >
+          <List className="w-4 h-4" />
+          لیست معرفی‌ها
+        </button>
+        <button
+          onClick={() => setTab('rules')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-colors',
+            tab === 'rules'
+              ? 'bg-primary-600 text-white'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+          )}
+        >
+          <Layers className="w-4 h-4" />
+          قوانین پاداش سطحی
+        </button>
+      </div>
+
+      {tab === 'rules' && <ReferralRulesPanel />}
+
+      {tab === 'referrals' && (
+        <>
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
@@ -242,6 +278,8 @@ export default function AdminReferralsPage() {
             )}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -189,6 +189,13 @@ class ReferralRewardService
                     'error' => $notifyException->getMessage(),
                 ]);
             }
+
+            // ✅ Referral Rule Engine (Part 4 audit) — لایه‌ی اضافه‌ی
+            // پاداش‌های سطحی (milestone) روی همین معرف، کاملاً مستقل از
+            // پاداش پایه‌ی بالا و مستقل از تراکنش آن (بعد از commit
+            // موفق). هرگز throw نمی‌کند — همان قرارداد این متد.
+            app(\App\Services\Referral\ReferralRuleEngineService::class)
+                ->evaluateAndTrigger($referral->referrer);
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('[ReferralReward] خطا در پردازش پاداش معرفی: '.$e->getMessage(), [

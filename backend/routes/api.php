@@ -50,6 +50,7 @@ use App\Http\Controllers\Api\ImageUploadController;
 use App\Http\Controllers\Api\MagazineController;
 use App\Http\Controllers\Api\AdminStoreController;
 use App\Http\Controllers\Api\AdminReferralController;
+use App\Http\Controllers\Api\AdminReferralRuleController;
 use App\Http\Controllers\Api\NearbyStoreController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
@@ -633,6 +634,18 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             Route::prefix('referrals')->name('referrals.')->group(function () {
                 Route::get('/', [AdminReferralController::class, 'index'])->middleware('permission:referrals.view')->name('index');
                 Route::get('/{referral}', [AdminReferralController::class, 'show'])->middleware('permission:referrals.view')->name('show');
+            });
+
+            // 🎯 Referral Rule Engine (Part 4 audit) — قوانین پاداش سطحی
+            // (milestone). permission:referrals.manage از قبل در taxonomy
+            // موجود بود، دقیقاً برای همین «توسعه‌ی آینده» رزرو شده بود.
+            Route::prefix('referral-rules')->name('referral-rules.')->group(function () {
+                Route::get('/', [AdminReferralRuleController::class, 'index'])->middleware('permission:referrals.view')->name('index');
+                Route::post('/', [AdminReferralRuleController::class, 'store'])->middleware('permission:referrals.manage')->name('store');
+                Route::put('/{id}', [AdminReferralRuleController::class, 'update'])->middleware('permission:referrals.manage')->name('update');
+                Route::delete('/{id}', [AdminReferralRuleController::class, 'destroy'])->middleware('permission:referrals.manage')->name('destroy');
+                Route::post('/{id}/toggle', [AdminReferralRuleController::class, 'toggle'])->middleware('permission:referrals.manage')->name('toggle');
+                Route::get('/triggers/history', [AdminReferralRuleController::class, 'triggerHistory'])->middleware('permission:referrals.view')->name('triggers.history');
             });
 
             // 👑 مدیریت Administrative Access (Super Admin/Admin/Manager + Permission)
