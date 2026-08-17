@@ -48,6 +48,11 @@ class DatabaseSeeder extends Seeder
             // فروشنده‌ی تازه‌وارد به‌جای شروع از صفر، یکی را کپی کند.
             ComprehensiveProductTemplateSeeder::class,
             CouponSeeder::class,
+            // 📦 محصولات جدید لوازم‌جانبی (۱۴ محصول) — بعد از محصولات پایه.
+            AdditionalProductsSeeder::class,
+            // 🖼️ تصاویر اختصاصی برای همه‌ی محصولات (قدیم + جدید).
+            // باید آخرِ محصولات بیاید تا محصولات هر دو سیدر را پوشش دهد.
+            ProductImageSeeder::class,
         ]);
 
         $this->command->info('🎉 دیتابیس با موفقیت و به طور کامل پر شد!');

@@ -46,7 +46,13 @@ class ProductResource extends JsonResource
             'main_image' => $this->main_image,
             // whenLoaded نه دسترسی مستقیم: بدون eager load، `$this->images` برای
             // هر محصول یک کوئری جدا می‌زد (N+1 روی هر لیست محصول).
-            'images' => $this->whenLoaded('images'),
+            // قرارداد فرانت‌اند (ApiProductResponse.images?: string[]) رشته است؛
+            // قبلاً اینجا خودِ آبجکت‌های ProductImage serialize می‌شدند و چون
+            // جدول product_images معمولاً خالی بود هرگز دیده نمی‌شد. حالا
+            // فقط image_path (URL) برمی‌گردد تا گالری/تصویر اصلی درست کار کند.
+            'images' => $this->whenLoaded('images', function () {
+                return $this->images->pluck('image_path')->values()->all();
+            }),
             'specifications' => $this->specifications ?? [],
             'sales_count' => $this->sales_count ?? 0,
             'views_count' => $this->views_count ?? 0,

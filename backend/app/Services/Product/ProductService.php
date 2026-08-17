@@ -88,7 +88,11 @@ class ProductService
             }
 
             $productData = $product->toArray();
-            $productData['images'] = $product->images ? $product->images->pluck('image_url')->toArray() : [];
+            // ✅ فیلد واقعی ProductImage `image_path` است؛ `image_url` وجود
+            // ندارد و چون جدول product_images تا قبل از ProductImageSeeder
+            // همیشه خالی بود، این خط هرگز دیده نمی‌شد (همیشه [null,null,null]
+            // برمی‌گرداند). فرانت‌اند قرارداد `images: string[]` را انتظار دارد.
+            $productData['images'] = $product->images ? $product->images->pluck('image_path')->toArray() : [];
             $productData['seller'] = $sellerData;
 
             $relatedProductsData = $relatedProducts->map(function ($p) {
