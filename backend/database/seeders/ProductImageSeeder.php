@@ -3,34 +3,53 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Http;
 use App\Models\Product;
 use App\Models\ProductImage;
 
 /**
- * 🖼️ برای هر محصولی که تصویر ندارد، یک مجموعه‌ی ۳تایی SVG اختصاصی می‌سازد
- * و در storage/app/public/products ذخیره می‌کند؛ سپس رکوردهای product_images
- * را می‌سازد و main_image را ست می‌کند.
+ * 🖼️ تصاویر واقعی محصولات — از Unsplash CDN دانلود و در
+ * storage/app/public/products ذخیره می‌کند؛ سپس رکوردهای product_images
+ * و main_image را به‌روز می‌کند.
+ *
+ * هر دسته‌ی محصول چند عکس اختصاصی دارد (شارژر، کابل، هدفون، ساعت و...).
+ * اگر دانلود یک عکس شکست بخورد، همان SVG قبلی/مکان‌نگه‌دار حفظ می‌شود.
  *
  * ایدم‌پوتنت است: روی اجرای مجدد، فایل‌ها بازنویسی و ردیف‌ها updateOrCreate
- * می‌شوند و main_image فقط در صورت خالی بودن ست می‌شود.
+ * می‌شوند.
  */
 class ProductImageSeeder extends Seeder
 {
-    /** گرادیان‌های رنگی برای تنوع ظاهری محصولات */
-    private array $palette = [
-        ['#0d9488', '#134e4a'], // teal
-        ['#f97316', '#7c2d12'], // orange
-        ['#6366f1', '#1e1b4b'], // indigo
-        ['#e11d48', '#4c0519'], // rose
-        ['#059669', '#022c22'], // emerald
-        ['#0ea5e9', '#082f49'], // sky
-        ['#8b5cf6', '#2e1065'], // violet
-        ['#f59e0b', '#451a03'], // amber
+    /** شناسه‌ی عکس‌های واقعی Unsplash — همه تست‌شده و پایدار (گروه‌بندی بر اساس دسته) */
+    private array $categoryPhotos = [
+        // قاب و کاور
+        ['categories' => [1, 2, 3, 4, 5], 'photos' => ['photo-1511707171634-5f897ff02aa9', 'photo-1592899677977-9c10ca588bbd', 'photo-1580910051074-3eb694886505']],
+        // گلس و محافظ صفحه
+        ['categories' => [6, 7, 8, 9, 10], 'photos' => ['photo-1616348436168-de43ad0db179', 'photo-1586953208448-b95a79798f07', 'photo-1590658268037-6bf12165a8df']],
+        // شارژر و کابل
+        ['categories' => [11, 12, 13, 14, 15, 16], 'photos' => ['photo-1583863788434-e58a36330cf0', 'photo-1601524909162-ae8725290836', 'photo-1585790050230-5dd28404ccb9', 'photo-1615663245857-ac93bb7c39e7']],
+        // هندزفری و هدفون
+        ['categories' => [17, 18, 19, 20, 21], 'photos' => ['photo-1505740420928-5e560c06d30e', 'photo-1583394838336-acd977736f90', 'photo-1546435770-a3e426bf472b']],
+        // پاوربانک
+        ['categories' => [22, 23, 24, 25], 'photos' => ['photo-1609091839311-d5365f9ff1c5', 'photo-1610945265064-0e34e5519bbf', 'photo-1601524909162-ae8725290836']],
+        // ساعت هوشمند
+        ['categories' => [26, 27, 28, 29], 'photos' => ['photo-1546868871-7041f2a55e12', 'photo-1523275335684-37898b6baf30', 'photo-1574180045827-681f8a1a9622', 'photo-1593642632823-8f785ba67e45']],
+        // هولدر و پایه
+        ['categories' => [30, 31, 32, 33], 'photos' => ['photo-1618410320928-25228d811631', 'photo-1586953208448-b95a79798f07', 'photo-1511707171634-5f897ff02aa9']],
+        // قطعات تعمیراتی
+        ['categories' => [34, 35, 36, 37, 38], 'photos' => ['photo-1616348436168-de43ad0db179', 'photo-1590658268037-6bf12165a8df', 'photo-1583863788434-e58a36330cf0']],
+    ];
+
+    /** عکس‌های پشتیبان برای دسته‌هایی که در نقشه نیستند */
+    private array $fallbackPhotos = [
+        'photo-1609091839311-d5365f9ff1c5',
+        'photo-1610945265064-0e34e5519bbf',
+        'photo-1590658268037-6bf12165a8df',
     ];
 
     public function run(): void
     {
-        $this->command->info('🖼️ در حال ساخت تصاویر محصولات...');
+        $this->command->info('🖼️ در حال دانلود تصاویر واقعی محصولات...');
 
         $dir = storage_path('app/public/products');
         if (! is_dir($dir)) {
@@ -38,75 +57,106 @@ class ProductImageSeeder extends Seeder
         }
 
         $count = 0;
+        $downloaded = 0;
+        $failed = 0;
 
-        foreach (Product::with('brand')->get() as $product) {
+        foreach (Product::all() as $product) {
+            $photos = $this->photosFor($product->category_id, $product->id);
             $base = '/storage/products/'.$product->slug;
-            $palette = $this->palette[$product->id % count($this->palette)];
-            $primaryPath = null;
+            $paths = [];
 
-            for ($i = 1; $i <= 3; $i++) {
-                $filename = $product->slug.'-'.$i.'.svg';
-                $path = $base.'-'.$i.'.svg';
+            foreach (array_slice($photos, 0, 3) as $index => $photoId) {
+                $i = $index + 1;
+                $filename = $product->slug.'-'.$i.'.jpg';
+                $file = $dir.'/'.$filename;
 
-                file_put_contents(
-                    $dir.'/'.$filename,
-                    $this->buildSvg($product, $palette, $i),
-                );
+                if (! file_exists($file)) {
+                    $ok = $this->downloadPhoto($photoId, $file);
+                    if ($ok) {
+                        $downloaded++;
+                    } else {
+                        $failed++;
+                        // fallback: SVG ساده بساز تا هیچ محصولی بدون تصویر نماند
+                        $paths[$i] = $this->fallbackSvg($dir, $product, $i, $base);
+                        continue;
+                    }
+                }
 
+                $paths[$i] = $base.'-'.$i.'.jpg';
+            }
+
+            foreach ($paths as $i => $path) {
                 ProductImage::updateOrCreate(
                     ['product_id' => $product->id, 'sort_order' => $i],
                     ['image_path' => $path, 'is_primary' => $i === 1],
                 );
-
-                if ($i === 1) {
-                    $primaryPath = $path;
-                }
             }
 
-            if (empty($product->main_image)) {
-                $product->main_image = $primaryPath;
-                $product->gallery = [$base.'-1.svg', $base.'-2.svg', $base.'-3.svg'];
-                $product->save();
-            }
+            $product->main_image = $paths[1] ?? $product->main_image;
+            $product->gallery = array_values($paths);
+            $product->save();
 
             $count++;
         }
 
-        $this->command->info("✅ تصاویر برای {$count} محصول ساخته و ثبت شد.");
+        $this->command->info("✅ {$count} محصول به‌روزرسانی شد ({$downloaded} عکس دانلود شد، {$failed} ناموفق).");
     }
 
-    /** ساخت SVG پلِیس‌هولدر تمیز با نام و برند محصول */
-    private function buildSvg(Product $product, array $palette, int $variant): string
+    /** انتخاب عکس‌ها برای یک محصول بر اساس دسته (با چرخش بر اساس id محصول) */
+    private function photosFor(?int $categoryId, int $productId): array
     {
-        [$c1, $c2] = $palette;
+        $pool = null;
+        foreach ($this->categoryPhotos as $group) {
+            if ($categoryId !== null && in_array($categoryId, $group['categories'], true)) {
+                $pool = $group['photos'];
+                break;
+            }
+        }
 
-        $name = mb_strlen($product->name) > 30
-            ? mb_substr($product->name, 0, 29).'…'
-            : $product->name;
+        $pool ??= $this->fallbackPhotos;
 
-        $brand = $product->brand?->name ?? 'ازکالا';
+        // چرخش آرایه بر اساس id محصول تا محصولات یک دسته عکس‌های متفاوتی بگیرند
+        $offset = $productId % count($pool);
+        return array_merge(array_slice($pool, $offset), array_slice($pool, 0, $offset));
+    }
 
-        $circle1 = $variant === 2 ? 'cx="120" cy="140" r="150"' : 'cx="490" cy="110" r="160"';
-        $circle2 = $variant === 3 ? 'cx="490" cy="490" r="140"' : 'cx="90" cy="520" r="120"';
+    /** دانلود عکس واقعی از Unsplash CDN با سایز ۸۰۰px */
+    private function downloadPhoto(string $photoId, string $file): bool
+    {
+        try {
+            $url = 'https://images.unsplash.com/'.$photoId.'?w=800&q=80&auto=format&fit=crop';
+            $response = Http::timeout(20)->get($url);
 
-        $escape = fn (string $value): string => htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+            if (! $response->successful() || ! str_contains($response->header('Content-Type'), 'image')) {
+                return false;
+            }
 
-        return <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="{$c1}"/>
-      <stop offset="1" stop-color="{$c2}"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="url(#bg)"/>
-  <circle {$circle1} fill="rgba(255,255,255,0.10)"/>
-  <circle {$circle2} fill="rgba(255,255,255,0.07)"/>
-  <text x="300" y="245" font-family="Vazirmatn, Tahoma, sans-serif" font-size="30" font-weight="bold" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">{$escape($name)}</text>
-  <text x="300" y="300" font-family="Vazirmatn, Tahoma, sans-serif" font-size="18" fill="rgba(255,255,255,0.9)" text-anchor="middle">{$escape($brand)}</text>
-  <rect x="220" y="355" width="160" height="46" rx="23" fill="rgba(255,255,255,0.16)"/>
-  <text x="300" y="385" font-family="Vazirmatn, Tahoma, sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle">ازکالا</text>
+            file_put_contents($file, $response->body());
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /** اگر دانلود عکس واقعی شکست خورد، یک SVG ساده به‌عنوان جایگزین می‌سازد */
+    private function fallbackSvg(string $dir, Product $product, int $i, string $base): string
+    {
+        $svgFile = $dir.'/'.$product->slug.'-'.$i.'.svg';
+
+        if (! file_exists($svgFile)) {
+            $name = mb_strlen($product->name) > 40 ? mb_substr($product->name, 0, 39).'…' : $product->name;
+            $escape = htmlspecialchars($name, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+            $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#0d9488"/>
+  <circle cx="640" cy="140" r="200" fill="rgba(255,255,255,0.1)"/>
+  <text x="400" y="390" font-family="Tahoma, sans-serif" font-size="34" font-weight="bold" fill="#fff" text-anchor="middle">{$escape}</text>
 </svg>
 SVG;
+            file_put_contents($svgFile, $svg);
+        }
+
+        return $base.'-'.$i.'.svg';
     }
 }
