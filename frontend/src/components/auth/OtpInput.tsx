@@ -15,13 +15,14 @@ interface OtpInputProps {
 /**
  * ورودی کد تأیید، به‌صورت خانه‌های جدا.
  *
- * نسخه‌ی قبلی یک input تکی با letter-spacing بود که فقط شبیه خانه‌های جدا
- * به نظر می‌رسید. سه چیزی که کاربر واقعاً انجام می‌دهد در آن کار نمی‌کرد:
- * چسباندن کد از پیامک، حرکت بین ارقام با کلید جهت‌دار، و backspace روی خانه‌ی
- * خالی برای برگشتن به قبلی.
+ * ✅ شروع تایپ از خانه‌ی سمت چپ (LTR، استاندارد جهانی برای کدهای عددی).
+ * با dir="ltr"، خانه‌ی index=0 در سمت چپ قرار می‌گیرد و فوکوس اولیه
+ * روی همان است. با هر تایپ، به خانه‌ی بعدی (index+1 = سمت راست) می‌رود.
  *
- * جهت عمداً LTR است: کد عددی از چپ به راست خوانده می‌شود حتی در رابط راست‌چین،
- * وگرنه رقم اول سمت راست می‌افتد و کاربر اشتباه وارد می‌کند.
+ * پشتیبانی کامل: چسباندن کد از پیامک (با ارقام فارسی/عربی)، حرکت با
+ * کلیدهای جهت‌دار (منطبق بر LTR)، و backspace روی خانه‌ی خالی.
+ *
+ * استایل neumorphic با سایه‌ی مشکی ملایم (هماهنگ با AuthModal).
  */
 export function OtpInput({
   length = 5,
@@ -38,10 +39,11 @@ export function OtpInput({
   // اولین خانه‌ی خالی، یعنی جایی که باید تایپ شود.
   const activeIndex = Math.min(value.length, length - 1);
 
-  // بدون این، کاربر پنج کادر خالی می‌بیند و هیچ‌کدام فوکوس ندارد — معلوم نیست
-  // از کجا باید شروع کند و باید حدس بزند کدام را کلیک کند.
+  // ✅ فوکوس قطعی روی اولین خانه (سمت چپ، چون dir="ltr")
+  // setTimeout برای اطمینان از اجرای فوکوس بعد از mount و انیمیشن مودال
   useEffect(() => {
-    inputs.current[0]?.focus();
+    const timer = setTimeout(() => inputs.current[0]?.focus(), 50);
+    return () => clearTimeout(timer);
   }, []);
 
   const focusAt = (index: number) => {
@@ -60,8 +62,7 @@ export function OtpInput({
 
   const handleChange = (index: number, raw: string) => {
     // digitsOnly نه replace(/\D/g,''): ارقام فارسی و عربی اول به لاتین تبدیل
-    // می‌شوند، وگرنه تایپ با کیبورد فارسی رشته را خالی می‌کرد و کادر خالی
-    // می‌ماند بدون هیچ پیام خطایی.
+    // می‌شوند، وگرنه تایپ با کیبورد فارسی رشته را خالی می‌کرد.
     const digit = digitsOnly(raw).slice(-1);
 
     if (!digit) {
@@ -70,6 +71,7 @@ export function OtpInput({
 
     const joined = setDigit(index, digit);
 
+    // ✅ در LTR، خانه‌ی بعدی سمت راست است (index + 1)
     if (index < length - 1) {
       focusAt(index + 1);
     }
@@ -83,8 +85,7 @@ export function OtpInput({
     if (event.key === 'Backspace') {
       event.preventDefault();
 
-      // خانه‌ی خالی → برگرد به قبلی و آن را پاک کن. بدون این، کاربر روی خانه‌ی
-      // خالی گیر می‌کند و باید دستی کلیک کند.
+      // خانه‌ی خالی → برگرد به قبلی (در LTR یعنی سمت چپ = index - 1) و آن را پاک کن
       if (!digits[index].trim() && index > 0) {
         setDigit(index - 1, ' ');
         focusAt(index - 1);
@@ -97,6 +98,8 @@ export function OtpInput({
       return;
     }
 
+    // ✅ در LTR: فلش چپ → خانه‌ی قبلی (index - 1 = سمت چپ)
+    //          فلش راست → خانه‌ی بعدی (index + 1 = سمت راست)
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
       focusAt(index - 1);
@@ -147,21 +150,22 @@ export function OtpInput({
           onFocus={(event) => event.target.select()}
           aria-label={`رقم ${index + 1} از ${length}`}
           className={cn(
-            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-center text-2xl font-bold caret-primary-500',
-            'border-2 bg-gray-50 dark:bg-gray-800',
-            'text-gray-900 dark:text-gray-100',
-            'transition-all duration-200',
-            'focus:outline-none',
+            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-center text-2xl font-bold',
+            'bg-[#e8ebf2] dark:bg-[#262b35]',
+            'text-slate-800 dark:text-slate-100 caret-primary-500',
+            // سایه neumorphic inset مشکی ملایم — هماهنگ با توکن‌های AuthModal
+            'shadow-[inset_3px_3px_6px_rgba(0,0,0,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.6)]',
+            'dark:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),inset_-3px_-3px_6px_rgba(255,255,255,0.02)]',
+            'outline-none transition-all duration-200',
             'disabled:opacity-60 disabled:cursor-not-allowed',
-            hasError && 'border-error-400 dark:border-error-600 bg-error-50/40 dark:bg-error-900/10',
-            // خانه‌ی پرشده: مرز رنگی ملایم تا پیشرفت دیده شود
-            !hasError && digits[index].trim() && 'border-primary-300 dark:border-primary-700 bg-white dark:bg-gray-800',
-            !hasError && !digits[index].trim() && 'border-gray-200 dark:border-gray-700',
-            // خانه‌ی فعال: بزرگ‌تر، با هاله — تا بدون حدس زدن معلوم باشد نوبت
-            // کدام کادر است. صرفاً focus ring کافی نبود چون از دور دیده نمی‌شد.
+            // حالت خطا
+            hasError && 'ring-2 ring-red-400/50 text-red-500 dark:text-red-400',
+            // خانه‌ی پرشده: رنگ متن کمی تیره‌تر
+            !hasError && digits[index].trim() && index !== activeIndex && 'text-slate-700 dark:text-slate-200',
+            // خانه‌ی فعال: هاله‌ی ملایم primary + کمی scale برای جلب توجه
             !hasError &&
               index === activeIndex &&
-              'border-primary-500 dark:border-primary-400 ring-4 ring-primary-500/15 scale-105 bg-white dark:bg-gray-900'
+              'ring-2 ring-primary-400/50 text-primary-600 dark:text-primary-400 scale-105'
           )}
         />
       ))}
