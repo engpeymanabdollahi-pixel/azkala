@@ -512,7 +512,12 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
         // 👨‍💼 ادمین (داخل گروه auth)
         Route::prefix('admin')->middleware('admin')->name('admin.')->group(function () {
 
-            Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            // ✅ P1 Forensic Audit fix: قبلاً این گروه هیچ permission:X
+            // نداشت (فقط middleware('admin') بالای کل گروه) — یک
+            // 'manager' با صفر Permission همچنان می‌توانست این آمار را
+            // ببیند، برخلاف تمام ماژول‌های همسایه که هرکدام permission
+            // دانه‌ریز خودشان را دارند.
+            Route::prefix('dashboard')->middleware('permission:dashboard.view')->name('dashboard.')->group(function () {
                 Route::get('/stats', [AdminDashboardController::class, 'stats'])->name('stats');
                 Route::get('/chat-stats', [AdminDashboardController::class, 'chatStats'])->name('chat-stats');
                 Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');

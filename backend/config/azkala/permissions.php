@@ -18,6 +18,20 @@
  * پیش‌فرض هیچ Permission ای ندارد.
  */
 return [
+    // ✅ P1 Forensic Audit fix: قبلاً هیچ ماژول 'dashboard' در این
+    // taxonomy وجود نداشت — یعنی routes/api.php:515 (dashboard.stats/
+    // chat-stats/sentiment-stats/recent-chat-activity) فقط با middleware
+    // عمومی 'admin' گارد می‌شد، نه یک permission:X دانه‌ریز مثل تمام
+    // ماژول‌های همسایه (reports.view/support.view/...). نتیجه: یک
+    // 'manager' با صفر Permission (طبق طراحی این سیستم، پیش‌فرض هیچ
+    // Permission ای ندارد) همچنان می‌توانست آمار داشبورد ادمین را ببیند
+    // — نقض همان مدل least-privilege که بقیه‌ی ماژول‌ها رعایتش می‌کنند.
+    'dashboard' => [
+        'label' => 'داشبورد ادمین',
+        'permissions' => [
+            'dashboard.view' => ['label' => 'مشاهده آمار و ویجت‌های داشبورد', 'sensitive' => false],
+        ],
+    ],
     'users' => [
         'label' => 'کاربران',
         'permissions' => [
