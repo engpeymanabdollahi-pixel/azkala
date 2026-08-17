@@ -28,11 +28,11 @@ const OTP_LENGTH = 5;
 const RESEND_SECONDS = 120;
 
 // =====================================================================
-// Neumorphic Tokens — سایه مشکی، نصف شدت قبلی
+// Neumorphic Tokens — سایه ملایم و کم‌شدت (مخصوصاً روی پنل مودال)
 // =====================================================================
 const NEU = {
-  cardLight: 'shadow-[6px_6px_12px_rgba(0,0,0,0.12),-6px_-6px_12px_rgba(255,255,255,0.7)]',
-  cardDark: 'dark:shadow-[6px_6px_12px_rgba(0,0,0,0.2),-6px_-6px_12px_rgba(255,255,255,0.03)]',
+  cardLight: 'shadow-[6px_6px_12px_rgba(0,0,0,0.06),-6px_-6px_12px_rgba(255,255,255,0.7)]',
+  cardDark: 'dark:shadow-[6px_6px_12px_rgba(0,0,0,0.1),-6px_-6px_12px_rgba(255,255,255,0.03)]',
 
   inputLight: 'shadow-[inset_3px_3px_6px_rgba(0,0,0,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.6)]',
   inputDark: 'dark:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),inset_-3px_-3px_6px_rgba(255,255,255,0.02)]',
@@ -214,7 +214,7 @@ export function AuthModal() {
 
   return (
     <div
-      dir="rtl"
+      dir="ltr"
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
