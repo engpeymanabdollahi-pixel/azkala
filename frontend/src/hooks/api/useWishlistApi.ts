@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useIsMutating } from '@tanstack/react-query';
 import { wishlistService } from '@/services/api/wishlist.service';
 import { productService } from '@/services/api/product.service';
 import { useAuthStore } from '@/store/authStore';
@@ -32,6 +32,10 @@ export function useWishlistApi() {
 
   // 📤 افزودن به Wishlist با Optimistic UI
   const addToWishlistMutation = useMutation({
+    // ✅ فاز ۴ تسک P0 SETTINGS/SECURITY FIX: mutationKey برای شناسایی
+    // cross-instance این mutation در MutationCache سراسری (رجوع به کامنت
+    // کامل isProductMutating پایین همین فایل).
+    mutationKey: ['wishlist', 'add'],
     mutationFn: async (product: Product) => {
       if (!isAuthenticated) {
         // کاربر لاگین نیست - فقط localStorage
@@ -115,6 +119,7 @@ export function useWishlistApi() {
 
   // 🗑️ حذف از Wishlist با Optimistic UI
   const removeFromWishlistMutation = useMutation({
+    mutationKey: ['wishlist', 'remove'],
     mutationFn: async (productId: number) => {
       if (!isAuthenticated) {
         return { productId, isLocal: true };
@@ -188,6 +193,53 @@ export function useWishlistApi() {
     removeFromWishlistMutation.isPending ||
     (isAuthenticated && isWishlistLoading);
 
+  // ✅ فاز ۴ تسک P0 SETTINGS/SECURITY FIX — Cross-Instance Wishlist Dedup:
+  //
+  // ریشه‌ی تایید‌شده (با خواندن کد، نه فرض): isWishlistBusy فقط دو
+  // mutation *همین instance* از useWishlistApi() را می‌بیند. اما
+  // ProductCard/ProductCardWithQuickView/useProductDetail هرکدام useWishlistApi()
+  // را جداگانه صدا می‌زنند و هرکدام mutation object مستقل خودشان را
+  // می‌سازند. اگر دقیقاً همان محصول هم‌زمان در دو نقطه از صفحه رندر شده
+  // باشد (مثلاً در «محصولات مرتبط» و هم در گرید اصلی، یا کارت اصلی +
+  // QuickView) و کاربر با دو کلیک نزدیک‌به‌هم روی هر دو نمونه بزند،
+  // isWishlistBusy نمونه‌ی دوم هنوز false است (چون از mutation نمونه‌ی
+  // اول خبر ندارد) و دو POST /wishlist واقعی هم‌زمان می‌رود (یکی ۲۰۰،
+  // دومی ۴۰۹ از بکند). این یک gap معماری تایید‌شده است، نه یک فرض نظری —
+  // ولی اینکه آیا این دقیقاً همان چیزی است که کاربر در مرورگرش دیده،
+  // بدون گزارش/repro مستقیم قابل تایید نیست (به گزارش نهایی رجوع شود).
+  //
+  // راه‌حل: به‌جای یک state سراسری تازه (Context/Zustand جدید)، از همان
+  // معماری موجود TanStack Query استفاده می‌شود — MutationCache یک
+  // singleton واقعی است که همه‌ی instance های useWishlistApi() (چون همه
+  // از همان QueryClientProvider ریشه‌ی اپ می‌آیند) در آن مشترک‌اند.
+  // mutationKey روی هر دو mutation بالا این mutation‌ها را در آن cache
+  // قابل‌شناسایی می‌کند؛ useIsMutating (فقط برای reactive بودن رندر —
+  // خودش تصمیمی نمی‌گیرد) + queryClient.isMutating با predicate دقیق
+  // (بر مبنای mutation.state.variables، یعنی همان آرگومانی که به mutate()
+  // پاس داده شده) یعنی هر instance می‌تواند بپرسد «آیا *دقیقاً همین
+  // productId* از هر instance ای در حال mutate شدن است؟» — بدون قفل
+  // کردن محصولات دیگر (که با یک flag سراسری ساده رخ می‌داد و یک
+  // رگرسیون UX واقعی بود: کلیک روی محصول A نباید دکمه‌ی محصول B را
+  // غیرفعال کند).
+  useIsMutating({ mutationKey: ['wishlist'] });
+
+  const isProductMutating = (productId: number): boolean => {
+    return (
+      queryClient.isMutating({
+        predicate: (mutation) => {
+          const key = mutation.options.mutationKey;
+          if (!key || key[0] !== 'wishlist') return false;
+
+          const vars = mutation.state.variables;
+          if (key[1] === 'add') return (vars as Product | undefined)?.id === productId;
+          if (key[1] === 'remove') return vars === productId;
+
+          return false;
+        },
+      }) > 0
+    );
+  };
+
   // 🔄 Toggle با Optimistic UI
   //
   // ✅ قبلاً وضعیت «آیا در wishlist هست؟» از روی wishlistItems (که از useQuery
@@ -207,7 +259,10 @@ export function useWishlistApi() {
   // synchronous true می‌شود (نه بعد از resolve شدن onMutate)، پس این چک
   // همیشه کلیک دوم را قبل از رسیدن به شبکه متوقف می‌کند.
   const toggleWishlist = (product: Product) => {
-    if (isWishlistBusy) {
+    // ✅ فاز ۴: علاوه بر گارد pending خودِ همین instance، حالا وضعیت
+    // mutation *همین محصول* را در کل اپ (هر instance ای) هم چک می‌کند —
+    // رجوع به کامنت کامل isProductMutating بالا.
+    if (isWishlistBusy || isProductMutating(product.id)) {
       return;
     }
 
@@ -250,5 +305,11 @@ export function useWishlistApi() {
     // toggleWishlist برای گارد داخلی‌اش استفاده می‌کند — یک منبع واحد،
     // نه دو state جدا که ممکن است از هم جدا بیفتند.
     isTogglingWishlist: isWishlistBusy,
+    // ✅ فاز ۴: چک per-product سراسری (cross-instance) — رجوع به کامنت
+    // کامل بالای isProductMutating. مصرف‌کنندگانی که دقیقاً همان محصول
+    // ممکن است هم‌زمان در یک instance دیگر هم رندر شده باشد (کارت‌های
+    // تکراری در صفحه) باید disabled را با isTogglingWishlist ترکیب کنند:
+    // disabled={isTogglingWishlist || isProductMutating(product.id)}.
+    isProductMutating,
   };
 }

@@ -110,7 +110,7 @@ export function useProductDetail(): UseProductDetailReturn {
   // این قابلیت مستقیماً در ProductDetailPage.tsx است.
   const { addItem } = useCartStore();
   const { selectedModel } = useModelStore();
-  const { toggleWishlist, isInWishlist, isTogglingWishlist } = useWishlistApi();
+  const { toggleWishlist, isInWishlist, isTogglingWishlist, isProductMutating } = useWishlistApi();
   const { isCompared, toggleProduct } = useCompareStore();
 
   // ==================== State ====================
@@ -428,7 +428,11 @@ export function useProductDetail(): UseProductDetailReturn {
     images,
     rating,
     isWishlisted,
-    isTogglingWishlist,
+    // ✅ فاز ۴ تسک P0: علاوه بر pending خودِ این هوک، اگر همین محصول از یک
+    // ProductCard دیگر (رندرشده هم‌زمان در جای دیگر صفحه) هم در حال
+    // mutate شدن باشد هم true می‌شود — رجوع به کامنت کامل isProductMutating
+    // در useWishlistApi.ts.
+    isTogglingWishlist: isTogglingWishlist || (product ? isProductMutating(product.id) : false),
     inCompare,
     isCompatible,
     selectedDeviceName,

@@ -28,9 +28,13 @@ export const ProductCardWithQuickView = memo(({
 }: ProductCardWithQuickViewProps) => {
   const [showQuickView, setShowQuickView] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist } = useWishlistApi();
-  
+  const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist, isProductMutating } = useWishlistApi();
+
   const isWishlisted = isInWishlist(product.id);
+  // ✅ فاز ۴ تسک P0: اگر همین محصول از یک instance دیگر (مثلاً همین محصول
+  // در گرید اصلی هم رندر شده) هم‌زمان در حال mutate شدن باشد، این کارت هم
+  // باید busy دیده شود — رجوع به کامنت isProductMutating در useWishlistApi.ts.
+  const isWishlistBusyForThisProduct = isTogglingWishlist || isProductMutating(product.id);
 
   // 🎯 Smart Prefetch: وقتی موس روی کارت می‌رود، کوئری wishlist را prefetch کن
   const handleMouseEnter = useCallback(() => {
@@ -39,9 +43,10 @@ export const ProductCardWithQuickView = memo(({
 
   const handleWishlistToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isWishlistBusyForThisProduct) return;
     // ✅ Optimistic UI توسط useWishlistApi مدیریت می‌شود
     toggleWishlist(product);
-  }, [product, toggleWishlist]);
+  }, [product, toggleWishlist, isWishlistBusyForThisProduct]);
 
   return (
     <>
@@ -92,7 +97,7 @@ export const ProductCardWithQuickView = memo(({
                   : "hover:bg-error-500 hover:text-white dark:hover:bg-error-600"
               )}
               onClick={handleWishlistToggle}
-              disabled={isTogglingWishlist}
+              disabled={isWishlistBusyForThisProduct}
               aria-label={isWishlisted ? 'حذف از علاقمندی‌ها' : 'افزودن به علاقمندی‌ها'}
             >
               <Heart className={cn("w-5 h-5", isWishlisted && "fill-current")} />
