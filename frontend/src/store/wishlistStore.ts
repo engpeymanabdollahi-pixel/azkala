@@ -68,44 +68,41 @@ export const useWishlistStore = create<WishlistState>()(
 
       isInWishlist: (productId) => get().items.some((item) => item.id === productId),
 
-      clearWishlist: () => {
-        set({ items: [] });
-        // TODO: Clear all from API (need bulk delete endpoint)
-      },
+     clearWishlist: async () => {
+  const items = get().items;
+  set({ items: [], isSyncing: true });
+  
+  const isAuthenticated = useAuthStore.getState().isAuthenticated;
+  if (isAuthenticated && items.length > 0) {
+    // پاک کردن همه محصولات از API (یکی یکی)
+    const deletePromises = items.map(item => 
+      get().syncToApi('remove', item.id).catch(console.error)
+    );
+    await Promise.all(deletePromises);
+  }
+  
+  set({ isSyncing: false });
+},
 
       syncFromApi: async () => {
-        const isAuthenticated = useAuthStore.getState().isAuthenticated;
-        
-        // اگر کاربر لاگین نیست، از localStorage استفاده کن
-        if (!isAuthenticated) {
-          console.log('⚠️ کاربر لاگین نیست، از localStorage استفاده می‌شود');
-          return;
-        }
-        
-        if (get().isSyncing) return;
-        
-        set({ isSyncing: true });
-        try {
-          const response = await wishlistService.getWishlist();
-          
-          // 🆕 فقط محصولاتی که واقعاً وجود دارند و معتبر هستند
-          const apiItems = response.data.data
-            .map(w => w.product)
-            .filter(p => p && p.id && p.slug && p.name); // فقط محصولات معتبر
-          
-          // 🆕 جایگزین کردن کامل (نه merge)
-          set({ 
-            items: apiItems,
-            lastSync: Date.now()
-          });
-          
-          console.log(`✅ Wishlist sync شد: ${apiItems.length} محصول از API`);
-        } catch (error) {
-          console.error('Failed to sync wishlist from API:', error);
-        } finally {
-          set({ isSyncing: false });
-        }
-      },
+  try {
+    set({ isSyncing: true });
+   const response = await wishlistService.getWishlist();
+
+// ✅ response.data آرایه محصولات است (wishlistService خودش unwrap کرده)
+const rawData = response.data;
+const itemsArray = Array.isArray(rawData) ? rawData : [];
+    
+    const apiItems = itemsArray
+      .map((item: any) => item.product)
+      .filter((p: any) => p && p.id && p.slug);
+    
+    set({ items: apiItems, isSyncing: false });
+  } catch (error) {
+    console.error('Failed to sync wishlist:', error);
+    set({ isSyncing: false });
+  }
+},
 
       syncToApi: async (action, productId) => {
         try {

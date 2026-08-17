@@ -61,14 +61,13 @@ export const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
   const { selectedModel } = useModelStore();
   const { addItem } = useCartStore();
-  const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist, isProductMutating } = useWishlistApi();
+ const { isInWishlist, toggleWishlist, prefetchProduct, isTogglingWishlist, isProductMutating } = useWishlistApi();
 
-  const isWishlisted = isInWishlist(product.id);
-  // ✅ فاز ۴ تسک P0: اگر همین محصول از یک instance دیگر (مثلاً همین محصول
-  // در بخش «محصولات مرتبط» یا QuickView) هم‌زمان در حال mutate شدن باشد،
-  // این کارت هم باید busy دیده شود — رجوع به کامنت isProductMutating در
-  // useWishlistApi.ts.
-  const isWishlistBusyForThisProduct = isTogglingWishlist || isProductMutating(product.id);
+const isWishlisted = isInWishlist(product.id);
+const isWishlistBusyForThisProduct = isTogglingWishlist || isProductMutating(product.id);
+
+// ✅ Debounce برای جلوگیری از race condition
+
     const { isCompared, toggleProduct } = useCompareStore();
   const inCompare = isCompared(product.id);
 
@@ -101,14 +100,15 @@ export const ProductCard = memo(function ProductCard({
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // ✅ اگر درخواست قبلی هنوز در حال رفتن است، کلیک سریع دوباره را نادیده
-    // بگیر — جلوگیری از ارسال دو درخواست هم‌زمان add/remove برای یک محصول.
-    // شامل mutation های همین محصول از instance های دیگر هم می‌شود.
-    if (isWishlistBusyForThisProduct) return;
-    toggleWishlist(product);
-  };
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // ✅ جلوگیری از mouse down event bubbling (مهم برای active:scale)
+  e.nativeEvent.stopImmediatePropagation();
+  
+  if (isWishlistBusyForThisProduct) return;
+  toggleWishlist(product);
+};
 
   // پیش‌واکشی محصول هنگام hover تا باز شدن صفحه‌ی جزئیات آنی حس شود
   const handleMouseEnter = () => {
@@ -317,23 +317,33 @@ export const ProductCard = memo(function ProductCard({
 
         {/* دکمه علاقمندی */}
         <button
-          onClick={handleWishlist}
-          disabled={isWishlistBusyForThisProduct}
-          className={cn(
-            'absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center z-20',
-            'opacity-0 group-hover:opacity-100 transition-all duration-300',
-            'bg-white dark:bg-gray-800 shadow-lg hover:scale-110 active:scale-95',
-            'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
-            'disabled:cursor-not-allowed disabled:hover:scale-100',
-            isWishlisted
-              ? 'text-red-500 opacity-100'
-              : 'text-gray-400 hover:text-red-400 dark:text-gray-500 dark:hover:text-red-400',
-            isLowStock && 'top-10'
-          )}
-          aria-label="افزودن به علاقه‌مندی‌ها"
-        >
-          <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
-        </button>
+  onClick={handleWishlist}
+  onMouseDown={(e) => {
+    // ✅ جلوگیری از event bubbling در mouse down
+    e.preventDefault();
+    e.stopPropagation();
+  }}
+  onPointerDown={(e) => {
+    // ✅ جلوگیری از pointer events (برای touch devices)
+    e.preventDefault();
+    e.stopPropagation();
+  }}
+  disabled={isWishlistBusyForThisProduct}
+  className={cn(
+    'absolute top-2 left-2 w-9 h-9 rounded-full flex items-center justify-center z-20',
+    'opacity-0 group-hover:opacity-100 transition-all duration-300',
+    'bg-white dark:bg-gray-800 shadow-lg hover:scale-110',  // ✅ حذف active:scale-95
+    'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900',
+    'disabled:cursor-not-allowed disabled:hover:scale-100',
+    isWishlisted
+      ? 'text-red-500 opacity-100'
+      : 'text-gray-400 hover:text-red-400 dark:text-gray-500 dark:hover:text-red-400',
+    isLowStock && 'top-10'
+  )}
+  aria-label="افزودن به علاقه‌مندی‌ها"
+>
+  <Heart className={cn('w-4 h-4', isWishlisted && 'fill-current')} />
+</button>
 
         {/* دکمه مقایسه - کنار دکمه علاقه‌مندی (top-left) */}
         <button

@@ -128,7 +128,7 @@ export function WishlistSection() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {items.slice(0, 4).map((product) => (
+            {items.map((product) => (
               <div
                 key={product.id}
                 onClick={() => navigate(`/products/${product.slug}`)}
@@ -194,9 +194,9 @@ export function WishlistSection() {
           </div>
 
           {items.length > 4 && (
-            <Button variant="outline" onClick={() => navigate('/wishlist')} className="w-full">
-              مشاهده همه محصولات ({items.length})
-            </Button>
+            <Button variant="outline" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-full">
+  بازگشت به بالا
+</Button>
           )}
         </div>
       )}

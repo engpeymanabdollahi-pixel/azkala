@@ -19,23 +19,28 @@ class WishlistController extends Controller
     /**
      * لیست علاقه‌مندی‌های کاربر
      */
-    public function index(Request $request)
-    {
-        try {
-            $wishlists = $this->wishlistService->getUserWishlist($request->user()->id);
+   public function index(Request $request)
+{
+    try {
+        $wishlists = $this->wishlistService->getUserWishlist($request->user()->id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $wishlists,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('WishlistController@index: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'خطا در دریافت علاقه‌مندی‌ها',
-            ], 500);
-        }
+        // ✅ اگر paginate است، فقط items را برگردان
+        $items = $wishlists instanceof \Illuminate\Pagination\LengthAwarePaginator 
+            ? $wishlists->items() 
+            : $wishlists;
+
+        return response()->json([
+            'success' => true,
+            'data' => $items,  // ← حالا array ساده است
+        ]);
+    } catch (\Exception $e) {
+        Log::error('WishlistController@index: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'خطا در دریافت علاقه‌مندی‌ها',
+        ], 500);
     }
+}
 
     public function store(Request $request)
     {

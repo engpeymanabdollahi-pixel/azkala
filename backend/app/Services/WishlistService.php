@@ -8,13 +8,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class WishlistService
 {
-    public function getUserWishlist(int $userId): LengthAwarePaginator
-    {
-        return Wishlist::with('product')
-            ->where('user_id', $userId)
-            ->orderByDesc('created_at')
-            ->paginate(20);
-    }
+   public function getUserWishlist(int $userId)
+{
+    return Wishlist::with('product')
+        ->where('user_id', $userId)
+        ->orderByDesc('created_at')
+        ->get();  // ← array ساده به جای paginate
+}
 
     /**
      * ✅ محافظت در برابر race condition واقعی: چک SELECT بالا و INSERT

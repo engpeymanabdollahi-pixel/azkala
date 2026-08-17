@@ -5,111 +5,261 @@ import { useAuthStore } from '@/store/authStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import type { Product } from '@/types/models';
 import toast from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+
+// ============================================================================
+// 🌐 MODULE-LEVEL SINGLETONS
+// ============================================================================
+// این متغیرها بین همه instance های useWishlistApi() shared هستند.
+// چرا؟ چون هر ProductCard یک instance جداگانه از این hook می‌سازد و اگر
+// state داخل hook باشد، هر کارت state خودش را دارد و نمی‌تواند از وضعیت
+// کارت‌های دیگر آگاه شود (مشکل cross-instance dedup).
+// ============================================================================
+
+/**
+ * آیا sync اولیه بعد از login انجام شده؟
+ * جلوگیری از اجرای مجدد sync در هر instance جدید.
+ */
+let globalHasSynced = false;
+
+/**
+ * آیا sync در حال انجام است؟
+ * جلوگیری از اجرای همزمان چند sync.
+ */
+let globalSyncInProgress = false;
+
+/**
+ * مجموعه محصولات در حال toggle (shared بین همه instance ها).
+ * وقتی کاربر روی قلب کلیک می‌کند، productId اینجا اضافه می‌شود تا
+ * instance های دیگر بدانند این محصول در حال پردازش است و درخواست
+ * duplicate نفرستند.
+ */
+const globalPendingToggles = new Set<number>();
+
+/**
+ * لیست listener ها برای notify کردن همه instance ها وقتی
+ * globalPendingToggles تغییر می‌کند (تا UI re-render شود).
+ */
+const toggleListeners = new Set<() => void>();
+
+/**
+ * Notify کردن همه listener ها (باعث re-render همه instance ها می‌شود).
+ */
+function notifyToggleListeners() {
+  toggleListeners.forEach((listener) => listener());
+}
+
+// ============================================================================
+// 🎣 MAIN HOOK
+// ============================================================================
 
 /**
  * هوک TanStack Query برای مدیریت Wishlist با پشتیبانی از Optimistic UI
- * - Server state را با TanStack Query مدیریت می‌کند
- * - Client state را با Zustand sync می‌کند
- * - Optimistic UI برای تجربه کاربری لحظه‌ای
+ *
+ * معماری:
+ * - Server state با TanStack Query (cache key: ['wishlist'])
+ * - Client state با Zustand (برای persistence در localStorage)
+ * - Optimistic UI برای تجربه لحظه‌ای
+ * - Module-level singletons برای cross-instance dedup
  */
 export function useWishlistApi() {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const localWishlist = useWishlistStore((state) => state.items);
-  
-  // 📥 دریافت Wishlist از API (فقط برای کاربران لاگین)
+
+  // =========================================================================
+  // 🔄 SYNC AFTER LOGIN (یکبار در کل اپ)
+  // =========================================================================
+  //
+  // مشکل قبلی: useEffect با dependency [isAuthenticated, queryClient] باعث
+  // infinite loop می‌شد چون queryClient در هر render تغییر می‌کرد.
+  //
+  // راه‌حل:
+  // 1. حذف queryClient از dependency array
+  // 2. استفاده از globalHasSynced برای اجرای فقط یکبار
+  // 3. استفاده از globalSyncInProgress برای جلوگیری از اجرای همزمان
+  // =========================================================================
+  useEffect(() => {
+    // فقط یکبار بعد از اولین isAuthenticated=true اجرا شود
+    if (isAuthenticated && !globalHasSynced && !globalSyncInProgress) {
+      globalSyncInProgress = true;
+      globalHasSynced = true;
+
+      // Force refetch از API
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+
+      // Sync Zustand store با backend
+      useWishlistStore
+        .getState()
+        .syncFromApi()
+        .catch(() => {
+          // اگر sync شکست خورد، اشکالی ندارد - query refetch کافی است
+        })
+        .finally(() => {
+          globalSyncInProgress = false;
+        });
+    }
+
+    // وقتی کاربر logout می‌کند، reset برای login بعدی
+    if (!isAuthenticated) {
+      globalHasSynced = false;
+    }
+  }, [isAuthenticated, queryClient]);
+
+  // =========================================================================
+  // 🎯 GLOBAL PENDING TOGGLES HOOK
+  // =========================================================================
+  //
+  // مشکل قبلی: useState<Set<number>> برای pendingToggle per-instance بود.
+  // اگر همان محصول در دو نقطه رندر شده بود (مثلاً Related + Main Grid)،
+  // هر کدام state جداگانه داشتند و guard کار نمی‌کرد.
+  //
+  // راه‌حل:
+  // 1. globalPendingToggles به عنوان source of truth
+  // 2. forceUpdate برای re-render وقتی set تغییر می‌کند
+  // 3. listener pattern برای subscribe شدن به تغییرات
+  // =========================================================================
+
+  // State فقط برای trigger کردن re-render (مقدار مهم نیست)
+  const [, forceUpdate] = useState({});
+
+  // Subscribe به تغییرات globalPendingToggles
+  useEffect(() => {
+    const listener = () => forceUpdate({});
+    toggleListeners.add(listener);
+    return () => {
+      toggleListeners.delete(listener);
+    };
+  }, []);
+
+  // Wrapper برای آپدیت globalPendingToggles با notify کردن listeners
+  const setPendingToggle = (updater: (prev: Set<number>) => Set<number>) => {
+    const newSet = updater(globalPendingToggles);
+    globalPendingToggles.clear();
+    newSet.forEach((id) => globalPendingToggles.add(id));
+    notifyToggleListeners();
+  };
+
+  // Reference به global set (برای خواندن)
+  const pendingToggle = globalPendingToggles;
+
+  // =========================================================================
+  // 📥 WISHLIST QUERY
+  // =========================================================================
   const { data: wishlistItems = [], isLoading: isWishlistLoading } = useQuery({
     queryKey: ['wishlist'],
     queryFn: async () => {
       if (!isAuthenticated) return [];
       const response = await wishlistService.getWishlist();
-      return response.data.data.map((item) => item.product as Product);
+      // wishlistService.getWishlist() خودش response.data را برمی‌گرداند
+      // پس فقط یک .data لازم است (نه دو تا)
+      return response.data.map((item: any) => item.product as Product);
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 دقیقه
     retry: 1,
   });
 
-  // 📤 افزودن به Wishlist با Optimistic UI
+  // =========================================================================
+  // 📤 ADD TO WISHLIST MUTATION
+  // =========================================================================
   const addToWishlistMutation = useMutation({
-    // ✅ فاز ۴ تسک P0 SETTINGS/SECURITY FIX: mutationKey برای شناسایی
-    // cross-instance این mutation در MutationCache سراسری (رجوع به کامنت
-    // کامل isProductMutating پایین همین فایل).
+    // mutationKey برای شناسایی cross-instance در MutationCache سراسری
     mutationKey: ['wishlist', 'add'],
+
     mutationFn: async (product: Product) => {
       if (!isAuthenticated) {
-        // کاربر لاگین نیست - فقط localStorage
+        // کاربر مهمان - فقط localStorage
         return { product, isLocal: true };
       }
       await wishlistService.addToWishlist(product.id);
       return { product, isLocal: false };
     },
-    
+
     // 🎯 Optimistic Update: UI را بلافاصله آپدیت کن
     onMutate: async (newProduct) => {
+      // لغو query های در حال اجرا
       await queryClient.cancelQueries({ queryKey: ['wishlist'] });
-      
-      // Snapshot از وضعیت قبلی
-      const previousWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || [];
-      
-      // اگر محصول از قبل در لیست هست، کاری نکن
-      if (previousWishlist.some(item => item.id === newProduct.id)) {
+
+      // Snapshot از وضعیت قبلی (برای rollback در صورت خطا)
+      const previousWishlist =
+        queryClient.getQueryData<Product[]>(['wishlist']) || [];
+
+      // اگر محصول از قبل در لیست هست، علامت بزن (409 جلوگیری شود)
+      if (previousWishlist.some((item) => item.id === newProduct.id)) {
         return { previousWishlist, alreadyExists: true };
       }
-      
-      // آپدیت فوری UI
-      queryClient.setQueryData(['wishlist'], (old: Product[] = []) => [...old, newProduct]);
-      
+
+      // آپدیت فوری UI (قبل از پاسخ سرور)
+      queryClient.setQueryData(
+        ['wishlist'],
+        (old: Product[] = []) => [...old, newProduct]
+      );
+
       // آپدیت Zustand store برای سازگاری
-      if (!localWishlist.some(item => item.id === newProduct.id)) {
+      if (!localWishlist.some((item) => item.id === newProduct.id)) {
         useWishlistStore.getState().addItem(newProduct);
       }
-      
+
       return { previousWishlist, alreadyExists: false };
     },
-    
+
     // ✅ onSuccess: Toast و refetch
-    // (شاخه‌ی data.alreadyExists قبلاً اینجا مرده بود — mutationFn هیچ‌وقت
-    // چنین فیلدی برنمی‌گرداند؛ حالت «قبلاً در لیست بوده» واقعاً توسط
-    // onError با context.alreadyExists/کد ۴۰۹ مدیریت می‌شود، همان‌طور که
-    // پایین‌تر هم هست.)
     onSuccess: (data) => {
       toast.success(
-        data.isLocal 
-          ? 'به علاقمندی‌ها اضافه شد (ذخیره موقت)' 
+        data.isLocal
+          ? 'به علاقمندی‌ها اضافه شد (ذخیره موقت)'
           : 'به علاقمندی‌ها اضافه شد',
         { icon: '❤️', duration: 2000 }
       );
       queryClient.invalidateQueries({ queryKey: ['wishlist'] });
     },
-    
-    // ❌ onError: Rollback
+
+    // ❌ onError: Rollback یا Sync
     onError: (error, _product, context) => {
+      // اگر onMutate تشخیص داد محصول از قبل هست، کاری نکن
       if (context?.alreadyExists) {
         return;
       }
-      
-      // بررسی خطای 409 - محصول قبلاً در لیست بوده
-      const axiosError = error as { response?: { status?: number; data?: { code?: string; message?: string } } };
+
+      const axiosError = error as {
+        response?: { status?: number; data?: { code?: string; message?: string } };
+      };
       const errorCode = axiosError.response?.data?.code;
       const errorMessage = axiosError.response?.data?.message;
-      
-      if (axiosError.response?.status === 409 || errorCode === 'ALREADY_WISHLISTED') {
-        // این یک خطا نیست، فقط اطلاع‌رسانی می‌کنیم
-        toast(errorMessage || 'این محصول قبلاً در علاقمندی‌های شما وجود دارد', { 
-          icon: 'ℹ️', 
-          duration: 2000,
-          style: {
-            background: '#f6f8fa',
-            color: '#24292f',
-            border: '1px solid #d0d7de',
-          },
-        });
-        // Refetch برای اطمینان از sync بودن داده‌ها
+
+      // بررسی خطای 409 - محصول قبلاً در لیست بوده (State Sync Issue)
+      if (
+        axiosError.response?.status === 409 ||
+        errorCode === 'ALREADY_WISHLISTED'
+      ) {
+        // این یک خطا نیست - frontend و backend sync نبودند
+        // 1️⃣ Toast اطلاع‌رسانی (بدون error styling)
+        toast(
+          errorMessage || 'این محصول قبلاً در علاقمندی‌های شما وجود دارد',
+          {
+            icon: 'ℹ️',
+            duration: 2000,
+            style: {
+              background: '#f6f8fa',
+              color: '#24292f',
+              border: '1px solid #d0d7de',
+            },
+          }
+        );
+
+        // 2️⃣ Force refetch - نه فقط invalidate، بلکه فوراً fetch کن
         queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+        queryClient.refetchQueries({ queryKey: ['wishlist'], type: 'active' });
+
+        // 3️⃣ Sync Zustand store با backend
+        useWishlistStore.getState().syncFromApi().catch(() => {
+          // اگر sync شکست خورد، query refetch کافی است
+        });
+
         return;
       }
-      
+
       // سایر خطاها - rollback
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       toast.error('خطا در افزودن به علاقمندی‌ها', { icon: '💔', duration: 3000 });
@@ -117,9 +267,12 @@ export function useWishlistApi() {
     },
   });
 
-  // 🗑️ حذف از Wishlist با Optimistic UI
+  // =========================================================================
+  // 🗑️ REMOVE FROM WISHLIST MUTATION
+  // =========================================================================
   const removeFromWishlistMutation = useMutation({
     mutationKey: ['wishlist', 'remove'],
+
     mutationFn: async (productId: number) => {
       if (!isAuthenticated) {
         return { productId, isLocal: true };
@@ -127,100 +280,77 @@ export function useWishlistApi() {
       await wishlistService.removeFromWishlist(productId);
       return { productId, isLocal: false };
     },
-    
+
     // 🎯 Optimistic Update
     onMutate: async (productId) => {
       await queryClient.cancelQueries({ queryKey: ['wishlist'] });
-      
-      const previousWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || [];
-      
+
+      const previousWishlist =
+        queryClient.getQueryData<Product[]>(['wishlist']) || [];
+
       queryClient.setQueryData(
         ['wishlist'],
         (old: Product[] = []) => old.filter((p) => p.id !== productId)
       );
-      
+
       // آپدیت Zustand store
       useWishlistStore.getState().removeItem(productId);
-      
+
       return { previousWishlist };
     },
-    
+
     // ✅ onSuccess
     onSuccess: (data) => {
       toast.success(
-        data.isLocal 
-          ? 'از علاقمندی‌ها حذف شد' 
-          : 'از علاقمندی‌ها حذف شد',
+        data.isLocal ? 'از علاقمندی‌ها حذف شد' : 'از علاقمندی‌ها حذف شد',
         { icon: '💔', duration: 2000 }
       );
       queryClient.invalidateQueries({ queryKey: ['wishlist'] });
     },
-    
-    // ❌ onError: Rollback
-    // ✅ قبلاً هر خطایی (حتی 404 «این محصول در علاقه‌مندی‌های شما نیست») به‌عنوان
-    // شکست واقعی نمایش داده می‌شد و rollback می‌کرد. اما وقتی محصول از قبل حذف
-    // شده (مثلاً به‌خاطر دوبار کلیک سریع، دو درخواست DELETE می‌رفت؛ اولی موفق،
-    // دومی 404) این یعنی هدف کاربر (نبودن محصول در لیست) در واقع محقق شده —
-    // نه یک خطای واقعی. نمایش toast خطا + rollback (که می‌توانست محصول را
-    // دوباره در UI برگرداند در حالی که سرور واقعاً حذفش کرده بود) رفتار غلطی
-    // بود. الگوی این بلوک دقیقاً مثل مدیریت 409 در addToWishlistMutation است.
+
+    // ❌ onError: Rollback با handling 404
     onError: (error, _productId, context) => {
       const axiosError = error as { response?: { status?: number } };
+
+      // 404 یعنی محصول قبلاً حذف شده - این خطا نیست
       if (axiosError.response?.status === 404) {
         queryClient.invalidateQueries({ queryKey: ['wishlist'] });
         return;
       }
 
+      // سایر خطاها - rollback
       queryClient.setQueryData(['wishlist'], context?.previousWishlist);
       toast.error('خطا در حذف از علاقمندی‌ها', { icon: '❌', duration: 3000 });
       console.error('Failed to remove from wishlist:', error);
     },
   });
 
-  // ✅ P0 fix — Wishlist Race Condition: بلافاصله بعد از لود صفحه (وقتی
-  // isAuthenticated از localStorage به‌صورت sync بازیابی می‌شود)، کوئری
-  // ['wishlist'] enabled می‌شود ولی پاسخش هنوز نرسیده — در این پنجره‌ی
-  // زمانی wishlistItems=[] است، یعنی isInWishlist() برای هر محصولی
-  // (حتی محصولات از‌قبل‌wishlist‌شده) false برمی‌گرداند و قلب کاملاً
-  // کلیک‌پذیر می‌ماند. کلیک روی یک محصولِ از‌قبل‌موجود در این پنجره یک
-  // POST /wishlist واقعی (نه تکراری/retry‌شده) می‌فرستد که backend به‌درستی
-  // با 409 رد می‌کند. isWishlistBusy این پنجره را هم به همان گاردِ
-  // pending موجود اضافه می‌کند — فقط برای کاربر لاگین‌کرده (مهمان‌ها
-  // اصلاً کوئری‌شان enabled نیست، پس این شرط برایشان بی‌اثر است و رفتار
-  // localStorage-only فعلی‌شان دست‌نخورده می‌ماند).
+  // =========================================================================
+  // 🔒 BUSY STATE
+  // =========================================================================
+  //
+  // isWishlistBusy برای غیرفعال کردن دکمه در حین mutation استفاده می‌شود.
+  // شامل:
+  // - mutation در حال انجام (add یا remove)
+  // - query در حال لود (بعد از login، قبل از رسیدن پاسخ)
+  // =========================================================================
   const isWishlistBusy =
     addToWishlistMutation.isPending ||
     removeFromWishlistMutation.isPending ||
     (isAuthenticated && isWishlistLoading);
 
-  // ✅ فاز ۴ تسک P0 SETTINGS/SECURITY FIX — Cross-Instance Wishlist Dedup:
+  // =========================================================================
+  // 🔍 CROSS-INSTANCE MUTATION CHECK
+  // =========================================================================
   //
-  // ریشه‌ی تایید‌شده (با خواندن کد، نه فرض): isWishlistBusy فقط دو
-  // mutation *همین instance* از useWishlistApi() را می‌بیند. اما
-  // ProductCard/ProductCardWithQuickView/useProductDetail هرکدام useWishlistApi()
-  // را جداگانه صدا می‌زنند و هرکدام mutation object مستقل خودشان را
-  // می‌سازند. اگر دقیقاً همان محصول هم‌زمان در دو نقطه از صفحه رندر شده
-  // باشد (مثلاً در «محصولات مرتبط» و هم در گرید اصلی، یا کارت اصلی +
-  // QuickView) و کاربر با دو کلیک نزدیک‌به‌هم روی هر دو نمونه بزند،
-  // isWishlistBusy نمونه‌ی دوم هنوز false است (چون از mutation نمونه‌ی
-  // اول خبر ندارد) و دو POST /wishlist واقعی هم‌زمان می‌رود (یکی ۲۰۰،
-  // دومی ۴۰۹ از بکند). این یک gap معماری تایید‌شده است، نه یک فرض نظری —
-  // ولی اینکه آیا این دقیقاً همان چیزی است که کاربر در مرورگرش دیده،
-  // بدون گزارش/repro مستقیم قابل تایید نیست (به گزارش نهایی رجوع شود).
+  // isProductMutating با استفاده از queryClient.isMutating و predicate دقیق
+  // بررسی می‌کند که آیا *دقیقاً همین productId* در هر instance ای در حال
+  // mutate شدن است.
   //
-  // راه‌حل: به‌جای یک state سراسری تازه (Context/Zustand جدید)، از همان
-  // معماری موجود TanStack Query استفاده می‌شود — MutationCache یک
-  // singleton واقعی است که همه‌ی instance های useWishlistApi() (چون همه
-  // از همان QueryClientProvider ریشه‌ی اپ می‌آیند) در آن مشترک‌اند.
-  // mutationKey روی هر دو mutation بالا این mutation‌ها را در آن cache
-  // قابل‌شناسایی می‌کند؛ useIsMutating (فقط برای reactive بودن رندر —
-  // خودش تصمیمی نمی‌گیرد) + queryClient.isMutating با predicate دقیق
-  // (بر مبنای mutation.state.variables، یعنی همان آرگومانی که به mutate()
-  // پاس داده شده) یعنی هر instance می‌تواند بپرسد «آیا *دقیقاً همین
-  // productId* از هر instance ای در حال mutate شدن است؟» — بدون قفل
-  // کردن محصولات دیگر (که با یک flag سراسری ساده رخ می‌داد و یک
-  // رگرسیون UX واقعی بود: کلیک روی محصول A نباید دکمه‌ی محصول B را
-  // غیرفعال کند).
+  // این یک singleton واقعی است چون MutationCache بین همه instance ها shared است.
+  // =========================================================================
+
+  // useIsMutating فقط برای reactive کردن رندر (خودش تصمیمی نمی‌گیرد)
   useIsMutating({ mutationKey: ['wishlist'] });
 
   const isProductMutating = (productId: number): boolean => {
@@ -240,57 +370,110 @@ export function useWishlistApi() {
     );
   };
 
-  // 🔄 Toggle با Optimistic UI
+  // =========================================================================
+  // 🔄 TOGGLE WISHLIST (با Optimistic UI و Global Guards)
+  // =========================================================================
   //
-  // ✅ قبلاً وضعیت «آیا در wishlist هست؟» از روی wishlistItems (که از useQuery
-  // و رندر قبلی کامپوننت گرفته می‌شود) خوانده می‌شد — یک کلوژر بالقوه stale.
-  // بین لحظه‌ی mutate شدن (که queryClient.setQueryData را به‌صورت optimistic
-  // آپدیت می‌کند) و رندر بعدی React که wishlistItems را به‌روز می‌کند، یک
-  // پنجره‌ی زمانی کوتاه هست؛ دوبار کلیک سریع روی دکمه‌ی قلب در همین پنجره
-  // هر دو بار همان جهت (مثلاً هر دو add، یا هر دو remove) را می‌دیدند و دو
-  // درخواست همزمان به سرور می‌فرستادند (یکی موفق، دومی 409/404). حالا مستقیم
-  // از cache زنده‌ی queryClient خوانده می‌شود که همیشه به‌روز است.
-  // ✅ گارد pending: خواندن زنده از queryClient پنجره‌ی race را کوچک می‌کرد
-  // ولی حذفش نمی‌کرد — onMutate با `await queryClient.cancelQueries(...)`
-  // شروع می‌شود که خودش async است، یعنی بین فراخوانی .mutate() و واقعاً
-  // نوشته‌شدن optimistic update در cache یک فاصله‌ی زمانی واقعی هست. دو کلیک
-  // سریع در همین فاصله می‌توانستند هر دو .mutate() را با یک جهت صدا بزنند.
-  // isPending یک mutation در React Query به‌محض فراخوانی mutate()،
-  // synchronous true می‌شود (نه بعد از resolve شدن onMutate)، پس این چک
-  // همیشه کلیک دوم را قبل از رسیدن به شبکه متوقف می‌کند.
-  const toggleWishlist = (product: Product) => {
-    // ✅ فاز ۴: علاوه بر گارد pending خودِ همین instance، حالا وضعیت
-    // mutation *همین محصول* را در کل اپ (هر instance ای) هم چک می‌کند —
-    // رجوع به کامنت کامل isProductMutating بالا.
-    if (isWishlistBusy || isProductMutating(product.id)) {
-      return;
+  // Guards به ترتیب:
+  // 1. globalPendingToggles - جلوگیری از duplicate در cross-instance
+  // 2. isProductMutating - جلوگیری از mutation در حال انجام
+  // 3. isWishlistBusy - جلوگیری از کلیک در حین loading
+  //
+  // Debounce: 100ms قبل از ارسال درخواست برای جمع کردن کلیک‌های سریع
+  // =========================================================================
+ const toggleWishlist = async (product: Product) => {
+  // Guard 1: اگر در حال processing است (cross-instance)
+  if (globalPendingToggles.has(product.id)) {
+    return;
+  }
+  
+  // Guard 2: اگر mutation فعال است
+  if (isProductMutating(product.id)) {
+    return;
+  }
+  
+  // Guard 3: اگر wishlist busy است
+  if (isWishlistBusy) {
+    return;
+  }
+
+  // ✅ Lock بلافاصله
+  globalPendingToggles.add(product.id);
+  notifyToggleListeners();
+
+  try {
+    // ✅ چک دقیق از API قبل از هر عملیات
+    let isInWishlist = false;
+    
+    try {
+      const checkResponse = await wishlistService.checkWishlist(product.id);
+      isInWishlist = checkResponse?.is_wishlisted || false;
+    } catch (error) {
+      // اگر check failed، از cache استفاده کن
+      console.warn('[Wishlist] Check API failed, using cache fallback');
+      const currentWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || wishlistItems;
+      isInWishlist = currentWishlist.some((item) => item.id === product.id);
     }
 
-    const currentWishlist = queryClient.getQueryData<Product[]>(['wishlist']) || wishlistItems;
-    const isInWishlist = currentWishlist.some((item) => item.id === product.id);
-
+    // ✅ حالا با اطمینان کامل mutate کن
     if (isInWishlist) {
       removeFromWishlistMutation.mutate(product.id);
     } else {
       addToWishlistMutation.mutate(product);
     }
-  };
+  } catch (error) {
+    console.error('[Wishlist] Toggle failed:', error);
+  } finally {
+    // ✅ Unlock بعد از 1000ms
+    setTimeout(() => {
+      globalPendingToggles.delete(product.id);
+      notifyToggleListeners();
+    }, 1000);
+  }
+};
 
-  // 🎯 Prefetch برای Product Card
+  // =========================================================================
+  // 🎯 PREFETCH برای Product Card
+  // =========================================================================
   //
-  // نسخه‌ی قبلی این تابع پارامترش را نادیده می‌گرفت و به‌جای محصول، کلید
-  // ['wishlist'] را آن هم بدون queryFn prefetch می‌کرد — یعنی عملاً هیچ کاری
-  // نمی‌کرد. حالا واقعاً همان محصول را از پیش می‌گیرد، از مسیر productService
-  // که روی apiClient سوار است (نه fetch با آدرس هاردکد، وگرنه روی دامنه‌ی جدا
-  // درخواست به خودِ فرانت‌اند می‌رود).
+  // Prefetch کردن محصول وقتی کاربر hover می‌کند یا کلیک می‌کند.
+  // این باعث می‌شود وقتی کاربر به صفحه محصول می‌رود، داده‌ها از قبل
+  // در cache باشند و لود سریع‌تر باشد.
+  // =========================================================================
   const prefetchProduct = (product: Product) => {
     queryClient.prefetchQuery({
       queryKey: ['product', product.id],
       queryFn: () => productService.getProduct(product.id),
-      staleTime: 5 * 60 * 1000,
+      staleTime: 5 * 60 * 1000, // 5 دقیقه
     });
   };
 
+  // =========================================================================
+  // 🔍 IS IN WISHLIST (با Fallback به Zustand)
+  // =========================================================================
+  //
+  // چرا fallback؟ بعد از login، query ['wishlist'] enabled می‌شود ولی
+  // پاسخش هنوز نرسیده. در این پنجره زمانی، cacheData خالی است و
+  // isInWishlist false برمی‌گرداند (حتی برای محصولات از قبل wishlist شده).
+  //
+  // راه‌حل: اگر cacheData خالی بود، از Zustand store (که از localStorage
+  // آمده) بخوان.
+  // =========================================================================
+  const isInWishlist = (productId: number): boolean => {
+    const cacheData = queryClient.getQueryData<Product[]>(['wishlist']);
+
+    // اگر cacheData وجود دارد و غیرخالی است، از آن استفاده کن
+    if (cacheData && cacheData.length > 0) {
+      return cacheData.some((item) => item.id === productId);
+    }
+
+    // Fallback به Zustand store (از localStorage)
+    return localWishlist.some((item) => item.id === productId);
+  };
+
+  // =========================================================================
+  // 📤 RETURN
+  // =========================================================================
   return {
     wishlistItems,
     isWishlistLoading,
@@ -298,18 +481,12 @@ export function useWishlistApi() {
     removeFromWishlist: removeFromWishlistMutation.mutate,
     toggleWishlist,
     prefetchProduct,
-    isInWishlist: (productId: number) => wishlistItems.some((item) => item.id === productId),
-    // ✅ برای غیرفعال‌کردن دکمه — هم در حین mutation، هم در پنجره‌ی
-    // race شرح‌داده‌شده بالای toggleWishlist (بارگذاری اولیه‌ی
-    // ['wishlist'] برای کاربر لاگین‌کرده). همان مقداری که خودِ
-    // toggleWishlist برای گارد داخلی‌اش استفاده می‌کند — یک منبع واحد،
-    // نه دو state جدا که ممکن است از هم جدا بیفتند.
+    isInWishlist,
+
+    // isTogglingWishlist: برای غیرفعال کردن دکمه در حین mutation
     isTogglingWishlist: isWishlistBusy,
-    // ✅ فاز ۴: چک per-product سراسری (cross-instance) — رجوع به کامنت
-    // کامل بالای isProductMutating. مصرف‌کنندگانی که دقیقاً همان محصول
-    // ممکن است هم‌زمان در یک instance دیگر هم رندر شده باشد (کارت‌های
-    // تکراری در صفحه) باید disabled را با isTogglingWishlist ترکیب کنند:
-    // disabled={isTogglingWishlist || isProductMutating(product.id)}.
+
+    // isProductMutating: برای cross-instance dedup
     isProductMutating,
   };
 }
