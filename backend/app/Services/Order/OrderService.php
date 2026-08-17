@@ -9,6 +9,7 @@ use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\SellerTransaction;
+use App\Models\Setting;
 use App\Models\User;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
@@ -135,6 +136,7 @@ class OrderService
         return DB::transaction(function () use ($user, $cart, $items, $shippingAddress, $paymentMethod) {
             $validatedItems = $this->validateAndPrepareItems($items);
             $totals = $this->calculateTotals($validatedItems);
+            $this->assertOrderAmountWithinLimits($totals['total']);
             $orderNumber = $this->generateOrderNumber();
 
             $orderData = [
@@ -260,6 +262,17 @@ class OrderService
         return $validatedItems;
     }
 
+    /**
+     * ✅ P0 Settings→Runtime fix (Forensic Audit): قبلاً این متد فقط
+     * config('azkala.*') می‌خواند — یعنی تنظیمات Payment/Shipping/Tax
+     * پنل ادمین (که در جدول settings ذخیره می‌شدند) هیچ اثر واقعی روی
+     * محاسبه‌ی چک‌اوت نداشتند؛ ادمین می‌توانست ذخیره کند، بدون خطا، بدون
+     * هیچ تغییر رفتاری. حالا Setting دیتابیسی مرجع اصلی است و
+     * config/azkala/order.php فقط fallback می‌ماند (همان لایه‌بندی
+     * Setting → config → عدد پیش‌فرض که ReferralRewardService/
+     * CommissionService از قبل استفاده می‌کنند) — یعنی نصب‌های تازه‌ای
+     * که هنوز هیچ Setting ای seed نشده همان رفتار قبلی را حفظ می‌کنند.
+     */
     protected function calculateTotals(array $items): array
     {
         $subtotal = 0;
@@ -276,14 +289,16 @@ class OrderService
 
         $afterDiscount = $subtotal - $discount;
 
-        // ✅ اصلاح تایپو: azkla -> azkala
-        $freeShippingThreshold = (float) config('azkala.free_shipping_threshold', 500000);
-        $defaultShippingCost = (float) config('azkala.default_shipping_cost', 50000);
-        $taxRate = (float) config('azkala.tax_rate', 9);
+        $shippingCost = $this->calculateShippingCost($afterDiscount);
+        $tax = $this->calculateTax($afterDiscount);
 
-        $shippingCost = $afterDiscount >= $freeShippingThreshold ? 0 : $defaultShippingCost;
-        $tax = $afterDiscount * ($taxRate / 100);
-        $total = $afterDiscount + $shippingCost + $tax;
+        // ✅ وقتی price_include_tax فعال است، $tax از دلِ همان
+        // $afterDiscount استخراج شده (نه رویش اضافه) — پس اینجا دوباره
+        // به total اضافه نمی‌شود، وگرنه مالیات دوبار حساب می‌شد.
+        $priceIncludesTax = (bool) Setting::get('price_include_tax', false);
+        $total = $priceIncludesTax
+            ? $afterDiscount + $shippingCost
+            : $afterDiscount + $shippingCost + $tax;
 
         return [
             'subtotal' => $subtotal,
@@ -292,6 +307,97 @@ class OrderService
             'tax' => $tax,
             'total' => $total,
         ];
+    }
+
+    /**
+     * ✅ free_shipping_enabled/free_shipping_min_amount حالا واقعاً از
+     * پنل ادمین قابل‌کنترل‌اند (Setting دیتابیسی، نه config ثابت).
+     *
+     * ⚠️ عمداً post_pishtaz_cost/tipax_cost/express_delivery_cost اینجا
+     * وصل نشدند: این پروژه هیچ مفهوم «انتخاب روش ارسال» در چک‌اوت ندارد
+     * — نه در CreateOrderDTO/OrderController::store، نه در فرم چک‌اوت
+     * فرانت‌اند (grep کامل برای shipping_method/shippingMethod در کل
+     * backend+frontend صفر نتیجه داد). اتصال آن سه تنظیم بدون ساختن یک
+     * مکانیزم انتخاب روش ارسال کاملاً جدید یعنی حدس‌زدن رفتاری که هیچ‌جای
+     * کد فعلی تعریف نکرده — طبق دستور صریح («Do not invent behavior for
+     * settings that have no real … infrastructure») این سه decorative
+     * می‌مانند؛ رجوع به گزارش نهایی برای جزئیات.
+     */
+    private function calculateShippingCost(float $afterDiscount): float
+    {
+        $freeShippingEnabled = (bool) Setting::get('free_shipping_enabled', true);
+        $threshold = (float) Setting::get(
+            'free_shipping_min_amount',
+            config('azkala.free_shipping_threshold', 500000)
+        );
+        $defaultCost = (float) config('azkala.default_shipping_cost', 50000);
+
+        if ($freeShippingEnabled && $afterDiscount >= $threshold) {
+            return 0.0;
+        }
+
+        return $defaultCost;
+    }
+
+    /**
+     * ✅ vat_enabled=false حالا واقعاً مالیات را صفر می‌کند (قبلاً همیشه
+     * بدون قید و شرط اعمال می‌شد، حتی وقتی ادمین این تنظیم را خاموش
+     * می‌کرد). vat_rate از Setting می‌آید.
+     *
+     * price_include_tax=true یعنی قیمت محصولات از قبل شامل مالیات است —
+     * پس مالیات باید از داخل همان مبلغ استخراج شود (tax = price -
+     * price/(1+rate/100))، نه رویش اضافه؛ این دقیقاً همان معنای
+     * استانداردِ حسابداریِ «tax-inclusive pricing» است، نه رفتار
+     * اختراعی — فقط جهت محاسبه عوض می‌شود، معنای خودِ vat_rate ثابت
+     * می‌ماند.
+     */
+    private function calculateTax(float $afterDiscount): float
+    {
+        $vatEnabled = (bool) Setting::get('vat_enabled', true);
+
+        if (! $vatEnabled) {
+            return 0.0;
+        }
+
+        $taxRate = (float) Setting::get('vat_rate', config('azkala.tax_rate', 9));
+        $priceIncludesTax = (bool) Setting::get('price_include_tax', false);
+
+        if ($priceIncludesTax) {
+            return $afterDiscount - ($afterDiscount / (1 + $taxRate / 100));
+        }
+
+        return $afterDiscount * ($taxRate / 100);
+    }
+
+    /**
+     * ✅ min_order_amount/max_order_amount حالا واقعاً enforce می‌شوند —
+     * قبلاً این دو تنظیم در پنل ادمین قابل‌ویرایش بودند ولی هیچ کدی
+     * هرگز آن‌ها را نمی‌خواند، یعنی سفارش با هر مبلغی (حتی ۱ تومان یا
+     * چند میلیارد) بدون خطا ثبت می‌شد. ۰ یا نبودِ Setting یعنی «بدون
+     * محدودیت» (همان قرارداد nullable/۰-یعنی-غیرفعال که در بقیه‌ی
+     * تنظیمات این پروژه هم دیده می‌شود).
+     *
+     * InvalidArgumentException عمداً انتخاب شد، نه \Exception ساده —
+     * OrderController::store() از قبل دقیقاً همین کلاس را با یک catch
+     * جدا به ۴۰۰ + پیام واقعی نگاشت می‌کند (همان الگوی OutOfStockException
+     * چند خط بالاتر در همان کنترلر).
+     */
+    private function assertOrderAmountWithinLimits(float $total): void
+    {
+        $minAmount = (float) Setting::get('min_order_amount', 0);
+        $maxAmount = (float) Setting::get('max_order_amount', 0);
+
+        if ($minAmount > 0 && $total < $minAmount) {
+            throw new \InvalidArgumentException(
+                'حداقل مبلغ سفارش '.number_format($minAmount).' تومان است.'
+            );
+        }
+
+        if ($maxAmount > 0 && $total > $maxAmount) {
+            throw new \InvalidArgumentException(
+                'حداکثر مبلغ سفارش '.number_format($maxAmount).' تومان است.'
+            );
+        }
     }
 
     protected function generateOrderNumber(): string
