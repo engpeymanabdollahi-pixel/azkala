@@ -55,6 +55,11 @@ class DatabaseSeeder extends Seeder
             ProductImageSeeder::class,
         ]);
 
+        // ۴. مقالات مجله از فایل export دیتابیس
+        $this->call([
+            MagazineArticleSeeder::class,
+        ]);
+
         $this->command->info('🎉 دیتابیس با موفقیت و به طور کامل پر شد!');
     }
 }
