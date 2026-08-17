@@ -2,6 +2,7 @@
 
 namespace App\Services\Auth;
 
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\Referral\ReferralService;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +34,23 @@ class AuthService
      */
     public function registerOrRequestOtp(string $phone, ?string $email = null, ?string $name = null, ?string $referralCode = null): array
     {
+        // ✅ فاز ۳ تسک P0 SETTINGS/SECURITY FIX: پیش از این، registration_enabled
+        // فقط یک ردیف Setting بدون هیچ مصرف‌کننده‌ی واقعی بود (کاملاً no-op).
+        // این تنها نقطه‌ی صحیح enforcement است چون همین متد (نه verify-otp)
+        // واقعاً کاربر جدید می‌سازد — رجوع به کامنت wasRecentlyCreated بالا.
+        // عمداً فقط شماره‌های *جدید* (بدون کاربر موجود) را رد می‌کند: این
+        // Setting درباره‌ی «ثبت‌نام» است نه «ورود» — یک کاربر موجود باید
+        // همیشه بتواند صرف‌نظر از این کلید دوباره OTP بگیرد و وارد شود،
+        // وگرنه غیرفعال کردن ثبت‌نام به‌طور جانبی همه را هم از ورود محروم
+        // می‌کرد (یک باگ به‌مراتب بدتر از خودِ feature).
+        $isNewPhone = ! User::where('phone', $phone)->exists();
+
+        if ($isNewPhone && ! (bool) Setting::get('registration_enabled', true)) {
+            throw ValidationException::withMessages([
+                'phone' => 'ثبت‌نام کاربران جدید در حال حاضر غیرفعال است.',
+            ]);
+        }
+
         $this->otpService->generateAndCache($phone);
 
         $defaultName = $name ?: 'کاربر '.substr($phone, -4);

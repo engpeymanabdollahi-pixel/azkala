@@ -24,9 +24,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 
         // ✅ اضافه کردن middleware های Stateful و CORS به گروه api
+        // ✅ فاز ۳ تسک P0 SETTINGS/SECURITY FIX: CheckMaintenanceMode عمداً
+        // *بعد* از EnsureFrontendRequestsAreStateful قرار می‌گیرد تا
+        // $request->user() برای auth کوکی-محور (SPA) هم پیش از چک آماده
+        // باشد (رجوع به کامنت کامل در خودِ کلاس middleware).
         $middleware->appendToGroup('api', [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\CheckMaintenanceMode::class,
         ]);
 
         // Middleware برای دسترسی ادمین/فروشنده
