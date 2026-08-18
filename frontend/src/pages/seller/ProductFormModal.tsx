@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   X, Package, DollarSign, Tag, Smartphone, CheckCircle,
-  Loader2, Save, FileText, Image as ImageIcon, Plus, Trash2, ArrowLeft, Search, Edit
+  Loader2, Save, FileText, Image as ImageIcon, Plus, Trash2, ArrowLeft, Search, Edit, Palette
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -34,7 +34,25 @@ type FormFieldValue = FormData[keyof FormData];
 
 interface FormErrors { [key: string]: string; }
 interface Specification { key: string; value: string; }
-type Step = 'basic' | 'pricing' | 'specs' | 'models';
+
+// ✅ Variant/Color System فاز ۲.۲: هر ردیف یک رنگ مستقل با قیمت/موجودی/
+// SKU خودش است. id فقط در حالت ویرایش (رنگ از قبل موجود) پر می‌شود؛
+// نبودش یعنی رنگ تازه است و بک‌اند آن را create می‌کند.
+interface VariantFormItem {
+  id?: number;
+  color_name: string;
+  color_code: string;
+  sku: string;
+  price: number | '';
+  compare_price: number | '';
+  stock: number | '';
+}
+
+const EMPTY_VARIANT: VariantFormItem = {
+  color_name: '', color_code: '', sku: '', price: '', compare_price: '', stock: '',
+};
+
+type Step = 'basic' | 'pricing' | 'variants' | 'specs' | 'models';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -72,6 +90,8 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
   // ✅ استفاده از آرایه ID برای سادگی و هماهنگی مستقیم با API
   const [selectedModelIds, setSelectedModelIds] = useState<number[]>([]);
   const [specifications, setSpecifications] = useState<Specification[]>([]);
+  // ✅ Variant/Color System فاز ۲.۲
+  const [variants, setVariants] = useState<VariantFormItem[]>([]);
   const [activeStep, setActiveStep] = useState<Step>('basic');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
@@ -143,12 +163,38 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
       } else {
         setSpecifications([]);
       }
+
+      // ✅ Variant/Color System فاز ۲.۲: رنگ‌های موجود محصول را از پاسخ
+      // GET /seller/products/{id} (که SellerService::getSellerProductDetail
+      // با variants eager-load می‌کند) در state فرم پر می‌کند. id هر رنگ
+      // نگه داشته می‌شود تا submit بعدی بداند این رنگ را update کند، نه
+      // یک رنگ تازه بسازد.
+      if (productData.variants && Array.isArray(productData.variants)) {
+        setVariants(
+          productData.variants.map((v: {
+            id: number; color_name: string | null; color_code: string | null;
+            sku: string | null; price: number | string | null;
+            compare_price: number | string | null; stock: number | string | null;
+          }) => ({
+            id: v.id,
+            color_name: v.color_name || '',
+            color_code: v.color_code || '',
+            sku: v.sku || '',
+            price: v.price !== null && v.price !== undefined ? Number(v.price) : '',
+            compare_price: v.compare_price !== null && v.compare_price !== undefined ? Number(v.compare_price) : '',
+            stock: v.stock !== null && v.stock !== undefined ? Number(v.stock) : '',
+          }))
+        );
+      } else {
+        setVariants([]);
+      }
     } else if (mode === 'create') {
       // ریست کردن فرم برای ساخت جدید
       setFormData({ name: '', slug: '', price: 0, discount_price: 0, stock: 0, category_id: 0, description: '', short_description: '', sku: '', is_active: true, is_featured: false });
       setImages([]);
       setSelectedModelIds([]);
       setSpecifications([]);
+      setVariants([]);
       setActiveStep('basic');
     }
   }, [mode, productData, isOpen]);
@@ -189,6 +235,19 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
     setSelectedModelIds(prev =>
       prev.includes(modelId) ? prev.filter(id => id !== modelId) : [...prev, modelId]
     );
+  }, []);
+
+  // ✅ Variant/Color System فاز ۲.۲
+  const addVariantRow = useCallback(() => {
+    setVariants(prev => [...prev, { ...EMPTY_VARIANT }]);
+  }, []);
+
+  const updateVariantField = useCallback((index: number, field: keyof VariantFormItem, value: string | number) => {
+    setVariants(prev => prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)));
+  }, []);
+
+  const removeVariantRow = useCallback((index: number) => {
+    setVariants(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   const validateForm = useCallback((): boolean => {
@@ -243,6 +302,26 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
             return acc;
           }, {})
         : undefined,
+
+      // ✅ Variant/Color System فاز ۲.۲: همیشه ارسال می‌شود (حتی []) —
+      // چون بک‌اند (SellerService::updateProduct) دقیقاً بر اساس حضورِ
+      // این کلید تصمیم می‌گیرد که رنگ‌ها را sync کند یا دست‌نخورده
+      // بگذارد؛ چون state این فرم همیشه با داده‌ی واقعی سرور شروع
+      // می‌شود (یا خالی، در حالت ساخت)، ارسال بی‌قید‌وشرط دقیقاً همان
+      // «وضعیت فعلی مطلوب» را نشان می‌دهد — نه بیشتر نه کمتر. ردیف‌های
+      // کاملاً خالی (دکمه‌ی «افزودن رنگ» زده شده ولی چیزی وارد نشده)
+      // نادیده گرفته می‌شوند.
+      variants: variants
+        .filter(v => v.color_name.trim() || v.sku.trim() || v.price !== '' || v.stock !== '')
+        .map(v => ({
+          ...(v.id ? { id: v.id } : {}),
+          color_name: v.color_name.trim() || undefined,
+          color_code: v.color_code.trim() || undefined,
+          sku: v.sku.trim() || undefined,
+          price: v.price === '' ? undefined : Number(v.price),
+          compare_price: v.compare_price === '' ? undefined : Number(v.compare_price),
+          stock: v.stock === '' ? 0 : Number(v.stock),
+        })),
     };
 
     try {
@@ -265,11 +344,12 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, images, selectedModelIds, specifications, validateForm, mode, createMutation, updateMutation, onSuccess, handleClose]);
+  }, [formData, images, selectedModelIds, specifications, variants, validateForm, mode, createMutation, updateMutation, onSuccess, handleClose]);
 
   const steps = [
     { id: 'basic', label: mode === 'create' ? 'پایه' : 'اطلاعات پایه', icon: FileText },
     { id: 'pricing', label: 'قیمت و موجودی', icon: DollarSign },
+    { id: 'variants', label: 'رنگ‌ها', icon: Palette },
     { id: 'specs', label: 'مشخصات', icon: Tag },
     { id: 'models', label: 'سازگاری', icon: Smartphone },
   ];
@@ -394,6 +474,117 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
                     </div>
                     <div className="flex justify-between pt-4">
                       <Button variant="outline" onClick={() => setActiveStep('basic')}><ArrowLeft className="w-4 h-4 ml-2 rotate-180" /> مرحله قبل</Button>
+                      <Button onClick={() => setActiveStep('variants')}>مرحله بعد <ArrowLeft className="w-4 h-4 mr-2" /></Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ✅ Variant/Color System فاز ۲.۲ — Step: رنگ‌ها */}
+                {activeStep === 'variants' && (
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">رنگ‌ها</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          اختیاری — اگر محصول در چند رنگ عرضه می‌شود، برای هر رنگ قیمت و موجودی مستقل تعیین کنید.
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={addVariantRow}>
+                        <Plus className="w-4 h-4 ml-1" /> افزودن رنگ
+                      </Button>
+                    </div>
+
+                    {variants.length === 0 ? (
+                      <div className="text-center py-8 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl">
+                        <Palette className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">
+                          این محصول فعلاً بدون رنگ است — قیمت و موجودی همان مقادیر «قیمت و موجودی» بالا اعمال می‌شود.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {variants.map((variant, index) => (
+                          <div key={variant.id ?? `new-${index}`} className="p-4 border-2 border-gray-100 dark:border-slate-700 rounded-xl space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-1">
+                                <input
+                                  type="color"
+                                  value={/^#[0-9a-fA-F]{6}$/.test(variant.color_code) ? variant.color_code : '#000000'}
+                                  onChange={(e) => updateVariantField(index, 'color_code', e.target.value)}
+                                  className="w-9 h-9 rounded-lg border-2 border-gray-200 dark:border-slate-600 cursor-pointer flex-shrink-0"
+                                  title="انتخاب رنگ"
+                                />
+                                <input
+                                  type="text"
+                                  value={variant.color_name}
+                                  onChange={(e) => updateVariantField(index, 'color_name', e.target.value)}
+                                  placeholder="نام رنگ (مثلاً: مشکی)"
+                                  className="flex-1 px-3 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 text-sm font-bold"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeVariantRow(index)}
+                                className="p-2 text-error-500 hover:bg-error-50 dark:hover:bg-error-900/20 rounded-lg flex-shrink-0"
+                                aria-label="حذف این رنگ"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">SKU</label>
+                                <input
+                                  type="text"
+                                  value={variant.sku}
+                                  onChange={(e) => updateVariantField(index, 'sku', e.target.value)}
+                                  className="w-full px-2.5 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 text-sm"
+                                  dir="ltr"
+                                />
+                              </div>
+                              <div>
+                                {/* ✅ «قیمت این رنگ» — عمداً صریح، تا روشن باشد این
+                                    مستقل از قیمت رنگ‌های دیگر یا قیمت پایه‌ی
+                                    محصول است. */}
+                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">قیمت این رنگ</label>
+                                <input
+                                  type="number"
+                                  value={variant.price}
+                                  onChange={(e) => updateVariantField(index, 'price', e.target.value === '' ? '' : Number(e.target.value))}
+                                  className="w-full px-2.5 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 text-sm font-mono"
+                                  dir="ltr"
+                                  placeholder="مثلاً قیمت پایه"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">قیمت با تخفیف</label>
+                                <input
+                                  type="number"
+                                  value={variant.compare_price}
+                                  onChange={(e) => updateVariantField(index, 'compare_price', e.target.value === '' ? '' : Number(e.target.value))}
+                                  className="w-full px-2.5 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 text-sm font-mono"
+                                  dir="ltr"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-1">موجودی این رنگ</label>
+                                <input
+                                  type="number"
+                                  value={variant.stock}
+                                  onChange={(e) => updateVariantField(index, 'stock', e.target.value === '' ? '' : Number(e.target.value))}
+                                  className="w-full px-2.5 py-2 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 text-sm font-mono"
+                                  dir="ltr"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-between pt-4">
+                      <Button variant="outline" onClick={() => setActiveStep('pricing')}><ArrowLeft className="w-4 h-4 ml-2 rotate-180" /> مرحله قبل</Button>
                       <Button onClick={() => setActiveStep('specs')}>مرحله بعد <ArrowLeft className="w-4 h-4 mr-2" /></Button>
                     </div>
                   </div>
@@ -425,7 +616,7 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
                       </div>
                     )}
                     <div className="flex justify-between pt-4">
-                      <Button variant="outline" onClick={() => setActiveStep('pricing')}><ArrowLeft className="w-4 h-4 ml-2 rotate-180" /> مرحله قبل</Button>
+                      <Button variant="outline" onClick={() => setActiveStep('variants')}><ArrowLeft className="w-4 h-4 ml-2 rotate-180" /> مرحله قبل</Button>
                       <Button onClick={() => setActiveStep('models')}>مرحله بعد <ArrowLeft className="w-4 h-4 mr-2" /></Button>
                     </div>
                   </div>

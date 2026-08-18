@@ -73,6 +73,21 @@ class SellerProductController extends Controller
             // ✅ اضافه کردن اعتبارسنجی دستگاه‌های سازگار
             'device_model_ids' => 'nullable|array',
             'device_model_ids.*' => 'exists:device_models,id',
+
+            // ✅ Variant/Color System فاز ۲.۱: کاملاً اختیاری — عدم ارسال
+            // این کلید یعنی محصول بدون رنگ، دقیقاً همان رفتار قبلی.
+            // price/stock نهایی هرگز از final_price/is_in_stock محاسبه‌شده
+            // پذیرفته نمی‌شود — فقط همین ستون‌های خام اعتبارسنجی می‌شوند.
+            'variants' => 'sometimes|array',
+            'variants.*.color_name' => 'nullable|string|max:100',
+            'variants.*.color_code' => 'nullable|string|max:20',
+            'variants.*.sku' => 'nullable|string|max:100',
+            'variants.*.price' => 'nullable|numeric|min:0',
+            'variants.*.compare_price' => 'nullable|numeric|min:0',
+            'variants.*.discount_price' => 'nullable|numeric|min:0',
+            'variants.*.stock' => 'nullable|integer|min:0',
+            'variants.*.image' => 'nullable|string',
+            'variants.*.attributes' => 'nullable|array',
         ]);
 
         // تولید خودکار slug یکتا
@@ -97,7 +112,7 @@ class SellerProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'محصول با موفقیت ثبت شد',
-                'data' => $product->load(['category', 'brand', 'deviceModels']),
+                'data' => $product->load(['category', 'brand', 'deviceModels', 'variants']),
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -162,6 +177,22 @@ class SellerProductController extends Controller
             // ✅ اعتبارسنجی دستگاه‌های سازگار
             'device_model_ids' => 'nullable|array',
             'device_model_ids.*' => 'exists:device_models,id',
+
+            // ✅ Variant/Color System فاز ۲.۱: طبق تصمیم صریح، عدم ارسال
+            // این کلید یعنی «رنگ‌های فعلی دست‌نخورده بمانند» — نه حذف. اگر
+            // ارسال شود، کل مجموعه‌ی رنگ‌های محصول با آن جایگزین می‌شود
+            // (ایجاد/به‌روزرسانی/حذفِ صریحِ مواردی که دیگر نیستند).
+            'variants' => 'sometimes|array',
+            'variants.*.id' => 'sometimes|integer',
+            'variants.*.color_name' => 'nullable|string|max:100',
+            'variants.*.color_code' => 'nullable|string|max:20',
+            'variants.*.sku' => 'nullable|string|max:100',
+            'variants.*.price' => 'nullable|numeric|min:0',
+            'variants.*.compare_price' => 'nullable|numeric|min:0',
+            'variants.*.discount_price' => 'nullable|numeric|min:0',
+            'variants.*.stock' => 'nullable|integer|min:0',
+            'variants.*.image' => 'nullable|string',
+            'variants.*.attributes' => 'nullable|array',
         ]);
 
         try {

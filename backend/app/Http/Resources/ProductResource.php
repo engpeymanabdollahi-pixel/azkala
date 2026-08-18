@@ -130,6 +130,19 @@ class ProductResource extends JsonResource
             
             // ✅ وضعیت علاقه‌مندی کاربر فعلی
             'is_wishlisted' => $isWishlisted,
+
+            // ✅ Variant/Color System فاز ۲.۱: کاملاً افزایشی — price/
+            // compare_price/discount_price/final_price/stock/sku بالا
+            // دقیقاً همان قبل ماندند، برای هیچ محصولی (حتی آن‌هایی که
+            // variant دارند) عوض نشدند. whenLoaded با default صریح
+            // (نه MissingValue پیش‌فرض خودِ whenLoaded) استفاده شد تا این
+            // دو کلید همیشه حاضر باشند (نه گاهی حذف‌شده از پاسخ) — طبق
+            // خواسته‌ی صریح: «variants should be an empty collection/array»،
+            // نه یک کلید غایب. eager loading کجا انجام می‌شود را
+            // ProductRepository مشخص می‌کند، نه اینجا — پس این خط خودش
+            // هرگز کوئری اضافه نمی‌زند (N+1 امن).
+            'has_variants' => $this->whenLoaded('variants', fn () => $this->variants->isNotEmpty(), false),
+            'variants' => $this->whenLoaded('variants', fn () => ProductVariantResource::collection($this->variants), []),
         ];
     }
 }

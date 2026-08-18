@@ -27,7 +27,14 @@ class ProductRepository extends BaseRepository
             // seller هم به همین دلیل اینجاست: ProductResource برای هر محصول
             // loadMissing('seller') می‌زند، پس بدون این، هر ردیف یک کوئری users
             // جداگانه می‌ساخت (N+1).
-            ->with(['category', 'brand', 'images', 'deviceModels', 'seller'])
+            // ✅ Variant/Color System فاز ۲.۱: variants هم به همین لیست
+            // eager-load اضافه شد — دقیقاً همان دلیل seller/deviceModels
+            // بالا: ProductResource::whenLoaded('variants') بدون این، برای
+            // محصولاتی که واقعاً variant دارند یک کوئری جدا به‌ازای هر
+            // محصول می‌زد. برای محصول بدون variant، این فقط یک کوئری
+            // whereIn خالی روی جدول تازه (فعلاً بی‌داده) است — هزینه‌ی
+            // اضافه‌ی محسوسی ندارد.
+            ->with(['category', 'brand', 'images', 'deviceModels', 'seller', 'variants'])
             ->where('is_active', true);
 
         // Apply filters
@@ -87,7 +94,11 @@ class ProductRepository extends BaseRepository
     {
         return $this->query()
             // ✅ اضافه کردن deviceModels و روابط تو در تو آن برای صفحه جزئیات محصول
-            ->with(['category', 'brand', 'seller', 'images', 'deviceModels.series.brand'])
+            // variants فاز ۲.۱: صفحه‌ی جزئیات دقیقاً همان جایی است که
+            // Variant Selector فازهای بعدی به این داده نیاز خواهد داشت —
+            // اینجا فقط eager-load آماده شد، هیچ UI ای در همین فاز اضافه
+            // نشد.
+            ->with(['category', 'brand', 'seller', 'images', 'deviceModels.series.brand', 'variants'])
             ->where('slug', $slug)
             ->first();
     }
