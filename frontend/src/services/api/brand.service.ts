@@ -6,6 +6,14 @@ export interface Brand {
   slug: string;
   logo: string | null;
   description?: string;
+  // ✅ فاز ۱ Brand Hub: این چهار فیلد از قبل در پاسخ واقعی BrandResource
+  // بودند (country/website از ابتدا، is_verified از فاز ۰) یا با فاز ۱
+  // اضافه شدند (is_featured) — ولی تایپ فرانت هیچ‌کدام را نمی‌شناخت، پس
+  // هر تلاش برای خواندن brand.is_verified/is_featured خطای TS می‌داد.
+  country: string | null;
+  website: string | null;
+  is_verified: boolean;
+  is_featured: boolean;
   is_active: boolean;
   products_count?: number;
   created_at: string;

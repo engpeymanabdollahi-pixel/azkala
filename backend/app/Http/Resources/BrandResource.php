@@ -25,6 +25,13 @@ class BrandResource extends JsonResource
             // جدید) — دقیقاً منبع حقیقتی که AdminBrandRepository::verify/
             // unverify هم می‌نویسند (فقط verified_at را تغییر می‌دهند).
             'is_verified' => $this->isVerified(),
+            // ✅ فاز ۱ Brand Hub: is_featured ستون واقعی DB است (از قبل در
+            // مدل/فکتوری/فیلتر ادمین هست و AdminBrandRepository::bulkAction
+            // آن را می‌نویسد) ولی هیچ‌وقت در پاسخ عمومی serialize نمی‌شد —
+            // یعنی فرانت اصلاً نمی‌توانست بخش «برندهای ویژه» را با داده‌ی
+            // واقعی بسازد. صرفاً افزودن یک کلید به خروجی، بدون هیچ منطق
+            // جدید یا تغییر رفتار فیلدهای موجود.
+            'is_featured' => (bool) $this->is_featured,
 
             // Counts
             // ✅ این مقدار فقط وقتی صحیح است که فراخوان (BrandController)

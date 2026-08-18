@@ -152,6 +152,24 @@ class BrandPublicApiTest extends TestCase
         $this->assertFalse($byName['Unverified Co']['is_verified']);
     }
 
+    /**
+     * ✅ Brand Hub فاز ۱: is_featured ستون واقعی DB بود (مدل/فکتوری/فیلتر
+     * ادمین از قبل داشتند) ولی BrandResource هرگز آن را serialize
+     * نمی‌کرد — یعنی فرانت هیچ راهی برای ساخت بخش «برندهای ویژه» با
+     * داده‌ی واقعی نداشت.
+     */
+    public function test_brand_list_reflects_real_featured_state(): void
+    {
+        Brand::factory()->active()->create(['name' => 'Featured Co', 'is_featured' => true]);
+        Brand::factory()->active()->create(['name' => 'Regular Co', 'is_featured' => false]);
+
+        $response = $this->getJson('/api/v1/brands');
+
+        $byName = collect($response->json('data'))->keyBy('name');
+        $this->assertTrue($byName['Featured Co']['is_featured']);
+        $this->assertFalse($byName['Regular Co']['is_featured']);
+    }
+
     // ==================== GET /brands/{brand} ====================
 
     public function test_can_show_active_brand_by_id(): void
