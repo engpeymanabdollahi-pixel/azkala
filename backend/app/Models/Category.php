@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -59,6 +60,18 @@ class Category extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    // ✅ Device-First Architecture فاز ۱I: چندبه‌چند با DeviceFamily —
+    // مثلاً «شارژر و کابل» هم‌زمان به Smartphone/Laptop/Tablet وصل است.
+    public function deviceFamilies(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            DeviceFamily::class,
+            'category_device_family',
+            'category_id',
+            'device_family_id'
+        );
     }
 
     // ==================== Scopes ====================

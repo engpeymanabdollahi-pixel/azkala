@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\DeviceEnforcementService;
 use App\Services\Seller\SellerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,10 +14,12 @@ use App\Models\Product; // ✅ این خط باید اضافه شود
 class SellerProductController extends Controller
 {
     protected SellerService $sellerService;
+    protected DeviceEnforcementService $deviceEnforcement;
 
-    public function __construct(SellerService $sellerService)
+    public function __construct(SellerService $sellerService, DeviceEnforcementService $deviceEnforcement)
     {
         $this->sellerService = $sellerService;
+        $this->deviceEnforcement = $deviceEnforcement;
     }
 
     /**
@@ -101,6 +104,15 @@ class SellerProductController extends Controller
         $validated['slug'] = $slug;
 
         try {
+            // ✅ Device-First Architecture فاز ۱L: هر مدل دستگاه انتخابی باید
+            // به زنجیره‌ی کاملاً فعال (مدل→سری→برند→خانواده) وصل باشد و —
+            // در صورتی که دسته‌بندی صریحاً به یک/چند خانواده وصل شده باشد —
+            // با آن خانواده هم‌خوان باشد.
+            $this->deviceEnforcement->assertModelsSelectable(
+                $validated['device_model_ids'] ?? [],
+                $validated['category_id'] ?? null
+            );
+
             $sellerId = $request->user()->id;
             $product = $this->sellerService->createProduct($sellerId, $validated);
 
@@ -117,6 +129,8 @@ class SellerProductController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             Log::error('SellerProductController@store: ' . $e->getMessage());
             $statusCode = (int) $e->getCode();
@@ -196,6 +210,15 @@ class SellerProductController extends Controller
         ]);
 
         try {
+            // ✅ فاز ۱L: همان قانون store() — فقط وقتی device_model_ids
+            // واقعاً در این درخواست ارسال شده باشد اجرا می‌شود.
+            if (isset($validated['device_model_ids'])) {
+                $this->deviceEnforcement->assertModelsSelectable(
+                    $validated['device_model_ids'],
+                    $validated['category_id'] ?? null
+                );
+            }
+
             $product = $this->sellerService->updateProduct((int) $id, $sellerId, $validated);
 
             return response()->json([
@@ -210,6 +233,8 @@ class SellerProductController extends Controller
             ], 403);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             Log::error('SellerProductController@update: ' . $e->getMessage());
 
@@ -269,6 +294,14 @@ class SellerProductController extends Controller
                 ->findOrFail($templateId);
 
             $sellerId = $request->user()->id;
+
+            // ✅ فاز ۱L: کپی از تمپلیت هم زیر همان قانون است — اگر تمپلیت
+            // بعداً (پس از ساخته‌شدن) به یک مدل/خانواده‌ی غیرفعال‌شده وصل
+            // مانده باشد، کپی مسدود می‌شود.
+            $this->deviceEnforcement->assertModelsSelectable(
+                $template->deviceModels->pluck('id')->toArray(),
+                $template->category_id
+            );
 
             do {
                 $slug = Str::slug($template->name) . '-s' . $sellerId . '-' . Str::lower(Str::random(6));

@@ -72,6 +72,10 @@ class AdminCategoryController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'bg_color' => 'nullable|string|max:20',
             'text_color' => 'nullable|string|max:20',
+
+            // ✅ Device-First Architecture فاز ۱I: چندبه‌چند با DeviceFamily.
+            'device_family_ids' => 'nullable|array',
+            'device_family_ids.*' => 'integer|exists:device_families,id',
         ]);
 
         $category = $this->categoryService->createCategory($validated);
@@ -120,6 +124,13 @@ class AdminCategoryController extends Controller
             'end_date' => 'nullable|date',
             'bg_color' => 'nullable|string|max:20',
             'text_color' => 'nullable|string|max:20',
+
+            // ✅ فاز ۱I: عدم ارسال یعنی «تغییری نده» (نه پاک‌کردن)، چون این
+            // یک فیلد جدید و اختیاری است و اکثر فراخوان‌های موجودِ ویرایش
+            // دسته اصلاً از آن خبر ندارند — دقیقاً همان قاعده‌ای که برای
+            // variants در فرم محصول فروشنده استفاده شد.
+            'device_family_ids' => 'sometimes|array',
+            'device_family_ids.*' => 'integer|exists:device_families,id',
         ]);
 
         $category = $this->categoryService->updateCategory((int) $id, $validated);

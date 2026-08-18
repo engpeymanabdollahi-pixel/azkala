@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   X, ChevronRight, Smartphone, Search, Check,
-  Sparkles, TrendingUp, Award, Loader2, Laptop, Tablet,
+  Sparkles, TrendingUp, Award, Loader2,
   BookmarkCheck, BookmarkPlus,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useModelStore } from '@/store/modelStore';
 import { Modal } from '@/components/ui/Modal';
 import { SafeImage } from '@/components/ui/SafeImage';
@@ -20,7 +21,11 @@ interface HierarchyBrand {
   id: number;
   name: string;
   slug: string;
+  // ✅ Device-First Architecture فاز ۱H: type فقط برای سازگاری موقتِ
+  // toBrand()/formatDeviceName باقی مانده — فیلتر واقعیِ این مودال دیگر
+  // روی type هاردکد نیست، روی family داده‌محور است.
   type: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
+  family: { id: number; name: string; slug: string; icon: string | null } | null;
   series: HierarchySeries[];
 }
 
@@ -56,9 +61,18 @@ export function ModelSelectorModal() {
 
   const [step, setStep] = useState<Step>('brand');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDeviceType, setSelectedDeviceType] = useState<string>('all');
+  // ✅ فاز ۱H: 'all' یا family.slug واقعی — دیگر 'mobile'/'laptop'/'tablet'
+  // هاردکد نیست.
+  const [selectedFamilySlug, setSelectedFamilySlug] = useState<string>('all');
   const [tempBrand, setTempBrand] = useState<HierarchyBrand | null>(null);
   const [tempSeries, setTempSeries] = useState<HierarchySeries | null>(null);
+
+  // ✅ فاز ۱F/۱H: خانواده‌های فعالِ دستگاه — منبع تراشه‌های فیلتر، داده‌محور.
+  const { data: families = [] } = useQuery({
+    queryKey: ['device-families'],
+    queryFn: deviceService.getFamilies,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [hierarchy, setHierarchy] = useState<HierarchyBrand[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,7 +104,7 @@ export function ModelSelectorModal() {
       }
 
       setSearchTerm('');
-      setSelectedDeviceType('all');
+      setSelectedFamilySlug('all');
       setTimeout(() => searchInputRef.current?.focus(), 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -111,9 +125,9 @@ export function ModelSelectorModal() {
   };
 
   const filteredHierarchy = useMemo(() => {
-    if (selectedDeviceType === 'all') return hierarchy;
-    return hierarchy.filter(brand => brand.type === selectedDeviceType);
-  }, [hierarchy, selectedDeviceType]);
+    if (selectedFamilySlug === 'all') return hierarchy;
+    return hierarchy.filter(brand => brand.family?.slug === selectedFamilySlug);
+  }, [hierarchy, selectedFamilySlug]);
 
   const filteredBrands = useMemo(() => {
     if (!searchTerm.trim()) return filteredHierarchy;
@@ -307,7 +321,7 @@ export function ModelSelectorModal() {
     setTempBrand(null);
     setTempSeries(null);
     setSearchTerm('');
-    setSelectedDeviceType('all');
+    setSelectedFamilySlug('all');
   }, [clearSelection]);
 
   const resetState = () => {
@@ -315,7 +329,7 @@ export function ModelSelectorModal() {
     setTempBrand(null);
     setTempSeries(null);
     setSearchTerm('');
-    setSelectedDeviceType('all');
+    setSelectedFamilySlug('all');
   };
 
   useEffect(() => {
@@ -459,38 +473,38 @@ export function ModelSelectorModal() {
             {/* Step: Brand */}
             {step === 'brand' && (
               <div className="animate-fade-in">
-                {/* انتخاب نوع دستگاه - کوچک‌تر */}
-                <div className="mb-3">
-                  <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-2">نوع دستگاه:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { value: 'all', label: 'همه', icon: Sparkles },
-                      { value: 'mobile', label: 'موبایل', icon: Smartphone },
-                      { value: 'laptop', label: 'لپ‌تاپ', icon: Laptop },
-                      { value: 'tablet', label: 'تبلت', icon: Tablet },
-                    ].map((type) => {
-                      const Icon = type.icon;
-                      const isActive = selectedDeviceType === type.value;
-                      return (
-                        <button
-                          key={type.value}
-                          onClick={() => setSelectedDeviceType(type.value)}
-                          className={cn(
-                            "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-                            isActive
-                              ? "bg-primary-500 text-white border-primary-500 shadow-sm"
-                              : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600"
-                          )}
-                          type="button"
-                        >
-                          <Icon className="w-3 h-3" />
-                          {type.label}
-                        </button>
-                      );
-                    })}
+                {/* ✅ Device-First Architecture فاز ۱H: تراشه‌های اکوسیستم
+                    اکنون داده‌محورند — از /device-families می‌آیند، نه یک
+                    آرایه‌ی هاردکد mobile/laptop/tablet. افزودن یک خانواده‌ی
+                    جدید (مثلاً Smartwatch) از ادمین، بدون هیچ تغییر کدی،
+                    همین‌جا ظاهر می‌شود. */}
+                {families.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-2">نوع دستگاه:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[{ slug: 'all', name: 'همه' }, ...families].map((family) => {
+                        const isActive = selectedFamilySlug === family.slug;
+                        return (
+                          <button
+                            key={family.slug}
+                            onClick={() => setSelectedFamilySlug(family.slug)}
+                            className={cn(
+                              "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+                              isActive
+                                ? "bg-primary-500 text-white border-primary-500 shadow-sm"
+                                : "bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600"
+                            )}
+                            type="button"
+                          >
+                            {family.slug === 'all' ? <Sparkles className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
+                            {family.name}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* ✅ سناریو B: دستگاه‌های من - دسترسی سریع بدون طی کردن ویزارد */}
                 {!searchTerm && isAuthenticated && myDevices.length > 0 && (

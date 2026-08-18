@@ -9,7 +9,6 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
-use App\Models\ProductDeviceCompatibility;
 use Illuminate\Support\Facades\DB;
 
 class CartService
@@ -60,9 +59,15 @@ class CartService
                 throw new OutOfStockException("موجودی محصول '{$itemLabel}' کافی نیست. (موجودی: {$availableStock})");
             }
 
+            // ✅ Device-First Architecture فاز ۱J: تنها منبع حقیقتِ سازگاری
+            // محصول↔دستگاه اکنون device_model_product است (رابطه‌ی
+            // Product::deviceModels()) — قبلاً اینجا از جدول موازیِ
+            // product_device_compatibility می‌خواند که هیچ‌جای seller/admin
+            // هرگز آن را پر نمی‌کرد؛ یعنی این چک عملاً همیشه شکست می‌خورد
+            // (هر بار device_model_id در سبد ارسال می‌شد، IncompatibleProductException
+            // می‌گرفت، چون آن جدول همیشه خالی بود).
             if ($deviceModelId) {
-                $isCompatible = ProductDeviceCompatibility::where('product_id', $productId)
-                    ->where('device_model_id', $deviceModelId)->exists();
+                $isCompatible = $product->deviceModels()->where('device_models.id', $deviceModelId)->exists();
 
                 if (!$isCompatible) {
                     throw new IncompatibleProductException("محصول '{$product->name}' با دستگاه انتخابی شما سازگار نیست.");

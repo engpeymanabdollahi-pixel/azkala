@@ -1,32 +1,19 @@
 import { useState } from 'react';
-import { Edit2, Trash2, Eye, Plus, Smartphone, Laptop, Tablet, Puzzle } from 'lucide-react';
+import { Edit2, Trash2, Eye, Smartphone } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { CrudTable, type ColumnDef, type FilterConfig, type ActionConfig } from '@/features/admin/components/CrudTable';
 import {
-  adminDeviceBrandService,
   type AdminDeviceBrand,
   type DeviceBrandFormData,
 } from '@/services/api/adminDeviceBrand.service';
+import { adminDeviceFamilyService } from '@/services/api/adminDeviceFamily.service';
 import { useCrudMutations } from '@/features/admin/hooks';
 
 type ModalMode = 'create' | 'edit' | 'view';
-
-const typeIcons: Record<string, any> = {
-  mobile: Smartphone,
-  laptop: Laptop,
-  tablet: Tablet,
-  accessory: Puzzle,
-};
-
-const typeLabels: Record<string, string> = {
-  mobile: 'موبایل',
-  laptop: 'لپ‌تاپ',
-  tablet: 'تبلت',
-  accessory: 'لوازم جانبی',
-};
 
 export function AdminDeviceBrandsPage() {
   const [modalMode, setModalMode] = useState<ModalMode | null>(null);
@@ -34,9 +21,19 @@ export function AdminDeviceBrandsPage() {
   const [formData, setFormData] = useState<DeviceBrandFormData>({
     name: '',
     slug: '',
-    type: 'mobile',
+    family_id: null,
     is_active: true,
   });
+
+  // ✅ Device-First Architecture فاز ۱E/۱H: خانواده‌های دستگاه دیگر enum
+  // ثابتی در کد نیست — از API واقعی خوانده می‌شود (شامل غیرفعال‌ها هم،
+  // چون این فرمِ ادمین است، نه فرم عمومی).
+  const { data: familiesData } = useQuery({
+    queryKey: ['admin/device-families', 'for-brand-form'],
+    queryFn: () => adminDeviceFamilyService.getFamilies({ per_page: 100 }),
+    staleTime: 60 * 1000,
+  });
+  const families = familiesData?.data.families ?? [];
 
   const { createMutation, updateMutation, deleteMutation } = useCrudMutations({
     queryKeys: ['admin/device-brands'],
@@ -50,7 +47,7 @@ export function AdminDeviceBrandsPage() {
   const closeModal = () => {
     setModalMode(null);
     setSelectedBrand(null);
-    setFormData({ name: '', slug: '', type: 'mobile', is_active: true });
+    setFormData({ name: '', slug: '', family_id: null, is_active: true });
   };
 
   const handleEdit = (brand: AdminDeviceBrand) => {
@@ -58,7 +55,7 @@ export function AdminDeviceBrandsPage() {
     setFormData({
       name: brand.name,
       slug: brand.slug,
-      type: brand.type,
+      family_id: brand.family_id,
       is_active: brand.is_active,
     });
     setModalMode('edit');
@@ -88,7 +85,7 @@ export function AdminDeviceBrandsPage() {
       key: 'name',
       label: 'نام برند',
       sortable: true,
-      render: (value, brand) => (
+      render: (_value, brand) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center text-white font-bold">
             {brand.name?.charAt(0)}
@@ -101,17 +98,14 @@ export function AdminDeviceBrandsPage() {
       ),
     },
     {
-      key: 'type',
-      label: 'نوع دستگاه',
-      render: (value) => {
-        const Icon = typeIcons[value] || Smartphone;
-        return (
-          <Badge variant="gray" size="sm">
-            <Icon className="w-3 h-3 ml-1" />
-            {typeLabels[value] || value}
-          </Badge>
-        );
-      },
+      key: 'family',
+      label: 'خانواده‌ی دستگاه',
+      render: (_value, brand) => (
+        <Badge variant={brand.family ? 'gray' : 'warning'} size="sm">
+          <Smartphone className="w-3 h-3 ml-1" />
+          {brand.family?.name || 'بدون خانواده'}
+        </Badge>
+      ),
     },
     {
       key: 'is_active',
@@ -126,15 +120,10 @@ export function AdminDeviceBrandsPage() {
 
   const filters: FilterConfig[] = [
     {
-      key: 'type',
-      label: 'نوع دستگاه',
+      key: 'family_id',
+      label: 'خانواده‌ی دستگاه',
       type: 'select',
-      options: [
-        { label: 'موبایل', value: 'mobile' },
-        { label: 'لپ‌تاپ', value: 'laptop' },
-        { label: 'تبلت', value: 'tablet' },
-        { label: 'لوازم جانبی', value: 'accessory' },
-      ],
+      options: families.map((f) => ({ label: f.name, value: String(f.id) })),
     },
     {
       key: 'is_active',
@@ -185,17 +174,23 @@ export function AdminDeviceBrandsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">نوع دستگاه</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">خانواده‌ی دستگاه</label>
               <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                value={formData.family_id ?? ''}
+                onChange={(e) => setFormData({ ...formData, family_id: e.target.value ? Number(e.target.value) : null })}
                 className="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 shadow-sm focus:border-primary-500 focus:ring-primary-500 p-2"
+                required
               >
-                <option value="mobile">موبایل</option>
-                <option value="laptop">لپ‌تاپ</option>
-                <option value="tablet">تبلت</option>
-                <option value="accessory">لوازم جانبی</option>
+                <option value="">— انتخاب کنید —</option>
+                {families.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}{!f.is_active ? ' (غیرفعال)' : ''}</option>
+                ))}
               </select>
+              {families.length === 0 && (
+                <p className="text-xs text-warning-600 dark:text-warning-400 mt-1">
+                  هنوز هیچ خانواده‌ی دستگاهی ثبت نشده — ابتدا از تب «خانواده‌های دستگاه» یکی بسازید.
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-6">
@@ -206,7 +201,7 @@ export function AdminDeviceBrandsPage() {
             </div>
 
             <div className="flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <Button onClick={handleSubmit} isLoading={createMutation.isPending || updateMutation.isPending} fullWidth>
+              <Button onClick={handleSubmit} isLoading={createMutation.isPending || updateMutation.isPending} fullWidth disabled={!formData.family_id}>
                 {modalMode === 'create' ? 'ایجاد برند' : 'ذخیره تغییرات'}
               </Button>
               <Button variant="outline" onClick={closeModal} fullWidth>انصراف</Button>
@@ -230,8 +225,8 @@ export function AdminDeviceBrandsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400">نوع دستگاه</label>
-                <div className="font-medium text-gray-900 dark:text-gray-100">{typeLabels[selectedBrand.type] || selectedBrand.type}</div>
+                <label className="text-xs text-gray-500 dark:text-gray-400">خانواده‌ی دستگاه</label>
+                <div className="font-medium text-gray-900 dark:text-gray-100">{selectedBrand.family?.name || 'بدون خانواده'}</div>
               </div>
               <div>
                 <label className="text-xs text-gray-500 dark:text-gray-400">وضعیت</label>

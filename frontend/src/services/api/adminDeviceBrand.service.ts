@@ -4,7 +4,12 @@ export interface AdminDeviceBrand {
   id: number;
   name: string;
   slug: string;
-  type: 'mobile' | 'laptop' | 'tablet' | 'accessory';
+  // ✅ Device-First Architecture فاز ۱D: type دیگر منبع حقیقت نیست — فقط
+  // برای سازگاری موقت با کدهای قدیمی که هنوز می‌خوانندش نگه داشته شده.
+  // family_id/family اکنون منبع حقیقتِ اکوسیستم دستگاه است.
+  type: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
+  family_id: number | null;
+  family: { id: number; name: string; slug: string } | null;
   is_active: boolean;
   created_at: string;
 }
@@ -24,6 +29,7 @@ export interface AdminDeviceBrandsResponse {
 export interface DeviceBrandFilters {
   search?: string;
   type?: string;
+  family_id?: number;
   is_active?: boolean;
   page?: number;
   per_page?: number;
@@ -32,7 +38,9 @@ export interface DeviceBrandFilters {
 export interface DeviceBrandFormData {
   name: string;
   slug?: string;
-  type: 'mobile' | 'laptop' | 'tablet' | 'accessory';
+  // ✅ فاز ۱E: خانواده‌ی دستگاه اکنون فیلد الزامیِ فرم است — انتخابی
+  // داده‌محور از فهرست خانواده‌های واقعی، نه enum ثابت.
+  family_id: number | null;
   is_active?: boolean;
 }
 

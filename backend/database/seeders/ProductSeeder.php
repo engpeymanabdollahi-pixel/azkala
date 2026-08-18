@@ -47,11 +47,10 @@ class ProductSeeder extends Seeder
                 continue;
             }
 
-            Product::create([
+            $product = Product::create([
                 'category_id' => $categories->random()->id,
                 'brand_id' => $brands->random()->id,
                 'seller_id' => $sellers->isNotEmpty() ? $sellers->random()->id : null,
-                'device_model_id' => $deviceModels->isNotEmpty() ? $deviceModels->random()->id : null,
                 'name' => $productData['name'],
                 'slug' => $slug,
                 'short_description' => $productData['short_description'] ?? 'محصول با کیفیت عالی',
@@ -65,6 +64,13 @@ class ProductSeeder extends Seeder
                 'is_special_offer' => $productData['is_special_offer'] ?? false,
                 'special_offer_ends_at' => isset($productData['is_special_offer']) ? now()->addDays(30) : null,
             ]);
+
+            // ✅ Device-First Architecture فاز ۱J: سازگاری دستگاه اکنون از
+            // طریق device_model_product نوشته می‌شود، نه ستونِ حذف‌شده‌ی
+            // products.device_model_id.
+            if ($deviceModels->isNotEmpty()) {
+                $product->deviceModels()->sync([$deviceModels->random()->id]);
+            }
         }
 
         $this->command->info('✅ محصولات نمونه با موفقیت ساخته شدند!');

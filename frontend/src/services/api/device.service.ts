@@ -1,5 +1,17 @@
 import apiClient from '@/services/api/client';
 
+// ✅ Device-First Architecture فاز ۱F/۱H: خانواده‌ی دستگاه (Smartphone/
+// Laptop/Tablet/...) — تنها منبع اکوسیستم دستگاه، داده‌محور و بدون هیچ
+// enum ثابتی در فرانت‌اند. افزودن یک خانواده‌ی جدید از ادمین، بدون هیچ
+// تغییر کدی، خودش اینجا ظاهر می‌شود.
+export interface DeviceFamily {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string | null;
+  sort_order: number;
+}
+
 export interface DeviceBrand {
   id: number;
   name: string;
@@ -34,6 +46,12 @@ export interface DeviceModelWithBrand {
 }
 
 export const deviceService = {
+  // ✅ فاز ۱F: لیست عمومی خانواده‌های فعالِ دستگاه.
+  getFamilies: async (): Promise<DeviceFamily[]> => {
+    const response = await apiClient.get('/device-families');
+    return response.data.data || [];
+  },
+
   getBrands: async (): Promise<DeviceBrand[]> => {
     const response = await apiClient.get('/devices/brands');
     return response.data.data || [];
