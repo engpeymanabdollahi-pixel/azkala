@@ -89,6 +89,15 @@ class Product extends Model
         return $this->hasMany(StoreInventory::class);
     }
 
+    // ✅ Variant/Color System فاز ۲.۱: پایه‌ی داده‌ای — فقط رابطه، بدون
+    // هیچ تغییری در price/stock/sku فعلی این مدل. محصولی که هیچ ردیف
+    // variant ندارد (اکثریت قطعی محصولات امروز) دقیقاً مثل قبل رفتار
+    // می‌کند؛ این رابطه فقط وقتی داده‌ای دارد که صریحاً برایش ساخته شود.
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
         public function deviceModels()
     {
         return $this->belongsToMany(

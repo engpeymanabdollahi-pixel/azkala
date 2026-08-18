@@ -156,13 +156,39 @@ class SellerService
      * می‌رفت و Eloquent بی‌صدا دورش می‌ریخت؛ یعنی درست کار می‌کرد ولی فقط
      * تصادفی — با فعال شدن preventSilentlyDiscardingAttributes خطا می‌شود.
      */
-    private const NON_COLUMN_KEYS = ['device_model_ids'];
+    // ✅ Variant/Color System فاز ۲.۱: variants هم مثل device_model_ids یک
+    // کلید غیرستونی است (رابطه‌ی جدا، نه ستون products) — باید قبل از
+    // Product::create/update حذف شود، وگرنه با preventSilentlyDiscarding
+    // Attributes همان کرش قدیمیِ device_model_ids را برای variants هم
+    // تکرار می‌کرد.
+    private const NON_COLUMN_KEYS = ['device_model_ids', 'variants'];
+
+    // ✅ فقط ستون‌های واقعیِ product_variants که فروشنده مجاز به تعیین آن‌ها
+    // است — عمداً id/product_id/created_at/... اینجا نیستند. price/stock
+    // هرگز محاسبه‌شده (final_price/is_in_stock) از کلاینت پذیرفته نمی‌شوند؛
+    // این‌ها فقط accessor های سمت پاسخ‌اند (ProductVariantResource)، نه
+    // فیلد ورودی.
+    private const VARIANT_FILLABLE_KEYS = [
+        'color_name', 'color_code', 'sku', 'price', 'compare_price',
+        'discount_price', 'stock', 'image', 'attributes',
+    ];
 
     public function createProduct(int $sellerId, array $data): Product
     {
         $data['seller_id'] = $sellerId;
 
-        return Product::create(Arr::except($data, self::NON_COLUMN_KEYS));
+        return DB::transaction(function () use ($data) {
+            $product = Product::create(Arr::except($data, self::NON_COLUMN_KEYS));
+
+            // ✅ محصول تازه‌ساخته‌شده هرگز variant قبلی ندارد — پس اینجا
+            // فقط create لازم است، نه sync/delete کامل که updateProduct
+            // پایین‌تر انجام می‌دهد.
+            if (! empty($data['variants'])) {
+                $this->createProductVariants($product, $data['variants']);
+            }
+
+            return $product;
+        });
     }
 
     public function updateProduct(int $productId, int $sellerId, array $data): Product
@@ -182,15 +208,144 @@ class SellerService
             $data['slug'] = $slug;
         }
 
-        $product->update(Arr::except($data, self::NON_COLUMN_KEYS));
+        DB::transaction(function () use ($product, $data) {
+            $product->update(Arr::except($data, self::NON_COLUMN_KEYS));
 
-        if (isset($data['device_model_ids'])) {
-            $product->deviceModels()->sync($data['device_model_ids']);
-        } else {
-            $product->deviceModels()->sync([]);
+            if (isset($data['device_model_ids'])) {
+                $product->deviceModels()->sync($data['device_model_ids']);
+            } else {
+                $product->deviceModels()->sync([]);
+            }
+
+            // ✅ فقط وقتی کلید variants واقعاً در payload حاضر است sync
+            // انجام می‌شود — طبق قانون صریح: عدم ارسال variants نباید
+            // variantهای موجود را پاک کند (برخلاف device_model_ids که
+            // نبودش یعنی «همه را پاک کن»، اینجا عمداً رفتار متفاوت است
+            // چون device_model_ids از اول یک many-to-many کامل-جایگزین
+            // بوده، ولی variants یک قابلیت تازه است که اکثر فراخوان‌های
+            // فعلی update اصلاً از آن خبر ندارند).
+            if (array_key_exists('variants', $data)) {
+                $this->syncProductVariants($product, $data['variants'] ?? []);
+            }
+        });
+
+        return $product->fresh()->load(['category', 'brand', 'deviceModels', 'variants']);
+    }
+
+    /**
+     * ✅ Variant/Color System فاز ۲.۱: ایجاد گروهی variant برای یک محصول
+     * تازه‌ساخته‌شده. مالکیت این‌جا خودکار تضمین است چون $product همین
+     * الان با seller_id درخواست‌کننده ساخته شده.
+     */
+    private function createProductVariants(Product $product, array $variantsData): void
+    {
+        $this->assertNoDuplicateSkusOrColors($variantsData);
+
+        foreach ($variantsData as $variantData) {
+            $payload = Arr::only($variantData, self::VARIANT_FILLABLE_KEYS);
+            $this->assertSkuIsGloballyUnique($payload['sku'] ?? null, null);
+            $product->variants()->create($payload);
+        }
+    }
+
+    /**
+     * ✅ Variant/Color System فاز ۲.۱: sync کامل — طبق تصمیم صریحِ گزارش
+     * فاز قبل (Option A: variants[] به‌عنوان کل مجموعه‌ی جایگزین).
+     *
+     * - آیتم با 'id': فقط اگر واقعاً از طریق رابطه‌ی همین محصول
+     *   ($product->variants()) پیدا شود آپدیت می‌شود — این دقیقاً همان
+     *   کنترل IDOR است (نه یک مقایسه‌ی دستی seller_id، بلکه scope خودِ
+     *   کوئری روی محصولی که مالکیتش از قبل در updateProduct احراز شده).
+     *   id ای که به این محصول تعلق ندارد => خطای واضح، نه نادیده‌گرفتن
+     *   خاموش (که می‌توانست یک تلاش IDOR را بی‌صدا قورت بدهد).
+     * - آیتم بدون 'id': variant جدید.
+     * - variant موجودی که در payload جدید نیامده: soft-delete صریح.
+     */
+    private function syncProductVariants(Product $product, array $variantsData): void
+    {
+        $this->assertNoDuplicateSkusOrColors($variantsData);
+
+        $keptIds = [];
+
+        foreach ($variantsData as $variantData) {
+            $payload = Arr::only($variantData, self::VARIANT_FILLABLE_KEYS);
+            $variantId = $variantData['id'] ?? null;
+
+            if ($variantId) {
+                // ✅ IDOR guard: کوئری از طریق رابطه‌ی محصول، نه
+                // ProductVariant::find($id) خام.
+                $variant = $product->variants()->find($variantId);
+                if (! $variant) {
+                    $this->throwVariantValidationError("variant با شناسه {$variantId} متعلق به این محصول نیست.");
+                }
+
+                $this->assertSkuIsGloballyUnique($payload['sku'] ?? null, $variant->id);
+                $variant->update($payload);
+                $keptIds[] = $variant->id;
+            } else {
+                $this->assertSkuIsGloballyUnique($payload['sku'] ?? null, null);
+                $newVariant = $product->variants()->create($payload);
+                $keptIds[] = $newVariant->id;
+            }
         }
 
-        return $product->fresh()->load(['category', 'brand', 'deviceModels']);
+        // ✅ هر variant موجودِ این محصول که در payload جدید نبود، عمداً
+        // حذف شده تلقی می‌شود (soft-delete — طبق SoftDeletes مدل).
+        $product->variants()->whereNotIn('id', $keptIds)->delete();
+    }
+
+    /**
+     * ✅ جلوگیری از تعریف دو variant با SKU یکسان یا رنگ یکسان در همان
+     * payload (پیش از رسیدن به DB) — طبق دستور صریح «prevent duplicate
+     * variant definitions».
+     */
+    private function assertNoDuplicateSkusOrColors(array $variantsData): void
+    {
+        $skus = [];
+        $colors = [];
+
+        foreach ($variantsData as $variantData) {
+            $sku = isset($variantData['sku']) ? trim((string) $variantData['sku']) : null;
+            if ($sku !== null && $sku !== '') {
+                if (in_array($sku, $skus, true)) {
+                    $this->throwVariantValidationError("SKU تکراری در همین درخواست: {$sku}");
+                }
+                $skus[] = $sku;
+            }
+
+            $color = isset($variantData['color_name']) ? trim((string) $variantData['color_name']) : null;
+            if ($color !== null && $color !== '') {
+                if (in_array($color, $colors, true)) {
+                    $this->throwVariantValidationError("رنگ تکراری در همین درخواست: {$color}");
+                }
+                $colors[] = $color;
+            }
+        }
+    }
+
+    /**
+     * ✅ همان قرارداد یکتاییِ سراسری products.sku (نه فقط در محدوده‌ی یک
+     * محصول) — تأیید شده با خواندن مستقیم migration جدول products.
+     */
+    private function assertSkuIsGloballyUnique(?string $sku, ?int $ignoreVariantId): void
+    {
+        if ($sku === null || $sku === '') {
+            return;
+        }
+
+        $query = \App\Models\ProductVariant::where('sku', $sku);
+        if ($ignoreVariantId) {
+            $query->where('id', '!=', $ignoreVariantId);
+        }
+
+        if ($query->exists()) {
+            $this->throwVariantValidationError("SKU «{$sku}» قبلاً برای رنگ دیگری استفاده شده است.");
+        }
+    }
+
+    private function throwVariantValidationError(string $message): void
+    {
+        throw \Illuminate\Validation\ValidationException::withMessages(['variants' => $message]);
     }
 
     public function deleteProduct(int $productId, int $sellerId): bool
@@ -298,7 +453,9 @@ class SellerService
     {
         $product = \App\Models\Product::where('id', $productId)
             ->where('seller_id', $sellerId)
-            ->with(['category', 'brand'])
+            // ✅ Variant/Color System فاز ۲.۲: فرم ویرایش فروشنده باید
+            // بتواند رنگ‌های موجود محصول را از همین یک درخواست پر کند.
+            ->with(['category', 'brand', 'variants'])
             ->first();
 
         if (!$product) {

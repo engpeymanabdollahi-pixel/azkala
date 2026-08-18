@@ -20,9 +20,13 @@ class CartController extends Controller
         $user = Auth::user();
         $cart = $this->cartService->getOrCreateCart($user?->id, session()->getId());
 
+        // ✅ Variant/Color System فاز ۳: items.variant هم eager-load شد تا
+        // فرانت‌اند بتواند رنگ انتخاب‌شده‌ی هر آیتم را بدون کوئری اضافه
+        // به‌ازای هر ردیف نمایش دهد (پیشگیری N+1، دقیقاً همان دلیل
+        // items.product که از قبل بود).
         return response()->json([
             'success' => true,
-            'data' => $cart->load('items.product'),
+            'data' => $cart->load(['items.product', 'items.variant']),
         ]);
     }
 
@@ -32,26 +36,38 @@ class CartController extends Controller
             'product_id' => 'required|integer|exists:products,id',
             'quantity' => 'required|integer|min:1',
             'device_model_id' => 'nullable|integer|exists:device_models,id',
+            // ✅ Variant/Color System فاز ۳: کاملاً اختیاری — عدم ارسال یعنی
+            // محصول بدون رنگ (legacy)، دقیقاً همان رفتار قبلی. صحت واقعیِ
+            // «این variant متعلق به این product است» در CartService (نه
+            // اینجا) با کوئری مستقیم به دیتابیس سنجیده می‌شود، نه فقط
+            // exists:product_variants,id — چون IDOR واقعی این است که
+            // variant_id معتبر باشد ولی متعلق به محصول دیگری.
+            'variant_id' => 'nullable|integer|exists:product_variants,id',
         ]);
 
         try {
             $cart = $this->cartService->getOrCreateCart(Auth::id(), session()->getId());
-            
+
             $cartItem = $this->cartService->addItem(
                 $cart,
                 $validated['product_id'],
                 $validated['quantity'],
-                $validated['device_model_id'] ?? null
+                $validated['device_model_id'] ?? null,
+                $validated['variant_id'] ?? null
             );
 
             return response()->json([
                 'success' => true,
                 'message' => 'محصول با موفقیت به سبد خرید اضافه شد.',
-                'data' => $cartItem->load('product'),
+                'data' => $cartItem->load(['product', 'variant']),
             ], 201);
 
         } catch (OutOfStockException|IncompatibleProductException $e) { // ✅ خلاصه‌سازی با Union Type
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        } catch (\InvalidArgumentException $e) {
+            // ✅ فاز ۳: شامل خطای IDOR «رنگ متعلق به این محصول نیست» —
+            // یک خطای کلاینت واقعی است، نه سرور (نباید 500 بدهد).
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\Exception $e) {

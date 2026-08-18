@@ -112,6 +112,7 @@ const ProductDetailPage = lazy(() => import('@/pages/ProductDetailPage'));
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
 const AuthPage = lazy(() => import('@/pages/AuthPage'));
 const BrandsPage = lazy(() => import('@/pages/BrandsPage'));
+const BrandDetailPage = lazy(() => import('@/pages/BrandDetailPage'));
 const ContactPage = lazy(() => import('@/pages/ContactPage'));
 const AboutPage = lazy(() => import('@/pages/AboutPage'));
 const HelpPage = lazy(() => import('@/pages/HelpPage'));
@@ -340,6 +341,13 @@ export default function App() {
                   مطابق سند مرجع ازکالا بخش ۸ Marketplace Components */}
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/brands" element={<BrandsPage />} />
+              {/* ✅ فاز ۲ Brand Detail — قبل از این، /brands/:slug اصلاً
+                  route نداشت، پس کلیک روی یک برند همیشه به
+                  /products?brand_id={id} می‌رفت (که فاز ۱ آن را فیکس کرد،
+                  ولی صفحه‌ی اختصاصی برند خودش وجود نداشت). ترتیب با
+                  /brands تداخلی ندارد چون شکل path متفاوت است (دقیقاً
+                  همان الگوی /products در برابر /products/:slug). */}
+              <Route path="/brands/:slug" element={<BrandDetailPage />} />
               {/* ✅ قبلاً این صفحه کامل احراز هویت (OTP + ایمیل/رمز) در App.tsx
                   ایمپورت شده بود ولی هیچ <Route> ای برایش تعریف نشده بود؛
                   isAuthPage هم صراحتاً مسیر /auth را برای مخفی کردن هدر/فوتر

@@ -1,7 +1,7 @@
 // src/store/cartStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { CartItem, CartSellerGroup, Product } from '@/types/models';
+import type { CartItem, CartSellerGroup, Product, ProductVariant } from '@/types/models';
 import { cartService } from '@/services/api/cart.service';
 
 interface CartState {
@@ -10,9 +10,15 @@ interface CartState {
   couponDiscount: number;
   isDrawerOpen: boolean;
 
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (itemId: number) => void;
-  updateQuantity: (itemId: number, quantity: number) => void;
+  // ✅ Variant/Color System فاز ۳: هویت یک آیتم سبد از «product_id» به
+  // «product_id + variant_id» تغییر کرده. variant اختیاری است — عدم
+  // ارسال آن دقیقاً همان رفتار قبلی (محصول بدون رنگ) را می‌دهد.
+  // removeItem/updateQuantity هم به همین دلیل عمداً variantId اختیاری
+  // می‌گیرند: صدا زدن با فقط productId، دقیقاً همان آیتم legacy
+  // (variant_id=null) را هدف می‌گیرد، نه هر ردیفی با آن product_id.
+  addItem: (product: Product, quantity?: number, variant?: ProductVariant | null) => void;
+  removeItem: (productId: number, variantId?: number | null) => void;
+  updateQuantity: (productId: number, quantity: number, variantId?: number | null) => void;
   clearCart: () => void;
 
   openDrawer: () => void;
@@ -44,13 +50,26 @@ export const useCartStore = create<CartState>()(
       couponDiscount: 0,
       isDrawerOpen: false,
 
-      addItem: (product, quantity = 1) => {
+      addItem: (product, quantity = 1, variant = null) => {
         const items = get().items;
-        const existingItem = items.find((item) => item.product_id === product.id);
+        const variantId = variant?.id ?? null;
+        // ✅ هویت آیتم سبد: product_id + variant_id. رنگ متفاوت همان
+        // محصول یک آیتم کاملاً جدا می‌شود؛ همان رنگ (یا هر دو بدون رنگ)
+        // merge می‌شود.
+        const existingItem = items.find(
+          (item) => item.product_id === product.id && (item.variant_id ?? null) === variantId
+        );
+
+        // ✅ اگر رنگی انتخاب شده، موجودی همان رنگ سنجیده می‌شود، نه
+        // Product.stock کلی.
+        const maxStock = variant ? variant.stock : product.stock;
+        const unitPrice = variant?.final_price ?? product.price;
+        const variantSummary = variant
+          ? { id: variant.id, color_name: variant.color_name, color_code: variant.color_code, sku: variant.sku }
+          : null;
 
         if (existingItem) {
           const newQuantity = existingItem.quantity + quantity;
-          const maxStock = product.stock;
 
           if (newQuantity > maxStock) {
             return;
@@ -70,24 +89,26 @@ export const useCartStore = create<CartState>()(
           });
 
           // 🔄 Sync با سرور
-          cartService.addToCart(product.id, quantity).catch(err => {
+          cartService.addToCart(product.id, quantity, undefined, variantId ?? undefined).catch(err => {
             console.error('Error syncing cart:', err);
           });
 
           return;
         }
 
-        if (quantity > product.stock) {
+        if (quantity > maxStock) {
           return;
         }
 
         const newItem: CartItem = {
           id: cartIdCounter++,
           product_id: product.id,
+          variant_id: variantId,
+          variant: variantSummary,
           seller_id: product.seller_id,
           quantity,
-          price: product.price,
-          total: product.price * quantity,
+          price: unitPrice,
+          total: unitPrice * quantity,
           product,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -96,52 +117,70 @@ export const useCartStore = create<CartState>()(
         set({ items: [...items, newItem] });
 
         // 🔄 Sync با سرور
-        cartService.addToCart(product.id, quantity).catch(err => {
+        cartService.addToCart(product.id, quantity, undefined, variantId ?? undefined).catch(err => {
           console.error('Error syncing cart:', err);
         });
       },
 
-      removeItem: (itemId) => {
+      // ✅ فاز ۳: قبلاً این متد یک itemId می‌گرفت و با item.id مقایسه
+      // می‌کرد؛ اما فراخوان‌های واقعی (WishlistPage و غیره) از قبل
+      // product.id را پاس می‌دادند، نه شناسه‌ی واقعی ردیف سبد — یعنی این
+      // مقایسه فقط وقتی درست کار می‌کرد که syncCart() قبلاً آیتم‌ها را
+      // با id=product_id جایگزین کرده بود (رجوع به کامنت syncCart پایین).
+      // امضای صریح (productId + variantId اختیاری) هم آن ابهام را رفع
+      // می‌کند، هم رنگ‌دار را درست هدف می‌گیرد.
+      removeItem: (productId, variantId = null) => {
         set((state) => ({
-          items: state.items.filter((item) => item.id !== itemId),
+          items: state.items.filter(
+            (item) => !(item.product_id === productId && (item.variant_id ?? null) === variantId)
+          ),
         }));
 
-        // 🔄 Sync با سرور
+        // 🔄 Sync با سرور — پیدا کردن شناسه‌ی واقعی ردیف سبد از طریق
+        // product_id + variant_id، نه فقط product_id.
         cartService.getCart().then(res => {
-          const serverItem = res.data.items.find(item => item.product_id === itemId);
+          const serverItem = res.data.items.find(
+            item => item.product_id === productId && (item.variant_id ?? null) === variantId
+          );
           if (serverItem) {
             cartService.removeItem(serverItem.id);
           }
         }).catch(err => console.error('Error removing from cart:', err));
       },
 
-      updateQuantity: (itemId, quantity) => {
+      updateQuantity: (productId, quantity, variantId = null) => {
         if (quantity <= 0) {
-          get().removeItem(itemId);
+          get().removeItem(productId, variantId);
           return;
         }
 
-        const item = get().items.find((i) => i.id === itemId);
-        if (item && quantity > item.product.stock) {
+        const item = get().items.find(
+          (i) => i.product_id === productId && (i.variant_id ?? null) === variantId
+        );
+        // ✅ اگر آیتم به یک رنگ وصل است، موجودی همان رنگ سنجیده می‌شود.
+        const maxStock = item?.variant_id ? (item.product.variants?.find(v => v.id === item.variant_id)?.stock ?? item.product.stock) : item?.product.stock;
+        if (item && maxStock !== undefined && quantity > maxStock) {
           return;
         }
 
         set((state) => ({
-          items: state.items.map((item) =>
-            item.id === itemId
+          items: state.items.map((i) =>
+            i.product_id === productId && (i.variant_id ?? null) === variantId
               ? {
-                  ...item,
+                  ...i,
                   quantity,
-                  total: quantity * item.price,
+                  total: quantity * i.price,
                   updated_at: new Date().toISOString(),
                 }
-              : item
+              : i
           ),
         }));
 
         // 🔄 Sync با سرور
         cartService.getCart().then(res => {
-          const serverItem = res.data.items.find(item => item.product_id === itemId);
+          const serverItem = res.data.items.find(
+            item => item.product_id === productId && (item.variant_id ?? null) === variantId
+          );
           if (serverItem) {
             cartService.updateQuantity(serverItem.id, quantity);
           }
@@ -258,9 +297,18 @@ export const useCartStore = create<CartState>()(
         try {
           const response = await cartService.getCart();
           if (response.success && response.data.items.length > 0) {
+            // ✅ فاز ۳: قبلاً اینجا id مساوی product_id ست می‌شد (نه شناسه‌ی
+            // واقعی ردیف سبد) — برای محصولات بدون رنگ (حداکثر یک ردیف
+            // به‌ازای هر product_id در هر سبد) این تصادفاً کار می‌کرد، ولی
+            // با ورود رنگ، دو ردیف مختلف (رنگ‌های متفاوت همان محصول) هر دو
+            // همان id (=product_id) را می‌گرفتند — یعنی در state محلی
+            // یکی می‌شدند/تداخل می‌کردند. حالا id واقعی سرور استفاده
+            // می‌شود.
             const serverItems: CartItem[] = response.data.items.map(item => ({
-              id: item.product_id,
+              id: item.id,
               product_id: item.product_id,
+              variant_id: item.variant_id ?? null,
+              variant: item.variant ?? null,
               seller_id: item.seller_id || 1,
               quantity: item.quantity,
               price: item.price,

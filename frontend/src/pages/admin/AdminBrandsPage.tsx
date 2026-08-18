@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Award, Edit2, Trash2, Eye, Plus, Package,
-  CheckCircle, XCircle, Crown, Gem, Star, RefreshCw,
+  CheckCircle, XCircle, Crown, Gem, Star, StarOff, RefreshCw,
+  ShieldCheck, ShieldOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -33,14 +35,67 @@ export function AdminBrandsPage() {
     sort_order: 0,
   });
 
-  // ✅ استفاده از useCrudMutations
-  const { createMutation, updateMutation, deleteMutation, bulkActionMutation } = useCrudMutations({
-    queryKeys: ['admin/brands'],
+  // ✅ فاز ۱ Brand Hub: کلید 'brands' (پرس‌وجوی عمومی BrandsPage) هم به
+  // لیست invalidation اضافه شد — قبلاً فقط 'admin/brands' invalidate
+  // می‌شد، یعنی بعد از ویرایش/فعال‌سازی یک برند در پنل ادمین، صفحه‌ی
+  // عمومی /brands (با staleTime ده‌دقیقه‌ای) تا مدت‌ها همان داده‌ی قدیمی
+  // را نشان می‌داد.
+  const { createMutation, updateMutation, deleteMutation } = useCrudMutations({
+    queryKeys: ['admin/brands', 'brands'],
     successMessages: {
       create: 'برند با موفقیت ایجاد شد',
       update: 'برند با موفقیت به‌روزرسانی شد',
       delete: 'برند با موفقیت حذف شد',
-      bulk: 'عملیات گروهی با موفقیت انجام شد',
+    },
+  });
+
+  const queryClient = useQueryClient();
+  const invalidateBrandQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin/brands'] });
+    queryClient.invalidateQueries({ queryKey: ['brands'] });
+    // ✅ فاز ۲ Brand Detail: BrandDetailPage.tsx با کلید ['brand', slug]
+    // کش می‌شود. invalidateQueries با ['brand'] (بدون slug) طبق رفتار
+    // پیش‌فرض TanStack Query v5 یک prefix-match است — یعنی هر برندی که
+    // صفحه‌ی جزئیاتش قبلاً باز شده و در کش نشسته، با هر mutation ادمین
+    // (verify/feature/activate/ویرایش/حذف) دوباره تازه می‌شود؛ بدون این
+    // خط، صفحه‌ی عمومی برند تا پایان staleTime (۱۰ دقیقه) داده‌ی قدیمی
+    // نشان می‌داد.
+    queryClient.invalidateQueries({ queryKey: ['brand'] });
+  };
+
+  // ✅ فاز ۱ Brand Hub: باگ واقعیِ از‌قبل‌موجود — useCrudMutations.
+  // bulkActionMutation همیشه به `${endpoint}/bulk` درخواست می‌زند، ولی
+  // روت واقعی برند POST /admin/brands/bulk-action است (نه .../bulk).
+  // یعنی هر ۵ حالت این صفحه (فعال/غیرفعال/حذف گروهی) از همان ابتدا با
+  // ۴۰۴ شکست می‌خورد — تأیید شد که هیچ صفحه‌ی ادمین دیگری اصلاً از این
+  // mutation استفاده نمی‌کند، پس این باگ کاملاً منحصر به برند بوده.
+  // به‌جای آن، مستقیم از adminBrandService.bulkAction (که آدرس درست را
+  // صدا می‌زند و از قبل در سرویس بود) استفاده شد.
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ ids, action }: { ids: number[]; action: 'activate' | 'deactivate' | 'feature' | 'unfeature' | 'delete' }) =>
+      adminBrandService.bulkAction(ids, action),
+    onSuccess: () => {
+      invalidateBrandQueries();
+      toast.success('عملیات گروهی با موفقیت انجام شد');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'خطا در عملیات گروهی');
+    },
+  });
+
+  // ✅ فاز ۱ Brand Hub: adminBrandService.verifyBrand/unverifyBrand از
+  // فاز ۰ در سرویس آماده بودند (روت بک‌اند هم verify شده — تست‌های
+  // BrandApiTest.php از قبل سبزند) ولی هیچ دکمه‌ای در این صفحه به آن‌ها
+  // وصل نبود.
+  const verifyToggleMutation = useMutation({
+    mutationFn: ({ id, verify }: { id: number; verify: boolean }) =>
+      verify ? adminBrandService.verifyBrand(id) : adminBrandService.unverifyBrand(id),
+    onSuccess: (_data, variables) => {
+      invalidateBrandQueries();
+      toast.success(variables.verify ? 'برند تأیید شد' : 'تأیید برند لغو شد');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'خطا در تغییر وضعیت تأیید');
     },
   });
 
@@ -230,6 +285,27 @@ export function AdminBrandsPage() {
       onClick: handleEdit,
       variant: 'ghost',
     },
+    // ✅ فاز ۱ Brand Hub: دو action شرطی به‌جای یک دکمه‌ی toggle، چون
+    // ActionConfig.label/icon مقدار ثابت است (نه تابعی از row) — دقیقاً
+    // همان الگوی show() که پایین‌تر برای دکمه‌ی حذف استفاده شده.
+    {
+      label: 'تأیید برند',
+      icon: <ShieldCheck className="w-4 h-4" />,
+      onClick: (brand) => verifyToggleMutation.mutate({ id: brand.id, verify: true }),
+      variant: 'ghost',
+      show: (brand) => !brand.verified_at,
+    },
+    {
+      label: 'لغو تأیید',
+      icon: <ShieldOff className="w-4 h-4" />,
+      onClick: (brand) => {
+        if (confirm(`تأیید برند "${brand.name}" لغو شود؟`)) {
+          verifyToggleMutation.mutate({ id: brand.id, verify: false });
+        }
+      },
+      variant: 'ghost',
+      show: (brand) => !!brand.verified_at,
+    },
     {
       label: 'حذف',
       icon: <Trash2 className="w-4 h-4" />,
@@ -252,11 +328,7 @@ export function AdminBrandsPage() {
       label: 'فعال کردن',
       icon: <CheckCircle className="w-4 h-4" />,
       onClick: async (ids) => {
-        await bulkActionMutation.mutateAsync({
-          endpoint: '/admin/brands',
-          ids,
-          action: 'activate',
-        });
+        await bulkActionMutation.mutateAsync({ ids, action: 'activate' });
       },
       variant: 'default',
     },
@@ -264,11 +336,26 @@ export function AdminBrandsPage() {
       label: 'غیرفعال کردن',
       icon: <XCircle className="w-4 h-4" />,
       onClick: async (ids) => {
-        await bulkActionMutation.mutateAsync({
-          endpoint: '/admin/brands',
-          ids,
-          action: 'deactivate',
-        });
+        await bulkActionMutation.mutateAsync({ ids, action: 'deactivate' });
+      },
+      variant: 'outline',
+    },
+    // ✅ فاز ۱ Brand Hub: دو مورد جدید — endpoint/action از قبل در بک‌اند
+    // (AdminBrandRepository::bulkAction) و در adminBrandService.bulkAction
+    // پیاده‌سازی شده بودند، فقط در UI این صفحه سیم‌کشی نشده بودند.
+    {
+      label: 'ویژه کردن',
+      icon: <Star className="w-4 h-4" />,
+      onClick: async (ids) => {
+        await bulkActionMutation.mutateAsync({ ids, action: 'feature' });
+      },
+      variant: 'outline',
+    },
+    {
+      label: 'خارج از ویژه',
+      icon: <StarOff className="w-4 h-4" />,
+      onClick: async (ids) => {
+        await bulkActionMutation.mutateAsync({ ids, action: 'unfeature' });
       },
       variant: 'outline',
     },
@@ -277,11 +364,7 @@ export function AdminBrandsPage() {
       icon: <Trash2 className="w-4 h-4" />,
       onClick: async (ids) => {
         if (confirm(`آیا از حذف ${ids.length} برند مطمئن هستید؟`)) {
-          await bulkActionMutation.mutateAsync({
-            endpoint: '/admin/brands',
-            ids,
-            action: 'delete',
-          });
+          await bulkActionMutation.mutateAsync({ ids, action: 'delete' });
         }
       },
       variant: 'destructive',

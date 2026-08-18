@@ -27,7 +27,14 @@ class ProductRepository extends BaseRepository
             // seller هم به همین دلیل اینجاست: ProductResource برای هر محصول
             // loadMissing('seller') می‌زند، پس بدون این، هر ردیف یک کوئری users
             // جداگانه می‌ساخت (N+1).
-            ->with(['category', 'brand', 'images', 'deviceModels', 'seller'])
+            // ✅ Variant/Color System فاز ۲.۱: variants هم به همین لیست
+            // eager-load اضافه شد — دقیقاً همان دلیل seller/deviceModels
+            // بالا: ProductResource::whenLoaded('variants') بدون این، برای
+            // محصولاتی که واقعاً variant دارند یک کوئری جدا به‌ازای هر
+            // محصول می‌زد. برای محصول بدون variant، این فقط یک کوئری
+            // whereIn خالی روی جدول تازه (فعلاً بی‌داده) است — هزینه‌ی
+            // اضافه‌ی محسوسی ندارد.
+            ->with(['category', 'brand', 'images', 'deviceModels', 'seller', 'variants'])
             ->where('is_active', true);
 
         // Apply filters
@@ -55,9 +62,26 @@ class ProductRepository extends BaseRepository
             $query->where('price', '<=', $filters['max_price']);
         }
 
-        // Apply sorting
+        // ✅ Brand Detail فاز ۲: قبلاً $sortBy مستقیم (بدون allow-list) وارد
+        // orderBy() می‌شد — یعنی GET /api/v1/products?sort_by=<هر رشته‌ای>
+        // همان مقدار را بدون اعتبارسنجی به‌عنوان نام ستون به Eloquent
+        // می‌داد. یک ستون ناموجود (مثلاً sort_by=xyz) یک QueryException
+        // ناهندل‌شده (۵۰۰ خام، و در محیط APP_DEBUG=true حتی افشای کوئری/
+        // اسکیمای دیتابیس) تولید می‌کرد — روی یک endpoint کاملاً عمومی و
+        // بدون auth. همان الگوی allow-list که از قبل در
+        // AdminProductRepository::getProductsWithFilters() برای پنل ادمین
+        // برقرار بود، اینجا هم اعمال شد. Brand Detail (که این فاز اضافه
+        // می‌کند) دقیقاً همین ۵ مقدار را می‌فرستد — پس فیلتر جدید هیچ
+        // گزینه‌ی sort موجودی را غیرفعال نمی‌کند.
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
+        $allowedSorts = ['created_at', 'price', 'sales_count', 'rating', 'stock', 'views_count', 'name'];
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+        if (!in_array($sortOrder, ['asc', 'desc'], true)) {
+            $sortOrder = 'desc';
+        }
         $query->orderBy($sortBy, $sortOrder);
 
         return $query->paginate($perPage);
@@ -70,7 +94,11 @@ class ProductRepository extends BaseRepository
     {
         return $this->query()
             // ✅ اضافه کردن deviceModels و روابط تو در تو آن برای صفحه جزئیات محصول
-            ->with(['category', 'brand', 'seller', 'images', 'deviceModels.series.brand'])
+            // variants فاز ۲.۱: صفحه‌ی جزئیات دقیقاً همان جایی است که
+            // Variant Selector فازهای بعدی به این داده نیاز خواهد داشت —
+            // اینجا فقط eager-load آماده شد، هیچ UI ای در همین فاز اضافه
+            // نشد.
+            ->with(['category', 'brand', 'seller', 'images', 'deviceModels.series.brand', 'variants'])
             ->where('slug', $slug)
             ->first();
     }

@@ -51,19 +51,22 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
     };
   }, [isDrawerOpen]);
 
-  const handleRemoveItem = (productId: number) => {
-    removeFromCart(productId, {
+  // ✅ Variant/Color System فاز ۳: هر دو handler اکنون variantId اختیاری
+  // هم می‌گیرند تا فقط همان ردیف رنگ‌دار مشخص را هدف بگیرند، نه هر ردیفی
+  // با آن product_id (وقتی محصول چند رنگ در سبد دارد).
+  const handleRemoveItem = (productId: number, variantId?: number | null) => {
+    removeFromCart({ productId, variantId }, {
       onSuccess: () => toast.success('محصول حذف شد', { icon: '🗑️' }),
       onError: () => toast.error('خطا در حذف محصول', { icon: '❌' }),
     });
   };
 
-  const handleUpdateQuantity = (productId: number, newQuantity: number) => {
+  const handleUpdateQuantity = (productId: number, newQuantity: number, variantId?: number | null) => {
     if (newQuantity <= 0) {
-      handleRemoveItem(productId);
+      handleRemoveItem(productId, variantId);
       return;
     }
-    updateQuantity({ itemId: productId, quantity: newQuantity });
+    updateQuantity({ productId, variantId, quantity: newQuantity });
   };
 
   if (!isDrawerOpen) return null;
@@ -136,7 +139,7 @@ className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[65] an
 
               {items.map((item, index) => (
                 <article
-                  key={item.id}
+                  key={`${item.product_id}-${item.variant_id ?? 'none'}`}
                   className="group bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-3 hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md transition-all animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                   aria-label={`محصول ${item.product.name}`}
@@ -157,11 +160,29 @@ className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[65] an
                     {/* Info */}
                     <div className="flex-1 min-w-0 flex flex-col gap-2">
                       <div className="flex items-start justify-between gap-2">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-relaxed flex-1">
-                          {item.product.name}
-                        </h4>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 leading-relaxed">
+                            {item.product.name}
+                          </h4>
+                          {/* ✅ Variant/Color System فاز ۳: «رنگ: مشکی» زیر نام
+                              محصول — دو رنگ مختلف همان محصول دو article جدا
+                              (با key متفاوت) می‌مانند، پس این خط تنها راه
+                              تشخیص آن‌هاست. */}
+                          {item.variant?.color_name && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                              {item.variant.color_code && (
+                                <span
+                                  className="inline-block w-3 h-3 rounded-full border border-gray-300 dark:border-slate-600 flex-shrink-0"
+                                  style={{ backgroundColor: /^#[0-9a-fA-F]{6}$/.test(item.variant.color_code) ? item.variant.color_code : undefined }}
+                                  aria-hidden="true"
+                                />
+                              )}
+                              رنگ: {item.variant.color_name}
+                            </p>
+                          )}
+                        </div>
                         <button
-                          onClick={() => handleRemoveItem(item.product_id)}
+                          onClick={() => handleRemoveItem(item.product_id, item.variant_id)}
                           className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all active:scale-95 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 flex-shrink-0"
                           aria-label={`حذف ${item.product.name}`}
                         >
@@ -173,7 +194,7 @@ className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[65] an
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-700 rounded-lg p-0.5 border border-gray-200 dark:border-slate-600">
                           <button
-                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
+                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1, item.variant_id)}
                             className="w-7 h-7 rounded-md bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all active:scale-95 text-gray-600 dark:text-gray-300"
                             aria-label="کاهش تعداد"
                           >
@@ -183,7 +204,7 @@ className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[65] an
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1, item.variant_id)}
                             className="w-7 h-7 rounded-md bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-600 dark:hover:text-primary-400 transition-all active:scale-95 text-gray-600 dark:text-gray-300"
                             aria-label="افزایش تعداد"
                           >

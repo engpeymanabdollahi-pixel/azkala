@@ -95,6 +95,23 @@ class ProductService
             $productData['images'] = $product->images ? $product->images->pluck('image_path')->toArray() : [];
             $productData['seller'] = $sellerData;
 
+            // ✅ Variant/Color System فاز ۳: این متد (نه ProductResource) واقعاً
+            // پاسخ صفحه‌ی جزئیات محصول را می‌سازد — ProductController::bySlug
+            // فقط وقتی $result['product'] یک instanceof Product باشد آن را با
+            // ProductResource می‌پیچد، ولی همین‌جا همیشه یک آرایه‌ی خام
+            // ($product->toArray()) برگردانده می‌شود، پس آن شرط هرگز true
+            // نمی‌شود (باگ از‌قبل موجود، کاملاً بی‌ربط به variants، خارج از
+            // دامنه‌ی این فاز برای رفع کامل). بدون این دو خط، has_variants
+            // اصلاً در پاسخ نبود و variants به‌شکل خام مدل (نه سریالایز‌شده‌ی
+            // یکدست ProductVariantResource) برمی‌گشت — دقیقاً همان دو چیزی که
+            // انتخابگر رنگ در صفحه‌ی محصول به آن نیاز دارد.
+            $productData['has_variants'] = $product->relationLoaded('variants')
+                ? $product->variants->isNotEmpty()
+                : false;
+            $productData['variants'] = $product->relationLoaded('variants')
+                ? \App\Http\Resources\ProductVariantResource::collection($product->variants)->resolve()
+                : [];
+
             $relatedProductsData = $relatedProducts->map(function ($p) {
                 return [
                     'id' => $p->id,

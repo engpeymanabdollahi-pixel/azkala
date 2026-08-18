@@ -292,23 +292,40 @@ export interface Product {
   // ✅ اضافه شده برای مارکت‌پلیس پیشرفته
   weight_gram?: number;
   dimensions_cm?: { w: number; h: number; l: number };
+  // ✅ Variant/Color System فاز ۳: قبلاً این تایپ (از یک کامیت خیلی قدیمی‌تر،
+  // پیش از پیاده‌سازی واقعی سیستم رنگ در فاز ۲.۱) کاملاً با schema واقعی
+  // بک‌اند ناهم‌خوان بود (فیلدهایی مثل name/status که هرگز وجود نداشتند،
+  // و color_name/color_code/is_in_stock/final_price که وجود داشتند غایب
+  // بودند) — هیچ‌جای فرانت‌اند هم واقعاً از آن استفاده نمی‌کرد، پس این
+  // ناهم‌خوانی تا امروز خطای کامپایل تولید نکرده بود. has_variants هم از
+  // قلم افتاده بود با اینکه ProductResource از فاز ۲.۱ آن را برمی‌گرداند.
+  has_variants?: boolean;
   variants?: ProductVariant[];
-  
+
   created_at: string;
   updated_at: string;
 }
 
+/**
+ * ✅ دقیقاً همان شکلی که ProductVariantResource (بک‌اند) سریالایز می‌کند —
+ * چه از مسیر GET /products (لیست، از طریق ProductResource)، چه از مسیر
+ * GET /products/slug/{slug} (جزئیات محصول، از طریق
+ * ProductService::getProductBySlug که همین Resource را دستی صدا می‌زند).
+ */
 export interface ProductVariant {
   id: number;
-  product_id: number;
-  sku: string;
-  name: string;
-  attributes: Record<string, string>; // { color: 'red', size: 'XL' }
-  price: number;
-  compare_price?: number;
+  color_name: string | null;
+  color_code: string | null;
+  sku: string | null;
+  price: number | null;
+  compare_price: number | null;
+  discount_price: number | null;
+  /** قیمتی که واقعاً پرداخت می‌شود: discount_price اگر ست شده وگرنه price */
+  final_price: number | null;
   stock: number;
-  image?: string;
-  status: ProductStatus;
+  is_in_stock: boolean;
+  image: string | null;
+  attributes: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -339,7 +356,18 @@ export interface CartItem {
   price: number;
   total?: number; // ✅ اضافه شده برای راحتی UI
   product: Product;
-  variant_id?: number;
+  // ✅ Variant/Color System فاز ۳: این فیلد از یک کامیت خیلی قدیمی‌تر
+  // (پیش از پیاده‌سازی واقعی سیستم رنگ) در تایپ بود ولی هیچ‌جا استفاده
+  // نمی‌شد؛ الان واقعاً توسط بک‌اند پر می‌شود (CartItem.variant_id).
+  variant_id?: number | null;
+  // یک نسخه‌ی سبک از رنگ انتخاب‌شده، فقط برای نمایش («رنگ: مشکی» زیر نام
+  // محصول در سبد) — بدون نیاز به lookup جداگانه در product.variants.
+  variant?: {
+    id: number;
+    color_name: string | null;
+    color_code: string | null;
+    sku: string | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }
