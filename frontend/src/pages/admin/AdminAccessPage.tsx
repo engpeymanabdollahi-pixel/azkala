@@ -298,6 +298,24 @@ function RoleModal({
     ...(canAssignSuperAdmin ? [{ value: 'super_admin' as const, label: 'Super Admin' }] : []),
   ];
 
+  // ✅ گزارش کاربر: «یک نفر رو ادمین کردم و فقط یک تب رو براش باز کردم
+  // ولی همه‌ی صفحات ادمین دسترسی پیدا کرد» — این یک باگ در enforcement
+  // نبود؛ نقش «Admin» طبق طراحی همین سیستم (AdministrativeAccessSeeder،
+  // $superAdminOnlyByDefault) به‌صورت خودکار تقریباً تمام Permission های
+  // غیرحساس را می‌گیرد، صرف‌نظر از این‌که در Modal مجوزها چه چیزی تیک
+  // خورده باشد. مشکل این بود که این select هیچ توضیحی نداشت — یک ادمین
+  // به‌طور معقول فکر می‌کرد «Admin» یعنی «یک نقش خنثی که بعداً با تیک
+  // زدن مجوزها محدودش می‌کنم»، در حالی که نقش درست برای دسترسی محدود
+  // «Manager» است (صفر Permission پیش‌فرض) + باز کردن Modal مجوزها.
+  const roleDescriptions: Record<AdministrativeRole | 'none', string> = {
+    none: 'این کاربر هیچ دسترسی پنل ادمین نخواهد داشت.',
+    manager:
+      'شروع با صفر دسترسی. برای دسترسی محدود (مثلاً فقط یک بخش)، این را انتخاب کنید و بعد از «ذخیره»، از دکمه‌ی «مجوزها» فقط همان مورد(ها) را تیک بزنید.',
+    admin:
+      '⚠️ به‌صورت خودکار به تقریباً همه‌ی بخش‌های پنل ادمین دسترسی می‌دهد (جز چند مورد حساس مثل مالی و مدیریت دسترسی‌ها) — صرف‌نظر از تیک‌های Modal مجوزها. برای دسترسی محدود به یک یا چند بخش خاص، به‌جای این گزینه «Manager» را انتخاب کنید.',
+    super_admin: 'دسترسی کامل و نامحدود به کل سیستم، بدون هیچ استثنا.',
+  };
+
   return (
     <Modal isOpen onClose={onClose} title={`تغییر نقش Administrative — ${user.name}`} size="sm">
       <div className="space-y-4">
@@ -316,6 +334,15 @@ function RoleModal({
               </option>
             ))}
           </select>
+          <p
+            className={`mt-2 text-xs leading-relaxed rounded-lg px-3 py-2 ${
+              role === 'admin' || role === 'super_admin'
+                ? 'bg-warning-50 text-warning-700 dark:bg-warning-900/20 dark:text-warning-400'
+                : 'bg-gray-50 text-gray-500 dark:bg-slate-900 dark:text-gray-400'
+            }`}
+          >
+            {roleDescriptions[role]}
+          </p>
         </div>
 
         <div className="flex gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
