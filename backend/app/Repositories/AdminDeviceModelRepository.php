@@ -61,11 +61,23 @@ class AdminDeviceModelRepository
         // می‌داد، یعنی حذف هر مدل دستگاهی از پنل ادمین همیشه شکست می‌خورد،
         // حتی برای مدلی که اصلاً به هیچ محصولی وصل نبود. هیچ تستی این مسیر
         // را پوشش نمی‌داد.
-        $hasProducts = DB::table('device_model_product')->where('device_model_id', $model->id)->exists();
+        //
+        // ✅ Delete/Data-Integrity Audit: بررسیِ «آیا محصولی وصل است؟» و
+        // خودِ delete اکنون در یک تراکنش با lockForUpdate روی خودِ مدل انجام
+        // می‌شود — بدون این، بین چک و حذف یک پنجره‌ی زمانی وجود داشت که در
+        // آن (نظری، ولی واقعی روی دیتابیس‌های چندنخی مثل MySQL/Postgres)
+        // یک درخواست هم‌زمان می‌توانست محصولی به همین مدل وصل کند، دقیقاً
+        // در همان لحظه که این متد دارد «امن» بودنِ حذف را تأیید می‌کند.
+        return DB::transaction(function () use ($model) {
+            DeviceModel::where('id', $model->id)->lockForUpdate()->firstOrFail();
 
-        if ($hasProducts) {
-            throw new BadRequestHttpException('این مدل دستگاه به یک یا چند محصول متصل است و قابل حذف نیست.');
-        }
-        return $model->delete();
+            $hasProducts = DB::table('device_model_product')->where('device_model_id', $model->id)->exists();
+
+            if ($hasProducts) {
+                throw new BadRequestHttpException('این مدل دستگاه به یک یا چند محصول متصل است و قابل حذف نیست.');
+            }
+
+            return $model->delete();
+        });
     }
 }

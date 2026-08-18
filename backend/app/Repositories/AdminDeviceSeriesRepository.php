@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\DeviceSeries;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class AdminDeviceSeriesRepository
@@ -46,12 +47,21 @@ class AdminDeviceSeriesRepository
         return $series->fresh();
     }
 
+    /**
+     * ✅ Delete/Data-Integrity Audit: بررسی وابستگی (مدل) و خودِ حذف در یک
+     * تراکنش با lockForUpdate روی خودِ سری انجام می‌شود تا race بین چک و
+     * حذف بسته شود.
+     */
     public function delete(DeviceSeries $series): bool
     {
-        // جلوگیری از حذف سری‌ای که مدل دارد
-        if ($series->models()->exists()) {
-            throw new BadRequestHttpException('این سری دارای مدل دستگاه است و قابل حذف نیست.');
-        }
-        return $series->delete();
+        return DB::transaction(function () use ($series) {
+            DeviceSeries::where('id', $series->id)->lockForUpdate()->firstOrFail();
+
+            if ($series->models()->exists()) {
+                throw new BadRequestHttpException('این سری دارای مدل دستگاه است و قابل حذف نیست.');
+            }
+
+            return $series->delete();
+        });
     }
 }
