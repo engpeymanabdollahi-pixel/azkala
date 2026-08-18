@@ -472,6 +472,19 @@ export const SearchBar = memo(({ isScrolled, selectedModel, isMobile = false }: 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
+            onBlur={(e) => {
+              // ✅ اگر focus به بیرون از searchRef می‌رود، dropdown را ببند
+              // اما اگر روی یکی از عناصر dropdown کلیک شده، نبند
+              const relatedTarget = e.relatedTarget as Node;
+              if (searchRef.current && !searchRef.current.contains(relatedTarget)) {
+                // تاخیر کوچک تا کلیک روی dropdown فرصت اجرا داشته باشد
+                setTimeout(() => {
+                  if (document.activeElement !== e.target) {
+                    setIsSearchFocused(false);
+                  }
+                }, 150);
+              }
+            }}
             onKeyDown={handleSearchKeyDown}
             className={cn(
               'w-full bg-transparent focus:bg-white dark:focus:bg-slate-700 focus:outline-none transition-all duration-300 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500',
