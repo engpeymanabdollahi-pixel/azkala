@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\DeviceBrand;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class AdminDeviceBrandRepository
 {
@@ -67,12 +68,21 @@ class AdminDeviceBrandRepository
     /**
      * حذف برند
      */
+    /**
+     * ✅ Delete/Data-Integrity Audit: بررسی وابستگی (سری) و خودِ حذف در یک
+     * تراکنش با lockForUpdate روی خودِ برند انجام می‌شود تا بین چک و حذف
+     * پنجره‌ی race برای ساخته‌شدن یک سری‌ی جدید هم‌زمان بسته شود.
+     */
     public function delete(DeviceBrand $brand): bool
     {
-        // بررسی اینکه آیا این برند سری یا مدلی دارد یا خیر (اختیاری اما توصیه‌شده)
-        if ($brand->series()->exists()) {
-            throw new \Symfony\Component\HttpKernel\Exception\BadRequestHttpException('این برند دارای سری دستگاه است و قابل حذف نیست.');
-        }
-        return $brand->delete();
+        return DB::transaction(function () use ($brand) {
+            DeviceBrand::where('id', $brand->id)->lockForUpdate()->firstOrFail();
+
+            if ($brand->series()->exists()) {
+                throw new \Symfony\Component\HttpKernel\Exception\BadRequestHttpException('این برند دارای سری دستگاه است و قابل حذف نیست.');
+            }
+
+            return $brand->delete();
+        });
     }
 }

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\DeviceFamily;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class AdminDeviceFamilyRepository
 {
@@ -48,20 +49,31 @@ class AdminDeviceFamilyRepository
      * خانواده وصل نباشد — طبق قانون صریح فاز ۱E: «حذف مخرب وقتی برند/دسته/
      * محصول وابسته دارد مجاز نیست؛ غیرفعال‌سازی ترجیح داده می‌شود».
      */
+    /**
+     * ✅ Delete/Data-Integrity Audit: DeviceFamily (برخلاف Brand/Series/Model)
+     * SoftDeletes ندارد — delete() اینجا واقعاً hard-delete است، پس این
+     * تراکنش صرفاً «قفل خوش‌بینانه» نیست، واقعاً از race بین چک و حذف
+     * جلوگیری می‌کند: بدون آن، بین دو خط بالا و return پایین، یک درخواست
+     * هم‌زمان می‌توانست برندی به همین خانواده وصل کند.
+     */
     public function delete(DeviceFamily $family): bool
     {
-        if ($family->brands()->exists()) {
-            throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException(
-                'این خانواده‌ی دستگاه دارای برند وابسته است و قابل حذف نیست. آن را غیرفعال کنید.'
-            );
-        }
+        return DB::transaction(function () use ($family) {
+            DeviceFamily::where('id', $family->id)->lockForUpdate()->firstOrFail();
 
-        if ($family->categories()->exists()) {
-            throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException(
-                'این خانواده‌ی دستگاه به دسته‌بندی‌هایی متصل است و قابل حذف نیست. آن را غیرفعال کنید.'
-            );
-        }
+            if ($family->brands()->exists()) {
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException(
+                    'این خانواده‌ی دستگاه دارای برند وابسته است و قابل حذف نیست. آن را غیرفعال کنید.'
+                );
+            }
 
-        return $family->delete();
+            if ($family->categories()->exists()) {
+                throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException(
+                    'این خانواده‌ی دستگاه به دسته‌بندی‌هایی متصل است و قابل حذف نیست. آن را غیرفعال کنید.'
+                );
+            }
+
+            return $family->delete();
+        });
     }
 }
