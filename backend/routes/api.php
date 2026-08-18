@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AdminBrandController;
 use App\Http\Controllers\Api\AdminCategoryController;
 use App\Http\Controllers\Api\AdminDashboardController;
 use App\Http\Controllers\Api\AdminDeviceBrandController;
+use App\Http\Controllers\Api\AdminDeviceFamilyController;
 use App\Http\Controllers\Api\AdminDeviceModelController;
 use App\Http\Controllers\Api\AdminDeviceSeriesController;
 use App\Http\Controllers\Api\AdminMagazineController;
@@ -140,6 +141,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/models/{modelId}', [DeviceController::class, 'model'])->name('model');
         Route::get('/header-hierarchy', [DeviceController::class, 'getHeaderHierarchy'])->name('header-hierarchy');
     });
+
+    // ✅ Device-First Architecture فاز ۱F: لیست عمومی خانواده‌های فعالِ
+    // دستگاه (Smartphone/Laptop/Tablet/...) — تنها منبعِ اکوسیستم‌های
+    // دستگاهِ فرانت‌اند؛ افزودن خانواده‌ی جدید از ادمین نیازی به تغییر کد
+    // فرانت‌اند ندارد.
+    Route::get('/device-families', [DeviceController::class, 'families'])->name('device-families.index');
 
     Route::prefix('products')->name('products.')->group(function () {
         Route::middleware('throttle:search')->group(function () {
@@ -527,6 +534,17 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
             // الزامی است؛ بدون آن هر سه گروه نام‌های یکسانِ admin.index/store/update/
             // destroy می‌گیرند و آخرین ثبت، قبلی‌ها را از جدولِ نام‌ها بیرون می‌کند.
+            // ✅ Device-First Architecture فاز ۱E: CRUD خانواده‌های دستگاه —
+            // باید قبل از device-brands ثبت شود تا با {id} تداخل نکند
+            // (هر دو گروه از پیشوند متفاوتی استفاده می‌کنند، پس تداخل واقعی
+            // نیست، ولی هم‌جواری منطقی همین‌جاست).
+            Route::prefix('device-families')->name('device-families.')->group(function () {
+                Route::get('/', [AdminDeviceFamilyController::class, 'index'])->middleware('permission:catalog.view')->name('index');
+                Route::get('/{id}', [AdminDeviceFamilyController::class, 'show'])->middleware('permission:catalog.view')->name('show');
+                Route::post('/', [AdminDeviceFamilyController::class, 'store'])->middleware('permission:catalog.manage')->name('store');
+                Route::put('/{id}', [AdminDeviceFamilyController::class, 'update'])->middleware('permission:catalog.manage')->name('update');
+                Route::delete('/{id}', [AdminDeviceFamilyController::class, 'destroy'])->middleware('permission:catalog.manage')->name('destroy');
+            });
             Route::prefix('device-brands')->name('device-brands.')->group(function () {
                 Route::get('/', [AdminDeviceBrandController::class, 'index'])->middleware('permission:catalog.view')->name('index');
                 Route::post('/', [AdminDeviceBrandController::class, 'store'])->middleware('permission:catalog.manage')->name('store');

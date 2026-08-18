@@ -21,7 +21,11 @@ class AdminDeviceBrandService
                 'id' => $b->id,
                 'name' => $b->name,
                 'slug' => $b->slug,
+                // ✅ فاز ۱D: type فقط برای سازگاری نمایش داده می‌شود؛
+                // family اکنون منبع حقیقت است.
                 'type' => $b->type,
+                'family_id' => $b->family_id,
+                'family' => $b->family ? ['id' => $b->family->id, 'name' => $b->family->name, 'slug' => $b->family->slug] : null,
                 'is_active' => (bool) $b->is_active,
                 'created_at' => $b->created_at->format('Y-m-d H:i'),
             ]),

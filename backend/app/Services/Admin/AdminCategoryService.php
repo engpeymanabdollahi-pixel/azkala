@@ -79,7 +79,17 @@ class AdminCategoryService
                 $data['sort_order'] = $this->repository->calculateNextSortOrder($parentId);
             }
 
+            // ✅ Device-First Architecture فاز ۱I: device_family_ids ستون
+            // واقعی جدول categories نیست (رابطه‌ی چندبه‌چند) — باید قبل از
+            // create() حذف و جدا sync شود.
+            $deviceFamilyIds = $data['device_family_ids'] ?? null;
+            unset($data['device_family_ids']);
+
             $category = $this->repository->create($data);
+
+            if ($deviceFamilyIds !== null) {
+                $category->deviceFamilies()->sync($deviceFamilyIds);
+            }
 
             return $category->loadCount('products');
         } catch (\Exception $e) {
@@ -151,7 +161,17 @@ class AdminCategoryService
                 }
             }
 
+            // ✅ فاز ۱I: همان دلیل createCategory — کلید غیرستونی، جدا sync
+            // می‌شود. عدم ارسال یعنی دست‌نخورده بماند (چون device_family_ids
+            // در update با 'sometimes' اعتبارسنجی شده، نه 'nullable').
+            $deviceFamilyIds = array_key_exists('device_family_ids', $data) ? $data['device_family_ids'] : null;
+            unset($data['device_family_ids']);
+
             $category = $this->repository->update($category, $data);
+
+            if ($deviceFamilyIds !== null) {
+                $category->deviceFamilies()->sync($deviceFamilyIds);
+            }
 
             return $category->loadCount('products');
         } catch (\Exception $e) {
@@ -289,6 +309,10 @@ class AdminCategoryService
                 'id' => $category->parent->id,
                 'name' => $category->parent->name,
             ] : null;
+            // ✅ فاز ۱I: خانواده‌های دستگاه متصل به این دسته — برای پر کردن
+            // فرم ادمین (چک‌باکس‌های چندتایی) هنگام ویرایش.
+            $data['device_families'] = $category->deviceFamilies()->get(['device_families.id', 'name', 'slug'])
+                ->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'slug' => $f->slug]);
         }
 
         return $data;

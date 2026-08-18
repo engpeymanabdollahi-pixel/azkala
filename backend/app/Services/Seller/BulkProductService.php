@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DeviceModel;
 use App\Models\Product;
+use App\Services\DeviceEnforcementService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class BulkProductService
 {
+    public function __construct(protected DeviceEnforcementService $deviceEnforcement) {}
+
+
     /**
      * ✅ قبلاً هیچ سقفی روی تعداد ردیف فایل اکسل وجود نداشت. محدودیت حجم
      * فایل (۱۰ مگابایت، در کنترلر) به‌تنهایی کافی نیست — یک xlsx فشرده با
@@ -182,9 +186,23 @@ class BulkProductService
                 $brand = ! empty($data['brand_slug'])
                     ? Brand::where('slug', $data['brand_slug'])->first()
                     : null;
+                // ✅ Device-First Architecture فاز ۱L: همان لایه‌ی مشترک
+                // اعتبارسنجی که فرم تکی فروشنده هم استفاده می‌کند —
+                // زنجیره‌ی مدل→سری→برند→خانواده باید کاملاً فعال باشد، و در
+                // صورت پیکربندی‌شدن family برای دسته، باید هم‌خوان باشد.
                 $deviceModel = ! empty($data['device_model_slug'])
                     ? DeviceModel::where('slug', $data['device_model_slug'])->first()
                     : null;
+
+                if (! empty($data['device_model_slug']) && ! $deviceModel) {
+                    throw new \InvalidArgumentException(
+                        "مدل دستگاه '{$data['device_model_slug']}' یافت نشد."
+                    );
+                }
+
+                if ($deviceModel) {
+                    $this->deviceEnforcement->assertModelsSelectable([$deviceModel->id], $category?->id);
+                }
 
                 // Generate unique slug
                 $baseSlug = Str::slug($data['name']);
@@ -214,7 +232,6 @@ class BulkProductService
                     'seller_id' => $sellerId,
                     'category_id' => $category->id,
                     'brand_id' => $brand?->id,
-                    'device_model_id' => $deviceModel?->id,
                     'name' => $data['name'],
                     'slug' => $slug,
                     'sku' => $data['sku'],
@@ -227,6 +244,14 @@ class BulkProductService
                     'specifications' => $specifications,
                     'is_active' => true,
                 ]);
+
+                // ✅ فاز ۱J: سازگاری دستگاه از طریق device_model_product
+                // (رابطه‌ی deviceModels()) نوشته می‌شود، نه ستون
+                // device_model_id — همان منبع حقیقتی که فرم تکیِ فروشنده
+                // (SellerProductController) هم استفاده می‌کند.
+                if ($deviceModel) {
+                    $product->deviceModels()->sync([$deviceModel->id]);
+                }
 
                 $created[] = [
                     'row' => $rowNumber,

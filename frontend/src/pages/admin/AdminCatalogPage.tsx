@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Package, Award, FolderTree, Smartphone, Layers, Box } from 'lucide-react';
+import { Package, Award, FolderTree, Smartphone, Layers, Box, Watch } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { AdminBrandsPage } from './AdminBrandsPage';
 import { AdminCategoriesPage } from './AdminCategoriesPage';
+import { AdminDeviceFamiliesPage } from './AdminDeviceFamiliesPage';
 import { AdminDeviceBrandsPage } from './AdminDeviceBrandsPage';
 import { AdminDeviceSeriesPage } from './AdminDeviceSeriesPage';
 import { AdminDeviceModelsPage } from './AdminDeviceModelsPage';
 
-type TabType = 'categories' | 'brands' | 'device-brands' | 'device-series' | 'device-models';
+type TabType = 'categories' | 'brands' | 'device-families' | 'device-brands' | 'device-series' | 'device-models';
 
 export function AdminCatalogPage() {
   const [activeTab, setActiveTab] = useState<TabType>('categories');
@@ -23,6 +24,12 @@ export function AdminCatalogPage() {
       id: 'brands' as TabType,
       label: 'برندهای فروشگاهی', // ✅ برندِ تولیدکننده‌ی خودِ کالا (مثل Spigen, Anker)
       icon: Award,
+      color: 'accent',
+    },
+    {
+      id: 'device-families' as TabType,
+      label: 'خانواده‌های دستگاه', // ✅ Device-First: مرز اکوسیستم (Smartphone/Laptop/Tablet/...)
+      icon: Watch,
       color: 'accent',
     },
     {
@@ -51,6 +58,8 @@ export function AdminCatalogPage() {
         return <AdminCategoriesPage />;
       case 'brands':
         return <AdminBrandsPage />;
+      case 'device-families':
+        return <AdminDeviceFamiliesPage />;
       case 'device-brands':
         return <AdminDeviceBrandsPage />;
       case 'device-series':

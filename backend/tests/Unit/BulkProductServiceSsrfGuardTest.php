@@ -16,7 +16,10 @@ class BulkProductServiceSsrfGuardTest extends TestCase
 {
     private function isSafe(string $url): bool
     {
-        $service = new BulkProductService;
+        // ✅ Device-First Architecture فاز ۱L: BulkProductService اکنون
+        // DeviceEnforcementService را از سازنده می‌گیرد — از کانتینر resolve
+        // می‌کنیم تا این تست به‌جای وابستگی صریح، مثل کد واقعی رفتار کند.
+        $service = app(BulkProductService::class);
         $method = new \ReflectionMethod(BulkProductService::class, 'isSafeExternalUrl');
         $method->setAccessible(true);
 

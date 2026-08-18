@@ -8,7 +8,6 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\DeviceModel;
 use App\Models\Product;
-use App\Models\ProductDeviceCompatibility;
 use App\Models\User;
 use App\Services\CartService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -71,6 +70,22 @@ class CartServiceTest extends TestCase
 
         $this->expectException(IncompatibleProductException::class);
         $this->service->addItem($cart, $this->product->id, 1, $deviceModel->id);
+    }
+
+    // ✅ Device-First Architecture فاز ۱J: سازگاری محصول↔دستگاه اکنون فقط
+    // از طریق device_model_product (رابطه‌ی Product::deviceModels()) چک
+    // می‌شود؛ جدول موازیِ قدیمیِ product_device_compatibility دیگر وجود
+    // ندارد.
+    public function test_add_item_succeeds_if_compatible_via_device_model_product(): void
+    {
+        $cart = $this->service->getOrCreateCart($this->user->id);
+        $deviceModel = DeviceModel::factory()->create();
+        $this->product->deviceModels()->attach($deviceModel->id);
+
+        $item = $this->service->addItem($cart, $this->product->id, 1, $deviceModel->id);
+
+        $this->assertNotNull($item);
+        $this->assertEquals($this->product->id, $item->product_id);
     }
 
     public function test_can_update_item_quantity(): void

@@ -66,11 +66,13 @@ class ReadyProductsSeeder extends Seeder
         // ==================== محصولات آماده ====================
 
         // 1. قاب اسپایگن آیفون ۱۳
-        DB::table('products')->insert([
+        // ✅ فاز ۱J: سازگاری دستگاه از طریق device_model_product نوشته
+        // می‌شود، نه ستونِ حذف‌شده‌ی products.device_model_id — insertGetId
+        // به‌جای insert تا شناسه‌ی محصول برای درج در پیوت در دسترس باشد.
+        $product1Id = DB::table('products')->insertGetId([
             'category_id' => $caseCategoryId,
             'brand_id' => $spigenId,
             'seller_id' => null, // این محصولات template هستند
-            'device_model_id' => $iphone13Model->id,
             'name' => 'قاب سیلیکونی اسپایگن آیفون ۱۳ مدل Ultra Hybrid',
             'slug' => 'spigen-iphone-13-ultra-hybrid-case',
             'short_description' => 'قاب محافظ شفاف با تکنولوژی Air Cushion برای جذب ضربه',
@@ -101,12 +103,20 @@ class ReadyProductsSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 2. شارژر انکر
+        if ($iphone13Model) {
+            DB::table('device_model_product')->insert([
+                'device_model_id' => $iphone13Model->id,
+                'product_id' => $product1Id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 2. شارژر انکر — عمومی (بدون سازگاری با مدل خاص)
         DB::table('products')->insert([
             'category_id' => $accessoryCategoryId,
             'brand_id' => $ankerId,
             'seller_id' => null,
-            'device_model_id' => null, // عمومی
             'name' => 'شارژر دیواری انکر 20W مدل PowerPort III Nano',
             'slug' => 'anker-powerport-iii-nano-20w',
             'short_description' => 'شارژر سریع USB-C با تکنولوژی Power Delivery',
@@ -138,11 +148,10 @@ class ReadyProductsSeeder extends Seeder
         ]);
 
         // 3. گلس محافظ
-        DB::table('products')->insert([
+        $product3Id = DB::table('products')->insertGetId([
             'category_id' => $caseCategoryId,
             'brand_id' => $spigenId,
             'seller_id' => null,
-            'device_model_id' => $galaxyS23Model->id,
             'name' => 'گلس محافظ صفحه نمایش سامسونگ Galaxy S23',
             'slug' => 'galaxy-s23-screen-protector',
             'short_description' => 'گلس شیشه‌ای تمپر با سختی 9H',
@@ -167,12 +176,20 @@ class ReadyProductsSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 4. کابل شارژ
+        if ($galaxyS23Model) {
+            DB::table('device_model_product')->insert([
+                'device_model_id' => $galaxyS23Model->id,
+                'product_id' => $product3Id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 4. کابل شارژ — عمومی (بدون سازگاری با مدل خاص)
         DB::table('products')->insert([
             'category_id' => $accessoryCategoryId,
             'brand_id' => $ankerId,
             'seller_id' => null,
-            'device_model_id' => null,
             'name' => 'کابل شارژ انکر USB-C به Lightning 1.8 متر',
             'slug' => 'anker-usbc-lightning-cable-1.8m',
             'short_description' => 'کابل شارژ سریع با پشتیبانی از Power Delivery',

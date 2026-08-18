@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\DeviceModel;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -135,15 +136,21 @@ class ProductRepository extends BaseRepository
      */
     public function getCompatibleProducts(int $modelId): Collection
     {
+        // ✅ Device-First Architecture فاز ۱J/۱K/۱M: device_model_product
+        // (رابطه‌ی deviceModels()) اکنون تنها منبع حقیقتِ سازگاری
+        // محصول↔دستگاه است — ستون موازیِ products.device_model_id دیگر
+        // در هیچ کوئری‌ای استفاده نمی‌شود. اگر خودِ مدل درخواستی (یا
+        // زنجیره‌ی سری/برند/خانواده‌اش) غیرفعال باشد، نتیجه خالی برمی‌گردد؛
+        // درخواست مستقیم به این endpoint نباید یک اکوسیستم غیرفعال را دور
+        // بزند.
+        if (! $this->isModelDiscoverable($modelId)) {
+            return new Collection();
+        }
+
         return Product::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($modelId) {
-                // شرط ۱: خود دستگاه (که device_model_id مستقیم در جدول products دارد)
-                $query->where('device_model_id', $modelId)
-                      // شرط ۲: لوازم جانبی (که در جدول واسط device_model_product هستند)
-                      ->orWhereHas('deviceModels', function ($subQuery) use ($modelId) {
-                          $subQuery->where('device_model_id', $modelId);
-                      });
+            ->whereHas('deviceModels', function ($subQuery) use ($modelId) {
+                $subQuery->where('device_models.id', $modelId);
             })
             ->with(['brand', 'category', 'images', 'deviceModels.series.brand'])
             ->get();
@@ -154,16 +161,60 @@ class ProductRepository extends BaseRepository
      */
     public function getCompatibleProductsMulti(array $modelIds, int $perPage = 50): LengthAwarePaginator
     {
+        $discoverableIds = $this->discoverableModelIds($modelIds);
+
+        if (empty($discoverableIds)) {
+            return new LengthAwarePaginator([], 0, $perPage);
+        }
+
         return Product::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($modelIds) {
-                $query->whereIn('device_model_id', $modelIds)
-                      ->orWhereHas('deviceModels', function ($subQuery) use ($modelIds) {
-                          $subQuery->whereIn('device_model_id', $modelIds);
-                      });
+            ->whereHas('deviceModels', function ($subQuery) use ($discoverableIds) {
+                $subQuery->whereIn('device_models.id', $discoverableIds);
             })
             ->with(['brand', 'category', 'images', 'deviceModels'])
             ->paginate($perPage);
+    }
+
+    /**
+     * ✅ فاز ۱M: زنجیره‌ی کامل مدل→سری→برند→خانواده باید فعال باشد تا مدل
+     * از مسیرهای عمومی «قابل‌کشف» باشد.
+     */
+    protected function isModelDiscoverable(int $modelId): bool
+    {
+        return DeviceModel::query()
+            ->where('id', $modelId)
+            ->where('is_active', true)
+            ->whereHas('series', function ($q) {
+                $q->where('is_active', true)->whereHas('brand', function ($qb) {
+                    $qb->where('is_active', true)
+                        ->where(function ($qf) {
+                            $qf->whereNull('family_id')->orWhereHas('family', fn ($f) => $f->where('is_active', true));
+                        });
+                });
+            })
+            ->exists();
+    }
+
+    protected function discoverableModelIds(array $modelIds): array
+    {
+        if (empty($modelIds)) {
+            return [];
+        }
+
+        return DeviceModel::query()
+            ->whereIn('id', $modelIds)
+            ->where('is_active', true)
+            ->whereHas('series', function ($q) {
+                $q->where('is_active', true)->whereHas('brand', function ($qb) {
+                    $qb->where('is_active', true)
+                        ->where(function ($qf) {
+                            $qf->whereNull('family_id')->orWhereHas('family', fn ($f) => $f->where('is_active', true));
+                        });
+                });
+            })
+            ->pluck('id')
+            ->all();
     }
 
     /**

@@ -12,7 +12,7 @@ class AdminDeviceBrandRepository
      */
     public function getBrands(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = DeviceBrand::query();
+        $query = DeviceBrand::query()->with('family:id,name,slug');
 
         if (!empty($filters['search'])) {
             $query->where('name', 'LIKE', "%{$filters['search']}%");
@@ -20,6 +20,12 @@ class AdminDeviceBrandRepository
 
         if (isset($filters['type'])) {
             $query->where('type', $filters['type']);
+        }
+
+        // ✅ Device-First Architecture فاز ۱E/۱H: فیلتر بر اساس family_id —
+        // معادل داده‌محورِ فیلتر قدیمیِ type.
+        if (!empty($filters['family_id'])) {
+            $query->where('family_id', $filters['family_id']);
         }
 
         if (isset($filters['is_active'])) {
