@@ -4,6 +4,15 @@ import type { Product } from '@/types/models';
 export interface ApiCartItem {
   id: number;
   product_id: number;
+  // ✅ Variant/Color System فاز ۳: بک‌اند اکنون variant_id + رابطه‌ی
+  // variant را eager-load و برمی‌گرداند (CartController::index).
+  variant_id?: number | null;
+  variant?: {
+    id: number;
+    color_name: string | null;
+    color_code: string | null;
+    sku: string | null;
+  } | null;
   seller_id: number | null;
   quantity: number;
   price: number;
@@ -38,14 +47,17 @@ export const cartService = {
   },
 
   /**
-   * افزودن محصول به سبد (با پشتیبانی از device_model_id)
+   * افزودن محصول به سبد (با پشتیبانی از device_model_id و variant_id)
    */
-  async addToCart(productId: number, quantity: number = 1, deviceModelId?: number): Promise<CartActionResponse> {
-    const payload: { product_id: number; quantity: number; device_model_id?: number } = { product_id: productId, quantity };
+  async addToCart(productId: number, quantity: number = 1, deviceModelId?: number, variantId?: number | null): Promise<CartActionResponse> {
+    const payload: { product_id: number; quantity: number; device_model_id?: number; variant_id?: number } = { product_id: productId, quantity };
     if (deviceModelId) {
       payload.device_model_id = deviceModelId;
     }
-    
+    if (variantId) {
+      payload.variant_id = variantId;
+    }
+
     const response = await apiClient.post<CartActionResponse>('/cart', payload);
     return response.data;
   },

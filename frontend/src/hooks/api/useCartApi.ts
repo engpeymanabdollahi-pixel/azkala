@@ -2,8 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { cartService } from '@/services/api/cart.service';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
-import type { CartItem, Product } from '@/types/models';
+import type { CartItem, Product, ProductVariant } from '@/types/models';
 import toast from 'react-hot-toast';
+
+/**
+ * ✅ Variant/Color System فاز ۳: هویت یک آیتم سبد اکنون product_id +
+ * variant_id است، نه فقط product_id (که قبلاً به‌عنوان «itemId» به این
+ * mutation ها پاس داده می‌شد). variantId اختیاری است — عدم ارسال آن
+ * دقیقاً همان محصول legacy (بدون رنگ) را هدف می‌گیرد.
+ */
+const sameItem = (item: { product_id: number; variant_id?: number | null }, productId: number, variantId: number | null) =>
+  item.product_id === productId && (item.variant_id ?? null) === variantId;
 
 /**
  * هوک TanStack Query برای مدیریت Cart با پشتیبانی از Optimistic UI
@@ -24,6 +33,8 @@ export function useCartApi() {
       return response.data.items.map((item): CartItem => ({
         id: item.id,
         product_id: item.product_id,
+        variant_id: item.variant_id ?? null,
+        variant: item.variant ?? null,
         seller_id: item.seller_id || 1,
         quantity: item.quantity,
         price: item.price,
@@ -40,32 +51,36 @@ export function useCartApi() {
 
   // 📤 افزودن به Cart با Optimistic UI
   const addToCartMutation = useMutation({
-    mutationFn: async ({ product, quantity, deviceModelId }: { 
-      product: Product; 
-      quantity: number; 
-      deviceModelId?: number 
+    mutationFn: async ({ product, quantity, deviceModelId, variant }: {
+      product: Product;
+      quantity: number;
+      deviceModelId?: number;
+      // ✅ فاز ۳: اختیاری — عدم ارسال یعنی محصول بدون رنگ (legacy)
+      variant?: ProductVariant | null;
     }) => {
       if (!isAuthenticated) {
         return { product, quantity, isLocal: true };
       }
-      await cartService.addToCart(product.id, quantity, deviceModelId);
+      await cartService.addToCart(product.id, quantity, deviceModelId, variant?.id ?? undefined);
       return { product, quantity, isLocal: false };
     },
-    
+
     // 🎯 Optimistic Update: UI را بلافاصله آپدیت کن
-    onMutate: async ({ product, quantity }) => {
+    onMutate: async ({ product, quantity, variant }) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
-      
+
       // Snapshot از وضعیت قبلی
       const previousCart = queryClient.getQueryData<CartItem[]>(['cart']) || [];
-      
-      // بررسی وجود محصول در سبد
-      const existingItem = previousCart.find(item => item.product_id === product.id);
-      
+
+      const variantId = variant?.id ?? null;
+      // ✅ فاز ۳: هویت آیتم product_id + variant_id — رنگ متفاوت همان
+      // محصول یک آیتم جدا می‌شود، نه merge با آیتم دیگر.
+      const existingItem = previousCart.find((item) => sameItem(item, product.id, variantId));
+
       let newCart: CartItem[];
       if (existingItem) {
         newCart = previousCart.map(item =>
-          item.product_id === product.id
+          sameItem(item, product.id, variantId)
             ? {
                 ...item,
                 quantity: item.quantity + quantity,
@@ -75,26 +90,31 @@ export function useCartApi() {
             : item
         );
       } else {
+        const unitPrice = variant?.final_price ?? product.price;
         const newItem: CartItem = {
           id: Date.now(),
           product_id: product.id,
+          variant_id: variantId,
+          variant: variant
+            ? { id: variant.id, color_name: variant.color_name, color_code: variant.color_code, sku: variant.sku }
+            : null,
           seller_id: product.seller_id,
           quantity,
-          price: product.price,
-          total: product.price * quantity,
+          price: unitPrice,
+          total: unitPrice * quantity,
           product,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
         newCart = [...previousCart, newItem];
       }
-      
+
       // آپدیت فوری UI
       queryClient.setQueryData(['cart'], newCart);
-      
+
       // آپدیت Zustand store برای سازگاری
-      useCartStore.getState().addItem(product, quantity);
-      
+      useCartStore.getState().addItem(product, quantity, variant ?? null);
+
       return { previousCart };
     },
     
@@ -118,53 +138,53 @@ export function useCartApi() {
   });
 
   // 🗑️ حذف از Cart با Optimistic UI
+  // ✅ فاز ۳: قبلاً پارامتر «itemId» در واقع همیشه product_id بود (تمام
+  // فراخوان‌های واقعی همین‌طور صدا می‌زدند) — الان صریحاً یک آبجکت
+  // {productId, variantId?} می‌گیرد تا رنگ درست هدف گرفته شود.
   const removeFromCartMutation = useMutation({
-    mutationFn: async (itemId: number) => {
+    mutationFn: async ({ productId, variantId = null }: { productId: number; variantId?: number | null }) => {
       if (!isAuthenticated) {
-        return { itemId, isLocal: true };
+        return { productId, variantId, isLocal: true };
       }
-      // پیدا کردن cartItemId واقعی از سرور
+      // پیدا کردن cartItemId واقعی از سرور، از طریق product_id + variant_id
       const response = await cartService.getCart();
-      const serverItem = response.data.items.find(item => item.product_id === itemId);
+      const serverItem = response.data.items.find(item => sameItem(item, productId, variantId));
       if (serverItem) {
         await cartService.removeItem(serverItem.id);
       }
-      return { itemId, isLocal: false };
+      return { productId, variantId, isLocal: false };
     },
-    
+
     // 🎯 Optimistic Update
-    onMutate: async (itemId) => {
+    onMutate: async ({ productId, variantId = null }) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
-      
+
       const previousCart = queryClient.getQueryData<CartItem[]>(['cart']) || [];
-      
+
       queryClient.setQueryData(
         ['cart'],
-        (old: CartItem[] = []) => old.filter((item) => item.product_id !== itemId)
+        (old: CartItem[] = []) => old.filter((item) => !sameItem(item, productId, variantId))
       );
-      
+
       // آپدیت Zustand store
-      const localItem = useCartStore.getState().items.find(i => i.product_id === itemId);
-      if (localItem) {
-        useCartStore.getState().removeItem(localItem.id);
-      }
-      
+      useCartStore.getState().removeItem(productId, variantId);
+
       return { previousCart };
     },
-    
+
     // ✅ onSuccess
     onSuccess: (data) => {
       toast.success(
-        data.isLocal 
-          ? 'از سبد خرید حذف شد' 
+        data.isLocal
+          ? 'از سبد خرید حذف شد'
           : 'از سبد خرید حذف شد',
         { icon: '🗑️', duration: 2000 }
       );
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     },
-    
+
     // ❌ onError: Rollback
-    onError: (error, _itemId, context) => {
+    onError: (error, _variables, context) => {
       queryClient.setQueryData(['cart'], context?.previousCart);
       toast.error('خطا در حذف از سبد خرید', { icon: '❌', duration: 3000 });
       console.error('Failed to remove from cart:', error);
@@ -173,29 +193,29 @@ export function useCartApi() {
 
   // 🔄 به‌روزرسانی تعداد با Optimistic UI
   const updateQuantityMutation = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: number; quantity: number }) => {
+    mutationFn: async ({ productId, variantId = null, quantity }: { productId: number; variantId?: number | null; quantity: number }) => {
       if (!isAuthenticated) {
-        return { itemId, quantity, isLocal: true };
+        return { productId, variantId, quantity, isLocal: true };
       }
       const response = await cartService.getCart();
-      const serverItem = response.data.items.find(item => item.product_id === itemId);
+      const serverItem = response.data.items.find(item => sameItem(item, productId, variantId));
       if (serverItem) {
         await cartService.updateQuantity(serverItem.id, quantity);
       }
-      return { itemId, quantity, isLocal: false };
+      return { productId, variantId, quantity, isLocal: false };
     },
-    
+
     // 🎯 Optimistic Update
-    onMutate: async ({ itemId, quantity }) => {
+    onMutate: async ({ productId, variantId = null, quantity }) => {
       await queryClient.cancelQueries({ queryKey: ['cart'] });
-      
+
       const previousCart = queryClient.getQueryData<CartItem[]>(['cart']) || [];
-      
-      const previousItem = previousCart.find(item => item.product_id === itemId);
+
+      const previousItem = previousCart.find(item => sameItem(item, productId, variantId));
       if (!previousItem) return { previousCart };
-      
+
       const newCart = previousCart.map(item =>
-        item.product_id === itemId
+        sameItem(item, productId, variantId)
           ? {
               ...item,
               quantity,
@@ -204,15 +224,12 @@ export function useCartApi() {
             }
           : item
       );
-      
+
       queryClient.setQueryData(['cart'], newCart);
-      
+
       // آپدیت Zustand store
-      const localItem = useCartStore.getState().items.find(i => i.product_id === itemId);
-      if (localItem) {
-        useCartStore.getState().updateQuantity(localItem.id, quantity);
-      }
-      
+      useCartStore.getState().updateQuantity(productId, quantity, variantId);
+
       return { previousCart };
     },
     

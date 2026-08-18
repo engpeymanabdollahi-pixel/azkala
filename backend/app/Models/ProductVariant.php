@@ -41,4 +41,15 @@ class ProductVariant extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    // ✅ Variant/Color System فاز ۳: دقیقاً همان قرارداد
+    // Product::getFinalPriceAttribute() — «قیمتی که واقعاً پرداخت می‌شود»
+    // discount_price (اگر ست شده) وگرنه price خام است. compare_price فقط
+    // یک قیمت مرجع/خط‌خورده برای نمایش تخفیف است، نه قیمت نهایی. این
+    // accessor از فاز ۲.۱ وجود نداشت چون تا این فاز هیچ مصرف‌کننده‌ای
+    // (سبد خرید/قیمت مؤثر) به آن نیاز نداشت.
+    public function getFinalPriceAttribute()
+    {
+        return $this->discount_price ?? $this->price;
+    }
 }

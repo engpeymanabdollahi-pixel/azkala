@@ -9,7 +9,7 @@ import { useCompareStore } from '@/store/compareStore';
 import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
-import type { Product, PhoneModel } from '@/types/models';
+import type { Product, PhoneModel, ProductVariant } from '@/types/models';
 import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 
@@ -74,6 +74,19 @@ export interface UseProductDetailReturn {
   SelectedDeviceIcon: any;
   discountPercent: number;
   finalPrice: number;
+  // ✅ Variant/Color System فاز ۳: انتخاب رنگ + مقادیر «مؤثر» (effective)
+  // — همیشه تعریف‌شده‌اند، حتی برای محصول بدون رنگ (در آن حالت مستقیماً
+  // برابر مقادیر خودِ محصول‌اند)، تا کامپوننت‌های مصرف‌کننده مجبور به
+  // شاخه‌زدن (if has_variants) نباشند.
+  selectedVariantId: number | null;
+  selectedVariant: ProductVariant | null;
+  setSelectedVariantId: (variantId: number | null) => void;
+  effectivePrice: number;
+  effectiveComparePrice: number | null;
+  effectiveDiscountPercent: number;
+  effectiveStock: number;
+  effectiveSku: string | null;
+  effectiveImage: string | null;
   averageRating: number;
   ratingDistribution: Array<{ rating: number; count: number; percentage: number }>;
   totalReviews: number;
@@ -116,6 +129,9 @@ export function useProductDetail(): UseProductDetailReturn {
   // ==================== State ====================
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  // ✅ Variant/Color System فاز ۳: null یعنی «رنگی انتخاب نشده» — همان
+  // چیزی که برای محصول بدون رنگ همیشه باقی می‌ماند.
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>('description');
@@ -215,6 +231,26 @@ export function useProductDetail(): UseProductDetailReturn {
     };
   }, [slug]);
 
+  // ✅ Variant/Color System فاز ۳: انتخاب پیش‌فرض رنگ، فقط وقتی محصول
+  // واقعاً عوض می‌شود (نه با هر رندر). قانون انتخاب — عمداً ساده و
+  // قطعی، نه تصادفی:
+  //   ۱. اگر رنگی با موجودی > 0 وجود دارد، اولین رنگ موجود طبق همان
+  //      ترتیبی که بک‌اند برمی‌گرداند (ترتیب درج در دیتابیس) انتخاب
+  //      می‌شود.
+  //   ۲. اگر هیچ رنگی موجود نیست، باز هم اولین رنگ (برای نمایش) انتخاب
+  //      می‌شود — ولی «افزودن به سبد» بر اساس effectiveStock=0 غیرفعال
+  //      خواهد بود.
+  //   ۳. اگر محصول اصلاً رنگ ندارد، انتخاب null می‌ماند.
+  useEffect(() => {
+    if (!product?.has_variants || !product.variants || product.variants.length === 0) {
+      setSelectedVariantId(null);
+      return;
+    }
+    const firstInStock = product.variants.find((v) => v.is_in_stock);
+    setSelectedVariantId((firstInStock ?? product.variants[0]).id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
   const { data: reviewsData, isLoading: reviewsLoading } = useQuery({
     queryKey: ['product-reviews', product?.id, reviewsPage, reviewFilter],
     queryFn: () => reviewService.getReviews(product!.id, reviewsPage, reviewFilter === 'all' ? undefined : reviewFilter),
@@ -302,6 +338,50 @@ export function useProductDetail(): UseProductDetailReturn {
     return product.price * (1 - discountPercent / 100);
   }, [product, discountPercent]);
 
+  // ✅ Variant/Color System فاز ۳: selectedVariant + مقادیر effective*.
+  const selectedVariant = useMemo<ProductVariant | null>(() => {
+    if (!product?.variants || selectedVariantId === null) return null;
+    return product.variants.find((v) => v.id === selectedVariantId) ?? null;
+  }, [product, selectedVariantId]);
+
+  // effectivePrice: از selectedVariant.final_price می‌آید (طبق تسک —
+  // «هرگز از ورودی کاربر/کلاینت نه»؛ این مقدار همان چیزی است که بک‌اند
+  // در ProductVariantResource محاسبه کرده). اگر رنگی انتخاب نشده یا
+  // قیمت آن رنگ null است (ستون nullable)، به قیمت خودِ محصول برمی‌گردد
+  // — دقیقاً همان قرارداد nullable-fallback که در schema فاز ۲.۱ هست.
+  const effectivePrice = useMemo(() => {
+    if (selectedVariant?.final_price != null) return selectedVariant.final_price;
+    return finalPrice;
+  }, [selectedVariant, finalPrice]);
+
+  const effectiveComparePrice = useMemo<number | null>(() => {
+    if (selectedVariant) return selectedVariant.compare_price ?? null;
+    return product?.compare_price ?? null;
+  }, [selectedVariant, product]);
+
+  const effectiveDiscountPercent = useMemo(() => {
+    if (effectiveComparePrice && effectiveComparePrice > effectivePrice) {
+      return Math.round(((effectiveComparePrice - effectivePrice) / effectiveComparePrice) * 100);
+    }
+    return 0;
+  }, [effectiveComparePrice, effectivePrice]);
+
+  const effectiveStock = useMemo(() => {
+    if (selectedVariant) return selectedVariant.stock;
+    return product?.stock ?? 0;
+  }, [selectedVariant, product]);
+
+  const effectiveSku = useMemo<string | null>(() => {
+    // ✅ اگر رنگ انتخاب شده ولی SKU مخصوص آن null/خالی است، به SKU خودِ
+    // محصول برمی‌گردیم — دقیقاً طبق دستور صریح تسک (بخش ۶).
+    if (selectedVariant?.sku) return selectedVariant.sku;
+    return product?.sku ?? null;
+  }, [selectedVariant, product]);
+
+  const effectiveImage = useMemo<string | null>(() => {
+    return selectedVariant?.image ?? null;
+  }, [selectedVariant]);
+
   const averageRating = reviewsSummary?.average_rating ?? rating;
 
   const ratingDistribution = useMemo(() => {
@@ -317,17 +397,33 @@ export function useProductDetail(): UseProductDetailReturn {
   const totalReviews = reviewsSummary?.total_reviews || 0;
 
   // ==================== Handlers ====================
+  // ✅ Variant/Color System فاز ۳: اگر محصول رنگ دارد، selectedVariant به
+  // addItem پاس داده می‌شود تا cartStore هم شناسه‌ی رنگ را به سرور
+  // بفرستد و هم آیتم سبد را با هویت product_id+variant_id (نه فقط
+  // product_id) بسازد/merge کند. اگر محصول رنگ ندارد، selectedVariant
+  // همیشه null است — یعنی افزودن به سبد دقیقاً مثل قبل رفتار می‌کند.
   const handleAddToCart = useCallback(() => {
     if (!product) return;
-    addItem(product, quantity);
-    toast.success(`${product.name} به سبد خرید اضافه شد`, { icon: '🛒' });
-  }, [product, quantity, addItem]);
+    if (product.has_variants && effectiveStock <= 0) {
+      toast.error('این رنگ موجود نیست');
+      return;
+    }
+    addItem(product, quantity, selectedVariant);
+    const label = selectedVariant?.color_name
+      ? `${product.name} (${selectedVariant.color_name})`
+      : product.name;
+    toast.success(`${label} به سبد خرید اضافه شد`, { icon: '🛒' });
+  }, [product, quantity, addItem, selectedVariant, effectiveStock]);
 
   const handleQuickBuy = useCallback(() => {
     if (!product) return;
-    addItem(product, quantity);
+    if (product.has_variants && effectiveStock <= 0) {
+      toast.error('این رنگ موجود نیست');
+      return;
+    }
+    addItem(product, quantity, selectedVariant);
     navigate('/checkout');
-  }, [product, quantity, addItem, navigate]);
+  }, [product, quantity, addItem, navigate, selectedVariant, effectiveStock]);
 
   const handleWishlistToggle = useCallback(() => {
     if (!product) return;
@@ -439,10 +535,19 @@ export function useProductDetail(): UseProductDetailReturn {
     SelectedDeviceIcon,
     discountPercent,
     finalPrice,
+    selectedVariantId,
+    selectedVariant,
+    setSelectedVariantId,
+    effectivePrice,
+    effectiveComparePrice,
+    effectiveDiscountPercent,
+    effectiveStock,
+    effectiveSku,
+    effectiveImage,
     averageRating,
     ratingDistribution,
     totalReviews,
-    
+
     // Handlers
     setSelectedImage,
     setQuantity,

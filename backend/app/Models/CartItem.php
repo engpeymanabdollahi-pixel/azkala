@@ -12,6 +12,9 @@ class CartItem extends Model
     protected $fillable = [
         'cart_id',
         'product_id',
+        // ✅ Variant/Color System فاز ۳: nullable — یک آیتم سبد بدون رنگ
+        // (محصول legacy) دقیقاً مثل قبل variant_id=null دارد.
+        'variant_id',
         'quantity',
         'price',
         'device_model_id',
@@ -44,5 +47,13 @@ class CartItem extends Model
     public function deviceModel()
     {
         return $this->belongsTo(DeviceModel::class);
+    }
+
+    /**
+     * رابطه با رنگ/variant انتخاب‌شده (اگر محصول variant داشته باشد)
+     */
+    public function variant()
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 }

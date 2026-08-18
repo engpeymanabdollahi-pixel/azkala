@@ -23,6 +23,13 @@ class ProductVariantResource extends JsonResource
             'price' => $this->price !== null ? (float) $this->price : null,
             'compare_price' => $this->compare_price !== null ? (float) $this->compare_price : null,
             'discount_price' => $this->discount_price !== null ? (float) $this->discount_price : null,
+            // ✅ فاز ۳: دقیقاً همان قرارداد ProductResource::final_price —
+            // discount_price اگر ست شده وگرنه price خام. فرانت‌اند (انتخابگر
+            // رنگ در صفحه‌ی محصول) باید effectivePrice را از همین فیلد
+            // بخواند، نه با محاسبه‌ی دستی discount_price ?? price در خودش.
+            'final_price' => $this->price !== null
+                ? (float) ($this->discount_price ?? $this->price)
+                : null,
             'stock' => $this->stock ?? 0,
             'is_in_stock' => ($this->stock ?? 0) > 0,
             'image' => $this->image,
