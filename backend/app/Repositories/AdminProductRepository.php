@@ -4,10 +4,39 @@ namespace App\Repositories;
 
 use App\Models\Product;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AdminProductRepository
 {
+    /**
+     * ✅ فاز ۰ Brand Backend Correctness (بخش Featured Products Cache):
+     * ProductService::getFeaturedProducts() فقط آرایه‌ی IDها را با کلید
+     * 'featured_product_ids_'.$limit به مدت ۳۶۰۰ ثانیه cache می‌کند —
+     * دقیقاً روی is_featured=true AND is_active=true. تایید شد (با grep
+     * مستقیم) که هیچ‌کدام از مسیرهای نوشتنِ این دو ستون در این Repository
+     * (quickUpdate/bulkAction) این کش را پاک نمی‌کردند — یعنی بعد از
+     * Feature/Unfeature یا Activate/Deactivate یک محصول توسط ادمین،
+     * GET /api/v1/products/featured تا پایان TTL همان لیست قدیمی را
+     * برمی‌گرداند. is_active هم عمداً کنار is_featured اضافه شد چون
+     * دقیقاً همان شرط WHERE کوئری کش‌شده است — یک محصول featured که
+     * deactivate شود باید از لیست غایب شود، همان کلاس باگ.
+     *
+     * فقط همان کلید(های) واقعی پاک می‌شوند (نه cache:flush کامل) — همان
+     * مجموعه‌ی محدودِ limit که AzkalaSyncCommand::handle() از قبل برای
+     * همین کلید پاک می‌کند (هرچند در کدبیس فعلی فقط limit=10 واقعاً
+     * استفاده می‌شود؛ عدد‌های دیگر صرفاً برای همان سطح احتیاط قبلی حفظ
+     * شدند).
+     */
+    private function forgetFeaturedProductsCache(): void
+    {
+        foreach ([10, 20, 50, 100] as $limit) {
+            Cache::forget('featured_products_'.$limit);
+            Cache::forget('featured_product_ids_'.$limit);
+        }
+    }
+
+
     /**
      * Get products with advanced filters
      */
@@ -110,6 +139,11 @@ class AdminProductRepository
     public function quickUpdate(Product $product, array $data): Product
     {
         $product->update($data);
+
+        if (array_key_exists('is_featured', $data) || array_key_exists('is_active', $data)) {
+            $this->forgetFeaturedProductsCache();
+        }
+
         return $product;
     }
 
@@ -190,24 +224,29 @@ class AdminProductRepository
         switch ($action) {
             case 'activate':
                 Product::whereIn('id', $ids)->update(['is_active' => true]);
+                $this->forgetFeaturedProductsCache();
                 return count($ids);
-                
+
             case 'deactivate':
                 Product::whereIn('id', $ids)->update(['is_active' => false]);
+                $this->forgetFeaturedProductsCache();
                 return count($ids);
-                
+
             case 'feature':
                 Product::whereIn('id', $ids)->update(['is_featured' => true]);
+                $this->forgetFeaturedProductsCache();
                 return count($ids);
-                
+
             case 'unfeature':
                 Product::whereIn('id', $ids)->update(['is_featured' => false]);
+                $this->forgetFeaturedProductsCache();
                 return count($ids);
-                
+
             case 'delete':
                 Product::whereIn('id', $ids)->delete();
+                $this->forgetFeaturedProductsCache();
                 return count($ids);
-                
+
             default:
                 return 0;
         }
