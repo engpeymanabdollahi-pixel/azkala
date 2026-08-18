@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\DTOs\Product\ProductFilterDTO;
+use App\Models\DeviceFamily;
 use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -193,16 +194,35 @@ class ProductController extends Controller
             });
         }
 
-        // نوع دستگاه سازگار (mobile/laptop/tablet) — دسته‌بندی‌های واقعی
-        // فروشگاه (قاب، شارژر، هدفون و ...) لوازم جانبی‌اند، نه خودِ دستگاه؛
-        // تنها راه واقعی برای «فقط لوازم گوشی» یا «فقط لوازم لپ‌تاپ» دیدن،
-        // فیلتر بر اساس نوعِ برندِ دستگاه‌های سازگارِ هر تمپلیت است
-        // (device_models -> series -> device_brands.type).
-        if ($request->filled('device_type') && in_array($request->device_type, ['mobile', 'laptop', 'tablet'], true)) {
+        // نوع دستگاه سازگار — دسته‌بندی‌های واقعی فروشگاه (قاب، شارژر،
+        // هدفون و ...) لوازم جانبی‌اند، نه خودِ دستگاه؛ تنها راه واقعی برای
+        // «فقط لوازم گوشی» یا «فقط لوازم لپ‌تاپ» دیدن، فیلتر بر اساس نوعِ
+        // برندِ دستگاه‌های سازگارِ هر تمپلیت است.
+        //
+        // ✅ Device-First Architecture فاز ۲ (Legacy Consolidation): این فیلتر
+        // قبلاً فقط device_brands.type (ستون منسوخ) را می‌خواند و فقط سه
+        // مقدار ثابت mobile/laptop/tablet را می‌پذیرفت — یک مسیر موازیِ
+        // سازگاریِ «duplicate» نسبت به device_families که فاز ۱ ساخت، و
+        // دقیقاً همان مشکلی که کل معماری Device-First قرار بود حل کند: هیچ
+        // خانواده‌ی جدیدی (مثلاً Smartwatch) هرگز از این فیلتر قابل‌عبور
+        // نبود، حتی بعد از ساختنش در ادمین. اکنون device_type هر
+        // slug واقعیِ device_families را هم می‌پذیرد (نه فقط سه مقدار
+        // legacy)؛ سه مقدار قدیمی هنوز به همان خانواده‌های معادل نگاشت
+        // می‌شوند تا هیچ فراخوان موجودی نشکند، و type ستون هم به‌عنوان
+        // fallback برای برندهایی که هنوز family_id ندارند باقی مانده.
+        // مقدار ناشناخته (نه یک legacy value، نه یک slug واقعی) دقیقاً مثل
+        // قبل بی‌صدا نادیده گرفته می‌شود — نه ۴۲۲، نه فیلتر نادرست.
+        if ($request->filled('device_type')) {
             $deviceType = $request->device_type;
-            $query->whereHas('deviceModels.series.brand', function ($q) use ($deviceType) {
-                $q->where('type', $deviceType);
-            });
+            $legacyToFamilySlug = ['mobile' => 'smartphone', 'laptop' => 'laptop', 'tablet' => 'tablet'];
+            $familySlug = $legacyToFamilySlug[$deviceType] ?? $deviceType;
+
+            if (DeviceFamily::where('slug', $familySlug)->exists()) {
+                $query->whereHas('deviceModels.series.brand', function ($q) use ($deviceType, $familySlug) {
+                    $q->where('type', $deviceType) // legacy fallback برای برند بدون family_id
+                      ->orWhereHas('family', fn ($qf) => $qf->where('slug', $familySlug));
+                });
+            }
         }
 
         $templates = $query->paginate($request->per_page ?? 50);

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\DeviceBrand;
+use App\Models\DeviceFamily;
 use App\Models\DeviceModel;
 use App\Models\DeviceSeries;
 use App\Models\Product;
@@ -130,5 +131,55 @@ class ProductTemplatesEndpointTest extends TestCase
         $ids = collect($response->json('data.data'))->pluck('id');
 
         $this->assertTrue($ids->contains($template->id));
+    }
+
+    /**
+     * ✅ Device-First Architecture فاز ۲: این فیلتر اکنون device_families
+     * (منبع حقیقتِ جدید) را هم می‌شناسد، نه فقط device_brands.type قدیمی —
+     * یک برند که فقط family_id دارد (type=null، دقیقاً همان چیزی که فرم
+     * جدید ادمین برند دستگاه می‌سازد) باید هم‌چنان درست فیلتر شود.
+     */
+    public function test_device_type_filter_matches_via_device_family_when_brand_has_no_legacy_type(): void
+    {
+        $smartphoneFamily = DeviceFamily::firstOrCreate(['slug' => 'smartphone'], ['name' => 'Smartphone', 'is_active' => true]);
+        $laptopFamily = DeviceFamily::firstOrCreate(['slug' => 'laptop'], ['name' => 'Laptop', 'is_active' => true]);
+
+        $mobileBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $smartphoneFamily->id]);
+        $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
+
+        $laptopBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $laptopFamily->id]);
+        $laptopModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $laptopBrand->id])]);
+
+        $mobileTemplate = $this->makeTemplate([$mobileModel->id]);
+        $laptopTemplate = $this->makeTemplate([$laptopModel->id]);
+
+        $response = $this->getJson('/api/v1/products/templates?device_type=mobile')->assertOk();
+        $ids = collect($response->json('data.data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($mobileTemplate->id));
+        $this->assertFalse($ids->contains($laptopTemplate->id));
+    }
+
+    /**
+     * ✅ فاز ۲: device_type دیگر به سه مقدار legacy (mobile/laptop/tablet)
+     * محدود نیست — هر slug واقعیِ device_families را می‌پذیرد. یک خانواده‌ی
+     * کاملاً جدید (Smartwatch، که هیچ نگاشت legacyِ ثابتی در کد ندارد) باید
+     * بتواند از همین فیلتر عبور کند تا اثبات شود این endpoint دیگر به سه
+     * مقدار هاردکد وابسته نیست.
+     */
+    public function test_device_type_filter_accepts_a_brand_new_family_slug_directly(): void
+    {
+        $watchFamily = DeviceFamily::create(['name' => 'Smartwatch', 'slug' => 'smartwatch', 'is_active' => true]);
+        $watchBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $watchFamily->id]);
+        $watchModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $watchBrand->id])]);
+        $watchTemplate = $this->makeTemplate([$watchModel->id]);
+
+        $otherTemplate = $this->makeTemplate();
+
+        $response = $this->getJson('/api/v1/products/templates?device_type=smartwatch')->assertOk();
+        $ids = collect($response->json('data.data'))->pluck('id');
+
+        $this->assertTrue($ids->contains($watchTemplate->id));
+        $this->assertFalse($ids->contains($otherTemplate->id));
     }
 }
