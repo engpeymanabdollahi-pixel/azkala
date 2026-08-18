@@ -176,22 +176,38 @@ class BulkProductService
         $created = [];
         $failed = [];
 
+        // ✅ Device-First Architecture فاز ۳: اندازه‌گیری واقعی نشان داد این
+        // متد به‌ازای هر ردیف ~۱۲ کوئری می‌زد (رشد خطی با تعداد ردیف‌ها —
+        // با سقف ۵۰۰ ردیفِ MAX_ROWS یعنی تا ~۶۰۰۰ کوئری در یک درخواست).
+        // بخشی از آن (category/brand/device_model بر اساس slug) همان
+        // الگویی بود که validateFile() از قبل با whereIn حل کرده بود، ولی
+        // اینجا هنوز per-row مانده بود. همان الگو اینجا هم اعمال شد —
+        // منطق و پیام‌های خطا دقیقاً همان قبلی است، فقط تعداد کوئری از
+        // O(n) به O(1) برای این سه lookup کاهش می‌یابد.
+        $categorySlugs = collect($validRows)->pluck('data.category_slug')->filter()->unique()->values();
+        $brandSlugs = collect($validRows)->pluck('data.brand_slug')->filter()->unique()->values();
+        $deviceModelSlugs = collect($validRows)->pluck('data.device_model_slug')->filter()->unique()->values();
+
+        $categoriesBySlug = Category::whereIn('slug', $categorySlugs)->get()->keyBy('slug');
+        $brandsBySlug = Brand::whereIn('slug', $brandSlugs)->get()->keyBy('slug');
+        $deviceModelsBySlug = DeviceModel::whereIn('slug', $deviceModelSlugs)->get()->keyBy('slug');
+
         foreach ($validRows as $item) {
             try {
                 $data = $item['data'];
                 $rowNumber = $item['row'];
 
                 // Resolve IDs from slugs
-                $category = Category::where('slug', $data['category_slug'])->first();
+                $category = $categoriesBySlug->get($data['category_slug']);
                 $brand = ! empty($data['brand_slug'])
-                    ? Brand::where('slug', $data['brand_slug'])->first()
+                    ? $brandsBySlug->get($data['brand_slug'])
                     : null;
                 // ✅ Device-First Architecture فاز ۱L: همان لایه‌ی مشترک
                 // اعتبارسنجی که فرم تکی فروشنده هم استفاده می‌کند —
                 // زنجیره‌ی مدل→سری→برند→خانواده باید کاملاً فعال باشد، و در
                 // صورت پیکربندی‌شدن family برای دسته، باید هم‌خوان باشد.
                 $deviceModel = ! empty($data['device_model_slug'])
-                    ? DeviceModel::where('slug', $data['device_model_slug'])->first()
+                    ? $deviceModelsBySlug->get($data['device_model_slug'])
                     : null;
 
                 if (! empty($data['device_model_slug']) && ! $deviceModel) {

@@ -55,9 +55,13 @@ class AdminDeviceModelRepository
 
     public function delete(DeviceModel $model): bool
     {
-        // بررسی اینکه آیا این مدل به محصولی متصل است یا خیر
-        $hasProducts = DB::table('products')->where('device_model_id', $model->id)->exists() ||
-                       DB::table('device_model_product')->where('device_model_id', $model->id)->exists();
+        // ✅ Device-First Architecture فاز ۳: ستون products.device_model_id در
+        // فاز ۱ حذف شد (device_model_product تنها منبع حقیقتِ سازگاری است) —
+        // این کوئری همیشه با «no such column: device_model_id» خطای ۵۰۰
+        // می‌داد، یعنی حذف هر مدل دستگاهی از پنل ادمین همیشه شکست می‌خورد،
+        // حتی برای مدلی که اصلاً به هیچ محصولی وصل نبود. هیچ تستی این مسیر
+        // را پوشش نمی‌داد.
+        $hasProducts = DB::table('device_model_product')->where('device_model_id', $model->id)->exists();
 
         if ($hasProducts) {
             throw new BadRequestHttpException('این مدل دستگاه به یک یا چند محصول متصل است و قابل حذف نیست.');
