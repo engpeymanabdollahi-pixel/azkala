@@ -19,14 +19,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Package, Search, Filter, SlidersHorizontal,
-  X, Zap, Mail, LayoutGrid,
+  X, Zap, Mail, LayoutGrid, Smartphone,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import apiClient from '@/services/api/client';
 import { categoryService } from '@/services/api/category.service';
 import { brandService } from '@/services/api/brand.service';
+import { deviceService } from '@/services/api/device.service';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { TemplateCard, type ProductTemplate } from './components/TemplateCard';
@@ -34,17 +36,6 @@ import { QuickViewModal } from './components/QuickViewModal';
 import { FilterPanel, type FilterState, type FilterOption } from './components/FilterPanel';
 import { SortDropdown, type SortOption } from './components/SortDropdown';
 import { cn } from '@/utils/cn';
-import { getDeviceTypeIcon, getDeviceTypeLabel, type DeviceType } from '@/utils/deviceType';
-
-// نوع دستگاهِ سازگار برای فیلتر کتابخانه محصولات — دسته‌بندی‌های واقعی
-// فروشگاه (قاب، شارژر، هدفون و...) لوازم جانبی‌اند نه خودِ دستگاه، پس تفکیک
-// «گوشی / لپ‌تاپ / تبلت» را باید از روی دستگاه‌های سازگارِ هر محصول ساخت.
-const DEVICE_TYPE_FILTERS: { value: DeviceType | 'all'; label: string }[] = [
-  { value: 'all', label: 'همه دستگاه‌ها' },
-  { value: 'mobile', label: getDeviceTypeLabel('mobile') },
-  { value: 'laptop', label: getDeviceTypeLabel('laptop') },
-  { value: 'tablet', label: getDeviceTypeLabel('tablet') },
-];
 
 const FILTERS_STORAGE_KEY = 'productTemplatesFilters';
 const DEFAULT_FILTERS: FilterState = {
@@ -109,9 +100,19 @@ export default function ProductTemplates() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [favorites, setFavorites] = useState<number[]>([]);
-  // نوع دستگاه سازگار (گوشی/لپ‌تاپ/تبلت) — سمت سرور فیلتر می‌شود چون
-  // دستگاه‌های سازگارِ هر تمپلیت در همان پاسخِ لیست کامل نمی‌آید.
-  const [deviceType, setDeviceType] = useState<DeviceType | 'all'>('all');
+  // ✅ Device-First Architecture فاز ۲ (Legacy Consolidation): قبلاً یک
+  // آرایه‌ی هاردکدِ mobile/laptop/tablet بود — یعنی خانواده‌ی دستگاهِ جدیدی
+  // که ادمین می‌سازد (مثلاً Smartwatch) هرگز در این فیلتر ظاهر نمی‌شد، با
+  // اینکه بک‌اند از فاز ۱ به بعد از آن پشتیبانی می‌کند. اکنون از
+  // /device-families واقعی خوانده می‌شود؛ مقدار ارسالی همان family.slug
+  // است (سمت سرور فیلتر می‌شود چون دستگاه‌های سازگارِ هر تمپلیت در همان
+  // پاسخِ لیست کامل نمی‌آید).
+  const [deviceType, setDeviceType] = useState<string>('all');
+  const { data: deviceFamilies = [] } = useQuery({
+    queryKey: ['device-families'],
+    queryFn: deviceService.getFamilies,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // فیلترها — از localStorage همان لحظه‌ی اول خوانده می‌شوند (بالا توضیح داده شد)
   const [filters, setFilters] = useState<FilterState>(loadInitialFilters);
@@ -333,18 +334,19 @@ export default function ProductTemplates() {
         </div>
       </div>
 
-      {/* دسته‌بندی بر اساس نوع دستگاه — لوازم جانبی (قاب، شارژر، هدفون...)
-          خودشان دسته‌ی «گوشی/لپ‌تاپ/تبلت» ندارند، پس این تفکیک از روی
-          دستگاه‌های سازگارِ هر محصول ساخته می‌شود، نه از دسته‌بندی محصول. */}
+      {/* دسته‌بندی بر اساس خانواده‌ی دستگاه — لوازم جانبی (قاب، شارژر، هدفون...)
+          خودشان چنین دسته‌ای ندارند، پس این تفکیک از روی دستگاه‌های
+          سازگارِ هر محصول ساخته می‌شود، نه از دسته‌بندی محصول. لیست از
+          /device-families واقعی می‌آید — بدون هیچ مقدار هاردکد. */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {DEVICE_TYPE_FILTERS.map((item) => {
-          const Icon = item.value === 'all' ? LayoutGrid : getDeviceTypeIcon(item.value as DeviceType);
-          const isActive = deviceType === item.value;
+        {[{ slug: 'all', name: 'همه دستگاه‌ها' }, ...deviceFamilies].map((item) => {
+          const Icon = item.slug === 'all' ? LayoutGrid : Smartphone;
+          const isActive = deviceType === item.slug;
           return (
             <button
-              key={item.value}
+              key={item.slug}
               type="button"
-              onClick={() => setDeviceType(item.value)}
+              onClick={() => setDeviceType(item.slug)}
               className={cn(
                 'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
@@ -354,7 +356,7 @@ export default function ProductTemplates() {
               )}
             >
               <Icon className="w-4 h-4" />
-              {item.label}
+              {item.name}
             </button>
           );
         })}
