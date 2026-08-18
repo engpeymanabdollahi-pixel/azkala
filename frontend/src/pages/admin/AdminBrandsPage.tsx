@@ -53,6 +53,14 @@ export function AdminBrandsPage() {
   const invalidateBrandQueries = () => {
     queryClient.invalidateQueries({ queryKey: ['admin/brands'] });
     queryClient.invalidateQueries({ queryKey: ['brands'] });
+    // ✅ فاز ۲ Brand Detail: BrandDetailPage.tsx با کلید ['brand', slug]
+    // کش می‌شود. invalidateQueries با ['brand'] (بدون slug) طبق رفتار
+    // پیش‌فرض TanStack Query v5 یک prefix-match است — یعنی هر برندی که
+    // صفحه‌ی جزئیاتش قبلاً باز شده و در کش نشسته، با هر mutation ادمین
+    // (verify/feature/activate/ویرایش/حذف) دوباره تازه می‌شود؛ بدون این
+    // خط، صفحه‌ی عمومی برند تا پایان staleTime (۱۰ دقیقه) داده‌ی قدیمی
+    // نشان می‌داد.
+    queryClient.invalidateQueries({ queryKey: ['brand'] });
   };
 
   // ✅ فاز ۱ Brand Hub: باگ واقعیِ از‌قبل‌موجود — useCrudMutations.

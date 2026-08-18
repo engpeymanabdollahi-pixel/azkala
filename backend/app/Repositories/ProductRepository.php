@@ -55,9 +55,26 @@ class ProductRepository extends BaseRepository
             $query->where('price', '<=', $filters['max_price']);
         }
 
-        // Apply sorting
+        // ✅ Brand Detail فاز ۲: قبلاً $sortBy مستقیم (بدون allow-list) وارد
+        // orderBy() می‌شد — یعنی GET /api/v1/products?sort_by=<هر رشته‌ای>
+        // همان مقدار را بدون اعتبارسنجی به‌عنوان نام ستون به Eloquent
+        // می‌داد. یک ستون ناموجود (مثلاً sort_by=xyz) یک QueryException
+        // ناهندل‌شده (۵۰۰ خام، و در محیط APP_DEBUG=true حتی افشای کوئری/
+        // اسکیمای دیتابیس) تولید می‌کرد — روی یک endpoint کاملاً عمومی و
+        // بدون auth. همان الگوی allow-list که از قبل در
+        // AdminProductRepository::getProductsWithFilters() برای پنل ادمین
+        // برقرار بود، اینجا هم اعمال شد. Brand Detail (که این فاز اضافه
+        // می‌کند) دقیقاً همین ۵ مقدار را می‌فرستد — پس فیلتر جدید هیچ
+        // گزینه‌ی sort موجودی را غیرفعال نمی‌کند.
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
+        $allowedSorts = ['created_at', 'price', 'sales_count', 'rating', 'stock', 'views_count', 'name'];
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
+        }
+        if (!in_array($sortOrder, ['asc', 'desc'], true)) {
+            $sortOrder = 'desc';
+        }
         $query->orderBy($sortBy, $sortOrder);
 
         return $query->paginate($perPage);
