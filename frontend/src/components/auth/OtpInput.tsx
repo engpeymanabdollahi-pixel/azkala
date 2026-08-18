@@ -16,8 +16,11 @@ interface OtpInputProps {
  * ورودی کد تأیید، به‌صورت خانه‌های جدا.
  *
  * ✅ شروع تایپ از خانه‌ی سمت چپ (LTR، استاندارد جهانی برای کدهای عددی).
- * با dir="ltr"، خانه‌ی index=0 در سمت چپ قرار می‌گیرد و فوکوس اولیه
- * روی همان است. با هر تایپ، به خانه‌ی بعدی (index+1 = سمت راست) می‌رود.
+ * با `direction: ltr` قطعی (حتی در والد RTL)، خانه‌ی index=0 در سمت چپ
+ * قرار می‌گیرد و فوکوس اولیه روی همان است. با هر تایپ، به خانه‌ی بعدی
+ * (index+1 = سمت راست) می‌رود.
+ *
+ * اعداد در مرکز هر خانه قرار می‌گیرند (textAlign: center قطعی).
  *
  * پشتیبانی کامل: چسباندن کد از پیامک (با ارقام فارسی/عربی)، حرکت با
  * کلیدهای جهت‌دار (منطبق بر LTR)، و backspace روی خانه‌ی خالی.
@@ -39,7 +42,7 @@ export function OtpInput({
   // اولین خانه‌ی خالی، یعنی جایی که باید تایپ شود.
   const activeIndex = Math.min(value.length, length - 1);
 
-  // ✅ فوکوس قطعی روی اولین خانه (سمت چپ، چون dir="ltr")
+  // ✅ فوکوس قطعی روی اولین خانه (سمت چپ، چون direction: ltr)
   // setTimeout برای اطمینان از اجرای فوکوس بعد از mount و انیمیشن مودال
   useEffect(() => {
     const timer = setTimeout(() => inputs.current[0]?.focus(), 50);
@@ -131,7 +134,10 @@ export function OtpInput({
   };
 
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3" dir="ltr">
+    <div
+      className="flex flex-row items-center justify-center gap-2 sm:gap-3"
+      style={{ direction: 'ltr' }}
+    >
       {Array.from({ length }).map((_, index) => (
         <input
           key={index}
@@ -149,8 +155,9 @@ export function OtpInput({
           onPaste={handlePaste}
           onFocus={(event) => event.target.select()}
           aria-label={`رقم ${index + 1} از ${length}`}
+          style={{ textAlign: 'center', direction: 'ltr' }}
           className={cn(
-            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-center text-2xl font-bold',
+            'w-12 h-14 sm:w-14 sm:h-16 rounded-2xl text-2xl font-bold',
             'bg-[#e8ebf2] dark:bg-[#262b35]',
             'text-slate-800 dark:text-slate-100 caret-primary-500',
             // سایه neumorphic inset مشکی ملایم — هماهنگ با توکن‌های AuthModal

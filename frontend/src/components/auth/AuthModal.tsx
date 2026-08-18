@@ -28,12 +28,10 @@ const OTP_LENGTH = 5;
 const RESEND_SECONDS = 120;
 
 // =====================================================================
-// Neumorphic Tokens — سایه ملایم و کم‌شدت (مخصوصاً روی پنل مودال)
+// Neumorphic Tokens — فقط برای عناصر داخلی (دکمه/اینپوت/آیکن)
+// سایه پنل مدال حذف شد (flat)
 // =====================================================================
 const NEU = {
-  cardLight: 'shadow-[6px_6px_12px_rgba(0,0,0,0.06),-6px_-6px_12px_rgba(255,255,255,0.7)]',
-  cardDark: 'dark:shadow-[6px_6px_12px_rgba(0,0,0,0.1),-6px_-6px_12px_rgba(255,255,255,0.03)]',
-
   inputLight: 'shadow-[inset_3px_3px_6px_rgba(0,0,0,0.15),inset_-3px_-3px_6px_rgba(255,255,255,0.6)]',
   inputDark: 'dark:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.18),inset_-3px_-3px_6px_rgba(255,255,255,0.02)]',
 
@@ -214,7 +212,7 @@ export function AuthModal() {
 
   return (
     <div
-      dir="ltr"
+      dir="rtl"
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
@@ -228,15 +226,14 @@ export function AuthModal() {
         className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 focus:outline-none"
       />
 
-      {/* Modal Panel */}
+      {/* Modal Panel — بدون سایه، با border ظریف برای خوانایی */}
       <div
         ref={dialogRef}
         className={cn(
           'relative w-full sm:max-w-md',
           'bg-[#e8ebf2] dark:bg-[#262b35]',
           'rounded-t-[2rem] sm:rounded-[2rem]',
-          NEU.cardLight,
-          NEU.cardDark,
+          'border border-slate-200/60 dark:border-slate-700/60',
           'overflow-hidden',
           'animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 ease-out'
         )}
@@ -456,7 +453,6 @@ export function AuthModal() {
               </button>
             </form>
           ) : (
-            /* ───────────── مرحله ۲: فقط OtpInput + دکمه‌ها ───────────── */
             <div className="space-y-6">
               <OtpInput
                 length={OTP_LENGTH}
