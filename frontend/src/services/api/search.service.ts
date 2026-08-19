@@ -105,15 +105,12 @@ export const searchService = {
     return response.data.data;
   },
 
-  /**
-   * جستجوی دستگاه‌ها (مخصوص DeviceSelector)
-   */
-  async deviceSearch(query: string, type?: string, limit = 10) {
-    const response = await apiClient.get('/search/devices', {
-      params: { q: query, type, limit },
-    });
-    return response.data.data;
-  },
+  // ✅ Device-First Architecture فاز ۶: متد deviceSearch() (و کلاینتش برای
+  // GET /search/devices) به‌عنوان کد کاملاً مرده حذف شد — صفر caller در
+  // کل frontend داشت (نه در هیچ کامپوننت/hook/تستی). خودِ endpoint بک‌اند
+  // (SearchController::devices()) دست‌نخورده ماند، چون یک API عمومی و
+  // فنی-reachable است و امکان رد کردن مصرف‌کننده‌ی خارجی احتمالی صرفاً با
+  // بررسی این ریپازیتوری وجود ندارد.
 
   /**
    * Popular suggestions

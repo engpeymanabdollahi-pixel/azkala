@@ -17,9 +17,6 @@
 export { DeviceCompatibility } from './DeviceCompatibility';
 export type { CompatibilityVariant } from './DeviceCompatibility';
 
-export { DeviceSelector } from './DeviceSelector';
-export type { DeviceSelectorVariant } from './DeviceSelector';
-
 // ==================== Product Components ====================
 export { ProductCard } from './ProductCard';
 export type { ProductCardProps, ProductCardVariant } from './ProductCard';

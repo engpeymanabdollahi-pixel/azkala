@@ -58,6 +58,19 @@ class AdminAdvancedReportController extends Controller
 
     /**
      * تحلیل دستگاه‌ها
+     *
+     * ✅ Device-First Architecture فاز ۲: ReportService::getDeviceAnalytics()
+     * از قبل خودش پاسخ را در {success, data, period} می‌پیچد؛ اینجا دوباره
+     * زیر یک {success, data} دیگر می‌پیچید — یعنی JSON نهایی
+     * {success, data: {success, data: {by_brand, by_model, ...}, period}}
+     * بود. فرانت‌اند (مثل همه‌ی تب‌های دیگر همین صفحه) فقط یک لایه‌ی data
+     * را باز می‌کند (`response.data.data`)، پس همیشه به شیء میانی
+     * (`{success, data, period}`) می‌رسید، نه به داده‌ی واقعی — یعنی
+     * `analytics.by_brand` همیشه undefined بود، حتی با JOIN درست.
+     * تنها راه‌حل: چیزی که سرویس برگردانده را مستقیم پاس بده، دوباره
+     * نپیچش. (نکته: این الگوی دوباره‌پیچی در بقیه‌ی متدهای همین کنترلر هم
+     * تکرار شده — خارج از scope فاز Device-First است و اینجا دست‌نخورده
+     * ماند؛ در گزارش این فاز مستند شده.)
      */
     public function deviceAnalytics(Request $request)
     {
@@ -67,7 +80,7 @@ class AdminAdvancedReportController extends Controller
 
         $data = $this->reportService->getDeviceAnalytics($startDate, $endDate);
 
-        return response()->json(['success' => true, 'data' => $data]);
+        return response()->json($data);
     }
 
     /**

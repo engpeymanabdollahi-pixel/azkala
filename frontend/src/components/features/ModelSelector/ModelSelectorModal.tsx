@@ -188,6 +188,9 @@ export function ModelSelectorModal() {
       // می‌کرد دستگاه همیشه «گوشی» است — با اینکه این مدال از قبل لپ‌تاپ و
       // تبلت را هم پشتیبانی می‌کند.
       type: tempBrand.type,
+      // ✅ فاز ۵: family همراه انتخاب ذخیره می‌شود تا Header/ModelSelector و
+      // useProductDetail بتوانند آیکون را family-first resolve کنند.
+      family: tempBrand.family,
       is_active: true,
       series_count: tempBrand.series.length,
       models_count: 0,
@@ -248,6 +251,9 @@ export function ModelSelectorModal() {
       slug: pm.brand.slug || '',
       logo: pm.brand.logo || null,
       type: (pm.brand.type as Brand['type']) || null,
+      // ✅ فاز ۵: همان propagation برای دستگاه‌های ذخیره‌شده («دستگاه‌های
+      // من») — بک‌اند حالا family را در همین مسیر هم eager-load می‌کند.
+      family: pm.brand.family ?? null,
       is_active: true,
       created_at: '',
       updated_at: '',

@@ -79,6 +79,10 @@ export interface ModelData {
   brand?: {
     name: string;
     type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
+    // ✅ فاز ۵: منبع حقیقتِ آیکون؛ فاز ۸: name هم منبع حقیقتِ برچسب شد
+    // (بعد از مهاجرتِ localize_device_families_name، فارسی است) — type
+    // بالا فقط fallback سازگاری است.
+    family?: { name?: string | null; icon?: string | null } | null;
   } | null;
 }
 

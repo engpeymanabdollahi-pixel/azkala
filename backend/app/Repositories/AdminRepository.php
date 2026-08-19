@@ -207,62 +207,97 @@ class AdminRepository
 
     /**
      * Get device analytics data
+     *
+     * ✅ Device-First Architecture فاز ۲ (Legacy Consolidation): این متد
+     * user_devices.phone_model_id را به phone_models/phone_series/brands
+     * (جداول قدیمیِ کاملاً خالی — صفر ردیف، migration
+     * repoint_user_devices_to_device_models ماه‌ها پیش phone_model_id را
+     * واقعاً به device_models سوق داد) JOIN می‌زد. چون این یک INNER JOIN
+     * بود، نتیجه همیشه صفر ردیف بود — این گزارش (تب «دستگاه‌ها» در
+     * AdminReportsPage، از طریق GET /admin/reports/device-analytics)
+     * همیشه خالی نمایش داده می‌شد، بدون هیچ خطایی. به‌علاوه شکل خروجی
+     * (top_devices/devices_by_brand با brand_name/series_name/model_name)
+     * اصلاً با چیزی که فرانت‌اند می‌خواند (by_brand/by_model با
+     * device_brand/device_model — دقیقاً همان شکلی که
+     * ReportServiceTest از قبل mock کرده بود) یکی نبود؛ یعنی حتی با JOIN
+     * درست هم چیزی نمایش داده نمی‌شد. اکنون هر دو مشکل با هم رفع شدند:
+     * JOIN روی device_models→device_series→device_brands، و شکل خروجی
+     * دقیقاً مطابق قراردادِ از پیش موجودِ فرانت‌اند/تست.
      */
     public function getDeviceAnalytics(?string $startDate, ?string $endDate): array
     {
-        $query = DB::table('user_devices')
-            ->join('phone_models', 'user_devices.phone_model_id', '=', 'phone_models.id')
-            ->join('phone_series', 'phone_models.series_id', '=', 'phone_series.id')
-            ->join('brands', function ($join) {
-                $join->on('phone_models.brand_id', '=', 'brands.id')
-                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+        $byModelQuery = DB::table('user_devices')
+            ->join('device_models', function ($join) {
+                $join->on('user_devices.phone_model_id', '=', 'device_models.id')
+                    ->whereNull('device_models.deleted_at');
+            })
+            ->join('device_series', function ($join) {
+                $join->on('device_models.series_id', '=', 'device_series.id')
+                    ->whereNull('device_series.deleted_at');
+            })
+            ->join('device_brands', function ($join) {
+                $join->on('device_series.brand_id', '=', 'device_brands.id')
+                    ->whereNull('device_brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
             });
 
         if ($startDate) {
-            $query->where('user_devices.created_at', '>=', $startDate);
+            $byModelQuery->where('user_devices.created_at', '>=', $startDate);
         }
 
         if ($endDate) {
-            $query->where('user_devices.created_at', '<=', $endDate);
+            $byModelQuery->where('user_devices.created_at', '<=', $endDate);
         }
 
-        $devices = $query
+        // ✅ الحاق برند+مدل در PHP انجام می‌شود، نه با تابع concat خام SQL
+        // (`||` مخصوص SQLite است، `CONCAT` مخصوص MySQL — این‌طوری روی هر دو
+        // درست کار می‌کند).
+        $byModel = $byModelQuery
             ->select(
-                'brands.name as brand_name',
-                'phone_series.name as series_name',
-                'phone_models.name as model_name',
+                'device_brands.name as brand_name',
+                'device_models.name as model_name',
                 DB::raw('COUNT(*) as count')
             )
-            ->groupBy('brands.name', 'phone_series.name', 'phone_models.name')
+            ->groupBy('device_brands.name', 'device_models.name')
             ->orderByDesc('count')
-            ->limit(20)
-            ->get();
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => (object) [
+                'device_model' => trim("{$row->brand_name} {$row->model_name}"),
+                'count' => $row->count,
+            ]);
 
-        // Devices by brand
-        $devicesByBrand = DB::table('user_devices')
-            ->join('phone_models', 'user_devices.phone_model_id', '=', 'phone_models.id')
-            ->join('brands', function ($join) {
-                $join->on('phone_models.brand_id', '=', 'brands.id')
-                    ->whereNull('brands.deleted_at'); // ✅ کوئری خام: SoftDeletes اعمال نمی‌شود
+        $byBrandQuery = DB::table('user_devices')
+            ->join('device_models', function ($join) {
+                $join->on('user_devices.phone_model_id', '=', 'device_models.id')
+                    ->whereNull('device_models.deleted_at');
+            })
+            ->join('device_series', function ($join) {
+                $join->on('device_models.series_id', '=', 'device_series.id')
+                    ->whereNull('device_series.deleted_at');
+            })
+            ->join('device_brands', function ($join) {
+                $join->on('device_series.brand_id', '=', 'device_brands.id')
+                    ->whereNull('device_brands.deleted_at');
             });
 
         if ($startDate) {
-            $devicesByBrand->where('user_devices.created_at', '>=', $startDate);
+            $byBrandQuery->where('user_devices.created_at', '>=', $startDate);
         }
 
         if ($endDate) {
-            $devicesByBrand->where('user_devices.created_at', '<=', $endDate);
+            $byBrandQuery->where('user_devices.created_at', '<=', $endDate);
         }
 
-        $byBrand = $devicesByBrand
-            ->select('brands.name as brand_name', DB::raw('COUNT(*) as count'))
-            ->groupBy('brands.name')
+        $byBrand = $byBrandQuery
+            ->select('device_brands.name as device_brand', DB::raw('COUNT(*) as count'))
+            ->groupBy('device_brands.name')
             ->orderByDesc('count')
+            ->limit(10)
             ->get();
 
         return [
-            'top_devices' => $devices,
-            'devices_by_brand' => $byBrand,
+            'by_brand' => $byBrand,
+            'by_model' => $byModel,
             'total_devices' => DB::table('user_devices')->count(),
         ];
     }

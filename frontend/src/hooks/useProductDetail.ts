@@ -10,7 +10,7 @@ import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
 import type { Product, PhoneModel, ProductVariant } from '@/types/models';
-import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
+import { formatDeviceName, resolveDeviceIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 
 // ✅ 'compatibility' قبلاً اینجا نبود در حالی که ProductDetailPage.tsx واقعاً
@@ -320,10 +320,14 @@ export function useProductDetail(): UseProductDetailReturn {
 
   const selectedDeviceName = useMemo(() => {
     if (!selectedModel) return '';
-    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand?.type);
+    // ✅ فاز ۸: کل brand پاس داده می‌شود (نه فقط type) تا formatDeviceName
+    // بتواند برچسب را family-first resolve کند.
+    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand);
   }, [selectedModel]);
 
-  const SelectedDeviceIcon = getDeviceTypeIcon(selectedModel?.brand?.type);
+  // ✅ فاز ۵: family-first با fallback به type (آیکون)؛ فاز ۸: برچسبِ بالا
+  // (selectedDeviceName) هم همین الگو را برای family.name گرفت.
+  const SelectedDeviceIcon = resolveDeviceIcon(selectedModel?.brand);
 
   const discountPercent = useMemo(() => {
     if (!product) return 0;
