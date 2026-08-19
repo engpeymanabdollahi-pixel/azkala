@@ -1,4 +1,5 @@
 import { Laptop, Smartphone, Tablet, type LucideIcon } from 'lucide-react';
+import { resolveFamilyIcon } from '@/utils/familyIcon';
 
 /**
  * برچسب و آیکون فارسی برای نوع دستگاه انتخابی کاربر.
@@ -35,6 +36,26 @@ export function getDeviceTypeLabel(type: DeviceType): string {
 export function getDeviceTypeIcon(type: DeviceType): LucideIcon {
   if (type && type in ICONS) return ICONS[type];
   return Smartphone;
+}
+
+/**
+ * ✅ Device-First Architecture فاز ۵: آیکون دستگاه را family-first
+ * resolve می‌کند — family منبع حقیقت است، type فقط fallback سازگاری.
+ *
+ * ترتیب دقیق (برای حفظ کامل UX فعلی، چون family.icon امروز فقط برای ۶
+ * برند واقعی پر است):
+ *   ۱. اگر brand.family?.icon یک نام تأییدشده در allow-list باشد → همان.
+ *   ۲. وگرنه (family.icon نال/نامعتبر/family اصلاً موجود نیست) → دقیقاً
+ *      همان منطق قدیمیِ type-based (getDeviceTypeIcon) — یعنی برای هر
+ *      برندی که هنوز آیکون خانواده ندارد، رفتار فعلی صفر تغییر می‌کند.
+ */
+export function resolveDeviceIcon(brand?: {
+  type?: DeviceType;
+  family?: { icon?: string | null } | null;
+} | null): LucideIcon {
+  const fromFamily = resolveFamilyIcon(brand?.family?.icon);
+  if (fromFamily) return fromFamily;
+  return getDeviceTypeIcon(brand?.type);
 }
 
 /**

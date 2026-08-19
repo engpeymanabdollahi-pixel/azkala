@@ -79,6 +79,8 @@ export interface ModelData {
   brand?: {
     name: string;
     type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
+    // ✅ فاز ۵: منبع حقیقتِ آیکون؛ type بالا فقط fallback سازگاری است.
+    family?: { icon?: string | null } | null;
   } | null;
 }
 

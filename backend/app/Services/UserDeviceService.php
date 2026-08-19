@@ -9,7 +9,11 @@ class UserDeviceService
 {
     public function getUserDevices(int $userId): Collection
     {
-        $devices = UserDevice::with('phoneModel.series.brand')
+        // ✅ Device-First Architecture فاز ۵: family هم eager-load می‌شود
+        // (علاوه بر brand، نه به‌جایش) تا فرانت‌اند بتواند آیکون خانواده را
+        // resolve کند؛ چیزی از شکل قبلی پاسخ حذف/تغییر نکرد — فقط یک
+        // فیلد تودرتوی جدید و اختیاری (brand.family) به آن اضافه شد.
+        $devices = UserDevice::with('phoneModel.series.brand.family')
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -27,7 +31,7 @@ class UserDeviceService
             ['nickname' => $nickname]
         );
 
-        $device->load('phoneModel.series.brand');
+        $device->load('phoneModel.series.brand.family');
 
         return $this->flattenBrand($device);
     }

@@ -10,7 +10,7 @@ import { useWishlistApi } from '@/hooks/api/useWishlistApi';
 import { productService } from '@/services/api/product.service';
 import { reviewService, type Review } from '@/services/api/review.service';
 import type { Product, PhoneModel, ProductVariant } from '@/types/models';
-import { formatDeviceName, getDeviceTypeIcon } from '@/utils/deviceType';
+import { formatDeviceName, resolveDeviceIcon } from '@/utils/deviceType';
 import toast from 'react-hot-toast';
 
 // ✅ 'compatibility' قبلاً اینجا نبود در حالی که ProductDetailPage.tsx واقعاً
@@ -323,7 +323,8 @@ export function useProductDetail(): UseProductDetailReturn {
     return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand?.type);
   }, [selectedModel]);
 
-  const SelectedDeviceIcon = getDeviceTypeIcon(selectedModel?.brand?.type);
+  // ✅ فاز ۵: family-first با fallback به type (رفتار برچسب بالا دست‌نخورده ماند)
+  const SelectedDeviceIcon = resolveDeviceIcon(selectedModel?.brand);
 
   const discountPercent = useMemo(() => {
     if (!product) return 0;

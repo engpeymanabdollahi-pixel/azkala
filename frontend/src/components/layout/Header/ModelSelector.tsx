@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { CheckCircle, Edit3, Plus, Smartphone } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { getDeviceTypeIcon, getDeviceTypeLabel } from '@/utils/deviceType';
+import { getDeviceTypeLabel, resolveDeviceIcon } from '@/utils/deviceType';
 import { useUserDevices } from '@/hooks/useUserDevices';
 import { useAuthStore } from '@/store/authStore';
 import type { ModelData } from './types';
@@ -211,8 +211,11 @@ function EmptyState({
 export const ModelSelector = memo(
   ({ selectedModel, isScrolled, onOpenModal }: ModelSelectorProps) => {
     const deviceType = selectedModel?.brand?.type;
+    // ✅ فاز ۵: برچسب فعلاً همان type-based (فارسی) می‌ماند — family.name در
+    // DB انگلیسی است («Smartphone»/«Laptop»/«Tablet»)، جایگزینی مستقیم آن
+    // یک متن انگلیسی وسط UI فارسی نشان می‌داد؛ فقط آیکون family-first شد.
     const deviceLabel = getDeviceTypeLabel(deviceType);
-    const DeviceIcon = getDeviceTypeIcon(deviceType) || Smartphone;
+    const DeviceIcon = resolveDeviceIcon(selectedModel?.brand) || Smartphone;
 
     const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     const {

@@ -20,6 +20,10 @@ export interface UserDevice {
       slug?: string;
       type?: string;
       logo?: string | null;
+      // ✅ فاز ۵: بک‌اند حالا family را هم eager-load می‌کند (علاوه بر
+      // brand، نه به‌جایش) — اختیاری چون پاسخ‌های قدیمی‌تر/cache‌شده ممکن
+      // است هنوز نداشته باشندش.
+      family?: { id: number; name: string; slug: string; icon: string | null } | null;
     };
     series?: {
       id: number;
