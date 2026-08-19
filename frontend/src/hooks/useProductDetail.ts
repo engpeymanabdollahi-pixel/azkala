@@ -320,10 +320,13 @@ export function useProductDetail(): UseProductDetailReturn {
 
   const selectedDeviceName = useMemo(() => {
     if (!selectedModel) return '';
-    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand?.type);
+    // ✅ فاز ۸: کل brand پاس داده می‌شود (نه فقط type) تا formatDeviceName
+    // بتواند برچسب را family-first resolve کند.
+    return formatDeviceName(selectedModel.name, selectedModel.brand?.name, selectedModel.brand);
   }, [selectedModel]);
 
-  // ✅ فاز ۵: family-first با fallback به type (رفتار برچسب بالا دست‌نخورده ماند)
+  // ✅ فاز ۵: family-first با fallback به type (آیکون)؛ فاز ۸: برچسبِ بالا
+  // (selectedDeviceName) هم همین الگو را برای family.name گرفت.
   const SelectedDeviceIcon = resolveDeviceIcon(selectedModel?.brand);
 
   const discountPercent = useMemo(() => {
