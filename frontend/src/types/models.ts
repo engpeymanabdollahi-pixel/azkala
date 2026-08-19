@@ -78,13 +78,9 @@ export interface Brand {
   // برندهایی که کاربر از مدال هدر انتخاب می‌کند لوگو ندارند — device_brands
   // اصلاً چنین ستونی ندارد. اجباری‌بودنِ قبلی همیشه با null نقض می‌شد.
   logo: string | null;
-  // نوعِ برند (موبایل/لپ‌تاپ/تبلت/...) — پیام‌های سازگاری در سراسر اپ برای
-  // ساختن جمله‌ی درست («با لپ‌تاپ سازگار نیست» به‌جای فرض همیشگیِ «گوشی») به
-  // این فیلد نیاز دارند.
-  type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
-  // ✅ Device-First Architecture فاز ۵: منبع حقیقتِ جدیدِ آیکون/طبقه‌بندی —
-  // type بالا فقط برای سازگاری فعلاً باقی مانده. اختیاری چون همه‌ی
-  // مسیرهای API هنوز آن را نمی‌فرستند (مثلاً compatible_models محصول).
+  // ✅ Device-First Architecture — حذف نهایی type: family منبع حقیقتِ
+  // یگانه‌ی آیکون/برچسب/طبقه‌بندی است. اختیاری چون همه‌ی مسیرهای API آن
+  // را نمی‌فرستند (مثلاً compatible_models محصول).
   family?: { id: number; name: string; slug: string; icon: string | null } | null;
   is_active: boolean;
   series_count?: number;

@@ -18,7 +18,6 @@ class AdminDeviceBrandController extends Controller
     {
         $filters = [
             'search' => $request->get('search'),
-            'type' => $request->get('type'), // mobile, laptop, tablet, accessory (deprecated)
             'family_id' => $request->get('family_id'),
             'is_active' => $request->get('is_active'),
         ];
@@ -36,12 +35,6 @@ class AdminDeviceBrandController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_brands', 'slug')->whereNull('deleted_at')],
-            // ✅ Device-First Architecture فاز ۱D: family_id اکنون منبع
-            // حقیقتِ اکوسیستم است. type دیگر اجباری نیست — فقط برای
-            // سازگاری موقت با کدهای قدیمی که هنوز می‌خوانندش نگه داشته شده
-            // (nullable، نه enum بسته‌ای که هر برند جدید مجبور به عضویت در
-            // یکی از چهار مقدار ثابت باشد).
-            'type' => 'nullable|in:mobile,laptop,tablet,accessory',
             'family_id' => 'required|exists:device_families,id',
             'is_active' => 'sometimes|boolean',
         ]);
@@ -63,7 +56,6 @@ class AdminDeviceBrandController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('device_brands', 'slug')->whereNull('deleted_at')->ignore($id)],
-            'type' => 'nullable|in:mobile,laptop,tablet,accessory',
             'family_id' => 'sometimes|exists:device_families,id',
             'is_active' => 'sometimes|boolean',
         ]);

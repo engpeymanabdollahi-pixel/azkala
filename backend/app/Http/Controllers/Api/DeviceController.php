@@ -343,16 +343,13 @@ class DeviceController extends Controller
                     $qm->where('is_active', true)->select('id', 'name', 'slug', 'image', 'release_year', 'series_id');
                 }]);
             }])
-            ->select('id', 'name', 'slug', 'type', 'family_id')
+            ->select('id', 'name', 'slug', 'family_id')
             ->get()
             ->map(function ($brand) {
                 return [
                     'id' => $brand->id,
                     'name' => $brand->name,
                     'slug' => $brand->slug,
-                    // ✅ type برای سازگاری موقت (فاز ۱D) هنوز فرستاده می‌شود؛
-                    // خودِ family منبع حقیقتِ جدید است.
-                    'type' => $brand->type,
                     'family' => $brand->family ? [
                         'id' => $brand->family->id,
                         'name' => $brand->family->name,

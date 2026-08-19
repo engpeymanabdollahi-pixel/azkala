@@ -1,6 +1,7 @@
 import { memo } from 'react';
-import { CheckCircle, XCircle, Smartphone, Tablet, Laptop, Watch, Headphones } from 'lucide-react';
+import { CheckCircle, XCircle, Smartphone } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { resolveDeviceIcon } from '@/utils/deviceType';
 import type { PhoneModel } from '@/types/models';
 
 /**
@@ -45,22 +46,6 @@ interface DeviceCompatibilityProps {
   /** کلیک روی دستگاه */
   onDeviceClick?: (device: PhoneModel) => void;
 }
-
-// آیکون بر اساس نوع دستگاه
-type DeviceType = 'mobile' | 'laptop' | 'tablet' | 'accessory' | 'watch' | 'headphones' | 'headphone' | 'phone' | null | undefined;
-
-const getDeviceIcon = (type?: DeviceType) => {
-  switch (type?.toLowerCase()) {
-    case 'tablet': return Tablet;
-    case 'laptop': return Laptop;
-    case 'watch': return Watch;
-    case 'headphones':
-    case 'headphone': return Headphones;
-    case 'mobile':
-    case 'phone':
-    default: return Smartphone;
-  }
-};
 
 export const DeviceCompatibility = memo(function DeviceCompatibility({
   devices,
@@ -203,7 +188,7 @@ export const DeviceCompatibility = memo(function DeviceCompatibility({
       {/* لیست دستگاه‌ها */}
       <div className="space-y-1.5 max-h-80 overflow-y-auto scrollbar-thin">
         {devices.map((device) => {
-          const Icon = getDeviceIcon(device.brand?.type);
+          const Icon = resolveDeviceIcon(device.brand);
           const isSelected = selectedDevice?.id === device.id;
 
           return (
@@ -273,7 +258,7 @@ function CompactDeviceItem({
   isSelected: boolean;
   onClick?: (device: PhoneModel) => void;
 }) {
-  const Icon = getDeviceIcon(device.brand?.type);
+  const Icon = resolveDeviceIcon(device.brand);
 
   return (
     <button

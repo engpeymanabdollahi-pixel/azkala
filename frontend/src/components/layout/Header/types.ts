@@ -78,10 +78,8 @@ export interface ModelData {
   // برای برچسب و آیکون درستِ نوع دستگاه (گوشی/لپ‌تاپ/تبلت) در نشانگر هدر.
   brand?: {
     name: string;
-    type?: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
-    // ✅ فاز ۵: منبع حقیقتِ آیکون؛ فاز ۸: name هم منبع حقیقتِ برچسب شد
-    // (بعد از مهاجرتِ localize_device_families_name، فارسی است) — type
-    // بالا فقط fallback سازگاری است.
+    // ✅ Device-First Architecture — حذف نهایی type: family منبع حقیقتِ
+    // یگانه‌ی آیکون و برچسب است.
     family?: { name?: string | null; icon?: string | null } | null;
   } | null;
 }

@@ -10,14 +10,11 @@ class DeviceBrand extends Model
 {
     use HasFactory, SoftDeletes;
 
-    // ✅ 'type' یک ستون deprecated است — فقط برای سازگاری موقت طول مهاجرت
-    // Device-First (فاز ۱D) نگه داشته شده؛ منبع حقیقتِ اکوسیستم اکنون
-    // family_id (رابطه‌ی family()) است. type در یک migration پاکسازی
-    // جداگانه، بعد از اطمینان از عدم وابستگی معماری، حذف خواهد شد.
+    // ✅ Device-First Architecture — حذف نهایی: ستون type حذف شد. منبع
+    // حقیقتِ اکوسیستم family_id (رابطه‌ی family()) است.
     protected $fillable = [
         'name',
         'slug',
-        'type',
         'family_id',
         'is_active'
     ];
