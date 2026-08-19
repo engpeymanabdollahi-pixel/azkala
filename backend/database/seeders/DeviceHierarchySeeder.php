@@ -15,13 +15,36 @@ class DeviceHierarchySeeder extends Seeder
         DB::table('device_series')->truncate();
         DB::table('device_brands')->truncate();
 
+        // ✅ Pre-Production Audit: قبلاً این سیدر فقط type قدیمی را ست
+        // می‌کرد، هرگز family_id را — یعنی روی یک نصب کاملاً تازه
+        // (migrate:fresh --seed)، هر ۶ برند canonical این‌جا با
+        // family_id=NULL ساخته می‌شدند (برخلاف دیتابیس dev فعلی که این
+        // فیلد را دارد، چون تاریخاً قبل از افزودن family_id seed شده و
+        // migration یک‌بارمصرفِ add_family_id_to_device_brands_table آن‌ها
+        // را عقب‌گرد backfill کرده بود — چیزی که روی یک نصب تازه هرگز رخ
+        // نمی‌دهد چون آن migration زودتر از این سیدر، روی جدولی خالی
+        // اجرا می‌شود). همان نگاشت legacy-type→family-slug خودِ آن
+        // migration اینجا هم استفاده می‌شود؛ ۳ خانواده‌ی canonical قبل از
+        // این سیدر توسط migration ساخته شده‌اند، پس همیشه در دسترس‌اند.
+        $familyIdBySlug = [
+            'smartphone' => DB::table('device_families')->where('slug', 'smartphone')->value('id'),
+            'laptop' => DB::table('device_families')->where('slug', 'laptop')->value('id'),
+            'tablet' => DB::table('device_families')->where('slug', 'tablet')->value('id'),
+        ];
+        $familyIdForLegacyType = [
+            'mobile' => $familyIdBySlug['smartphone'],
+            'laptop' => $familyIdBySlug['laptop'],
+            'tablet' => $familyIdBySlug['tablet'],
+        ];
+
         // ==================== موبایل ====================
-        
+
         // Apple (موبایل)
         $appleMobileId = DB::table('device_brands')->insertGetId([
             'name' => 'اپل',
             'slug' => 'apple',
             'type' => 'mobile',
+            'family_id' => $familyIdForLegacyType['mobile'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -56,6 +79,7 @@ class DeviceHierarchySeeder extends Seeder
             'name' => 'سامسونگ',
             'slug' => 'samsung',
             'type' => 'mobile',
+            'family_id' => $familyIdForLegacyType['mobile'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -91,6 +115,7 @@ class DeviceHierarchySeeder extends Seeder
             'name' => 'اپل',
             'slug' => 'apple-laptop',
             'type' => 'laptop',
+            'family_id' => $familyIdForLegacyType['laptop'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -119,6 +144,7 @@ class DeviceHierarchySeeder extends Seeder
             'name' => 'ایسوس',
             'slug' => 'asus',
             'type' => 'laptop',
+            'family_id' => $familyIdForLegacyType['laptop'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -147,6 +173,7 @@ class DeviceHierarchySeeder extends Seeder
             'name' => 'اپل',
             'slug' => 'apple-tablet',
             'type' => 'tablet',
+            'family_id' => $familyIdForLegacyType['tablet'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -175,6 +202,7 @@ class DeviceHierarchySeeder extends Seeder
             'name' => 'سامسونگ',
             'slug' => 'samsung-tablet',
             'type' => 'tablet',
+            'family_id' => $familyIdForLegacyType['tablet'],
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
