@@ -99,15 +99,25 @@ class ProductTemplatesEndpointTest extends TestCase
     /**
      * ?device_type=mobile|laptop|tablet — کتابخانه‌ی محصولات فقط دسته‌بندی‌های
      * لوازم جانبی دارد (قاب، شارژر، هدفون...)، نه خودِ دستگاه؛ تنها راه واقعی
-     * برای «فقط لوازم گوشی» دیدن، فیلتر روی نوعِ برندِ دستگاه‌های سازگارِ هر
-     * تمپلیت است (device_models -> series -> device_brands.type).
+     * برای «فقط لوازم گوشی» دیدن، فیلتر روی خانواده‌ی برندِ دستگاه‌های سازگارِ
+     * هر تمپلیت است (device_models -> series -> device_brands -> family).
+     *
+     * ✅ Device-First Architecture — حذف نهایی device_brands.type: این تست
+     * پیش‌تر دو نسخه‌ی جدا داشت («فیلتر type-based» و «فیلتر family-based
+     * وقتی type=null») که از وقتی ستون type حذف شد، دقیقاً یک چیز را
+     * می‌سنجیدند — اینجا ادغام شدند تا duplicate مصنوعی نباشد؛ همچنان دقیقاً
+     * همان رفتار (شامل نگاشتِ مقدار legacy «mobile»→خانواده‌ی «smartphone»)
+     * را می‌سنجد.
      */
-    public function test_device_type_filter_keeps_only_templates_compatible_with_that_device_type(): void
+    public function test_device_type_filter_keeps_only_templates_compatible_with_that_family(): void
     {
-        $mobileBrand = DeviceBrand::factory()->create(['type' => 'mobile']);
+        $smartphoneFamily = DeviceFamily::firstOrCreate(['slug' => 'smartphone'], ['name' => 'Smartphone', 'is_active' => true]);
+        $laptopFamily = DeviceFamily::firstOrCreate(['slug' => 'laptop'], ['name' => 'Laptop', 'is_active' => true]);
+
+        $mobileBrand = DeviceBrand::factory()->create(['family_id' => $smartphoneFamily->id]);
         $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
 
-        $laptopBrand = DeviceBrand::factory()->create(['type' => 'laptop']);
+        $laptopBrand = DeviceBrand::factory()->create(['family_id' => $laptopFamily->id]);
         $laptopModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $laptopBrand->id])]);
 
         $mobileTemplate = $this->makeTemplate([$mobileModel->id]);
@@ -122,7 +132,8 @@ class ProductTemplatesEndpointTest extends TestCase
 
     public function test_device_type_filter_is_ignored_when_value_is_not_a_known_device_type(): void
     {
-        $mobileBrand = DeviceBrand::factory()->create(['type' => 'mobile']);
+        $smartphoneFamily = DeviceFamily::firstOrCreate(['slug' => 'smartphone'], ['name' => 'Smartphone', 'is_active' => true]);
+        $mobileBrand = DeviceBrand::factory()->create(['family_id' => $smartphoneFamily->id]);
         $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
         $template = $this->makeTemplate([$mobileModel->id]);
 
@@ -131,33 +142,6 @@ class ProductTemplatesEndpointTest extends TestCase
         $ids = collect($response->json('data.data'))->pluck('id');
 
         $this->assertTrue($ids->contains($template->id));
-    }
-
-    /**
-     * ✅ Device-First Architecture فاز ۲: این فیلتر اکنون device_families
-     * (منبع حقیقتِ جدید) را هم می‌شناسد، نه فقط device_brands.type قدیمی —
-     * یک برند که فقط family_id دارد (type=null، دقیقاً همان چیزی که فرم
-     * جدید ادمین برند دستگاه می‌سازد) باید هم‌چنان درست فیلتر شود.
-     */
-    public function test_device_type_filter_matches_via_device_family_when_brand_has_no_legacy_type(): void
-    {
-        $smartphoneFamily = DeviceFamily::firstOrCreate(['slug' => 'smartphone'], ['name' => 'Smartphone', 'is_active' => true]);
-        $laptopFamily = DeviceFamily::firstOrCreate(['slug' => 'laptop'], ['name' => 'Laptop', 'is_active' => true]);
-
-        $mobileBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $smartphoneFamily->id]);
-        $mobileModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $mobileBrand->id])]);
-
-        $laptopBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $laptopFamily->id]);
-        $laptopModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $laptopBrand->id])]);
-
-        $mobileTemplate = $this->makeTemplate([$mobileModel->id]);
-        $laptopTemplate = $this->makeTemplate([$laptopModel->id]);
-
-        $response = $this->getJson('/api/v1/products/templates?device_type=mobile')->assertOk();
-        $ids = collect($response->json('data.data'))->pluck('id');
-
-        $this->assertTrue($ids->contains($mobileTemplate->id));
-        $this->assertFalse($ids->contains($laptopTemplate->id));
     }
 
     /**
@@ -170,7 +154,7 @@ class ProductTemplatesEndpointTest extends TestCase
     public function test_device_type_filter_accepts_a_brand_new_family_slug_directly(): void
     {
         $watchFamily = DeviceFamily::create(['name' => 'Smartwatch', 'slug' => 'smartwatch', 'is_active' => true]);
-        $watchBrand = DeviceBrand::factory()->create(['type' => null, 'family_id' => $watchFamily->id]);
+        $watchBrand = DeviceBrand::factory()->create(['family_id' => $watchFamily->id]);
         $watchModel = DeviceModel::factory()->create(['series_id' => DeviceSeries::factory()->create(['brand_id' => $watchBrand->id])]);
         $watchTemplate = $this->makeTemplate([$watchModel->id]);
 

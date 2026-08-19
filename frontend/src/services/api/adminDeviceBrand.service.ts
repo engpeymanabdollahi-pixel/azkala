@@ -4,10 +4,6 @@ export interface AdminDeviceBrand {
   id: number;
   name: string;
   slug: string;
-  // ✅ Device-First Architecture فاز ۱D: type دیگر منبع حقیقت نیست — فقط
-  // برای سازگاری موقت با کدهای قدیمی که هنوز می‌خوانندش نگه داشته شده.
-  // family_id/family اکنون منبع حقیقتِ اکوسیستم دستگاه است.
-  type: 'mobile' | 'laptop' | 'tablet' | 'accessory' | null;
   family_id: number | null;
   family: { id: number; name: string; slug: string } | null;
   is_active: boolean;
@@ -28,7 +24,6 @@ export interface AdminDeviceBrandsResponse {
 
 export interface DeviceBrandFilters {
   search?: string;
-  type?: string;
   family_id?: number;
   is_active?: boolean;
   page?: number;

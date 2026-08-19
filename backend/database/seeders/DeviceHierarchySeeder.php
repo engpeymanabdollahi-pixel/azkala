@@ -43,7 +43,6 @@ class DeviceHierarchySeeder extends Seeder
         $appleMobileId = DB::table('device_brands')->insertGetId([
             'name' => 'اپل',
             'slug' => 'apple',
-            'type' => 'mobile',
             'family_id' => $familyIdForLegacyType['mobile'],
             'is_active' => true,
             'created_at' => now(),
@@ -78,7 +77,6 @@ class DeviceHierarchySeeder extends Seeder
         $samsungId = DB::table('device_brands')->insertGetId([
             'name' => 'سامسونگ',
             'slug' => 'samsung',
-            'type' => 'mobile',
             'family_id' => $familyIdForLegacyType['mobile'],
             'is_active' => true,
             'created_at' => now(),
@@ -114,7 +112,6 @@ class DeviceHierarchySeeder extends Seeder
         $appleLaptopId = DB::table('device_brands')->insertGetId([
             'name' => 'اپل',
             'slug' => 'apple-laptop',
-            'type' => 'laptop',
             'family_id' => $familyIdForLegacyType['laptop'],
             'is_active' => true,
             'created_at' => now(),
@@ -143,7 +140,6 @@ class DeviceHierarchySeeder extends Seeder
         $asusId = DB::table('device_brands')->insertGetId([
             'name' => 'ایسوس',
             'slug' => 'asus',
-            'type' => 'laptop',
             'family_id' => $familyIdForLegacyType['laptop'],
             'is_active' => true,
             'created_at' => now(),
@@ -172,7 +168,6 @@ class DeviceHierarchySeeder extends Seeder
         $appleTabletId = DB::table('device_brands')->insertGetId([
             'name' => 'اپل',
             'slug' => 'apple-tablet',
-            'type' => 'tablet',
             'family_id' => $familyIdForLegacyType['tablet'],
             'is_active' => true,
             'created_at' => now(),
@@ -201,7 +196,6 @@ class DeviceHierarchySeeder extends Seeder
         $samsungTabletId = DB::table('device_brands')->insertGetId([
             'name' => 'سامسونگ',
             'slug' => 'samsung-tablet',
-            'type' => 'tablet',
             'family_id' => $familyIdForLegacyType['tablet'],
             'is_active' => true,
             'created_at' => now(),

@@ -23,7 +23,7 @@ export interface SearchDeviceBrand {
   id: number;
   name: string;
   slug: string;
-  type: string;
+  family?: { id: number; name: string; slug: string; icon: string | null } | null;
 }
 
 export interface SearchDeviceModel {
@@ -37,7 +37,7 @@ export interface SearchDeviceModel {
       id: number;
       name: string;
       slug: string;
-      type: string;
+      family?: { id: number; name: string; slug: string; icon: string | null } | null;
     };
   };
 }

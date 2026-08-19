@@ -114,8 +114,9 @@ if (!empty($validated['category_id'])) {
                 $q->where('name', 'like', "%{$query}%")
                     ->orWhere('slug', 'like', "%{$query}%");
             })
+            ->with('family:id,name,slug,icon')
             ->limit(5)
-            ->get(['id', 'name', 'slug', 'type']);
+            ->get(['id', 'name', 'slug', 'family_id']);
 
         // جستجو در DeviceModels (از طریق series.brand)
         $deviceModels = DeviceModel::where('is_active', true)
@@ -127,7 +128,7 @@ if (!empty($validated['category_id'])) {
                         $subQ->where('name', 'like', "%{$query}%");
                     });
             })
-            ->with(['series.brand:id,name,slug,type'])
+            ->with(['series.brand:id,name,slug,family_id', 'series.brand.family:id,name,slug,icon'])
             ->limit(8)
             ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
 
@@ -194,12 +195,17 @@ if (!empty($validated['category_id'])) {
     {
         $validated = $request->validate([
             'q' => 'required|string|min:2|max:100',
-            'type' => 'nullable|string|in:mobile,laptop,tablet,accessory',
+            // ✅ Device-First Architecture — حذف نهایی type: فیلتر family
+            // (slug واقعیِ device_families) جایگزینِ family-first فیلتر
+            // legacy است — دیگر به سه مقدار ثابت mobile/laptop/tablet
+            // محدود نیست، هر خانواده‌ی جدید/آینده هم بدون تغییر کد کار
+            // می‌کند.
+            'family' => 'nullable|string|exists:device_families,slug',
             'limit' => 'nullable|integer|min:1|max:20',
         ]);
 
         $query = trim($validated['q']);
-        $type = $validated['type'] ?? null;
+        $familySlug = $validated['family'] ?? null;
         $limit = min((int) ($validated['limit'] ?? 10), 20);
 
         // Brands (DeviceBrand مستقیم)
@@ -209,11 +215,11 @@ if (!empty($validated['category_id'])) {
                     ->orWhere('slug', 'like', "%{$query}%");
             });
 
-        if ($type) {
-            $brandsQuery->where('type', $type);
+        if ($familySlug) {
+            $brandsQuery->whereHas('family', fn ($q) => $q->where('slug', $familySlug));
         }
 
-        $brands = $brandsQuery->limit($limit)->get(['id', 'name', 'slug', 'type']);
+        $brands = $brandsQuery->with('family:id,name,slug,icon')->limit($limit)->get(['id', 'name', 'slug', 'family_id']);
 
         // Models (از طریق series.brand)
         $modelsQuery = DeviceModel::where('is_active', true)
@@ -225,14 +231,14 @@ if (!empty($validated['category_id'])) {
                     });
             });
 
-        if ($type) {
-            $modelsQuery->whereHas('series.brand', function ($subQ) use ($type) {
-                $subQ->where('type', $type);
+        if ($familySlug) {
+            $modelsQuery->whereHas('series.brand.family', function ($subQ) use ($familySlug) {
+                $subQ->where('slug', $familySlug);
             });
         }
 
         $models = $modelsQuery
-            ->with(['series.brand:id,name,slug,type'])
+            ->with(['series.brand:id,name,slug,family_id', 'series.brand.family:id,name,slug,icon'])
             ->limit($limit * 2)
             ->get(['id', 'name', 'slug', 'series_id', 'release_year']);
 

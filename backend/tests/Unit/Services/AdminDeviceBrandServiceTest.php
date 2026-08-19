@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Models\DeviceBrand;
+use App\Models\DeviceFamily;
 use App\Models\DeviceSeries;
 use App\Services\Admin\AdminDeviceBrandService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,12 +32,19 @@ class AdminDeviceBrandServiceTest extends TestCase
         $this->assertEquals(1, $result['pagination']['current_page']);
     }
 
-    public function test_can_filter_brands_by_type()
+    // ✅ Device-First Architecture — حذف نهایی type: این تست قبلاً فیلتر
+    // type را می‌سنجید؛ معادل family-first همان، فیلتر family_id است
+    // (که از فاز ۱E/۱H در repository موجود بود، نه چیزی که این تغییر اضافه
+    // کرده باشد).
+    public function test_can_filter_brands_by_family()
     {
-        DeviceBrand::factory()->create(['type' => 'mobile', 'name' => 'Apple']);
-        DeviceBrand::factory()->create(['type' => 'laptop', 'name' => 'Asus']);
+        $smartphoneFamily = DeviceFamily::where('slug', 'smartphone')->first();
+        $laptopFamily = DeviceFamily::where('slug', 'laptop')->first();
 
-        $result = $this->service->getBrands(['type' => 'mobile'], 10);
+        DeviceBrand::factory()->create(['family_id' => $smartphoneFamily->id, 'name' => 'Apple']);
+        DeviceBrand::factory()->create(['family_id' => $laptopFamily->id, 'name' => 'Asus']);
+
+        $result = $this->service->getBrands(['family_id' => $smartphoneFamily->id], 10);
 
         $this->assertCount(1, $result['brands']);
         $this->assertEquals('Apple', $result['brands'][0]['name']);
@@ -44,9 +52,11 @@ class AdminDeviceBrandServiceTest extends TestCase
 
     public function test_can_create_brand()
     {
+        $family = DeviceFamily::where('slug', 'smartphone')->first();
+
         $data = [
             'name' => 'Test Brand',
-            'type' => 'mobile',
+            'family_id' => $family->id,
             'is_active' => true,
         ];
 
@@ -54,22 +64,24 @@ class AdminDeviceBrandServiceTest extends TestCase
 
         $this->assertDatabaseHas('device_brands', [
             'name' => 'Test Brand',
-            'type' => 'mobile',
+            'family_id' => $family->id,
         ]);
         $this->assertEquals('test-brand', $brand->slug);
     }
 
     public function test_can_update_brand()
     {
-        $brand = DeviceBrand::factory()->create(['type' => 'laptop']);
+        $laptopFamily = DeviceFamily::where('slug', 'laptop')->first();
+        $tabletFamily = DeviceFamily::where('slug', 'tablet')->first();
+        $brand = DeviceBrand::factory()->create(['family_id' => $laptopFamily->id]);
 
         $updated = $this->service->updateBrand($brand->id, [
-            'name' => 'Updated Brand', 
-            'type' => 'tablet'
+            'name' => 'Updated Brand',
+            'family_id' => $tabletFamily->id,
         ]);
 
         $this->assertEquals('Updated Brand', $updated->name);
-        $this->assertEquals('tablet', $updated->type);
+        $this->assertEquals($tabletFamily->id, $updated->family_id);
     }
 
     public function test_can_delete_brand()

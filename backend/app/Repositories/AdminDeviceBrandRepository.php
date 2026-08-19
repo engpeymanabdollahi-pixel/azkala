@@ -19,12 +19,8 @@ class AdminDeviceBrandRepository
             $query->where('name', 'LIKE', "%{$filters['search']}%");
         }
 
-        if (isset($filters['type'])) {
-            $query->where('type', $filters['type']);
-        }
-
-        // ✅ Device-First Architecture فاز ۱E/۱H: فیلتر بر اساس family_id —
-        // معادل داده‌محورِ فیلتر قدیمیِ type.
+        // ✅ Device-First Architecture — حذف نهایی type: فیلتر family_id
+        // اکنون تنها و کاملِ معادل داده‌محورِ فیلتر قدیمیِ type است.
         if (!empty($filters['family_id'])) {
             $query->where('family_id', $filters['family_id']);
         }
