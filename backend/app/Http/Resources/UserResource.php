@@ -19,8 +19,12 @@ class UserResource extends JsonResource
             'is_active' => $this->is_active,
             'is_verified' => $this->email_verified_at !== null,
             
+            // ✅ Device-First Architecture فاز ۲ (Legacy Consolidation): فیلد
+            // «devices» حذف شد — User مدل هرگز رابطه‌ی devices() نداشت، پس
+            // whenLoaded('devices') همیشه خالی بود (کد کاملاً مرده، هیچ
+            // فراخوان frontend ای هم به آن وابسته نبود). PhoneModelResource
+            // که این فیلد از آن استفاده می‌کرد هم به همین دلیل حذف شد.
             // Relations
-            'devices' => PhoneModelResource::collection($this->whenLoaded('devices')),
             'addresses' => AddressResource::collection($this->whenLoaded('addresses')),
             
             // Counts (برای پنل ادمین)
