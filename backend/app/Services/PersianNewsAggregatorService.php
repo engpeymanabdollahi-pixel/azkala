@@ -615,8 +615,12 @@ class PersianNewsAggregatorService
                 foreach ($p->childNodes as $child) {
                     if ($child->nodeType === XML_ELEMENT_NODE && $child->nodeName === 'img') {
                         $src = $child->getAttribute('src');
+                        // ✅ Final Pre-Production Audit — Security: $src از HTML یک
+                        // صفحه‌ی خارجی می‌آید؛ concatenation بدون escape یعنی یک
+                        // مقدار حاوی " می‌توانست از attribute فرار کند و
+                        // onerror/onload تزریق کند. htmlspecialchars این را می‌بندد.
                         if ($src && str_starts_with($src, 'http')) {
-                            $content .= '<img src="' . $src . '" alt="" style="border-radius:12px;margin:16px auto;max-width:100%;" />';
+                            $content .= '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="" style="border-radius:12px;margin:16px auto;max-width:100%;" />';
                         }
                     }
                 }
@@ -642,6 +646,18 @@ class PersianNewsAggregatorService
 
         // حذف iframe
         $content = preg_replace('#<iframe\b[^>]*>.*?</iframe>#is', '', $content);
+
+        // ✅ Final Pre-Production Audit — Security: بلاک‌لیستِ تگ به‌تنهایی
+        // XSS مبتنی بر attribute را نمی‌گرفت (مثلاً <img src=x onerror="...">
+        // یا <a href="javascript:...">) — درحالی‌که این محتوا از فیدهای RSS
+        // خارجی و غیرقابل‌اعتماد می‌آید، بدون بازبینی انسانی مستقیم ذخیره
+        // می‌شود و در ArticlePage.tsx با dangerouslySetInnerHTML عمومی رندر
+        // می‌شود. حذف تمام event-handler attribute ها (onXxx) و URIهای
+        // javascript:/vbscript: در href/src این بردار را می‌بندد.
+        $content = preg_replace('/\son\w+\s*=\s*"[^"]*"/i', '', $content);
+        $content = preg_replace("/\son\w+\s*=\s*'[^']*'/i", '', $content);
+        $content = preg_replace('/(href|src)\s*=\s*"\s*(javascript|vbscript):[^"]*"/i', '$1="#"', $content);
+        $content = preg_replace("/(href|src)\s*=\s*'\s*(javascript|vbscript):[^']*'/i", '$1="#"', $content);
 
         return trim($content);
     }
