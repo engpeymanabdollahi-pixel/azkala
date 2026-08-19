@@ -87,8 +87,19 @@ return new class extends Migration
 
     public function down(): void
     {
+        // ✅ Phase 0.1 — FK Test Integrity Audit: قبلاً این متد فقط
+        // dropConstrainedForeignId('family_id') را صدا می‌زد که FK constraint
+        // و خودِ ستون را پاک می‌کند، ولی ایندکس جداگانه‌ای که up() صریحاً
+        // ساخته بود (`$table->index('family_id')`) را نمی‌دانست باید پاک
+        // کند. روی SQLite این باعث «error in index
+        // device_brands_family_id_index after drop column: no such column:
+        // family_id» می‌شد — یعنی rollback این migration همیشه شکست
+        // می‌خورد. تا امروز کشف نشده بود چون phpunit.xml با
+        // DB_FOREIGN_KEYS=false کل FK enforcement را در تست‌ها خاموش کرده و
+        // rollback هم در هیچ مسیر تستی صدا زده نمی‌شد.
         Schema::table('device_brands', function (Blueprint $table) {
             if (Schema::hasColumn('device_brands', 'family_id')) {
+                $table->dropIndex(['family_id']);
                 $table->dropConstrainedForeignId('family_id');
             }
         });
