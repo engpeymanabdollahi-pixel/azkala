@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Category extends Model
 {
     use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'name',
         'slug',
@@ -81,6 +82,25 @@ class Category extends Model
         return $query->where('is_active', true);
     }
 
+    // ✅ Marketplace Unification فاز B: دسته‌بندی‌هایی که به هیچ خانواده‌ای
+    // وصل نیستند «سراسری»‌اند (طبق همان قرارداد DeviceEnforcementService —
+    // معاف از قانون تطبیق، نه یک باگ) — یعنی همیشه باید صرف‌نظر از
+    // $familyId انتخاب‌شده کنار دسته‌های آن خانواده نمایش داده شوند.
+    public function scopeForFamily($query, int $familyId)
+    {
+        return $query->where(function ($q) use ($familyId) {
+            $q->whereDoesntHave('deviceFamilies')
+                ->orWhereHas('deviceFamilies', fn ($f) => $f->where('device_families.id', $familyId));
+        });
+    }
+
+    public function isGlobal(): bool
+    {
+        return $this->relationLoaded('deviceFamilies')
+            ? $this->deviceFamilies->isEmpty()
+            : $this->deviceFamilies()->doesntExist();
+    }
+
     public function scopeRoot($query)
     {
         return $query->whereNull('parent_id');
@@ -100,15 +120,16 @@ class Category extends Model
 
     public function isExpired(): bool
     {
-        if (!$this->is_temporary || !$this->end_date) {
+        if (! $this->is_temporary || ! $this->end_date) {
             return false;
         }
+
         return now()->greaterThan($this->end_date);
     }
 
     public function isCampaignActive(): bool
     {
-        if (!$this->is_temporary) {
+        if (! $this->is_temporary) {
             return false;
         }
         $now = now();
@@ -118,6 +139,7 @@ class Category extends Model
         if ($this->end_date && $now->greaterThan($this->end_date)) {
             return false;
         }
+
         return true;
     }
 }

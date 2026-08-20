@@ -3,23 +3,34 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Services\DeviceEnforcementService;
+use App\Services\ProductRelationshipService;
 use App\Services\Seller\SellerService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB; // ✅ این خط حی
-use App\Models\Product; // ✅ این خط باید اضافه شود
+use Illuminate\Support\Facades\Log; // ✅ این خط باید اضافه شود
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SellerProductController extends Controller
 {
     protected SellerService $sellerService;
+
     protected DeviceEnforcementService $deviceEnforcement;
 
-    public function __construct(SellerService $sellerService, DeviceEnforcementService $deviceEnforcement)
-    {
+    protected ProductRelationshipService $productRelationshipService;
+
+    public function __construct(
+        SellerService $sellerService,
+        DeviceEnforcementService $deviceEnforcement,
+        ProductRelationshipService $productRelationshipService
+    ) {
         $this->sellerService = $sellerService;
         $this->deviceEnforcement = $deviceEnforcement;
+        $this->productRelationshipService = $productRelationshipService;
     }
 
     /**
@@ -39,9 +50,10 @@ class SellerProductController extends Controller
                 'data' => $products,
             ]);
         } catch (\Exception $e) {
-            Log::error('SellerProductController@index: ' . $e->getMessage());
+            Log::error('SellerProductController@index: '.$e->getMessage());
             $statusCode = (int) $e->getCode();
             $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
@@ -97,8 +109,8 @@ class SellerProductController extends Controller
         $baseSlug = Str::slug($validated['name']);
         $slug = $baseSlug;
         $count = 1;
-        while (\App\Models\Product::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $count;
+        while (Product::where('slug', $slug)->exists()) {
+            $slug = $baseSlug.'-'.$count;
             $count++;
         }
         $validated['slug'] = $slug;
@@ -127,14 +139,15 @@ class SellerProductController extends Controller
                 'data' => $product->load(['category', 'brand', 'deviceModels', 'variants']),
             ], 201);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
-            Log::error('SellerProductController@store: ' . $e->getMessage());
+            Log::error('SellerProductController@store: '.$e->getMessage());
             $statusCode = (int) $e->getCode();
             $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
@@ -158,11 +171,12 @@ class SellerProductController extends Controller
         } catch (\Exception $e) {
             $statusCode = (int) $e->getCode();
             $statusCode = ($statusCode >= 100 && $statusCode < 600) ? $statusCode : 500;
+
             return response()->json(['success' => false, 'message' => $e->getMessage()], $statusCode);
         }
     }
 
-      /**
+    /**
      * بروزرسانی محصول
      */
     public function update(Request $request, $id)
@@ -226,26 +240,26 @@ class SellerProductController extends Controller
                 'message' => 'محصول با موفقیت به‌روزرسانی شد',
                 'data' => $product,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)'
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست. (شما اجازه ویرایش این محصول را ندارید)',
             ], 403);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e; // بگذار لاراول خودش پاسخ ۴۲۲ استاندارد را برگرداند
         } catch (\InvalidArgumentException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
-            Log::error('SellerProductController@update: ' . $e->getMessage());
+            Log::error('SellerProductController@update: '.$e->getMessage());
 
             $statusCode = $e->getCode();
-            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+            if (! is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
                 $statusCode = 500;
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در به‌روزرسانی محصول: ' . $e->getMessage()
+                'message' => 'خطا در به‌روزرسانی محصول: '.$e->getMessage(),
             ], $statusCode);
         }
     }
@@ -261,28 +275,29 @@ class SellerProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'محصول با موفقیت حذف شد.'
+                'message' => 'محصول با موفقیت حذف شد.',
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست.',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('SellerProductController@destroy: ' . $e->getMessage());
+            Log::error('SellerProductController@destroy: '.$e->getMessage());
 
             $statusCode = $e->getCode();
-            if (!is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
+            if (! is_int($statusCode) || $statusCode < 400 || $statusCode >= 600) {
                 $statusCode = 500;
             }
 
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در حذف محصول: ' . $e->getMessage()
+                'message' => 'خطا در حذف محصول: '.$e->getMessage(),
             ], $statusCode);
         }
     }
-               /**
+
+    /**
      * کپی محصول از Template و اختصاص به فروشنده (Enterprise Grade)
      */
     public function copyFromTemplate(Request $request, int $templateId)
@@ -304,13 +319,13 @@ class SellerProductController extends Controller
             );
 
             do {
-                $slug = Str::slug($template->name) . '-s' . $sellerId . '-' . Str::lower(Str::random(6));
+                $slug = Str::slug($template->name).'-s'.$sellerId.'-'.Str::lower(Str::random(6));
             } while (Product::where('slug', $slug)->exists());
 
             $sku = sprintf('TMPL-%d-%s', $sellerId, Str::upper(Str::random(8)));
 
             $newProduct = $template->replicate();
-            
+
             $newProduct->seller_id = $sellerId;
             $newProduct->slug = $slug;
             $newProduct->sku = $sku;
@@ -329,8 +344,8 @@ class SellerProductController extends Controller
 
             Log::info('Template copied successfully', [
                 'template_id' => $template->id,
-                'seller_id'   => $sellerId,
-                'product_id'  => $newProduct->id,
+                'seller_id' => $sellerId,
+                'product_id' => $newProduct->id,
             ]);
 
             return response()->json([
@@ -343,7 +358,8 @@ class SellerProductController extends Controller
             ], 201);
         });
     }
-        /**
+
+    /**
      * دریافت تاریخچه تغییرات قیمت و موجودی یک محصول
      */
     public function getHistory(Request $request, int $id)
@@ -356,11 +372,88 @@ class SellerProductController extends Controller
                 'success' => true,
                 'data' => $histories,
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'محصول یافت نشد یا متعلق به شما نیست.'
+                'message' => 'محصول یافت نشد یا متعلق به شما نیست.',
             ], 403);
+        }
+    }
+
+    /**
+     * ✅ Product Relationship Phase 2: فهرست محصولات مکمل («همراه این
+     * محصول») که فروشنده برای یکی از محصولات خودش تعریف کرده — برای فرم
+     * ویرایش محصول.
+     */
+    public function relationships(Request $request, int $product)
+    {
+        try {
+            $items = $this->productRelationshipService->listForProduct($product, $request->user()->id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $items->map(function ($r) {
+                    return [
+                        'id' => $r->id,
+                        'sort_order' => $r->sort_order,
+                        'target_product' => $r->targetProduct ? [
+                            'id' => $r->targetProduct->id,
+                            'name' => $r->targetProduct->name,
+                            'slug' => $r->targetProduct->slug,
+                            'main_image' => $r->targetProduct->main_image,
+                        ] : null,
+                    ];
+                }),
+            ]);
+        } catch (NotFoundHttpException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        }
+    }
+
+    /**
+     * ✅ Product Relationship Phase 2: ثبت یک رابطه‌ی «مکمل» جدید. مالکیتِ
+     * هر دو طرف (مبدأ و مقصد) توسط ProductRelationshipService اجباری
+     * می‌شود — فروشنده هرگز نمی‌تواند به محصول فروشنده‌ی دیگری رابطه
+     * بسازد (طبق تصمیم Hybrid ownership، مستند در Phase 2 audit).
+     */
+    public function storeRelationship(Request $request, int $product)
+    {
+        $validated = $request->validate([
+            'target_product_id' => 'required|integer',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        try {
+            $relationship = $this->productRelationshipService->create(
+                $product,
+                (int) $validated['target_product_id'],
+                $request->user()->id,
+                (int) ($validated['sort_order'] ?? 0)
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'محصول مکمل با موفقیت اضافه شد.',
+                'data' => ['id' => $relationship->id],
+            ], 201);
+        } catch (NotFoundHttpException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
+        } catch (ValidationException $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     * ✅ Product Relationship Phase 2: حذف یک رابطه‌ی «مکمل».
+     */
+    public function destroyRelationship(Request $request, int $product, int $relationship)
+    {
+        try {
+            $this->productRelationshipService->delete($relationship, $product, $request->user()->id);
+
+            return response()->json(['success' => true, 'message' => 'حذف شد.']);
+        } catch (NotFoundHttpException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 404);
         }
     }
 }

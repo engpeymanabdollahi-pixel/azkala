@@ -74,8 +74,11 @@ class AdminCategoryController extends Controller
             'text_color' => 'nullable|string|max:20',
 
             // ✅ Device-First Architecture فاز ۱I: چندبه‌چند با DeviceFamily.
+            // ✅ Marketplace Unification فاز B3: صرفاً وجود ردیف کافی نیست —
+            // خانواده‌ی غیرفعال نباید قابل‌اتصال به دسته باشد (طبق الزام
+            // صریح این فاز).
             'device_family_ids' => 'nullable|array',
-            'device_family_ids.*' => 'integer|exists:device_families,id',
+            'device_family_ids.*' => ['integer', Rule::exists('device_families', 'id')->where('is_active', true)],
         ]);
 
         $category = $this->categoryService->createCategory($validated);
@@ -130,7 +133,7 @@ class AdminCategoryController extends Controller
             // دسته اصلاً از آن خبر ندارند — دقیقاً همان قاعده‌ای که برای
             // variants در فرم محصول فروشنده استفاده شد.
             'device_family_ids' => 'sometimes|array',
-            'device_family_ids.*' => 'integer|exists:device_families,id',
+            'device_family_ids.*' => ['integer', Rule::exists('device_families', 'id')->where('is_active', true)],
         ]);
 
         $category = $this->categoryService->updateCategory((int) $id, $validated);

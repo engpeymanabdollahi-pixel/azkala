@@ -158,6 +158,11 @@ export interface Category {
   products_count?: number;
   children?: Category[];
   parent?: Category;
+  // ✅ Marketplace Unification فاز B: خانواده‌های دستگاهِ متصل — آرایه‌ی
+  // خالی یعنی دسته‌ی «سراسری» (برای همه‌ی اکوسیستم‌ها). اختیاری چون همه‌ی
+  // پاسخ‌های API این رابطه را eager-load نمی‌کنند.
+  device_families?: { id: number; name: string; slug: string }[];
+  is_global?: boolean;
   created_at: string;
   updated_at: string;
 }

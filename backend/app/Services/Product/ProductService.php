@@ -3,6 +3,7 @@
 namespace App\Services\Product;
 
 use App\DTOs\Product\ProductFilterDTO;
+use App\Http\Resources\ProductVariantResource;
 use App\Models\DeviceModel;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
@@ -68,6 +69,15 @@ class ProductService
                 8
             );
 
+            // ✅ Product Relationship Phase 2: «همراه این محصول» — مستقل و
+            // مجزا از $relatedProducts بالا (هم‌دسته‌ای پویا) و از
+            // compatible_models (سازگاری دستگاه). دو دیتاست هرگز merge
+            // نمی‌شوند.
+            $complementaryProducts = $this->productRepository->getComplementaryProducts(
+                $product->id,
+                6
+            );
+
             $sellerData = null;
             if ($product->seller) {
                 $sellerData = [
@@ -109,10 +119,10 @@ class ProductService
                 ? $product->variants->isNotEmpty()
                 : false;
             $productData['variants'] = $product->relationLoaded('variants')
-                ? \App\Http\Resources\ProductVariantResource::collection($product->variants)->resolve()
+                ? ProductVariantResource::collection($product->variants)->resolve()
                 : [];
 
-            $relatedProductsData = $relatedProducts->map(function ($p) {
+            $mapProductSummary = function ($p) {
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
@@ -125,12 +135,16 @@ class ProductService
                     'reviews_count' => $p->reviews_count ?? 0,
                     'sales_count' => $p->sales_count ?? 0,
                 ];
-            });
+            };
+
+            $relatedProductsData = $relatedProducts->map($mapProductSummary);
+            $complementaryProductsData = $complementaryProducts->map($mapProductSummary);
 
             return [
                 'product' => $productData,
                 'compatible_models' => $compatibleModels,
                 'related_products' => $relatedProductsData,
+                'complementary_products' => $complementaryProductsData,
             ];
 
         } catch (NotFoundHttpException $e) {
@@ -201,7 +215,7 @@ class ProductService
     /**
      * ✅ اصلاح شده: دریافت محصولات سازگار با مدل دستگاه جدید
      */
-    public function getCompatibleProducts(int $modelId): array
+    public function getCompatibleProducts(int $modelId, int $perPage = 20): array
     {
         try {
             // ✅ بررسی وجود مدل در جدول جدید device_models
@@ -211,14 +225,20 @@ class ProductService
                 throw new \Exception('مدل گوشی یافت نشد', 404);
             }
 
-            $products = $this->productRepository->getCompatibleProducts($modelId);
+            // ✅ Marketplace Unification فاز C4: قبلاً همیشه یک شکلِ صفحه‌بندیِ
+            // ساختگی برمی‌گشت (current_page=1, last_page=1, per_page=100)
+            // بدون توجه به تعداد واقعی نتایج — یعنی برای دستگاه‌های محبوب با
+            // ده‌ها محصول سازگار، همه در یک «صفحه» ساختگی برمی‌گشتند. کلیدها
+            // دقیقاً همان قبلی‌اند (بدون شکستن قرارداد API)، فقط مقادیر
+            // اکنون از یک LengthAwarePaginator واقعی می‌آیند.
+            $products = $this->productRepository->getCompatibleProducts($modelId, $perPage);
 
             return [
-                'data' => $products,
-                'current_page' => 1,
-                'last_page' => 1,
-                'per_page' => 100,
-                'total' => $products->count(),
+                'data' => $products->items(),
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ];
 
         } catch (\Exception $e) {

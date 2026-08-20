@@ -13,20 +13,22 @@ class AdminCategoryRepository
      */
     public function getCategories(array $filters = [], int $perPage = 50): LengthAwarePaginator
     {
-        $query = Category::withCount('products');
+        // ✅ Marketplace Unification فاز B4: بدون این، badge خانواده در
+        // لیست ادمین یک کوئری جدا به‌ازای هر ردیف می‌زد (N+1).
+        $query = Category::withCount('products')->with('deviceFamilies:id,name,slug');
 
         // Search
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('slug', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%");
+                    ->orWhere('slug', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
             });
         }
 
         // Type filter
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             if ($filters['type'] === 'temporary') {
                 $query->where('is_temporary', true);
             } elseif ($filters['type'] === 'permanent') {
@@ -52,11 +54,11 @@ class AdminCategoryRepository
         $sortBy = $filters['sort_by'] ?? 'sort_order';
         $sortOrder = $filters['sort_order'] ?? 'asc';
         $allowedSorts = ['name', 'sort_order', 'products_count', 'created_at'];
-        
-        if (!in_array($sortBy, $allowedSorts)) {
+
+        if (! in_array($sortBy, $allowedSorts)) {
             $sortBy = 'sort_order';
         }
-        
+
         $query->orderBy($sortBy, $sortOrder);
 
         return $query->paginate($perPage);
@@ -112,6 +114,7 @@ class AdminCategoryRepository
     public function update(Category $category, array $data): Category
     {
         $category->update($data);
+
         return $category;
     }
 
@@ -132,7 +135,7 @@ class AdminCategoryRepository
         // Check if parent is a descendant of category (circular reference)
         $currentParentId = $parentId;
         $visited = [$categoryId];
-        
+
         while ($currentParentId !== null) {
             if (in_array($currentParentId, $visited)) {
                 return false; // Circular reference detected
@@ -153,11 +156,11 @@ class AdminCategoryRepository
         $slug = \Str::slug($name);
         $originalSlug = $slug;
         $counter = 1;
-        
+
         while (Category::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $counter++;
+            $slug = $originalSlug.'-'.$counter++;
         }
-        
+
         return $slug;
     }
 
@@ -167,6 +170,7 @@ class AdminCategoryRepository
     public function calculateNextSortOrder(?int $parentId = null): int
     {
         $maxOrder = Category::where('parent_id', $parentId)->max('sort_order');
+
         return ($maxOrder ?? 0) + 1;
     }
 
@@ -193,12 +197,14 @@ class AdminCategoryRepository
         switch ($action) {
             case 'activate':
                 Category::whereIn('id', $ids)->update(['is_active' => true]);
+
                 return count($ids);
-                
+
             case 'deactivate':
                 Category::whereIn('id', $ids)->update(['is_active' => false]);
+
                 return count($ids);
-                
+
             case 'delete':
                 // Only categories without children and products
                 $deletableIds = Category::whereIn('id', $ids)
@@ -206,8 +212,9 @@ class AdminCategoryRepository
                     ->whereDoesntHave('products')
                     ->pluck('id');
                 Category::whereIn('id', $deletableIds)->delete();
+
                 return count($deletableIds);
-                
+
             default:
                 return 0;
         }

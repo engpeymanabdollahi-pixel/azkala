@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\DTOs\Product\ProductFilterDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
-use App\DTOs\Product\ProductFilterDTO;
 use App\Models\DeviceFamily;
 use App\Services\Product\ProductService;
 use Illuminate\Http\Request;
@@ -41,7 +41,7 @@ class ProductController extends Controller
     {
         $product = $this->productService->getProductById((int) $id);
 
-        if (!$product) {
+        if (! $product) {
             throw new NotFoundHttpException('محصول یافت نشد');
         }
 
@@ -60,12 +60,12 @@ class ProductController extends Controller
     {
         $result = $this->productService->getProductBySlug($slug);
 
-        if (!$result || !isset($result['product'])) {
+        if (! $result || ! isset($result['product'])) {
             throw new NotFoundHttpException('محصول یافت نشد');
         }
 
         $product = $result['product'];
-        
+
         // بارگذاری روابط در صورتی که آبجکت مدل باشد
         if ($product instanceof \App\Models\Product) {
             $product->loadMissing(['brand', 'category', 'images', 'deviceModels']);
@@ -84,10 +84,10 @@ class ProductController extends Controller
     public function featured()
     {
         $products = $this->productService->getFeaturedProducts(10);
-        
+
         return response()->json([
-            'success' => true, 
-            'data' => ProductResource::collection($products)
+            'success' => true,
+            'data' => ProductResource::collection($products),
         ]);
     }
 
@@ -97,23 +97,26 @@ class ProductController extends Controller
     public function specialOffers()
     {
         $products = $this->productService->getSpecialOffers(10);
-        
+
         return response()->json([
-            'success' => true, 
-            'data' => ProductResource::collection($products)
+            'success' => true,
+            'data' => ProductResource::collection($products),
         ]);
     }
 
     /**
      * محصولات سازگار با یک مدل گوشی
      */
-    public function compatible($modelId)
+    public function compatible($modelId, Request $request)
     {
-        $data = $this->productService->getCompatibleProducts((int) $modelId);
-        
+        $perPage = (int) $request->get('per_page', 20);
+        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
+
+        $data = $this->productService->getCompatibleProducts((int) $modelId, $perPage);
+
         return response()->json([
-            'success' => true, 
-            'data' => $data
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
@@ -128,7 +131,7 @@ class ProductController extends Controller
         ]);
 
         $products = $this->productService->getCompatibleProductsMulti($validated['model_ids'], 50);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -154,7 +157,8 @@ class ProductController extends Controller
             ],
         ]);
     }
-        /**
+
+    /**
      * دریافت لیست محصولات Template (برای کپی توسط فروشندگان)
      */
     public function templates(Request $request)
@@ -169,7 +173,8 @@ class ProductController extends Controller
             'data' => ProductResource::collection($templates),
         ]);
     }
-        /**
+
+    /**
      * دریافت لیست محصولات الگو (Template) برای فروشندگان
      */
     public function getTemplates(Request $request)
@@ -185,12 +190,12 @@ class ProductController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhereHas('category', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('brand', function ($q) use ($search) {
-                      $q->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('category', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('brand', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -221,7 +226,7 @@ class ProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $templates
+            'data' => $templates,
         ]);
     }
 }

@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
-  Tag, FolderTree, X, LogOut, ChevronLeft,
+  Tag, FolderTree, X, LogOut, ChevronLeft, Link2,
   Settings, BarChart3, MessageCircle, Newspaper, Megaphone, ShieldCheck, MapPin, Gift,
 } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
@@ -35,6 +35,9 @@ const menuItems: Array<{
   // ═══════════════════════════════════════════════════════
   { path: '/admin', icon: LayoutDashboard, label: 'داشبورد', exact: true },
   { path: '/admin/products', icon: Package, label: 'محصولات', permission: 'products.view' },
+  // ✅ Marketplace Unification فاز A2: مدیریت «محصولات مکمل» — روی همان
+  // API از فاز Product Relationship، فقط UI که تا این فاز ساخته نشده بود.
+  { path: '/admin/product-relationships', icon: Link2, label: 'محصولات مکمل', permission: 'products.view' },
   { path: '/admin/orders', icon: ShoppingCart, label: 'سفارشات', permission: 'orders.view' },
   { path: '/admin/users', icon: Users, label: 'کاربران', permission: 'users.view' },
   { path: '/admin/reviews', icon: MessageSquare, label: 'نظرات', permission: 'reviews.view' },

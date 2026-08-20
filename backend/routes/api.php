@@ -480,6 +480,12 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/{product}', [SellerProductController::class, 'show'])->name('show');
                 Route::put('/{product}', [SellerProductController::class, 'update'])->name('update');
                 Route::delete('/{product}', [SellerProductController::class, 'destroy'])->name('destroy');
+
+                // ✅ Product Relationship Phase 2: «همراه این محصول» (complement) —
+                // مالکیتِ هر دو طرف در ProductRelationshipService اجباری می‌شود.
+                Route::get('/{product}/relationships', [SellerProductController::class, 'relationships'])->name('relationships.index');
+                Route::post('/{product}/relationships', [SellerProductController::class, 'storeRelationship'])->name('relationships.store');
+                Route::delete('/{product}/relationships/{relationship}', [SellerProductController::class, 'destroyRelationship'])->name('relationships.destroy');
             });
 
             Route::prefix('orders')->name('orders.')->group(function () {
@@ -763,6 +769,12 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::put('/{product}/quick-update', [AdminProductController::class, 'quickUpdate'])->middleware('permission:products.manage')->name('quick-update');
                 Route::delete('/{product}', [AdminProductController::class, 'destroy'])->middleware('permission:products.manage')->name('destroy');
                 Route::post('/bulk-action', [AdminProductController::class, 'bulkAction'])->middleware('permission:products.manage')->name('bulk-action');
+
+                // ✅ Product Relationship Phase 2: مدیریت «مکمل» توسط ادمین — بدون
+                // محدودیت مالکیت (Hybrid ownership).
+                Route::get('/{product}/relationships', [AdminProductController::class, 'relationships'])->middleware('permission:products.view')->name('relationships.index');
+                Route::post('/{product}/relationships', [AdminProductController::class, 'storeRelationship'])->middleware('permission:products.manage')->name('relationships.store');
+                Route::delete('/{product}/relationships/{relationship}', [AdminProductController::class, 'destroyRelationship'])->middleware('permission:products.manage')->name('relationships.destroy');
             });
 
             Route::prefix('orders')->name('orders.')->group(function () {

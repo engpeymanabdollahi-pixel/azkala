@@ -29,6 +29,10 @@ export interface UseProductDetailReturn {
   // Data
   product: Product | null;
   relatedProducts: Product[];
+  // ✅ Product Relationship Phase 2: «همراه این محصول» (complement) —
+  // عمداً یک state جدا از relatedProducts (هم‌دسته‌ای پویا)، هرگز merge
+  // نمی‌شوند.
+  complementaryProducts: Product[];
   reviews: Review[];
   reviewsSummary: any;
   reviewsPagination: any;
@@ -129,6 +133,7 @@ export function useProductDetail(): UseProductDetailReturn {
   // ==================== State ====================
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [complementaryProducts, setComplementaryProducts] = useState<Product[]>([]);
   // ✅ Variant/Color System فاز ۳: null یعنی «رنگی انتخاب نشده» — همان
   // چیزی که برای محصول بدون رنگ همیشه باقی می‌ماند.
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
@@ -201,6 +206,12 @@ export function useProductDetail(): UseProductDetailReturn {
 
           if (rawData.related_products && Array.isArray(rawData.related_products)) {
             setRelatedProducts(rawData.related_products);
+          }
+
+          // ✅ Product Relationship Phase 2: «همراه این محصول» — پرشدنِ
+          // مستقل، دقیقاً هم‌الگوی related_products بالا، بدون تداخل.
+          if (rawData.complementary_products && Array.isArray(rawData.complementary_products)) {
+            setComplementaryProducts(rawData.complementary_products);
           }
         }
       } catch (err) {
@@ -486,6 +497,7 @@ export function useProductDetail(): UseProductDetailReturn {
     // Data
     product,
     relatedProducts,
+    complementaryProducts,
     reviews,
     reviewsSummary,
     reviewsPagination,

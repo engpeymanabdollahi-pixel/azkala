@@ -27,8 +27,13 @@ import { ProductGrid } from './components/ProductGrid';
 export function ProductsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { selectedModel } = useModelStore();
+  const { selectedModel, selectedBrand } = useModelStore();
   const { isAuthenticated } = useAuthStore();
+
+  // ✅ Marketplace Unification فاز C2: خانواده‌ی دستگاهِ انتخاب‌شده (اگر
+  // کاربر از هدر/مودال دستگاهی انتخاب کرده باشد) — برای فیلتر خودکار
+  // دسته‌بندی‌های نامرتبط با آن اکوسیستم.
+  const selectedFamilyId = selectedBrand?.family?.id;
 
   // ✅ فیلتر برند از طریق URL (مثلاً از BrandsPage: /products?brand_id=3)
   // قبلاً هیچ صفحه‌ای این پارامتر را نمی‌خواند، پس کلیک روی یک برند در
@@ -41,13 +46,16 @@ export function ProductsPage() {
 
   // ✅ دریافت دسته‌بندی‌های واقعی از دیتابیس
   const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['all-categories'],
+    // ✅ Marketplace Unification فاز C2: با تغییر دستگاهِ انتخاب‌شده، لیستِ
+    // دسته‌بندیِ نمایش‌داده‌شده هم باید دوباره واکشی شود (queryKey شاملِ
+    // خانواده است).
+    queryKey: ['all-categories', selectedFamilyId ?? null],
     queryFn: async () => {
       try {
         // ✅ categoryService.getAll() از قبل پاسخ را یک بار باز می‌کند و
         // {success, data: Category[]} برمی‌گرداند — res.data?.data اینجا
         // همیشه undefined بود (تودرتوی اضافه‌ی اشتباه).
-        const res = await categoryService.getAll();
+        const res = await categoryService.getAll(selectedFamilyId);
         return res.data || [];
       } catch (error) {
         console.error('Error fetching categories:', error);

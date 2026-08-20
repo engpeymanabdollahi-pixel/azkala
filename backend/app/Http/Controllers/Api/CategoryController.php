@@ -16,10 +16,18 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Category::with('children')->root()->active();
+            $query = Category::with(['children', 'deviceFamilies:id,name,slug'])->root()->active();
 
             if ($request->has('with_products_count')) {
                 $query->withCount('products');
+            }
+
+            // ✅ Marketplace Unification فاز B5/C2: وقتی کاربر دستگاهی
+            // انتخاب کرده، فقط دسته‌های همان اکوسیستم + دسته‌های سراسری
+            // (بدون هیچ خانواده‌ی متصل) نشان داده شوند — طبق همان قرارداد
+            // معافیتِ مستندشده در DeviceEnforcementService.
+            if ($request->filled('family_id')) {
+                $query->forFamily((int) $request->get('family_id'));
             }
 
             $categories = $query->orderBy('sort_order')->get();
@@ -29,10 +37,11 @@ class CategoryController extends Controller
                 'data' => CategoryResource::collection($categories),
             ]);
         } catch (\Exception $e) {
-            Log::error('CategoryController@index: ' . $e->getMessage());
+            Log::error('CategoryController@index: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'خطا در دریافت دسته‌بندی‌ها: ' . $e->getMessage(),
+                'message' => 'خطا در دریافت دسته‌بندی‌ها: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -52,7 +61,8 @@ class CategoryController extends Controller
                 'data' => new CategoryResource($category),
             ]);
         } catch (\Exception $e) {
-            Log::error('CategoryController@show: ' . $e->getMessage());
+            Log::error('CategoryController@show: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'خطا در دریافت دسته‌بندی',

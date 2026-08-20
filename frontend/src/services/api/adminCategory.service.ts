@@ -25,6 +25,10 @@ export interface AdminCategory {
   meta_keywords?: string;
   tags?: string[];
   parent?: { id: number; name: string } | null;
+  // ✅ Marketplace Unification فاز B4: خانواده‌های دستگاهِ متصل — آرایه‌ی
+  // خالی یعنی دسته‌ی «سراسری».
+  device_families: { id: number; name: string; slug: string }[];
+  is_global: boolean;
 }
 
 export interface CategoryTreeNode {
@@ -97,6 +101,9 @@ export interface CategoryFormData {
   end_date?: string;
   bg_color?: string;
   text_color?: string;
+  // ✅ Marketplace Unification فاز B4: از قبل در بک‌اند (store()/update())
+  // پشتیبانی می‌شد؛ فقط تایپ فرانت‌اند نداشتش.
+  device_family_ids?: number[];
 }
 
 export const adminCategoryService = {

@@ -3,7 +3,9 @@
 namespace App\Repositories;
 
 use App\Models\DeviceModel;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductRelationship;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -39,28 +41,40 @@ class ProductRepository extends BaseRepository
             ->where('is_active', true);
 
         // Apply filters
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('category_id', $filters['category_id']);
         }
 
-        if (!empty($filters['brand_id'])) {
+        if (! empty($filters['brand_id'])) {
             $query->where('brand_id', $filters['brand_id']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%");
+                    ->orWhere('description', 'LIKE', "%{$search}%");
             });
         }
 
-        if (!empty($filters['min_price'])) {
+        if (! empty($filters['min_price'])) {
             $query->where('price', '>=', $filters['min_price']);
         }
 
-        if (!empty($filters['max_price'])) {
+        if (! empty($filters['max_price'])) {
             $query->where('price', '<=', $filters['max_price']);
+        }
+
+        // ✅ Marketplace Unification فاز C1: فقط محصولاتی که حداقل یک مدل
+        // دستگاهِ همان خانواده را پوشش می‌دهند — محصولاتِ بدون هیچ مدل
+        // دستگاهی (لوازم جانبی عمومی، بدون سازگاری تعریف‌شده) عمداً حذف
+        // نمی‌شوند چون این فیلتر فقط وقتی درخواست شود اعمال می‌گردد؛ رفتار
+        // پیش‌فرض (بدون family_id) کاملاً دست‌نخورده می‌ماند.
+        if (! empty($filters['device_family_id'])) {
+            $familyId = $filters['device_family_id'];
+            $query->whereHas('deviceModels.series.brand', function ($q) use ($familyId) {
+                $q->where('family_id', $familyId);
+            });
         }
 
         // ✅ Brand Detail فاز ۲: قبلاً $sortBy مستقیم (بدون allow-list) وارد
@@ -77,10 +91,10 @@ class ProductRepository extends BaseRepository
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
         $allowedSorts = ['created_at', 'price', 'sales_count', 'rating', 'stock', 'views_count', 'name'];
-        if (!in_array($sortBy, $allowedSorts, true)) {
+        if (! in_array($sortBy, $allowedSorts, true)) {
             $sortBy = 'created_at';
         }
-        if (!in_array($sortOrder, ['asc', 'desc'], true)) {
+        if (! in_array($sortOrder, ['asc', 'desc'], true)) {
             $sortOrder = 'desc';
         }
         $query->orderBy($sortBy, $sortOrder);
@@ -131,10 +145,10 @@ class ProductRepository extends BaseRepository
             ->get();
     }
 
-       /**
+    /**
      * دریافت محصولات سازگار با یک مدل دستگاه (شامل خود دستگاه + لوازم جانبی)
      */
-    public function getCompatibleProducts(int $modelId): Collection
+    public function getCompatibleProducts(int $modelId, int $perPage = 20): LengthAwarePaginator
     {
         // ✅ Device-First Architecture فاز ۱J/۱K/۱M: device_model_product
         // (رابطه‌ی deviceModels()) اکنون تنها منبع حقیقتِ سازگاری
@@ -144,7 +158,7 @@ class ProductRepository extends BaseRepository
         // درخواست مستقیم به این endpoint نباید یک اکوسیستم غیرفعال را دور
         // بزند.
         if (! $this->isModelDiscoverable($modelId)) {
-            return new Collection();
+            return new LengthAwarePaginator([], 0, $perPage);
         }
 
         return Product::query()
@@ -153,7 +167,7 @@ class ProductRepository extends BaseRepository
                 $subQuery->where('device_models.id', $modelId);
             })
             ->with(['brand', 'category', 'images', 'deviceModels.series.brand'])
-            ->get();
+            ->paginate($perPage);
     }
 
     /**
@@ -240,13 +254,35 @@ class ProductRepository extends BaseRepository
     }
 
     /**
+     * محصولات مکمل («همراه این محصول») — طبق Product Relationship Phase 2
+     * audit، عمداً مستقل از getRelatedProducts بالا (که هم‌دسته‌ای پویاست)
+     * و از سازگاری دستگاه. فقط رابطه‌های فعالِ نوع complement که هم محصول
+     * مبدأ و هم محصول مقصد فعال باشند (Product::query() به‌خودی‌خود
+     * soft-delete را هم فیلتر می‌کند، طبق global scope مدل) — محصول
+     * غیرفعال/حذف‌شده هرگز در پاسخ عمومی نشت نمی‌کند.
+     */
+    public function getComplementaryProducts(int $sourceProductId, int $limit = 6): Collection
+    {
+        return $this->query()
+            ->select(['products.id', 'products.name', 'products.slug', 'products.main_image', 'products.price', 'products.compare_price', 'products.rating', 'products.reviews_count', 'products.sales_count'])
+            ->join('product_relationships', 'product_relationships.target_product_id', '=', 'products.id')
+            ->where('product_relationships.source_product_id', $sourceProductId)
+            ->where('product_relationships.type', ProductRelationship::TYPE_COMPLEMENT)
+            ->where('product_relationships.is_active', true)
+            ->where('products.is_active', true)
+            ->orderBy('product_relationships.sort_order')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
      * Get user's purchased products
      */
     public function getUserPurchasedProducts(int $userId, int $perPage = 20): LengthAwarePaginator
     {
-        $purchasedProductIds = \App\Models\OrderItem::whereHas('order', function ($q) use ($userId) {
+        $purchasedProductIds = OrderItem::whereHas('order', function ($q) use ($userId) {
             $q->where('user_id', $userId)
-              ->where('status', '!=', 'cancelled');
+                ->where('status', '!=', 'cancelled');
         })->pluck('product_id')->unique();
 
         return $this->query()

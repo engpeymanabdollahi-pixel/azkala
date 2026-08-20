@@ -76,6 +76,7 @@ export function ProductDetailPage() {
   const {
     product,
     relatedProducts,
+    complementaryProducts,
     reviews,
     reviewsSummary,
     reviewsPagination,
@@ -681,6 +682,20 @@ export function ProductDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ✅ Product Relationship Phase 2: «همراه این محصول» — عمداً یک
+            بخش کاملاً مجزا از «محصولات مشابه» زیرش (دیتاست متفاوت: رابطه‌ی
+            پایدارِ complement، نه کوئری پویای هم‌دسته‌ای). همان کامپوننت
+            RelatedProducts دوباره استفاده می‌شود (طبق دستور صریح: reuse
+            existing primitives)، فقط با منبع داده و عنوان متفاوت. */}
+        {complementaryProducts.length > 0 && (
+          <RelatedProducts
+            products={complementaryProducts}
+            title="همراه این محصول"
+            viewAllLink={`/products?category=${product?.category?.slug ?? ''}`}
+            className="mb-6"
+          />
+        )}
 
         {/* Related Products */}
         <RelatedProducts products={relatedProducts} />
