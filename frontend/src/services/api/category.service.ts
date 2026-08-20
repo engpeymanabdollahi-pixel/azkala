@@ -10,8 +10,12 @@ import type { Category } from '@/types/models';
 export type { Category };
 
 export const categoryService = {
-  async getAll(): Promise<{ success: boolean; data: Category[] }> {
-    const response = await apiClient.get('/categories?with_products_count=1');
+  // ✅ Marketplace Unification فاز C2: familyId اختیاری — وقتی داده شود
+  // بک‌اند فقط دسته‌های همان اکوسیستم + دسته‌های سراسری را برمی‌گرداند.
+  async getAll(familyId?: number): Promise<{ success: boolean; data: Category[] }> {
+    const params = new URLSearchParams({ with_products_count: '1' });
+    if (familyId) params.set('family_id', String(familyId));
+    const response = await apiClient.get(`/categories?${params.toString()}`);
     return response.data;
   },
 

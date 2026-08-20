@@ -48,6 +48,7 @@ import {
   type CategoryTreeNode,
   type CategoryFormData,
 } from '@/services/api/adminCategory.service';
+import { adminDeviceFamilyService } from '@/services/api/adminDeviceFamily.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 
@@ -644,6 +645,20 @@ export function AdminCategoriesPage() {
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-1">
                                   /{cat.slug}
                                 </p>
+                                {/* ✅ Marketplace Unification فاز B4: نشانه‌ی
+                                    اکوسیستمِ متصل، مستقیماً در لیست — بدون
+                                    نیاز به باز کردن فرم ویرایش. */}
+                                {cat.is_global ? (
+                                  <Badge variant="gray" size="sm" className="mt-1">سراسری</Badge>
+                                ) : (
+                                  cat.device_families?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {cat.device_families.map((f) => (
+                                        <Badge key={f.id} variant="accent" size="sm">{f.name}</Badge>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
                               </div>
                             </div>
                           </td>
@@ -936,6 +951,10 @@ function CategoryFormModal({
     end_date: category?.end_date || '',
     bg_color: category?.bg_color || '',
     text_color: category?.text_color || '',
+    // ✅ Marketplace Unification فاز B4: مقدار اولیه از category.device_families
+    // (که getCategoryDetails همیشه برمی‌گرداند) — نه یک فیلدِ جدا در
+    // CategoryFormData که هرگز پر نمی‌شد.
+    device_family_ids: category?.device_families?.map((f) => f.id) || [],
   });
   const [newTag, setNewTag] = useState('');
   const [showIconPicker, setShowIconPicker] = useState(false);
@@ -945,6 +964,26 @@ function CategoryFormModal({
     queryFn: () => adminCategoryService.getCategories({ per_page: 100 }),
   });
   const categoriesList = allCategories?.data?.categories || [];
+
+  // ✅ Marketplace Unification فاز B4: فقط خانواده‌های فعال قابل‌انتخاب‌اند
+  // (هم‌خوان با اعتبارسنجی سمت بک‌اند در AdminCategoryController).
+  const { data: familiesResponse } = useQuery({
+    queryKey: ['admin-device-families-for-category-form'],
+    queryFn: () => adminDeviceFamilyService.getFamilies({ is_active: true, per_page: 100 }),
+  });
+  const availableFamilies = familiesResponse?.data?.families || [];
+
+  const toggleFamily = (familyId: number) => {
+    setFormData((prev) => {
+      const current = prev.device_family_ids || [];
+      return {
+        ...prev,
+        device_family_ids: current.includes(familyId)
+          ? current.filter((id) => id !== familyId)
+          : [...current, familyId],
+      };
+    });
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: CategoryFormData) => adminCategoryService.createCategory(data),
@@ -1200,6 +1239,44 @@ function CategoryFormModal({
                   <p className="text-[10px] text-gray-500 dark:text-gray-400">دسته در سایت نمایش داده می‌شود</p>
                 </div>
               </label>
+
+              {/* ✅ Marketplace Unification فاز B4: اتصال دسته به خانواده‌های
+                  دستگاه — بدون هیچ خانواده یعنی دسته «سراسری» (برای همه‌ی
+                  اکوسیستم‌ها نمایش داده می‌شود). */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">اکوسیستم دستگاه</label>
+                  {(formData.device_family_ids?.length ?? 0) === 0 && (
+                    <Badge variant="gray">سراسری (همه‌ی دستگاه‌ها)</Badge>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                  اگر هیچ خانواده‌ای انتخاب نشود، این دسته برای همه‌ی اکوسیستم‌های دستگاه نمایش داده می‌شود.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {availableFamilies.map((family) => {
+                    const isSelected = (formData.device_family_ids || []).includes(family.id);
+                    return (
+                      <button
+                        key={family.id}
+                        type="button"
+                        onClick={() => toggleFamily(family.id)}
+                        className={cn(
+                          'px-3 py-2 rounded-lg text-xs font-semibold transition-all',
+                          isSelected
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        )}
+                      >
+                        {family.name}
+                      </button>
+                    );
+                  })}
+                  {availableFamilies.length === 0 && (
+                    <p className="text-xs text-gray-400">هیچ خانواده‌ی دستگاه فعالی موجود نیست</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

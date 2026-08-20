@@ -38,7 +38,7 @@ class AdminCategoryService
                 'stats' => $stats,
             ];
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@getCategories: ' . $e->getMessage());
+            Log::error('AdminCategoryService@getCategories: '.$e->getMessage());
             throw new \Exception('خطا در دریافت دسته‌بندی‌ها', 500);
         }
     }
@@ -57,7 +57,7 @@ class AdminCategoryService
                 }),
             ];
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@getCategoryTree: ' . $e->getMessage());
+            Log::error('AdminCategoryService@getCategoryTree: '.$e->getMessage());
             throw new \Exception('خطا در دریافت درخت دسته‌بندی', 500);
         }
     }
@@ -74,7 +74,7 @@ class AdminCategoryService
             }
 
             // Calculate sort order if not provided
-            if (!isset($data['sort_order'])) {
+            if (! isset($data['sort_order'])) {
                 $parentId = $data['parent_id'] ?? null;
                 $data['sort_order'] = $this->repository->calculateNextSortOrder($parentId);
             }
@@ -93,8 +93,8 @@ class AdminCategoryService
 
             return $category->loadCount('products');
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@createCategory: ' . $e->getMessage());
-            throw new \Exception('خطا در ایجاد دسته‌بندی: ' . $e->getMessage(), 500);
+            Log::error('AdminCategoryService@createCategory: '.$e->getMessage());
+            throw new \Exception('خطا در ایجاد دسته‌بندی: '.$e->getMessage(), 500);
         }
     }
 
@@ -106,13 +106,13 @@ class AdminCategoryService
         try {
             $category = $this->repository->findWithCount($id);
 
-            if (!$category) {
+            if (! $category) {
                 throw new \Exception('دسته‌بندی یافت نشد', 404);
             }
 
             return $this->formatCategory($category, true);
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@getCategoryDetails: ' . $e->getMessage());
+            Log::error('AdminCategoryService@getCategoryDetails: '.$e->getMessage());
             throw $e;
         }
     }
@@ -127,7 +127,7 @@ class AdminCategoryService
 
             // Check circular reference
             if (isset($data['parent_id']) && $data['parent_id'] != null) {
-                if (!$this->repository->canBeParent($id, $data['parent_id'])) {
+                if (! $this->repository->canBeParent($id, $data['parent_id'])) {
                     throw new \Exception('دسته نمی‌تواند والد خودش باشد', 400);
                 }
             }
@@ -153,7 +153,7 @@ class AdminCategoryService
             // Remove empty fields
             foreach ($data as $key => $value) {
                 if ($value === '' || $value === null) {
-                    if (!in_array($key, ['parent_id', 'description', 'image', 'meta_title',
+                    if (! in_array($key, ['parent_id', 'description', 'image', 'meta_title',
                         'meta_description', 'meta_keywords', 'campaign_name', 'start_date',
                         'end_date', 'bg_color', 'text_color', 'tags'])) {
                         unset($data[$key]);
@@ -175,7 +175,7 @@ class AdminCategoryService
 
             return $category->loadCount('products');
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@updateCategory: ' . $e->getMessage());
+            Log::error('AdminCategoryService@updateCategory: '.$e->getMessage());
             throw $e;
         }
     }
@@ -268,7 +268,7 @@ class AdminCategoryService
                 'message' => $messages[$action] ?? 'عملیات انجام شد',
             ];
         } catch (\Exception $e) {
-            Log::error('AdminCategoryService@bulkAction: ' . $e->getMessage());
+            Log::error('AdminCategoryService@bulkAction: '.$e->getMessage());
             throw new \Exception('خطا در عملیات گروهی', 500);
         }
     }
@@ -298,6 +298,14 @@ class AdminCategoryService
             'is_expired' => $category->isExpired(),
             'is_campaign_active' => $category->isCampaignActive(),
             'created_at' => $category->created_at?->format('Y-m-d H:i'),
+            // ✅ Marketplace Unification فاز B4: در لیست هم لازم است (badge
+            // خانواده + نشانه‌ی «سراسری») نه فقط در جزئیات — eager-loaded
+            // در AdminCategoryRepository::getCategories، پس کوئری اضافه‌ای
+            // اینجا اجرا نمی‌شود.
+            'device_families' => $category->relationLoaded('deviceFamilies')
+                ? $category->deviceFamilies->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'slug' => $f->slug])->values()
+                : $category->deviceFamilies()->get(['device_families.id', 'name', 'slug'])->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'slug' => $f->slug]),
+            'is_global' => $category->isGlobal(),
         ];
 
         if ($detailed) {

@@ -15,6 +15,9 @@ class ProductFilterDTO
         public readonly string $sort_by = 'created_at',
         public readonly string $sort_order = 'desc',
         public readonly int $per_page = 20,
+        // ✅ Marketplace Unification فاز C1: فیلتر device-aware — محصولاتی
+        // که حداقل یک مدل دستگاه از این خانواده را پوشش می‌دهند.
+        public readonly ?int $device_family_id = null,
     ) {}
 
     /**
@@ -31,6 +34,7 @@ class ProductFilterDTO
             sort_by: $request->get('sort_by', 'created_at'),
             sort_order: $request->get('sort_order', 'desc'),
             per_page: (int) $request->get('per_page', 20),
+            device_family_id: $request->filled('device_family_id') ? (int) $request->device_family_id : null,
         );
     }
 
@@ -47,6 +51,7 @@ class ProductFilterDTO
             'max_price' => $this->max_price,
             'sort_by' => $this->sort_by,
             'sort_order' => $this->sort_order,
-        ], fn($value) => $value !== null);
+            'device_family_id' => $this->device_family_id,
+        ], fn ($value) => $value !== null);
     }
 }

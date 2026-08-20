@@ -211,7 +211,7 @@ class ProductService
     /**
      * ✅ اصلاح شده: دریافت محصولات سازگار با مدل دستگاه جدید
      */
-    public function getCompatibleProducts(int $modelId): array
+    public function getCompatibleProducts(int $modelId, int $perPage = 20): array
     {
         try {
             // ✅ بررسی وجود مدل در جدول جدید device_models
@@ -221,14 +221,20 @@ class ProductService
                 throw new \Exception('مدل گوشی یافت نشد', 404);
             }
 
-            $products = $this->productRepository->getCompatibleProducts($modelId);
+            // ✅ Marketplace Unification فاز C4: قبلاً همیشه یک شکلِ صفحه‌بندیِ
+            // ساختگی برمی‌گشت (current_page=1, last_page=1, per_page=100)
+            // بدون توجه به تعداد واقعی نتایج — یعنی برای دستگاه‌های محبوب با
+            // ده‌ها محصول سازگار، همه در یک «صفحه» ساختگی برمی‌گشتند. کلیدها
+            // دقیقاً همان قبلی‌اند (بدون شکستن قرارداد API)، فقط مقادیر
+            // اکنون از یک LengthAwarePaginator واقعی می‌آیند.
+            $products = $this->productRepository->getCompatibleProducts($modelId, $perPage);
 
             return [
-                'data' => $products,
-                'current_page' => 1,
-                'last_page' => 1,
-                'per_page' => 100,
-                'total' => $products->count(),
+                'data' => $products->items(),
+                'current_page' => $products->currentPage(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ];
 
         } catch (\Exception $e) {

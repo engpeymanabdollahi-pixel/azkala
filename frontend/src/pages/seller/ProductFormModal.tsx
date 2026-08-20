@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   X, Package, DollarSign, Tag, Smartphone, CheckCircle,
-  Loader2, Save, FileText, Image as ImageIcon, Plus, Trash2, ArrowLeft, Search, Edit, Palette
+  Loader2, Save, FileText, Image as ImageIcon, Plus, Trash2, ArrowLeft, Search, Edit, Palette, Link2
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +11,7 @@ import { ImageUploader } from '@/components/ui/ImageUploader';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/api/useSellerProducts';
 import { categoryService } from '@/services/api/category.service';
 import { deviceService } from '@/services/api/device.service';
+import { sellerProductRelationshipService } from '@/services/api/productRelationship.service';
 import { cn } from '@/utils/cn';
 import toast from 'react-hot-toast';
 import apiClient from '@/services/api/client';
@@ -52,7 +53,7 @@ const EMPTY_VARIANT: VariantFormItem = {
   color_name: '', color_code: '', sku: '', price: '', compare_price: '', stock: '',
 };
 
-type Step = 'basic' | 'pricing' | 'variants' | 'specs' | 'models';
+type Step = 'basic' | 'pricing' | 'variants' | 'specs' | 'models' | 'relationships';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -96,6 +97,7 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const [selectedBrandFilter, setSelectedBrandFilter] = useState<string>('all');
+  const [relationshipSearch, setRelationshipSearch] = useState('');
 
   // 1. Fetch Categories
   const { data: categories = [] } = useQuery({
@@ -122,6 +124,50 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
       return response.data.data;
     },
     enabled: isOpen && mode === 'edit' && !!productId,
+  });
+
+  // ✅ Marketplace Unification فاز A1: «محصولات مکمل» — لیستِ رابطه‌های
+  // موجودِ همین محصول + لیستِ محصولاتِ خودِ فروشنده (برای انتخابِ محصول
+  // مقصد؛ بک‌اند هم مالکیتِ هر دو طرف را مستقل اجباری می‌کند، این فقط UX
+  // را بهبود می‌دهد تا فروشنده اصلاً محصول فروشنده‌ی دیگری را نبیند).
+  const queryClient = useQueryClient();
+
+  const { data: relationships = [], isLoading: isLoadingRelationships } = useQuery({
+    queryKey: ['seller-product-relationships', productId],
+    queryFn: async () => (await sellerProductRelationshipService.list(productId as number)).data,
+    enabled: isOpen && mode === 'edit' && !!productId,
+  });
+
+  const { data: sellerProducts = [] } = useQuery({
+    queryKey: ['seller-products-for-relationships'],
+    queryFn: async () => {
+      const response = await apiClient.get('/seller/products', { params: { per_page: 100 } });
+      return (response.data?.data?.data || []) as { id: number; name: string; main_image: string | null }[];
+    },
+    enabled: isOpen && mode === 'edit' && activeStep === 'relationships',
+  });
+
+  const addRelationshipMutation = useMutation({
+    mutationFn: (targetProductId: number) =>
+      sellerProductRelationshipService.create(productId as number, targetProductId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-product-relationships', productId] });
+      toast.success('محصول مکمل اضافه شد', { icon: '✅' });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'خطا در افزودن محصول مکمل');
+    },
+  });
+
+  const removeRelationshipMutation = useMutation({
+    mutationFn: (relationshipId: number) =>
+      sellerProductRelationshipService.remove(productId as number, relationshipId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-product-relationships', productId] });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'خطا در حذف');
+    },
   });
 
   // ✅ پر کردن فرم هنگام ورود به حالت ویرایش
@@ -352,6 +398,10 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
     { id: 'variants', label: 'رنگ‌ها', icon: Palette },
     { id: 'specs', label: 'مشخصات', icon: Tag },
     { id: 'models', label: 'سازگاری', icon: Smartphone },
+    // ✅ Marketplace Unification فاز A1: «محصولات مکمل» فقط در حالت ویرایش
+    // معنا دارد — رابطه به وجود productId نیاز دارد که در حالت ساخت هنوز
+    // موجود نیست.
+    ...(mode === 'edit' ? [{ id: 'relationships' as const, label: 'محصولات مکمل', icon: Link2 }] : []),
   ];
 
   const currentStepIndex = steps.findIndex(s => s.id === activeStep);
@@ -681,6 +731,96 @@ export function ProductFormModal({ isOpen, onClose, mode = 'create', productId =
                       <Button onClick={handleSubmit} disabled={isSubmitting || images.length === 0}>
                         {isSubmitting ? <><Loader2 className="w-4 h-4 ml-2 animate-spin" /> در حال ذخیره...</> : <><Save className="w-4 h-4 ml-2" /> {mode === 'create' ? 'ثبت محصول' : 'ذخیره تغییرات'}</>}
                       </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ✅ Marketplace Unification فاز A1: «محصولات مکمل» — برخلاف
+                    مراحل بالا، اینجا هر افزودن/حذف بلافاصله با API خودش
+                    ذخیره می‌شود (مثل device_model_ids نیست که فقط با
+                    «ذخیره تغییرات» کلی ارسال شود) — چون این رابطه از قبل
+                    یک منبع مستقل و بلادرنگ در بک‌اند است. */}
+                {activeStep === 'relationships' && mode === 'edit' && (
+                  <div className="space-y-5 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">محصولات مکمل («همراه این محصول»)</h3>
+                      {relationships.length > 0 && <Badge variant="success">{relationships.length} محصول</Badge>}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      محصولاتی که پیشنهاد می‌شود همراه این محصول خریداری شوند (مثلاً شارژر برای گوشی). فقط محصولات خودتان قابل‌انتخاب‌اند.
+                    </p>
+
+                    {isLoadingRelationships ? (
+                      <div className="text-center py-8"><Loader2 className="w-8 h-8 text-primary-500 animate-spin mx-auto" /></div>
+                    ) : relationships.length > 0 ? (
+                      <div className="space-y-2">
+                        {relationships.map((rel) => (
+                          <div key={rel.id} className="flex items-center gap-3 bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700 rounded-lg p-2.5">
+                            <SafeImage src={rel.target_product?.main_image || ''} alt={rel.target_product?.name || ''} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" fallbackEmoji="📦" />
+                            <span className="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                              {rel.target_product?.name || 'محصول حذف‌شده'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeRelationshipMutation.mutate(rel.id)}
+                              disabled={removeRelationshipMutation.isPending}
+                              className="p-1.5 text-error-500 hover:bg-error-50 dark:hover:bg-error-900/20 rounded-lg flex-shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl">
+                        <Link2 className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">هنوز محصول مکملی اضافه نشده</p>
+                      </div>
+                    )}
+
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <input
+                        type="text"
+                        value={relationshipSearch}
+                        onChange={(e) => setRelationshipSearch(e.target.value)}
+                        className="w-full pr-10 pl-3 py-2.5 border-2 border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500"
+                        placeholder="جستجوی محصول برای افزودن..."
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-2 border-2 border-gray-100 dark:border-slate-700 rounded-xl">
+                      {(() => {
+                        const relatedIds = new Set(relationships.map((r) => r.target_product?.id).filter(Boolean));
+                        const candidates = sellerProducts.filter((p) =>
+                          p.id !== productId &&
+                          !relatedIds.has(p.id) &&
+                          (relationshipSearch.trim() === '' || p.name.toLowerCase().includes(relationshipSearch.trim().toLowerCase()))
+                        );
+                        if (candidates.length === 0) {
+                          return (
+                            <div className="w-full text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
+                              محصول دیگری برای افزودن یافت نشد
+                            </div>
+                          );
+                        }
+                        return candidates.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => addRelationshipMutation.mutate(p.id)}
+                            disabled={addRelationshipMutation.isPending}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all"
+                          >
+                            <Plus className="w-3 h-3" />
+                            {p.name}
+                          </button>
+                        ));
+                      })()}
+                    </div>
+
+                    <div className="flex justify-start pt-4">
+                      <Button variant="outline" onClick={() => setActiveStep('models')}><ArrowLeft className="w-4 h-4 ml-2 rotate-180" /> مرحله قبل</Button>
                     </div>
                   </div>
                 )}

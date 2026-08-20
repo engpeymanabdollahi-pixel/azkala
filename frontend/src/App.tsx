@@ -48,6 +48,7 @@ function PageLoader() {
 const AdminLayout = lazy(() => import('@/components/layout/AdminLayout/AdminLayout'));
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
 const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'));
+const AdminProductRelationshipsPage = lazy(() => import('@/pages/admin/AdminProductRelationshipsPage'));
 const AdminOrdersPage = lazy(() => import('@/pages/admin/AdminOrdersPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
 const AdminReviewsPage = lazy(() => import('@/pages/admin/AdminReviewsPage'));
@@ -435,6 +436,7 @@ export default function App() {
               }>
                 <Route index element={<AdminDashboard />} />
                 <Route path="products" element={<AdminProductsPage />} />
+                <Route path="product-relationships" element={<AdminProductRelationshipsPage />} />
                 <Route path="orders" element={<AdminOrdersPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="reviews" element={<AdminReviewsPage />} />

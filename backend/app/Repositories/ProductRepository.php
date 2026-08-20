@@ -65,6 +65,18 @@ class ProductRepository extends BaseRepository
             $query->where('price', '<=', $filters['max_price']);
         }
 
+        // ✅ Marketplace Unification فاز C1: فقط محصولاتی که حداقل یک مدل
+        // دستگاهِ همان خانواده را پوشش می‌دهند — محصولاتِ بدون هیچ مدل
+        // دستگاهی (لوازم جانبی عمومی، بدون سازگاری تعریف‌شده) عمداً حذف
+        // نمی‌شوند چون این فیلتر فقط وقتی درخواست شود اعمال می‌گردد؛ رفتار
+        // پیش‌فرض (بدون family_id) کاملاً دست‌نخورده می‌ماند.
+        if (! empty($filters['device_family_id'])) {
+            $familyId = $filters['device_family_id'];
+            $query->whereHas('deviceModels.series.brand', function ($q) use ($familyId) {
+                $q->where('family_id', $familyId);
+            });
+        }
+
         // ✅ Brand Detail فاز ۲: قبلاً $sortBy مستقیم (بدون allow-list) وارد
         // orderBy() می‌شد — یعنی GET /api/v1/products?sort_by=<هر رشته‌ای>
         // همان مقدار را بدون اعتبارسنجی به‌عنوان نام ستون به Eloquent
@@ -136,7 +148,7 @@ class ProductRepository extends BaseRepository
     /**
      * دریافت محصولات سازگار با یک مدل دستگاه (شامل خود دستگاه + لوازم جانبی)
      */
-    public function getCompatibleProducts(int $modelId): Collection
+    public function getCompatibleProducts(int $modelId, int $perPage = 20): LengthAwarePaginator
     {
         // ✅ Device-First Architecture فاز ۱J/۱K/۱M: device_model_product
         // (رابطه‌ی deviceModels()) اکنون تنها منبع حقیقتِ سازگاری
@@ -146,7 +158,7 @@ class ProductRepository extends BaseRepository
         // درخواست مستقیم به این endpoint نباید یک اکوسیستم غیرفعال را دور
         // بزند.
         if (! $this->isModelDiscoverable($modelId)) {
-            return new Collection;
+            return new LengthAwarePaginator([], 0, $perPage);
         }
 
         return Product::query()
@@ -155,7 +167,7 @@ class ProductRepository extends BaseRepository
                 $subQuery->where('device_models.id', $modelId);
             })
             ->with(['brand', 'category', 'images', 'deviceModels.series.brand'])
-            ->get();
+            ->paginate($perPage);
     }
 
     /**
