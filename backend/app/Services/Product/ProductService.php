@@ -3,6 +3,7 @@
 namespace App\Services\Product;
 
 use App\DTOs\Product\ProductFilterDTO;
+use App\Http\Resources\ProductVariantResource;
 use App\Models\DeviceModel;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
@@ -68,6 +69,15 @@ class ProductService
                 8
             );
 
+            // ✅ Product Relationship Phase 2: «همراه این محصول» — مستقل و
+            // مجزا از $relatedProducts بالا (هم‌دسته‌ای پویا) و از
+            // compatible_models (سازگاری دستگاه). دو دیتاست هرگز merge
+            // نمی‌شوند.
+            $complementaryProducts = $this->productRepository->getComplementaryProducts(
+                $product->id,
+                6
+            );
+
             $sellerData = null;
             if ($product->seller) {
                 $sellerData = [
@@ -105,10 +115,10 @@ class ProductService
                 ? $product->variants->isNotEmpty()
                 : false;
             $productData['variants'] = $product->relationLoaded('variants')
-                ? \App\Http\Resources\ProductVariantResource::collection($product->variants)->resolve()
+                ? ProductVariantResource::collection($product->variants)->resolve()
                 : [];
 
-            $relatedProductsData = $relatedProducts->map(function ($p) {
+            $mapProductSummary = function ($p) {
                 return [
                     'id' => $p->id,
                     'name' => $p->name,
@@ -121,12 +131,16 @@ class ProductService
                     'reviews_count' => $p->reviews_count ?? 0,
                     'sales_count' => $p->sales_count ?? 0,
                 ];
-            });
+            };
+
+            $relatedProductsData = $relatedProducts->map($mapProductSummary);
+            $complementaryProductsData = $complementaryProducts->map($mapProductSummary);
 
             return [
                 'product' => $productData,
                 'compatible_models' => $compatibleModels,
                 'related_products' => $relatedProductsData,
+                'complementary_products' => $complementaryProductsData,
             ];
 
         } catch (NotFoundHttpException $e) {

@@ -83,6 +83,9 @@ export const productService = {
       // پاسخ برمی‌گرداند (نه داخل product) — تایپ قبلی نداشتنش باعث می‌شد
       // مصرف‌کننده مجبور شود با as any این خطا را دور بزند.
       compatible_models?: PhoneModel[];
+      // ✅ Product Relationship Phase 2: «همراه این محصول» (complement) —
+      // عمداً یک کلید جدا از related_products، هرگز merge نمی‌شود.
+      complementary_products?: Product[];
     }
   }> {
     const response = await apiClient.get(`/products/slug/${slug}`);
