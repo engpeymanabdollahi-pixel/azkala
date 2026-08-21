@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\NewsletterSubscriber;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -505,5 +507,17 @@ class User extends Authenticatable
                 $user->assignRole('admin');
             }
         });
+    }
+        public function newsletterSubscription(): HasOne
+    {
+        return $this->hasOne(NewsletterSubscriber::class);
+    }
+
+    public function isSubscribedToNewsletter(): bool
+    {
+        return $this->newsletterSubscription()
+                    ->whereNotNull('subscribed_at')
+                    ->whereNull('unsubscribed_at')
+                    ->exists();
     }
 }
