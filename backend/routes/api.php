@@ -558,7 +558,9 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/api', [AdminObservabilityController::class, 'api'])->name('api');
                 Route::get('/queue', [AdminObservabilityController::class, 'queue'])->name('queue');
                 Route::get('/search', [AdminObservabilityController::class, 'search'])->name('search');
+                Route::get('/user', [AdminObservabilityController::class, 'user'])->name('user');
                 Route::get('/events', [AdminObservabilityController::class, 'events'])->name('events');
+              Route::get('/user', [AdminObservabilityController::class, 'user'])->name('user');
             });
             // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)

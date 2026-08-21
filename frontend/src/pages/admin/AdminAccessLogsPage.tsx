@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ScrollText, Search, Filter, ChevronLeft, ChevronRight,
   UserCheck, UserX, ShieldCheck, ShieldX, Calendar,
   Activity, ShieldAlert, ShoppingCart, Server, Search as SearchIcon,
-  TrendingUp, AlertTriangle, Zap, Package,
+  TrendingUp, AlertTriangle, Zap, Package,UserSearch,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -21,10 +21,11 @@ import {
   type LogEntry,
   type ObservabilityFilters,
 } from '@/services/api/observability.service';
+import ShamsiDatePicker from '@/components/ui/ShamsiDatePicker';
 
 // ==================== Constants ====================
 
-type TabKey = 'access' | 'security' | 'payment' | 'api' | 'search';
+type TabKey = 'access' | 'security' | 'payment' | 'api' | 'user' | 'search';
 
 const TABS: Array<{
   key: TabKey;
@@ -36,6 +37,7 @@ const TABS: Array<{
   { key: 'security', label: 'امنیت', icon: ShieldAlert, description: 'Login، OTP، Permission' },
   { key: 'payment', label: 'سفارشات', icon: ShoppingCart, description: 'Order lifecycle و Commission' },
   { key: 'api', label: 'API / Queue', icon: Server, description: 'خطاهای API و Queue' },
+    { key: 'user', label: 'جستجوی کاربر', icon: UserSearch, description: 'بر اساس شماره تلفن' },
   { key: 'search', label: 'جستجو', icon: SearchIcon, description: 'بر اساس Request ID' },
 ];
 
@@ -60,27 +62,36 @@ const LEVEL_COLORS: Record<string, 'success' | 'warning' | 'destructive' | 'prim
 // ==================== Helpers ====================
 
 function formatPersianDate(isoString: string): string {
+  // ✅ guard برای timestamp خالی یا نامعتبر
+  if (!isoString || typeof isoString !== 'string') return '—';
   try {
+    // ✅ space را به T تبدیل می‌کنیم تا new Date() همه فرمت‌ها را parse کند
+    const normalized = isoString.replace(' ', 'T');
+    const d = new Date(normalized);
+    // ✅ اگر parse ناموفق بود، ISO را خام نشان بده
+    if (Number.isNaN(d.getTime())) return isoString;
     return new Intl.DateTimeFormat('fa-IR', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
-    }).format(new Date(isoString));
+    }).format(d);
   } catch {
     return isoString;
   }
 }
 
 function formatShortTime(isoString: string): string {
+  if (!isoString || typeof isoString !== 'string') return '—';
   try {
+    const normalized = isoString.replace(' ', 'T');
+    const d = new Date(normalized);
+    if (Number.isNaN(d.getTime())) return isoString;
     return new Intl.DateTimeFormat('fa-IR', {
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit',
-    }).format(new Date(isoString));
+    }).format(d);
   } catch {
     return isoString;
   }
@@ -171,6 +182,7 @@ export default function AdminAccessLogsPage() {
         {activeTab === 'security' && <ChannelTab channel="security" />}
         {activeTab === 'payment' && <ChannelTab channel="payment" />}
         {activeTab === 'api' && <ChannelTab channel="api" />}
+        {activeTab === 'user' && <UserSearchTab />}
         {activeTab === 'search' && <SearchTab />}
       </div>
     </div>
@@ -662,6 +674,270 @@ function SearchTab() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  );
+}
+// ==================== User Search Tab ====================
+
+interface UserSearchFilters {
+  phone: string;
+  date_from: string;
+  date_to: string;
+  channel: string;
+  event: string;
+}
+
+function UserSearchTab() {
+  const [filters, setFilters] = useState<UserSearchFilters>({
+    phone: '',
+    date_from: '',
+    date_to: '',
+    channel: '',
+    event: '',
+  });
+  const [searchTrigger, setSearchTrigger] = useState<UserSearchFilters | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const searchQuery = useQuery({
+    queryKey: ['observability-user-search', searchTrigger],
+    queryFn: () => observabilityService.searchByUser({
+      phone: searchTrigger!.phone || undefined,
+      date_from: searchTrigger!.date_from || null,
+      date_to: searchTrigger!.date_to || null,
+      channel: (searchTrigger!.channel || null) as 'security' | 'payment' | null,
+      event: searchTrigger!.event || null,
+    }),
+    enabled: !!searchTrigger,
+    staleTime: 0,
+  });
+
+  // لیست event های موجود برای dropdown
+  const securityEvents = ['auth.register.request', 'auth.otp.verify.success', 'auth.otp.verify.failure', 'auth.login.success', 'auth.login.failure', 'auth.logout', 'auth.password.change', 'auth.permission.denied', 'auth.authentication.failed', 'abuse.rate_limit.hit'];
+  const paymentEvents = ['order.created', 'order.cancelled', 'order.status.changed', 'order.payment.changed', 'commission.processed', 'commission.failed', 'order.settlement.done'];
+
+  const availableEvents = useMemo(() => {
+    if (filters.channel === 'security') return securityEvents;
+    if (filters.channel === 'payment') return paymentEvents;
+    return [...securityEvents, ...paymentEvents].sort();
+  }, [filters.channel]);
+
+  const handleSearch = () => {
+    const trimmed = filters.phone.trim();
+    if (trimmed.length >= 10) {
+      setSearchTrigger({ ...filters });
+    }
+  };
+
+  const handleReset = () => {
+    setFilters({ phone: filters.phone, date_from: '', date_to: '', channel: '', event: '' });
+  };
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.date_from) count++;
+    if (filters.date_to) count++;
+    if (filters.channel) count++;
+    if (filters.event) count++;
+    return count;
+  }, [filters]);
+
+  const results = (searchQuery.data?.data ?? []) as LogEntry[];
+  const meta = searchQuery.data?.meta;
+
+  return (
+    <div className="space-y-4">
+      {/* Search Input Card */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+            🔍 جستجوی لاگ‌های کاربر بر اساس شماره تلفن
+          </h3>
+          <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)} className="relative">
+            <Filter className="w-4 h-4 ml-2" />
+            فیلترها
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+        </div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          شماره تلفن کاربر را وارد کنید. همه لاگ‌های مربوط به آن کاربر
+          (ورودها، سفارشات، تغییرات دسترسی) در همه کانال‌ها یافت می‌شوند.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={filters.phone}
+            onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="09123456789"
+            dir="ltr"
+            className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 font-mono text-sm"
+          />
+          <Button onClick={handleSearch} disabled={!filters.phone.trim() || filters.phone.trim().length < 10}>
+            <UserSearch className="w-4 h-4 ml-2" />
+            جستجو
+          </Button>
+        </div>
+      </Card>
+
+      {/* Filters Panel */}
+      {showFilters && (
+        <Card className="p-4 md:p-6">
+          <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">فیلترهای پیشرفته</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        {/* Date From — شمسی */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline ml-1" />
+                از تاریخ (شمسی)
+              </label>
+              <ShamsiDatePicker
+                value={filters.date_from}
+                onChange={(g) => setFilters({ ...filters, date_from: g })}
+              />
+            </div>
+
+                        {/* Date To — شمسی */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline ml-1" />
+                تا تاریخ (شمسی)
+              </label>
+              <ShamsiDatePicker
+                value={filters.date_to}
+                onChange={(g) => setFilters({ ...filters, date_to: g })}
+              />
+            </div>
+
+            {/* Channel Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                نوع کانال
+              </label>
+              <select
+                value={filters.channel}
+                onChange={(e) => setFilters({ ...filters, channel: e.target.value, event: '' })}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm"
+              >
+                <option value="">همه کانال‌ها</option>
+                <option value="security">امنیت (security)</option>
+                <option value="payment">سفارشات (payment)</option>
+              </select>
+            </div>
+
+            {/* Event Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                نوع رویداد
+              </label>
+              <select
+                value={filters.event}
+                onChange={(e) => setFilters({ ...filters, event: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm"
+              >
+                <option value="">همه رویدادها</option>
+                {availableEvents.map((evt) => (
+                  <option key={evt} value={evt}>{evt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              پاک کردن فیلترها
+            </Button>
+            <Button size="sm" onClick={handleSearch} disabled={!filters.phone.trim() || filters.phone.trim().length < 10}>
+              <Search className="w-4 h-4 ml-2" />
+              اعمال و جستجو
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Results */}
+      {searchTrigger && (
+        <Card className="overflow-hidden">
+          <div className="p-4 bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm text-gray-600 dark:text-gray-400">جستجو برای:</span>
+                <code className="text-sm font-mono bg-gray-200 dark:bg-slate-700 px-2 py-0.5 rounded">
+                  {meta?.phone_mask || searchTrigger.phone}
+                </code>
+                {meta?.user_id && (
+                  <Badge variant="primary">User ID: {meta.user_id}</Badge>
+                )}
+                {searchTrigger.channel && (
+                  <Badge variant="gray">کانال: {searchTrigger.channel}</Badge>
+                )}
+                {searchTrigger.event && (
+                  <Badge variant="gray">رویداد: {searchTrigger.event}</Badge>
+                )}
+              </div>
+              <Badge variant="primary">
+                {searchQuery.isLoading ? 'در حال جستجو...' : `${results.length} نتیجه`}
+              </Badge>
+            </div>
+          </div>
+
+          {searchQuery.isLoading ? (
+            <div className="p-12 flex justify-center"><Spinner /></div>
+          ) : results.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <UserSearch className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              هیچ لاگی با این فیلترها یافت نشد
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-slate-800">
+                  <tr>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase">زمان</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase">کانال</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase">سطح</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase">Event</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold uppercase">جزئیات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                  {results.map((entry, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3 text-xs whitespace-nowrap" dir="rtl">
+                        {entry.timestamp ? formatPersianDate(entry.timestamp) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={entry.channel === 'security' ? 'warning' : entry.channel === 'payment' ? 'success' : 'gray'}>
+                          {entry.channel}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={LEVEL_COLORS[entry.level] ?? 'gray'}>
+                          {entry.level}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+                          {entry.event || entry.message?.substring(0, 30)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-xs">
+                        <span className="line-clamp-1">
+                          {entry.request_id && `req: ${String(entry.request_id).substring(0, 8)}... `}
+                          {entry.ip && `ip: ${entry.ip} `}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Card>

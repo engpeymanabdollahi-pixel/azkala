@@ -148,6 +148,167 @@ class LogReaderService
 
         return array_keys($events);
     }
+        /**
+     * جستجوی همه لاگ‌های یک کاربر بر اساس شماره تلفن.
+     *
+     * @param string      $phone         شماره تلفن (مثلاً 09123456789)
+     * @param string|null $dateFrom      فیلتر از تاریخ (Y-m-d)
+     * @param string|null $dateTo        فیلتر تا تاریخ (Y-m-d)
+     * @param string|null $eventFilter   فیلتر بر اساس event name
+     * @param string|null $channelFilter فیلتر بر اساس کانال (security|payment)
+     * @return array{user_id: int|null, phone_mask: string|null, entries: array}
+     */
+    public function searchByUser(
+        string $phone,
+        ?string $dateFrom = null,
+        ?string $dateTo = null,
+        ?string $eventFilter = null,
+        ?string $channelFilter = null
+    ): array {
+        // 1. Normalize کردن شماره تلفن
+        $normalizedPhone = $this->normalizePhone($phone);
+        if ($normalizedPhone === null) {
+            return ['user_id' => null, 'phone_mask' => null, 'entries' => []];
+        }
+
+        // 2. Hash کردن شماره تلفن (همان hash که در SecurityLog استفاده می‌شود)
+        $phoneHash = hash('sha256', $normalizedPhone);
+
+        // 3. پیدا کردن user_id از DB
+        $user = \App\Models\User::where('phone', $normalizedPhone)->first();
+        $userId = $user?->id;
+
+        $results = [];
+
+        // 4. جستجو در security.log با phone_hash (اگر channelFilter اجازه دهد)
+        if ($channelFilter === null || $channelFilter === 'security') {
+            $securityFiles = $this->getChannelFiles('security');
+            foreach ($securityFiles as $file) {
+                // فیلتر تاریخ بر اساس نام فایل
+                if (!$this->isFileInDateRange($file, $dateFrom, $dateTo)) {
+                    continue;
+                }
+
+                $content = File::get($file);
+                $lines = explode("\n", $content);
+
+                foreach ($lines as $line) {
+                    if (str_contains($line, $phoneHash)) {
+                        $entry = $this->parseLogLine($line);
+                        if ($entry !== null) {
+                            $entry['channel'] = 'security';
+
+                            // فیلتر تاریخ بر اساس timestamp entry
+                            if (!$this->isEntryInDateRange($entry, $dateFrom, $dateTo)) {
+                                continue;
+                            }
+
+                            // فیلتر event
+                            if ($eventFilter !== null && ($entry['event'] ?? '') !== $eventFilter) {
+                                continue;
+                            }
+
+                            $results[] = $entry;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. جستجو در payment.log با user_id (اگر channelFilter اجازه دهد)
+        if ($userId !== null && ($channelFilter === null || $channelFilter === 'payment')) {
+            $paymentFiles = $this->getChannelFiles('payment');
+            foreach ($paymentFiles as $file) {
+                // فیلتر تاریخ بر اساس نام فایل
+                if (!$this->isFileInDateRange($file, $dateFrom, $dateTo)) {
+                    continue;
+                }
+
+                $content = File::get($file);
+                $lines = explode("\n", $content);
+
+                foreach ($lines as $line) {
+                    // جستجو برای "user_id":123
+                    if (str_contains($line, "\"user_id\":{$userId}")) {
+                        $entry = $this->parseLogLine($line);
+                        if ($entry !== null) {
+                            $entry['channel'] = 'payment';
+
+                            // فیلتر تاریخ بر اساس timestamp entry
+                            if (!$this->isEntryInDateRange($entry, $dateFrom, $dateTo)) {
+                                continue;
+                            }
+
+                            // فیلتر event
+                            if ($eventFilter !== null && ($entry['event'] ?? '') !== $eventFilter) {
+                                continue;
+                            }
+
+                            $results[] = $entry;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. مرتب‌سازی بر اساس timestamp (newest first)
+        usort($results, fn($a, $b) => strtotime($b['timestamp']) - strtotime($a['timestamp']));
+
+        return [
+            'user_id' => $userId,
+            'phone_mask' => $this->maskPhone($normalizedPhone),
+            'entries' => $results,
+        ];
+    }
+
+    /**
+     * جستجوی لاگ‌ها بر اساس user_id.
+     */
+    public function searchByUserId(int $userId): array
+    {
+        $results = [];
+
+        // جستجو در payment.log
+        $paymentFiles = $this->getChannelFiles('payment');
+        foreach ($paymentFiles as $file) {
+            $content = File::get($file);
+            $lines = explode("\n", $content);
+
+            foreach ($lines as $line) {
+                if (str_contains($line, "\"user_id\":{$userId}")) {
+                    $entry = $this->parseLogLine($line);
+                    if ($entry !== null) {
+                        $entry['channel'] = 'payment';
+                        $results[] = $entry;
+                    }
+                }
+            }
+        }
+
+        // جستجو در security.log
+        $securityFiles = $this->getChannelFiles('security');
+        foreach ($securityFiles as $file) {
+            $content = File::get($file);
+            $lines = explode("\n", $content);
+
+            foreach ($lines as $line) {
+                if (str_contains($line, "\"user_id\":{$userId}")) {
+                    $entry = $this->parseLogLine($line);
+                    if ($entry !== null) {
+                        $entry['channel'] = 'security';
+                        $results[] = $entry;
+                    }
+                }
+            }
+        }
+
+        usort($results, fn($a, $b) => strtotime($b['timestamp']) - strtotime($a['timestamp']));
+
+        return [
+            'user_id' => $userId,
+            'entries' => $results,
+        ];
+    }
 
     // ==================== Private Methods ====================
 
@@ -279,5 +440,67 @@ class LogReaderService
         $content = File::get($file);
 
         return substr_count($content, "\"event\":\"{$event}\"");
+    }
+        /**
+     * Normalize کردن شماره تلفن.
+     * ارقام فارسی → لاتین، حذف فاصله و کاراکترهای اضافی.
+     */
+    private function normalizePhone(string $phone): ?string
+    {
+        // تبدیل ارقام فارسی به لاتین
+        $persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $latinDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        $phone = str_replace($persianDigits, $latinDigits, $phone);
+
+        // حذف کاراکترهای غیر عددی (فاصله، خط تیره، پرانتز)
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+
+        // بررسی فرمت معتبر شماره ایرانی (09xxxxxxxxx)
+        if (preg_match('/^09[0-9]{9}$/', $phone)) {
+            return $phone;
+        }
+
+        return null;
+    }
+
+    /**
+     * Mask کردن شماره تلفن برای نمایش.
+     */
+    private function maskPhone(string $phone): string
+    {
+        if (strlen($phone) < 7) {
+            return str_repeat('*', strlen($phone));
+        }
+
+        return substr($phone, 0, 4) . str_repeat('*', strlen($phone) - 7) . substr($phone, -3);
+    }
+        /**
+     * بررسی اینکه آیا یک log entry در بازه تاریخ مشخص‌شده قرار دارد.
+     */
+    private function isEntryInDateRange(array $entry, ?string $dateFrom, ?string $dateTo): bool
+    {
+        if (!$dateFrom && !$dateTo) {
+            return true;
+        }
+
+        $entryTimestamp = $entry['timestamp'] ?? null;
+        if ($entryTimestamp === null) {
+            return true; // اگر timestamp نبود، رد نکن
+        }
+
+        try {
+            $entryDate = date('Y-m-d', strtotime($entryTimestamp));
+        } catch (\Exception $e) {
+            return true;
+        }
+
+        if ($dateFrom && $entryDate < $dateFrom) {
+            return false;
+        }
+        if ($dateTo && $entryDate > $dateTo) {
+            return false;
+        }
+
+        return true;
     }
 }

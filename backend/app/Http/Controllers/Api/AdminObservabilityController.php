@@ -201,4 +201,81 @@ class AdminObservabilityController extends Controller
             'data' => $events,
         ]);
     }
+           /**
+     * جستجوی لاگ‌های یک کاربر بر اساس شماره تلفن.
+     *
+     * GET /admin/observability/user?phone=09123456789&date_from=2026-08-01&date_to=2026-08-21&channel=security&event=auth.login.success
+     *
+     * ✅ FIX: استفاده مستقیم از $request->input() برای اطمینان از خواندن
+     * همه پارامترها (نه فقط آن‌هایی که از validation عبور می‌کنند).
+     */
+    public function user(Request $request)
+    {
+        // ✅ خواندن مستقیم همه پارامترها از request
+        $phone = $request->input('phone');
+        $userId = $request->input('user_id');
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
+        $channel = $request->input('channel');
+        $event = $request->input('event');
+
+        // Validation دستی (چون query parameters ممکن است از validation عبور نکنند)
+        if (!empty($dateFrom) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'فرمت date_from نامعتبر است. باید Y-m-d باشد.',
+            ], 422);
+        }
+
+        if (!empty($dateTo) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'فرمت date_to نامعتبر است. باید Y-m-d باشد.',
+            ], 422);
+        }
+
+        if (!empty($channel) && !in_array($channel, ['security', 'payment'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'channel باید security یا payment باشد.',
+            ], 422);
+        }
+
+        if (empty($phone) && empty($userId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'phone یا user_id الزامی است.',
+            ], 422);
+        }
+
+        // جستجو
+        if (!empty($userId)) {
+            $results = $this->logReader->searchByUserId((int) $userId);
+        } else {
+            $results = $this->logReader->searchByUser(
+                $phone,
+                $dateFrom ?: null,
+                $dateTo ?: null,
+                $event ?: null,
+                $channel ?: null
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $results['entries'],
+            'meta' => [
+                'total' => count($results['entries']),
+                'user_id' => $results['user_id'] ?? null,
+                'phone_mask' => $results['phone_mask'] ?? null,
+                // ✅ اضافه کردن filters_applied برای debug و transparency
+                'filters_applied' => [
+                    'date_from' => $dateFrom ?: null,
+                    'date_to' => $dateTo ?: null,
+                    'channel' => $channel ?: null,
+                    'event' => $event ?: null,
+                ],
+            ],
+        ]);
+    }
 }

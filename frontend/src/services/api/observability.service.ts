@@ -115,4 +115,62 @@ export const observabilityService = {
     });
     return response.data.data;
   },
+  
+     /**
+   * جستجوی لاگ‌های یک کاربر بر اساس شماره تلفن با فیلترهای پیشرفته.
+   *
+   * ⚠️ با URLSearchParams تضمین می‌کنیم params به‌صورت flat ارسال شوند
+   * (?phone=XXX&date_from=YYY) و axios آن‌ها را به phone[phone] تبدیل نکند.
+   */
+  async searchByUser(params: {
+    phone?: string;
+    user_id?: number;
+    date_from?: string | null;
+    date_to?: string | null;
+    channel?: 'security' | 'payment' | null;
+    event?: string | null;
+  }): Promise<{
+    success: boolean;
+    data: LogEntry[];
+    meta: {
+      total: number;
+      user_id: number | null;
+      phone_mask: string | null;
+      filters_applied: {
+        date_from: string | null;
+        date_to: string | null;
+        channel: string | null;
+        event: string | null;
+      };
+    };
+  }> {
+    const searchParams = new URLSearchParams();
+
+    if (params.phone && params.phone.trim()) {
+      searchParams.append('phone', params.phone.trim());
+    }
+    if (params.user_id) {
+      searchParams.append('user_id', String(params.user_id));
+    }
+    if (params.date_from && params.date_from.trim()) {
+      searchParams.append('date_from', params.date_from);
+    }
+    if (params.date_to && params.date_to.trim()) {
+      searchParams.append('date_to', params.date_to);
+    }
+    if (params.channel && params.channel.trim()) {
+      searchParams.append('channel', params.channel);
+    }
+    if (params.event && params.event.trim()) {
+      searchParams.append('event', params.event);
+    }
+
+    const queryString = searchParams.toString();
+    const url = queryString
+      ? `/admin/observability/user?${queryString}`
+      : '/admin/observability/user';
+
+    const response = await client.get(url);
+    return response.data;
+  },
 };
