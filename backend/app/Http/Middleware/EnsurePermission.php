@@ -6,6 +6,7 @@ use App\Services\Permission\PermissionService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Support\SecurityLog;
 
 /**
  * لایه‌ی سوم زنجیره‌ی authorization ادمین:
@@ -50,6 +51,12 @@ class EnsurePermission
         }
 
         if (! $this->permissionService->userHasAllPermissions($user, $permissions)) {
+            SecurityLog::auth('auth.permission.denied', $request, [
+                'user_id'              => $user->id,
+                'required_permissions' => $permissions,
+                'reason'               => 'missing_permissions',
+            ]);
+
             // ✅ عمداً فهرست دقیق Permission های لازم را در پاسخ لو
             // نمی‌دهیم — فقط پیام عمومی، تا کاربر بدون دسترسی نتواند
             // نقشه‌ی کامل taxonomy را از پاسخ‌های ۴۰۳ استخراج کند.

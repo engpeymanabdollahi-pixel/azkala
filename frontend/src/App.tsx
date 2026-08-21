@@ -71,6 +71,7 @@ const AdminAccessPage = lazy(() => import('@/pages/admin/AdminAccessPage'));
 const AdminStoresPage = lazy(() => import('@/pages/admin/AdminStoresPage'));
 const AdminReferralsPage = lazy(() => import('@/pages/admin/AdminReferralsPage'));
 const ProductTemplatesPage = lazy(() => import('@/pages/seller/ProductTemplates'));
+const AdminAccessLogsPage = lazy(() => import('@/pages/admin/AdminAccessLogsPage'));
 
 // ==========================================
 // ایمپورت صفحات پنل کاربری (Lazy Loaded)
@@ -446,6 +447,7 @@ export default function App() {
                 <Route path="device-models" element={<AdminDeviceModelsPage />} />
                 <Route path="magazine" element={<AdminMagazinePage />} /> 
                                 <Route path="ads" element={<AdminAdsPage />} />
+                                <Route path="access-logs" element={<AdminAccessLogsPage />} />
                 
                 {/* ریدایرکت‌های ادمین */}
                 <Route path="categories" element={<Navigate to="/admin/catalog" replace />} />

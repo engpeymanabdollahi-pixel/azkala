@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Menu, Search, Sun, Moon, Home, ChevronLeft, Sparkles,
   LayoutDashboard, Package, ShoppingCart, Users, Settings,
-  Newspaper, Megaphone, BarChart3, MessageCircle,
+  Newspaper, Megaphone, BarChart3, MessageCircle, ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import NotificationBell from './NotificationBell';
@@ -28,6 +28,7 @@ const routeLabels: Record<string, { label: string; icon?: any }> = {
   '/admin/reports': { label: 'گزارشات', icon: BarChart3 },
   '/admin/communication': { label: 'ارتباطات', icon: MessageCircle },
   '/admin/settings': { label: 'تنظیمات', icon: Settings },
+    '/admin/access-logs': { label: 'گزارش دسترسی‌ها', icon: ShieldCheck },
 };
 
 export default function AdminHeader({ onMenuClick }: AdminHeaderProps) {
@@ -39,6 +40,7 @@ export default function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   // ساخت breadcrumb از مسیر فعلی
   const currentPath = location.pathname;
   const currentRoute = routeLabels[currentPath] || { label: '' };
+  
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

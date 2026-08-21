@@ -9,6 +9,8 @@ use App\Http\Requests\UpdateProfileRequest;
 use App\Models\User;
 use App\Services\Auth\AuthService;
 use App\Support\Digits;
+use App\Support\SecurityLog;
+use App\Support\SensitiveDataSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -38,14 +40,12 @@ class AuthController extends Controller
 
     /**
      * ثبت‌نام یا درخواست کد تایید
+     *
+     * 📝 Security logging در AuthService::registerOrRequestOtp انجام می‌شود
+     *    (auth.register.request و auth.register.disabled).
      */
     public function register(Request $request)
     {
-        // پاک‌سازی *پیش از* اعتبارسنجی. اگر بعد از validate انجام شود بی‌اثر است،
-        // چون خودِ regex هر رشته‌ای با فاصله یا خط تیره را از قبل رد کرده است.
-        //
-        // «۰۹۱۲۳۴۵۶۷۸۹» با ارقام فارسی هم همین‌جا رد می‌شد: [0-9] فقط ارقام
-        // لاتین را می‌گیرد و کاربرِ کیبورد فارسی بدون هیچ توضیحی خطا می‌گرفت.
         $request->merge([
             'phone' => Str::replace([' ', '-', '+', '(', ')'], '', Digits::toLatin($request->input('phone'))),
             'email' => $request->filled('email') ? Str::lower(trim((string) $request->input('email'))) : $request->input('email'),
@@ -56,12 +56,6 @@ class AuthController extends Controller
             'phone' => 'required|string|regex:/^09[0-9]{9}$/',
             'email' => 'nullable|email|max:255',
             'name' => 'nullable|string|max:255',
-            // ✅ Referral System Phase 2: عمداً هیچ regex/format-validation
-            // سخت‌گیرانه‌ای اینجا نیست — طبق الزام صریح «Referral نباید
-            // Registration را خراب کند»، یک کد بدفرمت/نامعتبر نباید کل
-            // درخواست ثبت‌نام را با ۴۲۲ رد کند. اعتبارسنجی واقعی فرمت/
-            // وجود کد داخل ReferralService است (silent no-op برای هر
-            // چیزی که معتبر نباشد).
             'ref' => 'nullable|string|max:32',
         ]);
 
@@ -75,13 +69,16 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => $result['message'],
-            'phone' => $validated['phone'], // ✅ در سطح ریشه
+            'phone' => $validated['phone'],
             'data' => ['user_id' => $result['user_id']],
         ], 200);
     }
 
     /**
      * بررسی کد OTP و ورود
+     *
+     * 📝 Security logging در AuthService::handleOtpLogin انجام می‌شود
+     *    (auth.otp.verify.success و auth.otp.verify.failure).
      */
     public function handleOtp(Request $request)
     {
@@ -92,13 +89,6 @@ class AuthController extends Controller
 
         $result = $this->authService->handleOtpLogin($validated['phone'], $validated['otp']);
 
-        // ✅ قبلاً اینجا فقط توکن Bearer برمی‌گشت، برخلاف login() که هم نشست
-        // کوکی‌محور می‌ساخت هم توکن. چون توکن فقط در حافظه‌ی Zustand می‌ماند
-        // (عمداً در localStorage ذخیره نمی‌شود)، با هر reload/تب جدید توکن از
-        // بین می‌رفت و هیچ کوکی نشست معتبری هم برای جایگزینی‌اش وجود نداشت —
-        // یعنی کاربری که با OTP وارد شده بود (مسیر اصلی AuthModal) با اولین
-        // رفرش کاملاً از دسترسی می‌افتاد، هرچند isAuthenticated/user در
-        // localStorage باقی مانده بودند. همان رفتار login() اینجا هم اعمال شد.
         if ($request->hasSession()) {
             Auth::guard('web')->login($result['user']);
             $request->session()->regenerate();
@@ -115,7 +105,10 @@ class AuthController extends Controller
     }
 
     /**
-     * ورود با ایمیل و رمز عبور
+     * ورود با شماره موبایل و رمز عبور
+     *
+     * 📝 Note: مسیر اصلی ورود ازکالا OTP است (handleOtp). این endpoint
+     *    به‌عنوان مسیر جایگزین/آتی حفظ شده و security logging کامل دارد.
      */
     public function login(LoginRequest $request)
     {
@@ -124,6 +117,12 @@ class AuthController extends Controller
 
         // ۲. بررسی وجود کاربر و صحت رمز عبور
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            SecurityLog::auth('auth.login.failure', $request, [
+                'phone_mask' => SensitiveDataSanitizer::maskPhone($request->phone),
+                'phone_hash' => SensitiveDataSanitizer::hashIdentifier($request->phone),
+                'reason'     => 'invalid_credentials',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'شماره موبایل یا رمز عبور اشتباه است.',
@@ -132,6 +131,13 @@ class AuthController extends Controller
 
         // ۳. بررسی فعال بودن کاربر
         if (! $user->is_active) {
+            SecurityLog::auth('auth.login.failure', $request, [
+                'user_id'    => $user->id,
+                'phone_mask' => SensitiveDataSanitizer::maskPhone($request->phone),
+                'phone_hash' => SensitiveDataSanitizer::hashIdentifier($request->phone),
+                'reason'     => 'inactive_account',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'حساب کاربری شما غیرفعال است.',
@@ -141,25 +147,19 @@ class AuthController extends Controller
         // ۴. به‌روزرسانی زمان آخرین ورود
         $user->update(['last_login_at' => now()]);
 
+        SecurityLog::auth('auth.login.success', $request, [
+            'user_id'    => $user->id,
+            'phone_mask' => SensitiveDataSanitizer::maskPhone($user->phone),
+            'phone_hash' => SensitiveDataSanitizer::hashIdentifier($user->phone),
+        ]);
+
         // ۵. ورود به نشست (احراز هویت کوکی‌محور Sanctum)
-        //
-        // کوکی نشست httpOnly است، پس برخلاف توکن در localStorage با XSS خوانده
-        // نمی‌شود و بعد از refresh صفحه هم باقی می‌ماند. تا پیش از این توکن در
-        // store نگهداری می‌شد ولی persist نمی‌شد، و چون isAuthenticated persist
-        // می‌شد، هر بار reload کاربر «لاگین» بود ولی بدون توکن — یعنی اولین
-        // درخواست ۴۰۱ می‌گرفت و interceptor بیرونش می‌انداخت.
-        //
-        // این مسیر فقط وقتی نشست می‌سازد که درخواست stateful باشد؛ یعنی مبدأ
-        // در SANCTUM_STATEFUL_DOMAINS باشد.
-        // درخواستِ غیر stateful (موبایل، اسکریپت، cURL) اصلاً session store ندارد؛
-        // صدا زدن session() روی آن استثنا می‌دهد. آن مسیر فقط با توکن پیش می‌رود.
         if ($request->hasSession()) {
             Auth::guard('web')->login($user);
             $request->session()->regenerate();
         }
 
-        // ۶. توکن هم ساخته می‌شود تا کلاینت‌های غیرمرورگری (موبایل، اسکریپت)
-        //    که نشست ندارند از کار نیفتند.
+        // ۶. توکن برای کلاینت‌های غیرمرورگری
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -177,7 +177,13 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $token = $request->user()->currentAccessToken();
+        $user = $request->user();
+
+        SecurityLog::auth('auth.logout', $request, [
+            'user_id' => $user->id,
+        ]);
+
+        $token = $user->currentAccessToken();
 
         // با احراز هویت کوکی‌محور، currentAccessToken یک TransientToken است که
         // اصلاً متد delete ندارد — صدا زدنش BadMethodCallException و ۵۰۰ می‌داد.
@@ -237,6 +243,11 @@ class AuthController extends Controller
             // به‌روزرسانی last_login_at
             $user->update(['last_login_at' => now()]);
 
+            SecurityLog::auth('auth.token.refresh.success', $request, [
+                'user_id'    => $user->id,
+                'phone_mask' => SensitiveDataSanitizer::maskPhone($user->phone),
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Token refreshed successfully',
@@ -245,9 +256,12 @@ class AuthController extends Controller
                     'user' => $this->userPayload($user),
                 ],
             ]);
-
         } catch (\Exception $e) {
-            \Log::error('Token refresh failed: '.$e->getMessage());
+            SecurityLog::auth('auth.token.refresh.failure', $request, [
+                'user_id' => $request->user()?->id,
+                'reason'  => 'exception',
+                // هرگز $e->getMessage() را log نکن چون ممکن است token حاوی باشد
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -297,6 +311,10 @@ class AuthController extends Controller
         $user = $request->user();
         $user->update([
             'password' => Hash::make($request->new_password),
+        ]);
+
+        SecurityLog::auth('auth.password.change', $request, [
+            'user_id' => $user->id,
         ]);
 
         return response()->json([

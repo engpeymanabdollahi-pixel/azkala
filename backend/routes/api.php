@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\AdminDeviceSeriesController;
 use App\Http\Controllers\Api\AdminMagazineController;
 use App\Http\Controllers\Api\AdminOrderController;
 use App\Http\Controllers\Api\AdminProductController;
+use App\Http\Controllers\Api\NewsletterController;
 // چت
 use App\Http\Controllers\Api\AdminReportController;
 use App\Http\Controllers\Api\AdminReviewController;
@@ -78,6 +79,7 @@ use App\Http\Controllers\Api\WishlistController;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AdminAccessLogController;
 
 // ============================================================
 // ✅ نسخه‌بندی API: تمام روت‌ها درون پیشوند v1 قرار می‌گیرند
@@ -536,6 +538,15 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/sentiment-stats', [AdminDashboardController::class, 'sentimentStats'])->name('sentiment-stats');
                 Route::get('/recent-chat-activity', [AdminDashboardController::class, 'recentChatActivity'])->name('recent-chat-activity');
             });
+                        // ✅ فاز ۲ Observability: نمایش لاگ‌های تغییر دسترسی مدیریتی.
+            // AdminAccessLog append-only است و توسط AdminAccessService نوشته
+            // می‌شود؛ این endpoint فقط خواندن تاریخچه را ممکن می‌کند.
+            // permission:admin.access.view (non-sensitive) در
+            // config/azkala/permissions.php تعریف شده است.
+            Route::prefix('access-logs')->middleware('permission:admin.access.view')->name('access-logs.')->group(function () {
+                Route::get('/', [AdminAccessLogController::class, 'index'])->name('index');
+                Route::get('/actions', [AdminAccessLogController::class, 'actions'])->name('actions');
+            });
             // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
             // الزامی است؛ بدون آن هر سه گروه نام‌های یکسانِ admin.index/store/update/
@@ -899,6 +910,12 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             });
 
         }); // پایان گروه admin
+        // Newsletter (protected)
+Route::middleware('auth:sanctum')->prefix('newsletter')->group(function () {
+    Route::get('/status', [NewsletterController::class, 'status']);
+    Route::post('/subscribe', [NewsletterController::class, 'subscribe']);
+    Route::post('/unsubscribe', [NewsletterController::class, 'unsubscribe']);
+});
 
     }); // ✅ پایان گروه auth:sanctum (فقط یک بار و در جای درست بسته شده است)
 

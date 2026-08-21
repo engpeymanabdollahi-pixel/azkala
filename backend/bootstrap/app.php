@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Route;
+use App\Support\SecurityLog;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -48,6 +49,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // مدیریت AuthenticationException برای API
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
+                SecurityLog::auth('auth.authentication.failed', $request, [
+                    'reason'  => 'unauthenticated',
+                    'guards'  => $e->guards(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthenticated. Please login first.',

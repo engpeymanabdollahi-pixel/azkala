@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, MessageSquare,
   Tag, FolderTree, X, LogOut, ChevronLeft, Link2,
   Settings, BarChart3, MessageCircle, Newspaper, Megaphone, ShieldCheck, MapPin, Gift,
+  ScrollText,
 } from 'lucide-react';
 import AdminHeader from '@/components/admin/AdminHeader';
 import { useAuthStore } from '@/store/authStore';
@@ -63,6 +64,7 @@ const menuItems: Array<{
   // ═══════════════════════════════════════════════════════
   { path: '/admin/access', icon: ShieldCheck, label: 'دسترسی مدیریتی', permission: 'admin.access.view' },
 
+    { path: '/admin/access-logs', icon: ScrollText, label: 'گزارش دسترسی‌ها', permission: 'admin.access.view' },
   // ═══════════════════════════════════════════════════════
   // ⚙️ تنظیمات
   // ═══════════════════════════════════════════════════════

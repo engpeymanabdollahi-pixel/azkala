@@ -17,6 +17,7 @@ use App\Listeners\NotifySellerOfNewOrder;
 // ایمپورت Model و Observer مرتبط با محصولات (برای Audit Log)
 use App\Models\Product;
 use App\Observers\ProductObserver;
+use App\Support\SecurityLog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -79,17 +80,59 @@ class AppServiceProvider extends ServiceProvider
 
         // 🌍 محدودکننده عمومی API (۶۰ درخواست در دقیقه برای هر کاربر یا IP)
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(60)
+                ->by($request->user()?->id ?: $request->ip())
+                ->response(function (Request $request, array $headers) {
+                    SecurityLog::auth('abuse.rate_limit.hit', $request, [
+                        'limiter'  => 'api',
+                        'user_id'  => $request->user()?->id,
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی صبر کنید.',
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ], 429, $headers);
+                });
         });
 
         // 🔐 محدودکننده احراز هویت (۱۰ درخواست در دقیقه برای جلوگیری از Brute Force)
         RateLimiter::for('auth', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
+            return Limit::perMinute(10)
+                ->by($request->ip())
+                ->response(function (Request $request, array $headers) {
+                    SecurityLog::auth('abuse.rate_limit.hit', $request, [
+                        'limiter'     => 'auth',
+                        'reason'      => 'brute_force_protection',
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'تعداد تلاش‌های ورود بیش از حد مجاز است.',
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ], 429, $headers);
+                });
         });
 
         // 📞 محدودکننده ارسال OTP (۳ درخواست در دقیقه برای هر IP)
         RateLimiter::for('otp', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            return Limit::perMinute(3)
+                ->by($request->ip())
+                ->response(function (Request $request, array $headers) {
+                    SecurityLog::auth('abuse.rate_limit.hit', $request, [
+                        'limiter'     => 'otp',
+                        'reason'      => 'otp_spam_protection',
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'تعداد درخواست‌های OTP بیش از حد مجاز است.',
+                        'retry_after' => $headers['Retry-After'] ?? 60,
+                    ], 429, $headers);
+                });
         });
 
         // 🔍 محدودکننده جستجو (۳۰ درخواست در دقیقه)

@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Services\Referral\ReferralService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Support\SecurityLog;
+use App\Support\SensitiveDataSanitizer;
 
 class AuthService
 {
@@ -46,10 +48,21 @@ class AuthService
         $isNewPhone = ! User::where('phone', $phone)->exists();
 
         if ($isNewPhone && ! (bool) Setting::get('registration_enabled', true)) {
+            SecurityLog::service('auth.register.disabled', [
+                'phone_mask' => SensitiveDataSanitizer::maskPhone($phone),
+                'phone_hash' => SensitiveDataSanitizer::hashIdentifier($phone),
+            ]);
+
             throw ValidationException::withMessages([
                 'phone' => 'ثبت‌نام کاربران جدید در حال حاضر غیرفعال است.',
             ]);
         }
+
+        SecurityLog::service('auth.register.request', [
+            'phone_mask'  => SensitiveDataSanitizer::maskPhone($phone),
+            'phone_hash'  => SensitiveDataSanitizer::hashIdentifier($phone),
+            'is_new_user' => $isNewPhone,
+        ]);
 
         $this->otpService->generateAndCache($phone);
 
@@ -89,6 +102,12 @@ class AuthService
     public function handleOtpLogin(string $phone, string $otp): array
     {
         if (! $this->otpService->verify($phone, $otp)) {
+            SecurityLog::service('auth.otp.verify.failure', [
+                'phone_mask' => SensitiveDataSanitizer::maskPhone($phone),
+                'phone_hash' => SensitiveDataSanitizer::hashIdentifier($phone),
+                'reason'     => 'invalid_code',
+            ]);
+
             throw ValidationException::withMessages(['otp' => 'کد تایید نامعتبر یا منقضی شده است.']);
         }
 
@@ -116,6 +135,13 @@ class AuthService
                 'is_active' => true,
             ]
         );
+        
+
+                SecurityLog::service('auth.otp.verify.success', [
+            'user_id'    => $user->id,
+            'phone_mask' => SensitiveDataSanitizer::maskPhone($phone),
+            'phone_hash' => SensitiveDataSanitizer::hashIdentifier($phone),
+        ]);
 
         $user->tokens()->delete();
         $token = $user->createToken('auth_token')->plainTextToken;

@@ -72,6 +72,13 @@ return [
             'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
+                'security' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/security.log'),
+            'level' => 'debug',
+            'days' => 90, // security logs = retention طولانی‌تر
+            'replace_placeholders' => true,
+        ],
 
         'slack' => [
             'driver' => 'slack',
