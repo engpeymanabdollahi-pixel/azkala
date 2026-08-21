@@ -80,6 +80,7 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AdminAccessLogController;
+use App\Http\Controllers\Api\AdminObservabilityController;
 
 // ============================================================
 // ✅ نسخه‌بندی API: تمام روت‌ها درون پیشوند v1 قرار می‌گیرند
@@ -546,6 +547,18 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             Route::prefix('access-logs')->middleware('permission:admin.access.view')->name('access-logs.')->group(function () {
                 Route::get('/', [AdminAccessLogController::class, 'index'])->name('index');
                 Route::get('/actions', [AdminAccessLogController::class, 'actions'])->name('actions');
+            });
+                        // ✅ فاز ۵/۶ Observability: مرکز مشاهده‌پذیری یکپارچه
+            // همه منابع log (security, payment, api, queue) + AdminAccessLog
+            // در یک صفحه با tabs نمایش داده می‌شوند.
+            Route::prefix('observability')->middleware('permission:admin.access.view')->name('observability.')->group(function () {
+                Route::get('/stats', [AdminObservabilityController::class, 'stats'])->name('stats');
+                Route::get('/security', [AdminObservabilityController::class, 'security'])->name('security');
+                Route::get('/payment', [AdminObservabilityController::class, 'payment'])->name('payment');
+                Route::get('/api', [AdminObservabilityController::class, 'api'])->name('api');
+                Route::get('/queue', [AdminObservabilityController::class, 'queue'])->name('queue');
+                Route::get('/search', [AdminObservabilityController::class, 'search'])->name('search');
+                Route::get('/events', [AdminObservabilityController::class, 'events'])->name('events');
             });
             // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
