@@ -71,6 +71,46 @@ class AdminAccessService
 
         return $this->formatUserAccess($user);
     }
+        /**
+     * ✅ فاز ۷ (Tree View): بازگرداندن کاربران دارای دسترسی مدیریتی
+     * به‌صورت گروه‌بندی‌شده بر اساس administrative_role برای نمودار درختی.
+     *
+     * برخلاف listUsers (که paginate است و برای جدول استفاده می‌شود)،
+     * این متد همه‌ی کاربران دارای users.role=admin را یکجا برمی‌گرداند
+     * تا فرانت‌اند بتواند درخت را کامل رندر کند. تعداد این کاربران
+     * معمولاً کم است (ده‌ها، نه هزاران) پس pagination لازم نیست.
+     *
+     * @return array{groups: array, counts: array, total: int}
+     */
+    public function getAccessTree(): array
+    {
+        // فقط کاربرانی که users.role=admin دارند (یعنی دسترسی مدیریتی
+        // دارند یا قبلاً داشته‌اند). کاربران عادی (customer/seller) در
+        // این درخت نمایش داده نمی‌شوند چون مربوط به دسترسی مدیریتی نیستند.
+        $users = User::query()
+            ->with('roles', 'permissions')
+            ->where('role', 'admin')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $groups = [
+            'super_admin' => [],
+            'admin' => [],
+            'manager' => [],
+            'none' => [],
+        ];
+
+        foreach ($users as $user) {
+            $role = $this->currentAdministrativeRole($user) ?? 'none';
+            $groups[$role][] = $this->formatUserAccess($user);
+        }
+
+        return [
+            'groups' => $groups,
+            'counts' => array_map('count', $groups),
+            'total' => $users->count(),
+        ];
+    }
 
     public function getRoles(): array
     {
@@ -94,33 +134,29 @@ class AdminAccessService
      * تنظیم/حذف نقش Administrative یک کاربر.
      *
      * $newRole یکی از super_admin|admin|manager یا null (یعنی حذف کامل
-     * Administrative Access — کاربر همچنان همان users.role قبلی‌اش را
-     * دارد، فقط دیگر هیچ نقش/Permission ای ندارد).
+     * Administrative Access).
      *
-     * ✅ تصمیم معماری (Option A — به‌جای Option B که EnsureAdminRole را
-     * تغییر می‌داد): این متد قبلاً هر کاربری با users.role !== 'admin' را
-     * صریحاً رد می‌کرد (۴۲۲) — یعنی یک Super Admin اول باید از مسیر
-     * جداگانه‌ی /admin/users/{user}/role کاربر را به admin تبدیل می‌کرد،
-     * بعد از این‌جا Administrative Role می‌داد. حالا این دو قدم در یک
-     * تراکنش ادغام شده‌اند: اگر actor مجاز است (طبق همان hierarchy زیر)
-     * و واقعاً دارد یک نقش اعطا می‌کند (نه حذف)، users.role هم به‌طور
-     * خودکار admin می‌شود.
+     * ✅ فاز ۷ (بازگرداندن به User عادی):
+     *   - هنگام اعطای نقش: نقش اصلی کاربر (customer/seller/...) در
+     *     `pre_admin_role` ذخیره می‌شود.
+     *   - هنگام حذف نقش (null): همه نقش‌های Spatie، همه Permission های
+     *     مستقیم، و users.role به مقدار `pre_admin_role` برمی‌گردد
+     *     (یا 'customer' اگر دیتای قدیمی باشد). این کاربر بعد از logout
+     *     دیگر هیچ دسترسی به پنل ادمین نخواهد داشت (چون
+     *     EnsureAdminRole او را رد می‌کند).
      *
-     * چرا این گزینه (نه تغییر EnsureAdminRole)؟ چون:
+     * چرا این گزینه (Option A)؟
      *   ۱. EnsureAdminRole تنها دروازه‌ی /admin/* برای ~۱۸۰ route است؛
-     *      تغییرش یعنی بازتعریف امن‌ترین نقطه‌ی کل سیستم صرفاً برای یک
-     *      ویژگی UX. اینجا فقط یک متد لمس می‌شود.
+     *      تغییرش یعنی بازتعریف امن‌ترین نقطه‌ی کل سیستم.
      *   ۲. خودِ طراحی قبلی همین سرویس («اول users.role=admin شو، بعد
      *      Administrative Role بگیر») همیشه فرض می‌کرد users.role=admin
      *      پیش‌نیاز Administrative Role است — این تغییر همان پیش‌نیاز را
      *      *خودکار برآورده می‌کند*، آن را دور نمی‌زند.
      *   ۳. هیچ مسیر escalation جدیدی باز نمی‌شود: authorization واقعی
-     *      همچنان فقط canManageAdministrativeRole زیر است؛ این فقط یک
-     *      قدم دستی (تماس جداگانه با /admin/users/{id}/role) را حذف
-     *      می‌کند، سطح دسترسی مجاز actor را تغییر نمی‌دهد.
-     *   ۴. حذف Administrative Role (newRole=null) users.role را برنمی‌گرداند
-     *      — دقیقاً رفتار قبلی، چون معلوم نیست users.role قبلی چه بوده
-     *      و بازگردانی خودکار آن ریسک/پیچیدگی غیرضروری اضافه می‌کند.
+     *      همچنان فقط canManageAdministrativeRole زیر است.
+     *   ۴. حذف Administrative Role حالا users.role را هم برمی‌گرداند
+     *      (رفتار قبلی این کار را نمی‌کرد که باعث می‌شد کاربر بعد از حذف
+     *      نقش همچنان به UI پنل ادمین دسترسی داشته باشد).
      */
     public function assignAdministrativeRole(User $actor, int $targetUserId, ?string $newRole): User
     {
@@ -150,28 +186,67 @@ class AdminAccessService
         DB::transaction(function () use ($target, $newRole, $actor, $currentRole) {
             $previousUsersRole = $target->role;
 
-            // فقط وقتی واقعاً نقشی اعطا می‌شود (نه حذف) و کاربر هنوز
-            // users.role=admin ندارد — Option A.
-            if ($newRole !== null && $target->role !== 'admin') {
-                $target->forceFill(['role' => 'admin'])->save();
+            if ($newRole !== null) {
+                // ✅ اعطای نقش: اگر هنوز admin نیست، اول نقش اصلی‌اش را
+                // ذخیره کن (برای بازگرداندن آینده)، بعد users.role را admin کن.
+                if ($target->role !== 'admin') {
+                    $target->forceFill([
+                        'pre_admin_role' => $previousUsersRole,
+                        'role' => 'admin',
+                    ])->save();
+                }
+
+                // syncRoles جایگزینی کامل است — حتی اگر هوک User::boot (روی
+                // همان save بالا) به‌اشتباه نقش admin را زودهنگام assign کرده
+                // باشد، این خط آخرین و مرجع نهایی است.
+                $target->syncRoles([$newRole]);
+
+                AdminAccessLog::create([
+                    'actor_user_id' => $actor->id,
+                    'target_user_id' => $target->id,
+                    'action' => AdminAccessLog::ACTION_ROLE_ASSIGNED,
+                    'old_value' => json_encode([
+                        'administrative_role' => $currentRole,
+                        'users_role' => $previousUsersRole,
+                    ]),
+                    'new_value' => json_encode([
+                        'administrative_role' => $newRole,
+                        'users_role' => 'admin',
+                    ]),
+                ]);
+            } else {
+                // ✅ فاز ۷: بازگرداندن کامل به user عادی.
+                // ۱. حذف همه نقش‌های Administrative (Spatie)
+                $target->syncRoles([]);
+
+                // ۲. حذف همه Permission های مستقیم — رفع باگ امنیتی:
+                // قبلاً فقط syncRoles([]) صدا می‌شد و direct permissions
+                // باقی می‌ماندند؛ یعنی کاربر بدون نقش همچنان permission داشت.
+                $target->syncPermissions([]);
+
+                // ۳. بازگرداندن users.role به نقش اصلی (customer/seller).
+                // اگر pre_admin_role ذخیره نشده (دیتای قدیمی)، 'customer'
+                // پیش‌فرض است — چون رایج‌ترین حالت همین است.
+                $restoreRole = $target->pre_admin_role ?: 'customer';
+                $target->forceFill([
+                    'role' => $restoreRole,
+                    'pre_admin_role' => null,
+                ])->save();
+
+                AdminAccessLog::create([
+                    'actor_user_id' => $actor->id,
+                    'target_user_id' => $target->id,
+                    'action' => AdminAccessLog::ACTION_ROLE_REMOVED,
+                    'old_value' => json_encode([
+                        'administrative_role' => $currentRole,
+                        'users_role' => 'admin',
+                    ]),
+                    'new_value' => json_encode([
+                        'administrative_role' => null,
+                        'users_role' => $restoreRole,
+                    ]),
+                ]);
             }
-
-            // syncRoles جایگزینی کامل است — حتی اگر هوک User::boot (روی
-            // همان save بالا) به‌اشتباه نقش admin را زودهنگام assign کرده
-            // باشد، این خط آخرین و مرجع نهایی است.
-            $target->syncRoles($newRole ? [$newRole] : []);
-
-            AdminAccessLog::create([
-                'actor_user_id' => $actor->id,
-                'target_user_id' => $target->id,
-                'action' => $newRole ? AdminAccessLog::ACTION_ROLE_ASSIGNED : AdminAccessLog::ACTION_ROLE_REMOVED,
-                'old_value' => $previousUsersRole !== $target->role
-                    ? json_encode(['administrative_role' => $currentRole, 'users_role' => $previousUsersRole])
-                    : $currentRole,
-                'new_value' => $previousUsersRole !== $target->role
-                    ? json_encode(['administrative_role' => $newRole, 'users_role' => 'admin'])
-                    : $newRole,
-            ]);
         });
 
         return $target->fresh(['roles', 'permissions']);
@@ -305,6 +380,8 @@ class AdminAccessService
             'administrative_role' => $this->currentAdministrativeRole($user),
             'direct_permissions' => $user->getDirectPermissions()->pluck('name')->values(),
             'effective_permissions' => $user->getAllPermissions()->pluck('name')->values(),
+            // ✅ فاز ۷ (Tree View): برای نمایش «آخرین فعالیت» در نمودار درختی
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
         ];
     }
 }

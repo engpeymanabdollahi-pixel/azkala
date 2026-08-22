@@ -551,7 +551,7 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                         // ✅ فاز ۵/۶ Observability: مرکز مشاهده‌پذیری یکپارچه
             // همه منابع log (security, payment, api, queue) + AdminAccessLog
             // در یک صفحه با tabs نمایش داده می‌شوند.
-            Route::prefix('observability')->middleware('permission:admin.access.view')->name('observability.')->group(function () {
+                        Route::prefix('observability')->middleware('permission:admin.access.view')->name('observability.')->group(function () {
                 Route::get('/stats', [AdminObservabilityController::class, 'stats'])->name('stats');
                 Route::get('/security', [AdminObservabilityController::class, 'security'])->name('security');
                 Route::get('/payment', [AdminObservabilityController::class, 'payment'])->name('payment');
@@ -560,7 +560,6 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
                 Route::get('/search', [AdminObservabilityController::class, 'search'])->name('search');
                 Route::get('/user', [AdminObservabilityController::class, 'user'])->name('user');
                 Route::get('/events', [AdminObservabilityController::class, 'events'])->name('events');
-              Route::get('/user', [AdminObservabilityController::class, 'user'])->name('user');
             });
             // ۲. این بلوک روت را در کنار سایر روت‌های ادمین اضافه کنید:
             // نکته: پیشوندِ نام (device-brands. / device-series. / device-models.)
@@ -708,6 +707,9 @@ Route::delete('/{deviceId}', [UserDeviceController::class, 'destroy'])->name('de
             // برای hierarchy/delegation/self-modification.
             Route::prefix('access')->name('access.')->group(function () {
                 Route::get('/users', [AdminAccessController::class, 'users'])->middleware('permission:admin.access.view')->name('users.index');
+                // ✅ فاز ۷ (Tree View): باید قبل از /users/{id} بیاید،
+                // وگرنه 'tree' به‌عنوان {id} match می‌شود و ۴۰۴ می‌دهد.
+                Route::get('/users/tree', [AdminAccessController::class, 'tree'])->middleware('permission:admin.access.view')->name('users.tree');
                 Route::get('/users/{id}', [AdminAccessController::class, 'show'])->middleware('permission:admin.access.view')->name('users.show');
                 Route::get('/roles', [AdminAccessController::class, 'roles'])->middleware('permission:admin.access.view')->name('roles');
                 Route::get('/permissions', [AdminAccessController::class, 'permissions'])->middleware('permission:admin.access.view')->name('permissions');

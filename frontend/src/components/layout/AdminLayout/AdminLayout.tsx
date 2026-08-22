@@ -23,14 +23,14 @@ import apiClient from '@/services/api/client';
 //
 // ⚠️ این فقط UX است؛ حتی اگر کسی این فیلتر را دور بزند (مثلاً از
 // DevTools)، ورود مستقیم به مسیر یا صدا زدن API همچنان با ۴۰۳ از
-// Backend (EnsurePermission) رد می‌شود.
-const menuItems: Array<{
-  path: string;
-  icon: typeof LayoutDashboard;
-  label: string;
-  exact?: boolean;
-  permission?: string;
-}> = [
+    // Backend (EnsurePermission) رد می‌شود.
+    const menuItems: Array<{
+      path: string;
+      icon: LucideIcon;
+      label: string;
+      permission?: string;
+      superAdminOnly?: boolean;  // ✅ فاز ۷: فقط Super Admin
+    }> = [
   // ═══════════════════════════════════════════════════════
   // 📊 داشبورد و مدیریت اصلی
   // ═══════════════════════════════════════════════════════
@@ -62,7 +62,7 @@ const menuItems: Array<{
   // ═══════════════════════════════════════════════════════
   // 🛡️ دسترسی مدیریتی (Multi-Admin/Manager)
   // ═══════════════════════════════════════════════════════
-  { path: '/admin/access', icon: ShieldCheck, label: 'دسترسی مدیریتی', permission: 'admin.access.view' },
+  { path: '/admin/access', icon: ShieldCheck, label: 'دسترسی مدیریتی', permission: 'admin.access.view', superAdminOnly: true },
 
     { path: '/admin/access-logs', icon: ScrollText, label: 'گزارش دسترسی‌ها', permission: 'admin.access.view' },
   // ═══════════════════════════════════════════════════════
@@ -86,13 +86,19 @@ const fetchPendingReportsCount = async (): Promise<number> => {
 export function AdminLayout() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const { hasPermission } = usePermission();
+  const { hasPermission, isSuperAdmin } = usePermission();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const visibleMenuItems = useMemo(
-    () => menuItems.filter((item) => !item.permission || hasPermission(item.permission)),
-    [hasPermission]
+    () => menuItems.filter((item) => {
+      // ✅ فاز ۷: آیتم‌های Super Admin Only را برای non-super-admin مخفی کن
+      if (item.superAdminOnly && !isSuperAdmin) return false;
+      // Permission check معمولی
+      if (item.permission && !hasPermission(item.permission)) return false;
+      return true;
+    }),
+    [hasPermission, isSuperAdmin]
   );
 
   // ✅ قبلاً زنگ اعلان همیشه یک نقطه‌ی قرمز ثابت نشان می‌داد (span

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
 import {
   Crown, ShieldCheck, UserCog, ShieldAlert, ChevronRight, ChevronLeft, ChevronDown, Search, Link2, CheckSquare, Square,
+  LayoutGrid, Table,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -16,9 +17,11 @@ import { useCrudMutations } from '@/features/admin/hooks';
 import {
   adminAccessService,
   type AdminAccessUser,
+  type AdminAccessTreeNode,
   type AdminAccessPermissionsTaxonomy,
 } from '@/services/api/adminAccess.service';
 import type { AdministrativeRole } from '@/types/models';
+import AccessTreeView from '@/components/admin/AccessTreeView';
 
 /**
  * صفحه‌ی مدیریت «دسترسی مدیریتی» (بخش ۲۲ درخواست) — جایی که یک Super
@@ -29,6 +32,10 @@ import type { AdministrativeRole } from '@/types/models';
  * به کامنت بالای AdminAccessService سمت بک‌اند. تمام hierarchy/
  * self-modification/delegation واقعی همان‌جا enforce می‌شود؛ فیلترهای
  * این صفحه (مخفی/غیرفعال کردن گزینه‌ها) فقط UX است.
+ *
+ * ✅ فاز ۷: دو حالت نمایش
+ *   - table: جدول paginate با جستجو (برای پیدا کردن یک کاربر خاص)
+ *   - tree: نمودار درختی گروه‌بندی‌شده بر اساس نقش (برای دید کلی)
  */
 
 const ROLE_META: Record<AdministrativeRole, { label: string; variant: 'accent' | 'primary' | 'gray'; icon: LucideIcon }> = {
@@ -37,10 +44,6 @@ const ROLE_META: Record<AdministrativeRole, { label: string; variant: 'accent' |
   manager: { label: 'Manager', variant: 'gray', icon: UserCog },
 };
 
-// ✅ نقش اصلی (users.role) — از وقتی جستجو دیگر به role=admin محدود
-// نیست (بخش «فعال‌سازی تخصیص Administrative Role به کاربران غیر-admin»)،
-// جدول باید این را هم نشان بدهد تا مشخص باشد کدام کاربر هنوز
-// Administrative Role نگرفته است.
 const USERS_ROLE_LABEL: Record<string, string> = {
   customer: 'مشتری',
   seller: 'فروشنده',
@@ -59,12 +62,12 @@ export function AdminAccessPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleModalUser, setRoleModalUser] = useState<AdminAccessUser | null>(null);
   const [permissionsModalUser, setPermissionsModalUser] = useState<AdminAccessUser | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'tree'>('table');
 
-  const canView = hasPermission('admin.access.view');
-  const canManage = hasPermission('admin.access.manage');
+  // ✅ فاز ۷: فقط Super Admin می‌تواند این صفحه را ببیند
+  const canView = isSuperAdmin;
+  const canManage = isSuperAdmin;
 
-  // ✅ همان الگوی debounce ۴۰۰ میلی‌ثانیه‌ای موجود در AdminCouponsPage —
-  // جلوگیری از یک درخواست به ازای هر حرف تایپ‌شده.
   useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(searchQuery), 400);
     return () => clearTimeout(timeout);
@@ -73,25 +76,23 @@ export function AdminAccessPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-access-users', page, debouncedSearch],
     queryFn: () => adminAccessService.getUsers(page, 20, debouncedSearch || undefined),
-    enabled: canView,
+    enabled: canView && viewMode === 'table',
   });
 
-  // ✅ taxonomy فقط وقتی لازم است که واقعاً بخواهد Permission ویرایش کند —
-  // برای کسی که فقط admin.access.view دارد (نه manage)، این درخواست بی‌فایده است.
   const { data: taxonomyResponse } = useQuery({
     queryKey: ['admin-access-permissions-taxonomy'],
     queryFn: () => adminAccessService.getPermissionsTaxonomy(),
     enabled: canView && canManage,
   });
 
-  const { customMutation } = useCrudMutations({ queryKeys: ['admin-access-users'] });
+  const { customMutation } = useCrudMutations({ queryKeys: ['admin-access-users', 'admin-access-tree'] });
 
   if (!canView) {
     return (
       <EmptyState
         icon={<ShieldAlert className="w-10 h-10" />}
-        title="دسترسی ندارید"
-        description="برای مشاهده‌ی این بخش به Permission «admin.access.view» نیاز دارید."
+        title="دسترسی محدود"
+        description="این بخش فقط برای Super Admin قابل دسترسی است."
       />
     );
   }
@@ -99,138 +100,207 @@ export function AdminAccessPage() {
   const users = data?.data.data ?? [];
   const pagination = data?.data;
 
+  // ✅ Adapter: AdminAccessTreeNode → AdminAccessUser برای استفاده در modal های موجود
+  const handleTreeEditRole = (node: AdminAccessTreeNode) => {
+    setRoleModalUser({
+      id: node.id,
+      name: node.name,
+      phone: node.phone,
+      email: node.email,
+      users_role: node.users_role,
+      administrative_role: node.administrative_role,
+      direct_permissions: node.direct_permissions,
+      effective_permissions: node.effective_permissions,
+    });
+  };
+
+  const handleTreeEditPermissions = (node: AdminAccessTreeNode) => {
+    setPermissionsModalUser({
+      id: node.id,
+      name: node.name,
+      phone: node.phone,
+      email: node.email,
+      users_role: node.users_role,
+      administrative_role: node.administrative_role,
+      direct_permissions: node.direct_permissions,
+      effective_permissions: node.effective_permissions,
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-black text-gray-900 dark:text-gray-100">دسترسی مدیریتی</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          مدیریت نقش Administrative (Super Admin / Admin / Manager) و Permission های هر ادمین — این لایه کاملاً مستقل از نقش اصلی کاربر است.
-        </p>
+      {/* Header + View Mode Toggle */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-black text-gray-900 dark:text-gray-100">دسترسی مدیریتی</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            مدیریت نقش Administrative (Super Admin / Admin / Manager) و Permission های هر ادمین — این لایه کاملاً مستقل از نقش اصلی کاربر است.
+          </p>
+        </div>
+
+        {/* ✅ فاز ۷: View Mode Toggle */}
+        <div className="flex bg-gray-100 dark:bg-slate-800 rounded-xl p-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              viewMode === 'table'
+                ? 'bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+            aria-label="نمای جدولی"
+          >
+            <Table className="w-3.5 h-3.5" />
+            <span>جدول</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('tree')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              viewMode === 'tree'
+                ? 'bg-white dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+            aria-label="نمای درختی"
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>نمودار درختی</span>
+          </button>
+        </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            setPage(1);
-          }}
-          placeholder="جستجوی نام، شماره موبایل یا ایمیل..."
-          className="w-full pr-10 pl-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500"
+      {/* View Content */}
+      {viewMode === 'tree' ? (
+        <AccessTreeView
+          currentUserId={currentUser?.id}
+          onEditRole={handleTreeEditRole}
+          onEditPermissions={handleTreeEditPermissions}
         />
-      </div>
-
-      <Card variant="plain" className="overflow-hidden">
-        {isLoading ? (
-          <div className="p-12 flex justify-center">
-            <Spinner size="lg" />
+      ) : (
+        <>
+          {/* Search فقط برای نمای جدول */}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="جستجوی نام، شماره موبایل یا ایمیل..."
+              className="w-full pr-10 pl-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:border-primary-500"
+            />
           </div>
-        ) : users.length === 0 ? (
-          debouncedSearch ? (
-            <EmptyState title="نتیجه‌ای یافت نشد" description={`هیچ کاربری مطابق «${debouncedSearch}» پیدا نشد.`} />
-          ) : (
-            <EmptyState title="هیچ ادمینی یافت نشد" description="کاربری با نقش اصلی «ادمین» ثبت نشده است." />
-          )
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-right">
-                  <th className="p-4 font-semibold">کاربر</th>
-                  <th className="p-4 font-semibold">نقش اصلی</th>
-                  <th className="p-4 font-semibold">نقش Administrative</th>
-                  <th className="p-4 font-semibold">Permission های مستقیم</th>
-                  <th className="p-4 font-semibold" />
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => {
-                  const isSelf = currentUser?.id === u.id;
-                  const meta = u.administrative_role ? ROLE_META[u.administrative_role] : null;
-                  // ✅ فقط Super Admin می‌تواند یک Super Admin دیگر را مدیریت
-                  // کند (بخش ۱۶) — دکمه‌ها را برای این حالت اصلاً نشان نده،
-                  // به‌جای اینکه مودال باز شود و بعد با ۴۰۳ رد شود.
-                  const canManageThisRow = canManage && !isSelf && (u.administrative_role !== 'super_admin' || isSuperAdmin);
 
-                  return (
-                    <tr key={u.id} className="border-b border-gray-50 dark:border-gray-700/60 last:border-0">
-                      <td className="p-4">
-                        <div className="font-bold text-gray-900 dark:text-gray-100">{u.name}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{u.phone}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
-                      </td>
-                      <td className="p-4">
-                        <Badge variant="gray" size="sm">
-                          {USERS_ROLE_LABEL[u.users_role] ?? u.users_role}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        {meta ? (
-                          <Badge variant={meta.variant} size="sm" icon={<meta.icon className="w-3.5 h-3.5" />}>
-                            {meta.label}
-                          </Badge>
-                        ) : (
-                          <Badge variant="gray" size="sm">بدون دسترسی مدیریتی</Badge>
-                        )}
-                      </td>
-                      <td className="p-4 text-gray-600 dark:text-gray-300">
-                        {u.administrative_role === 'super_admin' ? 'همه (Super Admin)' : `${u.direct_permissions.length} مورد`}
-                      </td>
-                      <td className="p-4">
-                        {isSelf ? (
-                          <span className="text-xs text-gray-400 dark:text-gray-500">(خودتان)</span>
-                        ) : canManageThisRow ? (
-                          <div className="flex gap-2 justify-end">
-                            <Button size="sm" variant="outline" onClick={() => setRoleModalUser(u)}>
-                              {u.administrative_role ? 'تغییر نقش' : 'تعیین نقش'}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={u.administrative_role === 'super_admin'}
-                              onClick={() => setPermissionsModalUser(u)}
-                            >
-                              Permission ها
-                            </Button>
-                          </div>
-                        ) : null}
-                      </td>
+          <Card variant="plain" className="overflow-hidden">
+            {isLoading ? (
+              <div className="p-12 flex justify-center">
+                <Spinner size="lg" />
+              </div>
+            ) : users.length === 0 ? (
+              debouncedSearch ? (
+                <EmptyState title="نتیجه‌ای یافت نشد" description={`هیچ کاربری مطابق «${debouncedSearch}» پیدا نشد.`} />
+              ) : (
+                <EmptyState title="هیچ ادمینی یافت نشد" description="کاربری با نقش اصلی «ادمین» ثبت نشده است." />
+              )
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-right">
+                      <th className="p-4 font-semibold">کاربر</th>
+                      <th className="p-4 font-semibold">نقش اصلی</th>
+                      <th className="p-4 font-semibold">نقش Administrative</th>
+                      <th className="p-4 font-semibold">Permission های مستقیم</th>
+                      <th className="p-4 font-semibold" />
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  </thead>
+                  <tbody>
+                    {users.map((u) => {
+                      const isSelf = currentUser?.id === u.id;
+                      const meta = u.administrative_role ? ROLE_META[u.administrative_role] : null;
+                      const canManageThisRow = canManage && !isSelf && (u.administrative_role !== 'super_admin' || isSuperAdmin);
 
-        {pagination && pagination.last_page > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              leftIcon={<ChevronRight className="w-4 h-4" />}
-            >
-              قبلی
-            </Button>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              صفحه {pagination.current_page} از {pagination.last_page}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page >= pagination.last_page}
-              onClick={() => setPage((p) => p + 1)}
-              rightIcon={<ChevronLeft className="w-4 h-4" />}
-            >
-              بعدی
-            </Button>
-          </div>
-        )}
-      </Card>
+                      return (
+                        <tr key={u.id} className="border-b border-gray-50 dark:border-gray-700/60 last:border-0">
+                          <td className="p-4">
+                            <div className="font-bold text-gray-900 dark:text-gray-100">{u.name}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{u.phone}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
+                          </td>
+                          <td className="p-4">
+                            <Badge variant="gray" size="sm">
+                              {USERS_ROLE_LABEL[u.users_role] ?? u.users_role}
+                            </Badge>
+                          </td>
+                          <td className="p-4">
+                            {meta ? (
+                              <Badge variant={meta.variant} size="sm" icon={<meta.icon className="w-3.5 h-3.5" />}>
+                                {meta.label}
+                              </Badge>
+                            ) : (
+                              <Badge variant="gray" size="sm">بدون دسترسی مدیریتی</Badge>
+                            )}
+                          </td>
+                          <td className="p-4 text-gray-600 dark:text-gray-300">
+                            {u.administrative_role === 'super_admin' ? 'همه (Super Admin)' : `${u.direct_permissions.length} مورد`}
+                          </td>
+                          <td className="p-4">
+                            {isSelf ? (
+                              <span className="text-xs text-gray-400 dark:text-gray-500">(خودتان)</span>
+                            ) : canManageThisRow ? (
+                              <div className="flex gap-2 justify-end">
+                                <Button size="sm" variant="outline" onClick={() => setRoleModalUser(u)}>
+                                  {u.administrative_role ? 'تغییر نقش' : 'تعیین نقش'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={u.administrative_role === 'super_admin'}
+                                  onClick={() => setPermissionsModalUser(u)}
+                                >
+                                  Permission ها
+                                </Button>
+                              </div>
+                            ) : null}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {pagination && pagination.last_page > 1 && (
+              <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-700">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                  leftIcon={<ChevronRight className="w-4 h-4" />}
+                >
+                  قبلی
+                </Button>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  صفحه {pagination.current_page} از {pagination.last_page}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= pagination.last_page}
+                  onClick={() => setPage((p) => p + 1)}
+                  rightIcon={<ChevronLeft className="w-4 h-4" />}
+                >
+                  بعدی
+                </Button>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
 
       {roleModalUser && (
         <RoleModal
@@ -288,9 +358,6 @@ function RoleModal({
 }) {
   const [role, setRole] = useState<AdministrativeRole | 'none'>(user.administrative_role ?? 'none');
 
-  // ✅ گزینه‌ی Super Admin فقط برای Super Admin نمایش داده می‌شود (بخش
-  // ۱۵: «هیچ‌کس نمی‌تواند دسترسی بالاتر از سطح خودش اعطا کند») —
-  // Backend هم مستقل همین را چک می‌کند، این فقط جلوی یک ۴۰۳ بی‌فایده را می‌گیرد.
   const options: Array<{ value: AdministrativeRole | 'none'; label: string }> = [
     { value: 'none', label: 'بدون دسترسی مدیریتی' },
     { value: 'manager', label: 'Manager' },
@@ -298,17 +365,8 @@ function RoleModal({
     ...(canAssignSuperAdmin ? [{ value: 'super_admin' as const, label: 'Super Admin' }] : []),
   ];
 
-  // ✅ گزارش کاربر: «یک نفر رو ادمین کردم و فقط یک تب رو براش باز کردم
-  // ولی همه‌ی صفحات ادمین دسترسی پیدا کرد» — این یک باگ در enforcement
-  // نبود؛ نقش «Admin» طبق طراحی همین سیستم (AdministrativeAccessSeeder،
-  // $superAdminOnlyByDefault) به‌صورت خودکار تقریباً تمام Permission های
-  // غیرحساس را می‌گیرد، صرف‌نظر از این‌که در Modal مجوزها چه چیزی تیک
-  // خورده باشد. مشکل این بود که این select هیچ توضیحی نداشت — یک ادمین
-  // به‌طور معقول فکر می‌کرد «Admin» یعنی «یک نقش خنثی که بعداً با تیک
-  // زدن مجوزها محدودش می‌کنم»، در حالی که نقش درست برای دسترسی محدود
-  // «Manager» است (صفر Permission پیش‌فرض) + باز کردن Modal مجوزها.
   const roleDescriptions: Record<AdministrativeRole | 'none', string> = {
-    none: 'این کاربر هیچ دسترسی پنل ادمین نخواهد داشت.',
+    none: '⚠️ این کاربر کاملاً به حالت عادی برمی‌گردد: نقش ادمین، همه مجوزها و دسترسی به پنل ادمین حذف می‌شود. نقش اصلی او (مشتری/فروشنده) حفظ می‌شود.',
     manager:
       'شروع با صفر دسترسی. برای دسترسی محدود (مثلاً فقط یک بخش)، این را انتخاب کنید و بعد از «ذخیره»، از دکمه‌ی «مجوزها» فقط همان مورد(ها) را تیک بزنید.',
     admin:
@@ -335,10 +393,12 @@ function RoleModal({
             ))}
           </select>
           <p
-            className={`mt-2 text-xs leading-relaxed rounded-lg px-3 py-2 ${
-              role === 'admin' || role === 'super_admin'
-                ? 'bg-warning-50 text-warning-700 dark:bg-warning-900/20 dark:text-warning-400'
-                : 'bg-gray-50 text-gray-500 dark:bg-slate-900 dark:text-gray-400'
+            className={`mt-2 text-xs leading-relaxed rounded-lg px-3 py-2 border ${
+              role === 'none'
+                ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-800'
+                : role === 'admin' || role === 'super_admin'
+                  ? 'bg-warning-50 text-warning-700 dark:bg-warning-900/20 dark:text-warning-400 border-warning-200 dark:border-warning-800'
+                  : 'bg-gray-50 text-gray-500 dark:bg-slate-900 dark:text-gray-400 border-gray-200 dark:border-slate-700'
             }`}
           >
             {roleDescriptions[role]}
@@ -360,21 +420,6 @@ function RoleModal({
 
 // ==================== Permissions Modal ====================
 
-/**
- * درخت Permission ماژول→عملیات — Part 3 (Admin Permissions Audit).
- * داده از config/azkala/permissions.php (منبع حقیقت واقعی taxonomy این
- * پروژه، نه یک درخت اختراعی صفحه/تب) می‌آید — از قبل توسط
- * AdminAccessController::permissions() برمی‌گشت، فقط اینجا (فرانت‌اند)
- * به‌جای یک چک‌لیست تخت، به یک درخت واقعی با چک‌باکس‌های parent
- * indeterminate/انتخاب‌گروهی/جستجو تبدیل می‌شود.
- *
- * ✅ Direct vs Inherited: effective_permissions (از Spatie
- * getAllPermissions — شامل Permission های نقش) از قبل توسط بک‌اند
- * برمی‌گشت ولی فرانت‌اند تا امروز هرگز نمایشش نمی‌داد؛ یک Permission که
- * در effective هست ولی در direct نیست یعنی «از طریق نقش Administrative
- * به ارث رسیده» — حتی اگر اینجا تیک نخورد، کاربر همچنان از طریق نقشش
- * آن را دارد (رجوع به badge «به ارث رسیده» پایین).
- */
 function PermissionsModal({
   user,
   taxonomy,
@@ -434,9 +479,6 @@ function PermissionsModal({
     () => Object.values(taxonomy).flatMap((m) => Object.keys(m.permissions)),
     [taxonomy]
   );
-  // ✅ Select all / Clear all عمداً فقط روی Permission هایی عمل می‌کند که
-  // خودِ actor مجاز به واگذاری‌شان است — نمی‌تواند با یک کلیک چیزی فراتر
-  // از اختیار خودش را انتخاب کند (backend هم مستقل همین را رد می‌کند).
   const assignableNames = useMemo(
     () => allPermissionNames.filter((name) => actorIsSuperAdmin || actorPermissions.includes(name)),
     [allPermissionNames, actorIsSuperAdmin, actorPermissions]
@@ -529,10 +571,6 @@ function PermissionsModal({
                 {!isCollapsed && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2">
                     {Object.entries(module.permissions).map(([permName, meta]) => {
-                      // ✅ Delegation Security (بخش ۱۵): «هیچ‌کس نمی‌تواند
-                      // Permission ای را که خودش ندارد واگذار کند» — Super
-                      // Admin از این محدودیت مستثناست (Backend هم همین را
-                      // enforce می‌کند، این فقط پیش‌گیری UX از یک ۴۰۳ است).
                       const beyondOwnAuthority = !actorIsSuperAdmin && !actorPermissions.includes(permName);
                       const isInheritedOnly = inheritedOnly.has(permName) && !selected.has(permName);
 
@@ -587,10 +625,6 @@ function PermissionsModal({
   );
 }
 
-/**
- * چک‌باکس سطح-ماژول با حالت indeterminate واقعی — DOM API این را فقط
- * imperatively (نه یک attribute ساده‌ی React) پشتیبانی می‌کند.
- */
 function ModuleCheckbox({
   checkedCount,
   total,

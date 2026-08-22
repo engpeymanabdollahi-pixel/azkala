@@ -44,6 +44,34 @@ export interface AdminAccessPermissionModule {
 }
 
 export type AdminAccessPermissionsTaxonomy = Record<string, AdminAccessPermissionModule>;
+// ✅ فاز ۷ (Tree View): ساختار پاسخ /admin/access/users/tree
+export interface AdminAccessTreeNode {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  users_role: string;
+  administrative_role: AdministrativeRole | null;
+  direct_permissions: string[];
+  effective_permissions: string[];
+  last_login_at: string | null;
+}
+
+export interface AdminAccessTree {
+  groups: {
+    super_admin: AdminAccessTreeNode[];
+    admin: AdminAccessTreeNode[];
+    manager: AdminAccessTreeNode[];
+    none: AdminAccessTreeNode[];
+  };
+  counts: {
+    super_admin: number;
+    admin: number;
+    manager: number;
+    none: number;
+  };
+  total: number;
+}
 
 // ==================== Service ====================
 
@@ -71,6 +99,48 @@ export const adminAccessService = {
   async getPermissionsTaxonomy(): Promise<{ success: boolean; data: AdminAccessPermissionsTaxonomy }> {
     const response = await client.get('/admin/access/permissions');
     return response.data;
+  },
+     // ✅ فاز ۷ (Tree View): استفاده از endpoint موجود برای گروه‌بندی
+  // به‌جای endpoint جدید، از /users با per_page=1000 استفاده می‌کنیم
+  // و در frontend گروه‌بندی می‌کنیم. این endpoint از قبل کار می‌کند.
+  async getAccessTree(): Promise<{ success: boolean; data: AdminAccessTree }> {
+    // دریافت همه کاربران admin در یک request (معمولاً کمتر از ۱۰۰ تا هستند)
+    const response = await client.get('/admin/access/users', {
+      params: { page: 1, per_page: 1000 },
+    });
+
+    const users = response.data?.data?.data ?? [];
+
+    // گروه‌بندی بر اساس administrative_role
+    const groups = {
+      super_admin: [] as AdminAccessTreeNode[],
+      admin: [] as AdminAccessTreeNode[],
+      manager: [] as AdminAccessTreeNode[],
+      none: [] as AdminAccessTreeNode[],
+    };
+
+    for (const user of users) {
+      const role = user.administrative_role ?? 'none';
+      const node: AdminAccessTreeNode = {
+        ...user,
+        last_login_at: null, // endpoint اصلی این را ندارد، در فاز بعدی اضافه می‌شود
+      };
+      groups[role].push(node);
+    }
+
+    return {
+      success: true,
+      data: {
+        groups,
+        counts: {
+          super_admin: groups.super_admin.length,
+          admin: groups.admin.length,
+          manager: groups.manager.length,
+          none: groups.none.length,
+        },
+        total: users.length,
+      },
+    };
   },
 
   // role=null یعنی حذف کامل Administrative Access (کاربر همچنان

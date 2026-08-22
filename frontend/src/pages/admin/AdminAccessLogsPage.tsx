@@ -32,13 +32,14 @@ const TABS: Array<{
   label: string;
   icon: typeof ShieldCheck;
   description: string;
+  superAdminOnly?: boolean;  // ✅ فاز ۷
 }> = [
-  { key: 'access', label: 'دسترسی ادمین‌ها', icon: ShieldCheck, description: 'تغییرات نقش و دسترسی' },
-  { key: 'security', label: 'امنیت', icon: ShieldAlert, description: 'Login، OTP، Permission' },
+    { key: 'access', label: 'دسترسی ادمین‌ها', icon: ShieldCheck, description: 'تغییرات نقش و دسترسی' },
+  { key: 'security', label: 'امنیت', icon: ShieldAlert, description: 'Login، OTP، Permission', superAdminOnly: true },
   { key: 'payment', label: 'سفارشات', icon: ShoppingCart, description: 'Order lifecycle و Commission' },
   { key: 'api', label: 'API / Queue', icon: Server, description: 'خطاهای API و Queue' },
-    { key: 'user', label: 'جستجوی کاربر', icon: UserSearch, description: 'بر اساس شماره تلفن' },
-  { key: 'search', label: 'جستجو', icon: SearchIcon, description: 'بر اساس Request ID' },
+  { key: 'user', label: 'جستجوی کاربر', icon: UserSearch, description: 'بر اساس شماره تلفن', superAdminOnly: true },
+  { key: 'search', label: 'جستجو', icon: SearchIcon, description: 'بر اساس Request ID', superAdminOnly: true },
 ];
 
 const ACCESS_ACTION_META: Record<
@@ -116,8 +117,16 @@ function parseValue(value: unknown): string {
 // ==================== Main Component ====================
 
 export default function AdminAccessLogsPage() {
-  const { hasPermission } = usePermission();
+  const { hasPermission, isSuperAdmin } = usePermission();
   const [activeTab, setActiveTab] = useState<TabKey>('access');
+    // ✅ فاز ۷: اگر activeTab روی یک تب superAdminOnly است و کاربر non-super-admin است،
+  // به تب پیش‌فرض ('access') برگردان
+  useEffect(() => {
+    const currentTab = TABS.find((t) => t.key === activeTab);
+    if (currentTab?.superAdminOnly && !isSuperAdmin) {
+      setActiveTab('access');
+    }
+  }, [activeTab, isSuperAdmin]);
 
   // Permission check
   if (!hasPermission('admin.access.view')) {
@@ -156,7 +165,11 @@ export default function AdminAccessLogsPage() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-slate-700">
-        {TABS.map((tab) => {
+        {TABS.filter((tab) => {
+          // ✅ فاز ۷: تب‌های Super Admin Only را برای non-super-admin مخفی کن
+          if (tab.superAdminOnly && !isSuperAdmin) return false;
+          return true;
+        }).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
           return (
